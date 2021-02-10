@@ -10,12 +10,26 @@ class OsobaAdmin(admin.ModelAdmin):
     #search_fields = ('rs_login', 'priezvisko')
     search_fields = ['rs_login']
 
+    #obj is None during the object creation, but set to the object being edited during an edit
+    def get_readonly_fields(self, request, obj=None):
+        if obj:
+            return ["rs_uid", "rs_login"]
+        else:
+            return []
+
 admin.site.register(Osoba, OsobaAdmin)
 
 class ZmluvaAdmin(admin.ModelAdmin):
     list_display = ('zmluvna_strana', 'cislo_zmluvy', 'datum_pridania', 'datum_aktualizacie')
     ordering = ('datum_aktualizacie',)
     search_fields = ['cislo_zmluvy']
+
+    #obj is None during the object creation, but set to the object being edited during an edit
+    def get_readonly_fields(self, request, obj=None):
+        if obj:
+            return ["zmluvna_strana", "cislo_zmluvy"]
+        else:
+            return []
 
 admin.site.register(Zmluva, ZmluvaAdmin)
 
