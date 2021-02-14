@@ -3,14 +3,19 @@ https://docs.djangoproject.com/en/3.1/intro/tutorial01/
 django-admin startproject mysite
 python manage.py startapp polls
 
+python manage.py makemigrations zmluvy
+python manage.py migrate
+
 
 Rebuild the sqlite database (e.g. after git checkout)
 1. remove db.sqlite3
 2. ./manage.py makemigrations zmluvy
 2. python manage.py migrate
 3. python manage.py createsuperuser
-4. in 'python manage.py shell' run:
+4. ./manage.py import_autori --path=data/export-users-rs-2021-02-11.csv
 
+Or: 
+4. in 'python manage.py shell' run:
 from zmluvy.models import Osoba, Zmluva
 oo = Osoba(rs_uid = 1057, rs_login = "TrnkaAlfred", email = "atrnka@truni.sk", titul_pred_menom = "RNDr.", meno = "Alfréd", priezvisko = "Trnka", titul_za_menom = "PhD.", posobisko = "Truni, Trenčín")
 oo.save()

@@ -2,19 +2,43 @@ import datetime
 from django.db import models
 from django.utils import timezone
 
-# Create your models here.
-class Osoba(models.Model):
-    rs_uid = models.IntegerField("Uid v RS")
-    rs_login = models.CharField("Login v RS", max_length=100)
+# Create your models here.     
+# Abstraktná trieda so všetkými spoločnými poľami, nepoužívaná samostatne
+class PersonCommon(models.Model):
+    # IBAN alebo aj kompletný popis s BIC a číslom účtu
+    bankovy_kontakt = models.CharField("Bankový kontakt", max_length=200, blank=True)
+    adresa_ulica = models.CharField("Adresa – ulica a číslo domu", max_length=200, blank=True)
+    adresa_mesto = models.CharField("Adresa – PSČ a mesto", max_length=200, blank=True)
+    adresa_stat = models.CharField("Adresa – štát", max_length=100, blank=True)
+    datum_aktualizacie = models.DateField('Dátum aktualizácie', auto_now=True)
+    class Meta:
+        abstract = True
+
+# spol. s r. o., alebo iné, majú 
+#class PartnerOrganizacia(PersonCommon)L
+
+# nie je nevyhnutne v RS (jaz. redaktor a pod)
+class FyzickaOsoba(PersonCommon):
     email = models.CharField("Email", max_length=200)
     titul_pred_menom = models.CharField("Titul pred menom", max_length=100, blank=True) #optional
     meno = models.CharField("Meno", max_length=200)
     priezvisko = models.CharField("Priezvisko", max_length=200)
     titul_za_menom = models.CharField("Titul za menom", max_length=100, blank=True)     #optional
-    posobisko = models.CharField("Pôsobisko", max_length=200, blank=True)               #optional
-    datum_pridania = models.DateTimeField('Dátum pridania', auto_now_add=True)
-    datum_aktualizacie = models.DateTimeField('Dátum aktualizácie', auto_now=True)
     #pub_date = models.DateTimeField('date published')
+
+    class Meta:
+        abstract = True
+    def __str__(self):
+        return self.rs_login
+
+#class PartnerOsoba(FyzickaOsoba):
+
+#Autor, Konzultant, Garant, v RS s loginom PriezviskoMeno`
+class OsobaAuGaKo(FyzickaOsoba):
+    rs_uid = models.IntegerField("Uid v RS")
+    rs_login = models.CharField("Login v RS", max_length=100)
+    posobisko = models.CharField("Pôsobisko", max_length=200, blank=True)               #optional
+    v_RS_od = models.DateField('V RS od')
 
     def __str__(self):
         return self.rs_login
@@ -32,7 +56,7 @@ class Osoba(models.Model):
 #   zz.save()
 
 class Zmluva(models.Model):
-    zmluvna_strana = models.ForeignKey(Osoba, on_delete=models.CASCADE)
+    zmluvna_strana = models.ForeignKey(OsobaAuGaKo, on_delete=models.CASCADE)
     cislo_zmluvy = models.CharField("Číslo zmluvy", max_length=50)
     datum_pridania = models.DateTimeField('Dátum pridania', auto_now_add=True)
     datum_aktualizacie = models.DateTimeField('Dátum aktualizácie', auto_now=True)
