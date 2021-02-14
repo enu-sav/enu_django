@@ -42,6 +42,9 @@ class OsobaAuGaKo(FyzickaOsoba):
 
     def __str__(self):
         return self.rs_login
+    class Meta:
+        verbose_name = 'Autor/Garant/Konzultant'
+        verbose_name_plural = 'Autor/Garant/Konzultant'
 
 #1057	TrnkaAlfred	atrnka@truni.sk	prof. RNDr.	Alfréd	Trnka	PhD.	1729
 #   oo = Osoba(rs_uid = 1057, rs_login = "TrnkaAlfred", email = "atrnka@truni.sk", titul_pred_menom = "RNDr.", meno = "Alfréd", priezvisko = "Trnka", titul_za_menom = "PhD.", posobisko = "Truni, Trenčín")
@@ -63,4 +66,7 @@ class Zmluva(models.Model):
 
     def __str__(self):
         return self.cislo_zmluvy
+    class Meta:
+        verbose_name = 'Zmluva'
+        verbose_name_plural = 'Zmluvy'
 

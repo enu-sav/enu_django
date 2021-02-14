@@ -104,7 +104,8 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/3.1/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+#LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'sk-sk'
 
 TIME_ZONE = 'Europe/Bratislava'
 
@@ -119,3 +120,10 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/3.1/howto/static-files/
 
 STATIC_URL = '/static/'
+
+#https://automationpanda.com/2018/04/21/django-admin-translations/
+#By default, message files will be generated into locale directories for each app with strings marked for translation.
+#You may optionally want to set LOCALE_PATHS to change the paths. For example, it may be easiest to put all 
+#message files into one directory like this, rather than splitting them out by app:
+
+#LOCALE_PATHS = [os.path.join(BASE_DIR, 'locale')]
