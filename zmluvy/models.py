@@ -24,6 +24,7 @@ class FyzickaOsoba(PersonCommon):
     meno = models.CharField("Meno", max_length=200)
     priezvisko = models.CharField("Priezvisko", max_length=200)
     titul_za_menom = models.CharField("Titul za menom", max_length=100, blank=True)     #optional
+    rodne_cislo = models.CharField("Rodné číslo", max_length=20, blank=True)     #optional
     #pub_date = models.DateTimeField('date published')
 
     class Meta:
@@ -37,7 +38,8 @@ class FyzickaOsoba(PersonCommon):
 class OsobaAuGaKo(FyzickaOsoba):
     rs_uid = models.IntegerField("Uid v RS")
     rs_login = models.CharField("Login v RS", max_length=100)
-    posobisko = models.CharField("Pôsobisko", max_length=200, blank=True)               #optional
+    posobisko = models.CharField("Pôsobisko", max_length=200, blank=True)       #optional
+    odbor = models.CharField("Odbor", max_length=200, blank=True)               #optional
     v_RS_od = models.DateField('V RS od')
 
     def __str__(self):

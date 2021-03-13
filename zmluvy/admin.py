@@ -5,7 +5,7 @@ from .models import OsobaAuGaKo, Zmluva
 
 
 class OsobaAuGaKoAdmin(admin.ModelAdmin):
-    list_display = ('rs_login', 'rs_uid', 'email', 'titul_pred_menom', 'meno', 'priezvisko', 'titul_za_menom', 'posobisko', 'v_RS_od', 'datum_aktualizacie')
+    list_display = ('rs_login', 'rs_uid', 'email', 'titul_pred_menom', 'meno', 'priezvisko', 'titul_za_menom', 'rodne_cislo', 'odbor', "adresa_ulica", "adresa_mesto", "adresa_stat", 'datum_aktualizacie')
     ordering = ('datum_aktualizacie',)
     #search_fields = ('rs_login', 'priezvisko')
     search_fields = ['rs_login']
