@@ -1,10 +1,10 @@
 from django.contrib import admin
 
 # Register your models here.
-from .models import OsobaAuGaKo, Zmluva
+from .models import OsobaAutor, ZmluvaAutor
 
 
-class OsobaAuGaKoAdmin(admin.ModelAdmin):
+class OsobaAutorAdmin(admin.ModelAdmin):
     list_display = ('rs_login', 'rs_uid', 'email', 'titul_pred_menom', 'meno', 'priezvisko', 'titul_za_menom', 'rodne_cislo', 'odbor', "adresa_ulica", "adresa_mesto", "adresa_stat", 'datum_aktualizacie')
     ordering = ('datum_aktualizacie',)
     #search_fields = ('rs_login', 'priezvisko')
@@ -17,9 +17,9 @@ class OsobaAuGaKoAdmin(admin.ModelAdmin):
         else:
             return []
 
-admin.site.register(OsobaAuGaKo, OsobaAuGaKoAdmin)
+admin.site.register(OsobaAutor, OsobaAutorAdmin)
 
-class ZmluvaAdmin(admin.ModelAdmin):
+class ZmluvaAutorAdmin(admin.ModelAdmin):
     list_display = ('cislo_zmluvy', 'zmluvna_strana', 'datum_pridania', 'datum_aktualizacie')
     ordering = ('datum_aktualizacie',)
     search_fields = ['cislo_zmluvy']
@@ -31,7 +31,4 @@ class ZmluvaAdmin(admin.ModelAdmin):
         else:
             return []
 
-admin.site.register(Zmluva, ZmluvaAdmin)
-
-#admin.site.register(OsobaAuGaKo)
-#admin.site.register(Zmluva)
+admin.site.register(ZmluvaAutor, ZmluvaAutorAdmin)

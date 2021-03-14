@@ -2,6 +2,11 @@ import datetime
 from django.db import models
 from django.utils import timezone
 
+class AnoNie(models.TextChoices):
+    ANO = 'ano', 'Áno'
+    NIE = 'nie', 'Nie'
+
+
 # Create your models here.     
 # Abstraktná trieda so všetkými spoločnými poľami, nepoužívaná samostatne
 class PersonCommon(models.Model):
@@ -40,13 +45,24 @@ class OsobaAuGaKo(FyzickaOsoba):
     rs_login = models.CharField("Login v RS", max_length=100)
     posobisko = models.CharField("Pôsobisko", max_length=200, blank=True)       #optional
     odbor = models.CharField("Odbor", max_length=200, blank=True)               #optional
-    v_RS_od = models.DateField('V RS od')
+    #v_RS_od = models.DateField('V RS od', blank=True)
 
     def __str__(self):
         return self.rs_login
     class Meta:
+        abstract = True
         verbose_name = 'Autor/Garant/Konzultant'
         verbose_name_plural = 'Autor/Garant/Konzultant'
+
+class OsobaAutor (OsobaAuGaKo):
+    zdanit = models.CharField(max_length=3, choices=AnoNie.choices, blank=True) 
+
+    def __str__(self):
+        return self.rs_login
+    class Meta:
+        verbose_name = 'Autor'
+        verbose_name_plural = 'Autori'
+
 
 #1057	TrnkaAlfred	atrnka@truni.sk	prof. RNDr.	Alfréd	Trnka	PhD.	1729
 #   oo = Osoba(rs_uid = 1057, rs_login = "TrnkaAlfred", email = "atrnka@truni.sk", titul_pred_menom = "RNDr.", meno = "Alfréd", priezvisko = "Trnka", titul_za_menom = "PhD.", posobisko = "Truni, Trenčín")
@@ -61,7 +77,6 @@ class OsobaAuGaKo(FyzickaOsoba):
 #   zz.save()
 
 class Zmluva(models.Model):
-    zmluvna_strana = models.ForeignKey(OsobaAuGaKo, on_delete=models.CASCADE)
     cislo_zmluvy = models.CharField("Číslo zmluvy", max_length=50)
     datum_pridania = models.DateTimeField('Dátum pridania', auto_now_add=True)
     datum_aktualizacie = models.DateTimeField('Dátum aktualizácie', auto_now=True)
@@ -69,6 +84,14 @@ class Zmluva(models.Model):
     def __str__(self):
         return self.cislo_zmluvy
     class Meta:
+        abstract = True
         verbose_name = 'Zmluva'
         verbose_name_plural = 'Zmluvy'
+
+class ZmluvaAutor(Zmluva):
+    zmluvna_strana = models.ForeignKey(OsobaAutor, on_delete=models.CASCADE)
+    odmena = models.FloatField("Odmena/AH", default=0)  #Eur/AH (36 000 znakov)
+    class Meta:
+        verbose_name = 'Autorská zmluva'
+        verbose_name_plural = 'Autorské zmluvy'
 
