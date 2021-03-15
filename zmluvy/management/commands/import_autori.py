@@ -42,12 +42,9 @@ class Command(BaseCommand):
         ii= "'’,()[] ?,–_/.-aáäbcčdďeéěfghiíjklľĺmnňoóôöpqrŕřsštťuüúůvwxyýzžAÁÄBCČDĎEÉFGHIÍJKLĽĹMNŇOÓÔPQRŔŘSŠTŤUÜÚŮVWXYÝZŽ0123456789"
         oo= "-------__--_/.-aaabccddeeefghiijklllmnnoooopqrrrssttuuuuvwxyyzzAAABCCDDEEFGHIIJKLLLMNNOOOPQRRRSSTTUUUUVWXYYZZ0123456789"
         t=""
-
         for i,c in enumerate(text.strip(" ")):
             t += oo[ii.find(c)]
-        #ipdb.set_trace()
         return t
-
 
     def handle(self, *args, **kwargs):
         self.read_aa()
@@ -63,17 +60,17 @@ class Command(BaseCommand):
                 o_query_set = OsobaAutor.objects.filter(rs_uid=uid)
                 if o_query_set:
                     oo = o_query_set[0]
-                    oo.titul_pred_menom = autor[hdr["Titul pred"]],
-                    oo.meno = autor[hdr["Meno"]],
-                    oo.priezvisko = autor[hdr["Priezvisko"]],
-                    oo.titul_za_menom = autor[hdr["Titul za"]],
-                    oo.adresa_ulica = autor[hdr["Adresa1"]],
-                    oo.adresa_mesto = autor[hdr["Adresa2"]],
-                    oo.adresa_stat = autor[hdr["Adresa3"]],
-                    oo.rodne_cislo = autor[hdr["Rodné číslo"]],
-                    oo.bankovy_kontakt = autor[hdr["IBAN"]],
-                    oo.email = autor[hdr["e-mail"]],
-                    oo.odbor = autor[hdr["Odbor"]],
+                    oo.titul_pred_menom = autor[hdr["Titul pred"]]
+                    oo.meno = autor[hdr["Meno"]]
+                    oo.priezvisko = autor[hdr["Priezvisko"]]
+                    oo.titul_za_menom = autor[hdr["Titul za"]]
+                    oo.adresa_ulica = autor[hdr["Adresa1"]]
+                    oo.adresa_mesto = autor[hdr["Adresa2"]]
+                    oo.adresa_stat = autor[hdr["Adresa3"]]
+                    oo.rodne_cislo = autor[hdr["Rodné číslo"]]
+                    oo.bankovy_kontakt = autor[hdr["IBAN"]]
+                    oo.email = autor[hdr["e-mail"]]
+                    oo.odbor = autor[hdr["Odbor"]]
                     oo.save()
                 else:   # create a new one
                     oo = OsobaAutor.objects.create(
