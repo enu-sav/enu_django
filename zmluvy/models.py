@@ -102,7 +102,8 @@ class Zmluva(models.Model):
         verbose_name_plural = 'Zmluvy'
 
 class ZmluvaAutor(Zmluva):
-    zmluvna_strana = models.ForeignKey(OsobaAutor, on_delete=models.CASCADE)
+    # v OsobaAutor je pristup k zmluve cez 'zmluvaautor'
+    zmluvna_strana = models.OneToOneField(OsobaAutor, on_delete=models.PROTECT)    #PROTECT: Prevent deletion of the referenced object
     odmena = models.FloatField("Odmena/AH", default=0)  #Eur/AH (36 000 znakov)
     class Meta:
         verbose_name = 'Autorská zmluva'

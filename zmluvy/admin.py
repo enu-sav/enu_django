@@ -7,7 +7,7 @@ from django.utils.translation import ngettext
 from .models import OsobaAutor, ZmluvaAutor
 
 class OsobaAutorAdmin(admin.ModelAdmin):
-    list_display = ('rs_login', 'rs_uid', 'email', 'titul_pred_menom', 'meno', 'priezvisko', 'titul_za_menom', 'rodne_cislo', 'odbor', "adresa_ulica", "adresa_mesto", "adresa_stat", 'datum_aktualizacie')
+    list_display = ('rs_login', 'rs_uid', 'zmluvaautor', 'email', 'titul_pred_menom', 'meno', 'priezvisko', 'titul_za_menom', 'rodne_cislo', 'odbor', "adresa_ulica", "adresa_mesto", "adresa_stat", 'datum_aktualizacie')
     ordering = ('datum_aktualizacie',)
     #search_fields = ('rs_login', 'priezvisko')
     search_fields = ['rs_login', 'r_uid', 'email']
