@@ -15,8 +15,12 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import include, path
+from zmluvy.views import OsobaAutorListView
 
 urlpatterns = [
     path('zmluvy/', include('zmluvy.urls')),
     path('admin/', admin.site.urls),
+    #path('', OsobaAutorListView.as_view(), name='article-list'),
+    path('autori/', OsobaAutorListView.as_view())
 ]
+
