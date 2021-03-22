@@ -127,3 +127,10 @@ STATIC_URL = '/static/'
 #message files into one directory like this, rather than splitting them out by app:
 
 #LOCALE_PATHS = [os.path.join(BASE_DIR, 'locale')]
+
+# Beliana specific settings
+# umiestnenie súborov
+DATA_SITE = f"{BASE_DIR}/data"
+SABLONY_DIR = f"{DATA_SITE}/Sablony"
+SABLONA_AUTORSKA_ZMLUVA = f"{DATA_SITE}/Sablony/AutorskaZmluva.fodt"
+
