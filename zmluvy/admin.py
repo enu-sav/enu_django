@@ -1,4 +1,7 @@
 from django.contrib import admin
+from ipdb import set_trace as trace
+from django.contrib import messages
+from django.utils.translation import ngettext
 
 # Register your models here.
 from .models import OsobaAutor, ZmluvaAutor
@@ -9,6 +12,7 @@ class OsobaAutorAdmin(admin.ModelAdmin):
     ordering = ('datum_aktualizacie',)
     #search_fields = ('rs_login', 'priezvisko')
     search_fields = ['rs_login', 'r_uid', 'email']
+    actions = ['vytvorit_autorsku_zmluvu']
 
     #obj is None during the object creation, but set to the object being edited during an edit
     def get_readonly_fields(self, request, obj=None):
@@ -16,6 +20,17 @@ class OsobaAutorAdmin(admin.ModelAdmin):
             return ["rs_uid", "rs_login"]
         else:
             return []
+    def vytvorit_autorsku_zmluvu(self, request, queryset):
+        #updated = queryset.update(status='p')
+        updated = len(queryset)
+        #trace()
+        self.message_user(request, ngettext(
+            'Úspešne vytvorená autorská zmluva: %d',
+            'Úspešne vytvorené autorské zmluvy: %d',
+            updated,
+        ) % updated, messages.SUCCESS)
+        pass
+    vytvorit_autorsku_zmluvu.short_description = "Vytvoriť autorskú zmluvu a uložiť ju do ..."
 
 admin.site.register(OsobaAutor, OsobaAutorAdmin)
 
