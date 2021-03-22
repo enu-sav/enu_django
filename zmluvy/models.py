@@ -6,6 +6,13 @@ class AnoNie(models.TextChoices):
     ANO = 'ano', 'Áno'
     NIE = 'nie', 'Nie'
 
+class StavZmluvy(models.TextChoices):
+    VYTVORENA = "vytvorena", "Vytvorená"                        #Úvodný stav, ak sa zmluva vytvára v EnÚ
+    PRIJATA = "prijata", "Prijatá"                              #Úvodný stav, ak bola zmluva vytvorená mimo EnÚ
+    PODPISANA_ENU = "podpisana_enu", "Podpísaná EnÚ"
+    ODOSLANA_ZS = "odoslana_zs", "Odoslaná ZS"
+    VRATENA_OD_ZS = "vratena_od_zs", "Vrátená od ZS"
+    ZVEREJNENA_V_CRZ = "zverejnena_v_crz", "Zverejnená v CRZ"
 
 # Create your models here.     
 # Abstraktná trieda so všetkými spoločnými poľami, nepoužívaná samostatne
@@ -80,6 +87,7 @@ class Zmluva(models.Model):
     cislo_zmluvy = models.CharField("Číslo zmluvy", max_length=50)
     datum_pridania = models.DateTimeField('Dátum pridania', auto_now_add=True)
     datum_aktualizacie = models.DateTimeField('Dátum aktualizácie', auto_now=True)
+    stav_zmluvy = models.CharField(max_length=20, choices=StavZmluvy.choices, blank=True) 
 
     def __str__(self):
         return self.cislo_zmluvy

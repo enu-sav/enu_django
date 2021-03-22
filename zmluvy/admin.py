@@ -5,6 +5,7 @@ from django.utils.translation import ngettext
 
 # Register your models here.
 from .models import OsobaAutor, ZmluvaAutor
+from .common import VytvoritAutorskuZmluvu
 
 
 class OsobaAutorAdmin(admin.ModelAdmin):
@@ -22,7 +23,7 @@ class OsobaAutorAdmin(admin.ModelAdmin):
             return []
     def vytvorit_autorsku_zmluvu(self, request, queryset):
         #updated = queryset.update(status='p')
-        updated = len(queryset)
+        updated = VytvoritAutorskuZmluvu(queryset)
         #trace()
         self.message_user(request, ngettext(
             'Úspešne vytvorená autorská zmluva: %d',
@@ -35,10 +36,10 @@ class OsobaAutorAdmin(admin.ModelAdmin):
 admin.site.register(OsobaAutor, OsobaAutorAdmin)
 
 class ZmluvaAutorAdmin(admin.ModelAdmin):
-    list_display = ('cislo_zmluvy', 'zmluvna_strana', 'odmena', 'datum_pridania', 'datum_aktualizacie')
+    list_display = ('cislo_zmluvy', 'stav_zmluvy', 'zmluvna_strana', 'odmena', 'datum_pridania', 'datum_aktualizacie')
     ordering = ('datum_aktualizacie',)
     #search_fields = ['cislo_zmluvy']
-    search_fields = ['cislo_zmluvy','zmluvna_strana__rs_login', 'odmena']
+    search_fields = ['cislo_zmluvy','zmluvna_strana__rs_login', 'odmena', 'stav_zmluvy']
 
     #obj is None during the object creation, but set to the object being edited during an edit
     def get_readonly_fields(self, request, obj=None):
