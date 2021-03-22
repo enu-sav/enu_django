@@ -1,6 +1,7 @@
 import datetime
 from django.db import models
 from django.utils import timezone
+from .common import VytvoritAutorskuZmluvu
 
 class AnoNie(models.TextChoices):
     ANO = 'ano', 'Áno'
@@ -70,18 +71,22 @@ class OsobaAutor (OsobaAuGaKo):
         verbose_name = 'Autor'
         verbose_name_plural = 'Autori'
 
-
-#1057	TrnkaAlfred	atrnka@truni.sk	prof. RNDr.	Alfréd	Trnka	PhD.	1729
-#   oo = Osoba(rs_uid = 1057, rs_login = "TrnkaAlfred", email = "atrnka@truni.sk", titul_pred_menom = "RNDr.", meno = "Alfréd", priezvisko = "Trnka", titul_za_menom = "PhD.", posobisko = "Truni, Trenčín")
-#   oo.save()
-#   zz=Zmluva(zmluvna_strana=oo, cislo_zmluvy="1729")
-#   zz.save()
-
-#1062	AstalosBoris	boris.astalos@SNM.sk		Boris	Astaloš		40/2019
-#   oo = Osoba(rs_uid = 1062, rs_login = "AstalosBoris", email = "boris.astalos@SNM.sk", meno = "Boris", priezvisko = "Astaloš", posobisko = "Slovenské národné múzeum, Bratislava")
-#   oo.save()
-#   zz=Zmluva(zmluvna_strana=oo, cislo_zmluvy="40/2019")
-#   zz.save()
+    # v databaze vytvorit alebo aktualizovat zaznam o zmluve
+    def VytvoritZmluvu(self, cislozmluvy, odmena):
+        VytvoritAutorskuZmluvu(self, cislozmluvy, odmena)
+        #vytvorit zaznam o zmluve
+        o_query_set = ZmluvaAutor.objects.filter(zmluvna_strana=self)
+        if o_query_set:
+            zm = o_query_set.first()
+        else:
+            zm = ZmluvaAutor.objects.create()
+        zm.zmluvna_strana = self
+        zm.odmena = odmena
+        zm.cislo_zmluvy = cislozmluvy
+        datum_pridania = timezone.now(),
+        zm.datum_aktualizacie = timezone.now()
+        zm.stav_zmluvy = "vytvorena"
+        zm.save()
 
 class Zmluva(models.Model):
     cislo_zmluvy = models.CharField("Číslo zmluvy", max_length=50)

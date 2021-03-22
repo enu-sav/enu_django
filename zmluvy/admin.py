@@ -5,8 +5,6 @@ from django.utils.translation import ngettext
 
 # Register your models here.
 from .models import OsobaAutor, ZmluvaAutor
-from .common import VytvoritAutorskuZmluvu
-
 
 class OsobaAutorAdmin(admin.ModelAdmin):
     list_display = ('rs_login', 'rs_uid', 'email', 'titul_pred_menom', 'meno', 'priezvisko', 'titul_za_menom', 'rodne_cislo', 'odbor', "adresa_ulica", "adresa_mesto", "adresa_stat", 'datum_aktualizacie')
@@ -23,7 +21,9 @@ class OsobaAutorAdmin(admin.ModelAdmin):
             return []
     def vytvorit_autorsku_zmluvu(self, request, queryset):
         #updated = queryset.update(status='p')
-        updated = VytvoritAutorskuZmluvu(queryset)
+        updated = len(queryset)
+        for autor  in queryset:
+            autor.VytvoritZmluvu("999", "540")
         #trace()
         self.message_user(request, ngettext(
             'Úspešne vytvorená autorská zmluva: %d',
