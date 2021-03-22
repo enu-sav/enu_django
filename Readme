@@ -25,3 +25,14 @@ oo = Osoba(rs_uid = 1062, rs_login = "AstalosBoris", email = "boris.astalos@SNM.
 oo.save()
 zz=Zmluva(zmluvna_strana=oo, cislo_zmluvy="40/2019")
 zz.save()
+
+
+Importovanie udajov
+./manage.py import_autori --path data/Zmluvy2016-generovane.csv
+./manage.py import_autori --path data/Zmluvy2017-generovane.csv
+
+./manage.py vytvorit_zmluvu --udaje-zmluvy-subor data/Zmluvy2016-na-importovanie.csv
+./manage.py vytvorit_zmluvu --udaje-zmluvy-subor data/Zmluvy2017-na-importovanie.csv
+
+./manage.py vyplatit --na-vyplatenie data/vyplatit_hesla.csv --za-mesiac 02/2021
+
