@@ -1,6 +1,8 @@
 import datetime
 from django.db import models
 from django.utils import timezone
+from django.contrib import messages
+
 from .common import VytvoritAutorskuZmluvu
 
 class AnoNie(models.TextChoices):
@@ -73,20 +75,22 @@ class OsobaAutor (OsobaAuGaKo):
 
     # v databaze vytvorit alebo aktualizovat zaznam o zmluve
     def VytvoritZmluvu(self, cislozmluvy, odmena):
-        VytvoritAutorskuZmluvu(self, cislozmluvy, odmena)
-        #vytvorit zaznam o zmluve
-        o_query_set = ZmluvaAutor.objects.filter(zmluvna_strana=self)
-        if o_query_set:
-            zm = o_query_set.first()
-        else:
-            zm = ZmluvaAutor.objects.create()
-        zm.zmluvna_strana = self
-        zm.odmena = odmena
-        zm.cislo_zmluvy = cislozmluvy
-        datum_pridania = timezone.now(),
-        zm.datum_aktualizacie = timezone.now()
-        zm.stav_zmluvy = "vytvorena"
-        zm.save()
+        status, msg = VytvoritAutorskuZmluvu(self, cislozmluvy, odmena)
+        if status == messages.SUCCESS:
+            #vytvorit zaznam o zmluve
+            o_query_set = ZmluvaAutor.objects.filter(zmluvna_strana=self)
+            if o_query_set:
+                zm = o_query_set.first()
+            else:
+                zm = ZmluvaAutor.objects.create()
+            zm.zmluvna_strana = self
+            zm.odmena = odmena
+            zm.cislo_zmluvy = cislozmluvy
+            datum_pridania = timezone.now(),
+            zm.datum_aktualizacie = timezone.now()
+            zm.stav_zmluvy = "vytvorena"
+            zm.save()
+        return status, msg
 
 class Zmluva(models.Model):
     cislo_zmluvy = models.CharField("Číslo zmluvy", max_length=50)

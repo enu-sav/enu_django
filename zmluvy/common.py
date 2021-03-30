@@ -2,9 +2,10 @@
 
 # test platnosti IBAN
 #https://rosettacode.org/wiki/IBAN#Python
-import re
+import re, os
 from beliana import settings
 from django.utils import timezone
+from django.contrib import messages
  
 def valid_iban(iban):
     _country2length = dict(
@@ -89,7 +90,18 @@ def VytvoritAutorskuZmluvu(autor, cislozmluvy, odmena):
     sablona = sablona.replace(f"{lt}dnesnydatum{gt}", timezone.now().strftime("%d. %m. %Y").replace(' 0',' '))
 
     #ulozit
-    nazov_zmluvy = f"{autor.rs_login}-{cislozmluvy.replace('/','-')}.fodt"
+    fname = f"{autor.rs_login}-{cislozmluvy.replace('/','-')}.fodt"
+    nazov_zmluvy_log = os.path.join(settings.ZMLUVY_DIR.split("/")[-1],autor.rs_login,fname)
+
+    if not os.path.isdir(settings.ZMLUVY_DIR):
+        return messages.ERROR, f"Chyba pri vytváraní súboru '{nazov_zmluvy_log}': neexistuje priečinok '{settings.ZMLUVY_DIR}'"
+    
+    #Create directory admin.rs_login if necessary
+    odir = os.path.join(settings.ZMLUVY_DIR,autor.rs_login)
+    nazov_zmluvy = os.path.join(odir,fname)
+    if not os.path.isdir(odir):
+        os.makedirs(odir)
+
     with open(nazov_zmluvy, "w") as f:
         f.write(sablona)
-    #self.stdout.write(self.style.SUCCESS(f"Vytvorená zmluva: {nazov_zmluvy}"))
+    return messages.SUCCESS, f"Zmluva '{nazov_zmluvy_log}' bola úspešne vytvorená"

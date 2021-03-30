@@ -4,6 +4,7 @@ from django.contrib import messages
 from django.utils.translation import ngettext
 
 # Register your models here.
+from beliana import settings
 from .models import OsobaAutor, ZmluvaAutor
 
 class OsobaAutorAdmin(admin.ModelAdmin):
@@ -13,6 +14,7 @@ class OsobaAutorAdmin(admin.ModelAdmin):
     search_fields = ['rs_login', 'r_uid', 'email']
     actions = ['vytvorit_autorsku_zmluvu']
 
+
     #obj is None during the object creation, but set to the object being edited during an edit
     def get_readonly_fields(self, request, obj=None):
         if obj:
@@ -21,17 +23,26 @@ class OsobaAutorAdmin(admin.ModelAdmin):
             return []
     def vytvorit_autorsku_zmluvu(self, request, queryset):
         #updated = queryset.update(status='p')
-        updated = len(queryset)
+        success=0
+        failed=0
         for autor  in queryset:
-            autor.VytvoritZmluvu("999", "540")
+            status, msg = autor.VytvoritZmluvu("999", "540")
+            if status == messages.ERROR:
+                self.message_user(request, msg, status)
+                failed += 1
+            else:
+                self.message_user(request, msg, status)
+                success += 1
+
         #trace()
-        self.message_user(request, ngettext(
-            'Úspešne vytvorená autorská zmluva: %d',
-            'Úspešne vytvorené autorské zmluvy: %d',
-            updated,
-        ) % updated, messages.SUCCESS)
+        if success:
+            self.message_user(request, ngettext(
+                'Úspešne vytvorené autorské zmluvy: %d',
+                'Úspešne vytvorené autorské zmluvy: %d',
+                success,
+            ) % success, messages.SUCCESS)
         pass
-    vytvorit_autorsku_zmluvu.short_description = "Vytvoriť autorskú zmluvu a uložiť ju do ..."
+    vytvorit_autorsku_zmluvu.short_description = f"Vytvoriť autorskú zmluvu"
 
 admin.site.register(OsobaAutor, OsobaAutorAdmin)
 

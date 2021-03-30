@@ -133,4 +133,5 @@ STATIC_URL = '/static/'
 DATA_SITE = f"{BASE_DIR}/data"
 SABLONY_DIR = f"{DATA_SITE}/Sablony"
 SABLONA_AUTORSKA_ZMLUVA = f"{DATA_SITE}/Sablony/AutorskaZmluva.fodt"
+ZMLUVY_DIR = f"{DATA_SITE}/Zmluvy"
 
