@@ -2,16 +2,18 @@ from django.contrib import admin
 from ipdb import set_trace as trace
 from django.contrib import messages
 from django.utils.translation import ngettext
+from ipdb import set_trace as trace
 
 # Register your models here.
 from beliana import settings
 from .models import OsobaAutor, ZmluvaAutor
 
 class OsobaAutorAdmin(admin.ModelAdmin):
-    list_display = ('rs_login', 'rs_uid', 'zmluvaautor', 'email', 'titul_pred_menom', 'meno', 'priezvisko', 'titul_za_menom', 'rodne_cislo', 'odbor', "adresa_ulica", "adresa_mesto", "adresa_stat", 'datum_aktualizacie')
+    list_display = ('rs_login', 'rs_uid', 'zmluvaautor', 'email', 'titul_pred_menom', 'meno', 'priezvisko', 'titul_za_menom', 'rodne_cislo', 'odbor', "adresa_ulica", "adresa_mesto", "adresa_stat", 'datum_aktualizacie', 'zdanit', 'poznamka')
     ordering = ('datum_aktualizacie',)
     #search_fields = ('rs_login', 'priezvisko')
-    search_fields = ['rs_login', 'r_uid', 'email']
+    #search_fields = ['rs_login', 'r_uid', 'email']
+    search_fields = ['rs_login', 'email']
     actions = ['vytvorit_autorsku_zmluvu']
 
 
@@ -47,8 +49,8 @@ class OsobaAutorAdmin(admin.ModelAdmin):
 admin.site.register(OsobaAutor, OsobaAutorAdmin)
 
 class ZmluvaAutorAdmin(admin.ModelAdmin):
-    list_display = ('cislo_zmluvy', 'stav_zmluvy', 'zmluvna_strana', 'odmena', 'datum_pridania', 'datum_aktualizacie')
-    ordering = ('datum_aktualizacie',)
+    list_display = ('cislo_zmluvy', 'stav_zmluvy', 'zmluvna_strana', 'odmena', 'url_zmluvy_html', 'crz_datum', 'datum_pridania', 'datum_aktualizacie')
+    ordering = ('zmluvna_strana',)
     #search_fields = ['cislo_zmluvy']
     search_fields = ['cislo_zmluvy','zmluvna_strana__rs_login', 'odmena', 'stav_zmluvy']
 
@@ -58,5 +60,26 @@ class ZmluvaAutorAdmin(admin.ModelAdmin):
             return ["cislo_zmluvy", "zmluvna_strana"]
         else:
             return []
+
+    # formátovať pole url_zmluvy
+    def url_zmluvy_html(self, obj):
+        from django.utils.html import format_html
+        result = ZmluvaAutor.objects.filter(cislo_zmluvy=obj)
+        if result and result[0].url_zmluvy:
+            result = result[0]
+            return format_html(f'<a href="{result.url_zmluvy}" target="_blank">pdf</a>')
+        else:
+            return None
+    url_zmluvy_html.short_description = "Zmluva v CRZ"
+
+    # formatovat datum
+    def crz_datum(self, obj):
+        result = ZmluvaAutor.objects.filter(cislo_zmluvy=obj)
+        if result and result[0].datum_zverejnenia_CRZ:
+            result = result[0]
+            return obj.datum_zverejnenia_CRZ.strftime("%d-%m-%Y")
+        else:
+            return None
+    crz_datum.short_description = "Platná od"
 
 admin.site.register(ZmluvaAutor, ZmluvaAutorAdmin)
