@@ -2,6 +2,7 @@ import datetime
 from django.db import models
 from django.utils import timezone
 from django.contrib import messages
+from ipdb import set_trace as trace
 
 from .common import VytvoritAutorskuZmluvu
 
@@ -34,12 +35,14 @@ class PersonCommon(models.Model):
 
 # nie je nevyhnutne v RS (jaz. redaktor a pod)
 class FyzickaOsoba(PersonCommon):
-    email = models.CharField("Email", max_length=200)
+    email = models.EmailField("Email", max_length=200)
     titul_pred_menom = models.CharField("Titul pred menom", max_length=100, blank=True) #optional
     meno = models.CharField("Meno", max_length=200)
     priezvisko = models.CharField("Priezvisko", max_length=200)
     titul_za_menom = models.CharField("Titul za menom", max_length=100, blank=True)     #optional
     rodne_cislo = models.CharField("Rodné číslo", max_length=20, blank=True)     #optional
+    zdanit = models.CharField(max_length=3, choices=AnoNie.choices, blank=True) 
+    poznamka = models.CharField("Poznámka", max_length=200, blank=True)
     #pub_date = models.DateTimeField('date published')
 
     class Meta:
@@ -65,7 +68,6 @@ class OsobaAuGaKo(FyzickaOsoba):
         verbose_name_plural = 'Autor/Garant/Konzultant'
 
 class OsobaAutor (OsobaAuGaKo):
-    zdanit = models.CharField(max_length=3, choices=AnoNie.choices, blank=True) 
 
     def __str__(self):
         return self.rs_login
@@ -76,19 +78,19 @@ class OsobaAutor (OsobaAuGaKo):
     # v databaze vytvorit alebo aktualizovat zaznam o zmluve
     def VytvoritZmluvu(self, cislozmluvy, odmena):
         status, msg = VytvoritAutorskuZmluvu(self, cislozmluvy, odmena)
+        trace()
         if status == messages.SUCCESS:
             #vytvorit zaznam o zmluve
             o_query_set = ZmluvaAutor.objects.filter(zmluvna_strana=self)
             if o_query_set:
                 zm = o_query_set.first()
             else:
-                zm = ZmluvaAutor.objects.create()
-            zm.zmluvna_strana = self
+                zm = ZmluvaAutor.objects.create(zmluvna_strana=self)
             zm.odmena = odmena
             zm.cislo_zmluvy = cislozmluvy
             datum_pridania = timezone.now(),
             zm.datum_aktualizacie = timezone.now()
-            zm.stav_zmluvy = "vytvorena"
+            zm.stav_zmluvy = StavZmluvy.VYTVORENA
             zm.save()
         return status, msg
 
@@ -97,6 +99,8 @@ class Zmluva(models.Model):
     datum_pridania = models.DateTimeField('Dátum pridania', auto_now_add=True)
     datum_aktualizacie = models.DateTimeField('Dátum aktualizácie', auto_now=True)
     stav_zmluvy = models.CharField(max_length=20, choices=StavZmluvy.choices, blank=True) 
+    url_zmluvy = models.URLField('URL zmluvy', blank = True)
+    datum_zverejnenia_CRZ = models.DateTimeField('Dátum CRZ', blank=True, null=True)
 
     def __str__(self):
         return self.cislo_zmluvy
@@ -107,7 +111,7 @@ class Zmluva(models.Model):
 
 class ZmluvaAutor(Zmluva):
     # v OsobaAutor je pristup k zmluve cez 'zmluvaautor'
-    zmluvna_strana = models.OneToOneField(OsobaAutor, on_delete=models.PROTECT)    #PROTECT: Prevent deletion of the referenced object
+    zmluvna_strana = models.OneToOneField(OsobaAutor, on_delete=models.PROTECT, blank=True)    #PROTECT: Prevent deletion of the referenced object
     odmena = models.FloatField("Odmena/AH", default=0)  #Eur/AH (36 000 znakov)
     class Meta:
         verbose_name = 'Autorská zmluva'
