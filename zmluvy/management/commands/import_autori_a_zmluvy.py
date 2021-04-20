@@ -1,9 +1,11 @@
-import csv
+import csv, re
 from django.core.management import BaseCommand, CommandError
 from django.utils import timezone
 from ipdb import set_trace as trace
+from datetime import datetime
 
 from zmluvy.models import OsobaAutor, AnoNie, ZmluvaAutor, StavZmluvy
+from zmluvy.common import valid_iban
 
 class Command(BaseCommand):
     help = 'Načítať používateľov a zmluvy (csv vytvorené z docx a pdf súborov)'
@@ -39,7 +41,11 @@ class Command(BaseCommand):
         #"#","Súbor","číslo zmluvy","Titul pred","Meno","Priezvisko","Titul za","Adresa1","Adresa2","Adresa3","Rodné číslo","IBAN","e-mail","Odbor","Dohodnutá odmena","Dátum CRZ","Url zmluvy","Zdaniť","Zomrel"
 
         for autor in data:
+            #trace()
             login = self.transliterate(autor[hdr["Priezvisko"]])+self.transliterate(autor[hdr["Meno"]])
+            if not valid_iban(autor[hdr["IBAN"]]):
+                self.stdout.write(self.style.ERROR(f"chybný IBAN: {login} {autor[hdr['číslo zmluvy']]} {autor[hdr['IBAN']]}"))
+                continue
             o_query_set = OsobaAutor.objects.filter(rs_login=login)
             if o_query_set:
                 oo = o_query_set[0]
@@ -63,7 +69,6 @@ class Command(BaseCommand):
                 if autor[hdr["Url zmluvy"]]:
                     oo.url_zmluvy = autor[hdr["Url zmluvy"]]
                 oo.save()
-                #trace()
                 self.stdout.write(self.style.SUCCESS(f"OK: {login}"))
                 if autor[hdr["číslo zmluvy"]]:
                     o_query_set = ZmluvaAutor.objects.filter(zmluvna_strana=oo)
@@ -75,7 +80,8 @@ class Command(BaseCommand):
                     zm.cislo_zmluvy = autor[hdr["číslo zmluvy"]]
 
                     if autor[hdr["Dátum CRZ"]] and autor[hdr["Url zmluvy"]]:
-                        zm.datum_zverejnenia_CRZ = autor[hdr["Dátum CRZ"]]
+                        #zm.datum_zverejnenia_CRZ = autor[hdr["Dátum CRZ"]]
+                        zm.datum_zverejnenia_CRZ = datetime.strptime(autor[hdr["Dátum CRZ"]],"%d.%m.%Y")
                         zm.url_zmluvy = autor[hdr["Url zmluvy"]]
                         zm.stav_zmluvy = StavZmluvy.ZVEREJNENA_V_CRZ
                     datum_pridania = timezone.now()
