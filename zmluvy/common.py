@@ -6,6 +6,7 @@ import re, os
 from beliana import settings
 from django.utils import timezone
 from django.contrib import messages
+from ipdb import set_trace as trace
  
 def valid_iban(iban):
     _country2length = dict(
@@ -30,14 +31,14 @@ def valid_iban(iban):
     digits = int(''.join(str(int(ch, 36)) for ch in iban)) #BASE 36: 0..9,A..Z -> 0..35
     return digits % 97 == 1
 
-# odstranit diakritiku, špecialne znaky zmenit na -
+# odstranit diakritiku, špecialne znaky odstranit
 def transliterate(text):
     ii= "'’,()[] ?,–_/.-aáäbcčdďeéěfghiíjklľĺmnňoóôöpqrŕřsštťuüúůvwxyýzžAÁÄBCČDĎEÉFGHIÍJKLĽĹMNŇOÓÔPQRŔŘSŠTŤUÜÚŮVWXYÝZŽ0123456789"
-    oo= "-------__--_/.-aaabccddeeefghiijklllmnnoooopqrrrssttuuuuvwxyyzzAAABCCDDEEFGHIIJKLLLMNNOOOPQRRRSSTTUUUUVWXYYZZ0123456789"
+    oo= "---------------aaabccddeeefghiijklllmnnoooopqrrrssttuuuuvwxyyzzAAABCCDDEEFGHIIJKLLLMNNOOOPQRRRSSTTUUUUVWXYYZZ0123456789"
     t=""
     for i,c in enumerate(text.strip(" ")):
         t += oo[ii.find(c)]
-    return t
+    return t.replace("-","")
 
 # konvertuje cislo v tvare XY0 do textoveho retazca
 def num2text(num):
