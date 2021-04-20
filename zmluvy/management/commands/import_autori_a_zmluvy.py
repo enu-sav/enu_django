@@ -49,17 +49,17 @@ class Command(BaseCommand):
             o_query_set = OsobaAutor.objects.filter(rs_login=login)
             if o_query_set:
                 oo = o_query_set[0]
-                oo.titul_pred_menom = autor[hdr["Titul pred"]]
+                if autor[hdr["Titul pred"]]: oo.titul_pred_menom = autor[hdr["Titul pred"]]
                 oo.meno = autor[hdr["Meno"]]
                 oo.priezvisko = autor[hdr["Priezvisko"]]
-                oo.titul_za_menom = autor[hdr["Titul za"]]
-                oo.adresa_ulica = autor[hdr["Adresa1"]]
-                oo.adresa_mesto = autor[hdr["Adresa2"]]
-                oo.adresa_stat = autor[hdr["Adresa3"]]
-                oo.rodne_cislo = autor[hdr["Rodné číslo"]]
-                oo.bankovy_kontakt = autor[hdr["IBAN"]]
-                oo.email = autor[hdr["e-mail"]]
-                oo.odbor = autor[hdr["Odbor"]]
+                if autor[hdr["Titul za"]]: oo.titul_za_menom = autor[hdr["Titul za"]]
+                if autor[hdr["Adresa1"]]: oo.adresa_ulica = autor[hdr["Adresa1"]]
+                if autor[hdr["Adresa2"]]: oo.adresa_mesto = autor[hdr["Adresa2"]]
+                if autor[hdr["Adresa3"]]: oo.adresa_stat = autor[hdr["Adresa3"]]
+                if autor[hdr["Rodné číslo"]]: oo.rodne_cislo = autor[hdr["Rodné číslo"]]
+                if autor[hdr["IBAN"]]: oo.bankovy_kontakt = autor[hdr["IBAN"]]
+                if autor[hdr["e-mail"]]: oo.email = autor[hdr["e-mail"]]
+                if autor[hdr["Odbor"]]: oo.odbor = autor[hdr["Odbor"]]
                 if autor[hdr["Zomrel"]]:
                     oo.poznamka = "Autor zomrel"
                 if autor[hdr["Zdaniť"]] == "nie":
