@@ -2,21 +2,32 @@ from django.contrib import admin
 from ipdb import set_trace as trace
 from django.contrib import messages
 from django.utils.translation import ngettext
-from ipdb import set_trace as trace
 
 # Register your models here.
 from beliana import settings
 from .models import OsobaAutor, ZmluvaAutor
 
-class OsobaAutorAdmin(admin.ModelAdmin):
-    list_display = ('rs_login', 'rs_uid', 'zmluvaautor', 'email', 'titul_pred_menom', 'meno', 'priezvisko', 'titul_za_menom', 'rodne_cislo', 'odbor', "adresa_ulica", "adresa_mesto", "adresa_stat", 'datum_aktualizacie', 'zdanit', 'poznamka')
-    #list_display = ('rs_login', 'rs_uid', 'email', 'titul_pred_menom', 'meno', 'priezvisko', 'titul_za_menom', 'rodne_cislo', 'odbor', "adresa_ulica", "adresa_mesto", "adresa_stat", 'datum_aktualizacie', 'zdanit', 'poznamka')
+#umožniť zobrazenie autora v zozname zmluv
+#https://pypi.org/project/django-admin-relation-links/
+from django_admin_relation_links import AdminChangeLinksMixin
+
+@admin.register(OsobaAutor)
+class OsobaAutorAdmin(AdminChangeLinksMixin, admin.ModelAdmin):
+    #zmluvy_link: pridá odkaz na všetky zmluvy autora do zoznamu
+    list_display = ('rs_login', 'rs_uid', 'zmluvy_link', 'email', 'titul_pred_menom', 'meno', 'priezvisko', 'titul_za_menom', 'rodne_cislo', 'odbor', "adresa_ulica", "adresa_mesto", "adresa_stat", 'datum_aktualizacie', 'zdanit', 'poznamka')
     ordering = ('datum_aktualizacie',)
     #search_fields = ('rs_login', 'priezvisko')
     #search_fields = ['rs_login', 'r_uid', 'email']
     search_fields = ['rs_login', 'email']
     actions = ['vytvorit_autorsku_zmluvu']
 
+    #Konfigurácia poľa zmluvy_link (pripojené k ZmluvaAutor cez ForeignKey)
+    #changelist_links = ['zmluvy'];
+    changelist_links = [
+        ('zmluvy', {
+            'label': 'Zmluvy',  # Used as label for the link
+        })
+    ]
 
     #obj is None during the object creation, but set to the object being edited during an edit
     def get_readonly_fields(self, request, obj=None):
@@ -46,14 +57,23 @@ class OsobaAutorAdmin(admin.ModelAdmin):
             ) % success, messages.SUCCESS)
         pass
     vytvorit_autorsku_zmluvu.short_description = f"Vytvoriť autorskú zmluvu"
+#admin.site.register(OsobaAutor, OsobaAutorAdmin)
 
-admin.site.register(OsobaAutor, OsobaAutorAdmin)
-
-class ZmluvaAutorAdmin(admin.ModelAdmin):
-    list_display = ('cislo_zmluvy', 'stav_zmluvy', 'zmluvna_strana', 'odmena', 'url_zmluvy_html', 'crz_datum', 'datum_pridania', 'datum_aktualizacie')
+@admin.register(ZmluvaAutor)
+class ZmluvaAutorAdmin(AdminChangeLinksMixin, admin.ModelAdmin):
+    # zmluvna_strana_link: pridá autora zmluvy do zoznamu, vďaka AdminChangeLinksMixin
+    list_display = ('cislo_zmluvy', 'stav_zmluvy', 'zmluvna_strana_link', 'odmena', 'url_zmluvy_html', 'crz_datum', 'datum_pridania', 'datum_aktualizacie')
     ordering = ('zmluvna_strana',)
     #search_fields = ['cislo_zmluvy']
     search_fields = ['cislo_zmluvy','zmluvna_strana__rs_login', 'odmena', 'stav_zmluvy']
+
+    # umožnené prostredníctvom AdminChangeLinksMixin
+    change_links = ['zmluvna_strana']
+    change_links = [
+        ('zmluvna_strana', {
+            'admin_order_field': 'zmluvna_strana__rs_login',  # Allow to sort members by `zmluvna_strana_link` column
+        })
+    ]
 
     #obj is None during the object creation, but set to the object being edited during an edit
     def get_readonly_fields(self, request, obj=None):
@@ -82,5 +102,4 @@ class ZmluvaAutorAdmin(admin.ModelAdmin):
         else:
             return None
     crz_datum.short_description = "Platná od"
-
-admin.site.register(ZmluvaAutor, ZmluvaAutorAdmin)
+#admin.site.register(ZmluvaAutor, ZmluvaAutorAdmin)

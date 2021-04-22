@@ -111,10 +111,10 @@ class Zmluva(models.Model):
 
 class ZmluvaAutor(Zmluva):
     # v OsobaAutor je pristup k zmluve cez 'zmluvaautor'
-    #zmluvna_strana = models.OneToOneField(OsobaAutor, on_delete=models.PROTECT, blank=True)    #PROTECT: Prevent deletion of the referenced object
-    zmluvna_strana = models.ForeignKey(OsobaAutor, on_delete=models.PROTECT, blank=True)    #PROTECT: Prevent deletion of the referenced object
+    #models.PROTECT: Prevent deletion of the referenced object
+    #related_name: v admin.py umožní zobrazit zmluvy aytora cez pole zmluvy_link 
+    zmluvna_strana = models.ForeignKey(OsobaAutor, on_delete=models.PROTECT, related_name='zmluvy')    
     odmena = models.FloatField("Odmena/AH", default=0)  #Eur/AH (36 000 znakov)
     class Meta:
         verbose_name = 'Autorská zmluva'
         verbose_name_plural = 'Autorské zmluvy'
-
