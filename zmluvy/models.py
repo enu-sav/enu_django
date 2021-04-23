@@ -69,6 +69,9 @@ class OsobaAuGaKo(FyzickaOsoba):
 
 class OsobaAutor (OsobaAuGaKo):
 
+    # preplatok sposobeny vyplácaním 540 namiesto 360 (a možno aj iný dôvod)
+    # výpočet je v súbore Kontrola-Kapcova-2018-2021-milos.ods, hárok Preplatok výpočet a Preplatok num.
+    preplatok = models.FloatField("Preplatok", default=0)
     def __str__(self):
         return self.rs_login
     class Meta:

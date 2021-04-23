@@ -41,9 +41,6 @@ class Command(BaseCommand):
         #"#","Súbor","číslo zmluvy","Titul pred","Meno","Priezvisko","Titul za","Adresa1","Adresa2","Adresa3","Rodné číslo","IBAN","e-mail","Odbor","Dohodnutá odmena","Dátum CRZ","Url zmluvy","Zdaniť","Zomrel"
 
         for autor in data:
-            if autor[hdr["Priezvisko"]] == "Skovajsa":
-                trace()
-                pass
             login = self.transliterate(autor[hdr["Priezvisko"]])+self.transliterate(autor[hdr["Meno"]])
             if autor[hdr["IBAN"]] and not valid_iban(autor[hdr["IBAN"]]):
                 self.stdout.write(self.style.ERROR(f"chybný IBAN: {login} {autor[hdr['číslo zmluvy']]} {autor[hdr['IBAN']]}"))
@@ -75,6 +72,8 @@ class Command(BaseCommand):
                     oo.zdanit = AnoNie.NIE
                 else:
                     oo.zdanit = AnoNie.ANO
+                if autor[hdr["Preplatok"]]:
+                    oo.preplatok = autor[hdr["Preplatok"]].replace(",",".")
                 if autor[hdr["Url zmluvy"]]:
                     oo.url_zmluvy = autor[hdr["Url zmluvy"]]
                 oo.save()

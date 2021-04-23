@@ -14,7 +14,7 @@ from django_admin_relation_links import AdminChangeLinksMixin
 @admin.register(OsobaAutor)
 class OsobaAutorAdmin(AdminChangeLinksMixin, admin.ModelAdmin):
     #zmluvy_link: pridá odkaz na všetky zmluvy autora do zoznamu
-    list_display = ('rs_login', 'rs_uid', 'zmluvy_link', 'email', 'titul_pred_menom', 'meno', 'priezvisko', 'titul_za_menom', 'rodne_cislo', 'odbor', "adresa_ulica", "adresa_mesto", "adresa_stat", 'datum_aktualizacie', 'zdanit', 'poznamka')
+    list_display = ('rs_login', 'rs_uid', 'zmluvy_link', 'email', 'titul_pred_menom', 'meno', 'priezvisko', 'titul_za_menom', 'rodne_cislo', 'odbor', "adresa_ulica", "adresa_mesto", "adresa_stat", 'datum_aktualizacie', 'zdanit', 'preplatok', 'poznamka')
     ordering = ('datum_aktualizacie',)
     #search_fields = ('rs_login', 'priezvisko')
     #search_fields = ['rs_login', 'r_uid', 'email']
