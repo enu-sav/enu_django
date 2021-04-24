@@ -17,7 +17,7 @@ from glob import glob
 ws_template = "data/Sablony/UhradaAutHonoraru.xlsx"
 ah_cesta = "data/Vyplacanie_autorskych_honorarov"
 litfond_odvod = 0.02
-min_znakov=2000     #minimálny počet znakov na vyplatenie 
+min_vyplatit=20     #minimálna suma v Eur, ktorá sa vypláca
 ucetEnÚ = "SK36 8180 0000 0070 0061 8734 - Beliana"
 ucetLITA  = "SK47 0200 0000 0012 2545 9853" 
 ucetFin = "SK61 8180 5002 6780 2710 3305"
@@ -67,11 +67,16 @@ class Command(BaseCommand):
                         login = row[hdr["Login"]]
                     else:
                         login = transliterate(row[hdr["Priezvisko"]])+transliterate(row[hdr["Meno"]])
-                    if not login in self.autori_pocet_znakov: self.autori_pocet_znakov[login] = 0 
-                    self.autori_pocet_znakov[login] += int(row[hdr["Dĺžka autorom odovzdaného textu"]])
-                    self.autori_udaje[login].append(row + [rs_webrs])
-        # vratit hdr, aby bolo mozne porovnanie
-        return hdr
+                    zmluva = row[hdr['Autorská zmluva']]
+                    #if not login in self.pocet_znakov: self.pocet_znakov[login] = {}
+                    #if not zmluva in self.pocet_znakov[login]: self.pocet_znakov[login][zmluva] = {}
+                    #self.pocet_znakov[login][zmluva] += int(row[hdr["Dĺžka autorom odovzdaného textu"]])
+                    # zaznamenat len udaje o hesle a zmluve
+                    if not login in self.data: self.data[login] = {} 
+                    if not rs_webrs in self.data[login]: self.data[login][rs_webrs] = {} 
+                    if not zmluva in self.data[login][rs_webrs]: self.data[login][rs_webrs][zmluva] = []
+                    self.data[login][rs_webrs][zmluva].append([int(row[hdr["Dĺžka autorom odovzdaného textu"]])])
+                    pass
 
     def meno_priezvisko(self, autor):
         mp = f"{autor.titul_pred_menom} {autor.meno} {autor.priezvisko}"
@@ -88,9 +93,8 @@ class Command(BaseCommand):
 
         #najst csv subory 
         csv_subory = glob(f"{za_mesiac}/*.csv")
-        self.autori_pocet_znakov = {}
-        self.autori_udaje=defaultdict(list)
-        self.hdr = None
+        self.pocet_znakov = {"rs": {}, "webrs":{}}
+        self.data={}
 
         for csv_subor in csv_subory:
             print(csv_subor)
@@ -106,20 +110,44 @@ class Command(BaseCommand):
                 self.stdout.write(self.style.ERROR(f"V priečinku {ah_cesta}/{za_mesiac} bol nájdený neznámy súbor {aux_name}"))
                 self.stdout.write(self.style.ERROR("Súbor odstráňte alebo opravte jeho názov"))
                 raise SystemExit
-        autori_na_vyplatenie=[]
-        trace()
-        for autor in self.autori_pocet_znakov:
-            if self.autori_pocet_znakov[autor]<min_znakov: 
-                self.stdout.write(self.style.WARNING(f"Autor {autor}: nebude vyplatený pre malý počet znakov ({self.autori_pocet_znakov[autor]}) "))
-                continue
+
+        #scitat pocty znakov a rozhodnut, ci sa bude vyplacat
+        sumy_na_vyplatenie={}
+        for autor in self.data:
             # spanning relationship: zmluvna_strana->rs_login
-            o_query_set = ZmluvaAutor.objects.filter(zmluvna_strana__rs_login=autor)
-            if o_query_set:
-                self.stdout.write(self.style.SUCCESS(f"Autor {autor}: bude vyplatených {self.autori_pocet_znakov[autor]} znakov "))
-                autori_na_vyplatenie.append(autor)
-            else:
-                self.stdout.write(self.style.ERROR(f"V databáze nebol nájdený záznam o zmluve pre autora {autor} "))
-        pass
+            zdata = ZmluvaAutor.objects.filter(zmluvna_strana__rs_login=autor)
+            #trace()
+            adata = OsobaAutor.objects.filter(rs_login=autor)
+            if not adata:
+                self.stdout.write(self.style.ERROR(f"Autor {autor}: nemá záznam v databáze "))
+                continue
+            adata=adata[0]
+            # pomocna struktura na vyplacanie
+            zvyplatit = {}
+            for zmluva in zdata:
+                zvyplatit[zmluva.cislo_zmluvy] = zmluva.odmena
+            # vypocitat odmenu za vsetky hesla
+            aodmena = 0 #sucet odmien za jednotlive hesla na zaklade zmluv
+            for rs in self.data[autor]: # rs alebo webrs
+                for zmluva in self.data[autor][rs]:
+                    if not zmluva in zvyplatit:
+                        self.stdout.write(self.style.ERROR(f"Autor {autor}: nemá v databáze zmluvu {zmluva}"))
+                        continue
+                    pocet_znakov = sum([z[0] for z in self.data[autor][rs][zmluva]])    #[0]: pocet znakov
+                    aodmena += pocet_znakov*zvyplatit[zmluva]/36000
+                    pass
+            if aodmena - adata.preplatok > min_vyplatit: # bude sa vyplácať, preplatok sa zohľadní a jeho hodnota sa aktualizuje v db
+                self.stdout.write(self.style.SUCCESS(f"Autor {autor}: bude vyplatené {aodmena - adata.preplatok} € (platba {aodmena} mínus preplatok {adata.preplatok})"))
+                sumy_na_vyplatenie[autor] = [aodmena, adata.preplatok]
+                #aktualizovať preplatok
+                pass
+            elif aodmena < adata.preplatok: # celú sumu možno odpočítať z preplatku
+                self.stdout.write(self.style.SUCCESS(f"Autor {autor}: Suma {aodmena} € sa nevyplatí, odpočíta sa od preplatku {adata.preplatok} €"))
+                #aktualizovať preplatok
+                pass
+            else: #po odpočítaní preplatku zostane suma menšia ako min_vyplatit. Nevyplatí sa, počká sa na ďalšie platby
+                self.stdout.write(self.style.WARNING(f"Autor {autor}: nebude vyplatené {aodmena - adata.preplatok} € (nízka suma, platba {aodmena} mínus preplatok {adata.preplatok})"))
+                pass
         # styly buniek, https://openpyxl.readthedocs.io/en/default/styles.html
         # default font dokumentu je Arial
         fbold = Font(name="Arial", bold=True)
@@ -133,7 +161,8 @@ class Command(BaseCommand):
 
         # vyplnit harok vypocet
         #hlavicka
-        vypocet_hlavicka = ["Autor", "Odmena/AH", "Odviesť daň", "Počet znakov", "Odmena", "2% LF", "LF zaokr.", "19% daň", "daň zaokr.", "Vyplatiť"]
+        #vypocet_hlavicka = ["Autor", "Odmena/AH", "Odviesť daň", "Počet znakov", "Odmena", "2% LF", "LF zaokr.", "19% daň", "daň zaokr.", "Vyplatiť"]
+        vypocet_hlavicka = ["Autor", "Odviesť daň", "Odmena", "Preplatok", "Odmena - Preplatok", "2% LF", "LF zaokr.", "19% daň", "daň zaokr.", "Vyplatiť"]
 
         for i, val in enumerate(vypocet_hlavicka):
             vypocet.cell(row=1, column=i+1).value = vypocet_hlavicka[i]
@@ -141,21 +170,21 @@ class Command(BaseCommand):
             vypocet.column_dimensions[get_column_letter(i+1)].width = 14
         vypocet.column_dimensions[get_column_letter(1)].width = 20
         #zapisat udaje na vyplatenie
-        for i, autor in enumerate(autori_na_vyplatenie):
+        for i, autor in enumerate(sumy_na_vyplatenie):
             zdata = ZmluvaAutor.objects.filter(zmluvna_strana__rs_login=autor)[0]
             adata = OsobaAutor.objects.filter(rs_login=autor)[0]
             ii = i+2
             vypocet[f"A{ii}"] = autor
-            vypocet[f"B{ii}"] = zdata.odmena
-            vypocet[f"C{ii}"] = adata.zdanit if adata.zdanit else 'ano'
-            vypocet[f"C{ii}"].alignment = aright
-            vypocet[f"D{ii}"] = self.autori_pocet_znakov[autor]
-            vypocet[f"E{ii}"] = f"=D{ii}*B{ii}/36000"
+            vypocet[f"B{ii}"] = adata.zdanit if adata.zdanit else 'ano'
+            vypocet[f"B{ii}"].alignment = aright
+            vypocet[f"C{ii}"] = sumy_na_vyplatenie[autor][0]
+            vypocet[f"D{ii}"] = sumy_na_vyplatenie[autor][1]
+            vypocet[f"E{ii}"] = f"=C{ii}-D{ii}"
             #vypocet[f"F{ii}"] = f"=E{ii}*0.02"
-            vypocet[f"F{ii}"] = f'=IF(C{ii}="ano",E{ii}*{litfond_odvod},0'
+            vypocet[f"F{ii}"] = f'=IF(B{ii}="ano",E{ii}*{litfond_odvod},0'
             vypocet[f"G{ii}"] = f"=ROUNDDOWN(F{ii},2)"
             #vypocet[f"H{ii}"] = f"=(E{ii}-G{ii})*0.19"
-            vypocet[f"H{ii}"] = f'=IF(C{ii}="ano",(E{ii}-G{ii})*0.19,0'
+            vypocet[f"H{ii}"] = f'=IF(B{ii}="ano",(E{ii}-G{ii})*0.19,0'
             vypocet[f"I{ii}"] = f"=ROUNDDOWN(H{ii},2)"
             vypocet[f"J{ii}"] = f"=E{ii}-G{ii}-I{ii}"
         pass
@@ -217,9 +246,8 @@ class Command(BaseCommand):
         
         #autori
         pos += 6
-        for i, autor in enumerate(autori_na_vyplatenie):
+        for i, autor in enumerate(sumy_na_vyplatenie):
             a,b,c,d,e,f = range(pos, pos+6)
-            zdata = ZmluvaAutor.objects.filter(zmluvna_strana__rs_login=autor)[0]
             adata = OsobaAutor.objects.filter(rs_login=autor)[0]
             vyplatit[f"A{a}"] = "Komu:"
             vyplatit[f"B{a}"] = "Autor"
