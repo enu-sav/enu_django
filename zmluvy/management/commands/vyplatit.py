@@ -3,13 +3,15 @@ from django.core.management import BaseCommand, CommandError
 from zmluvy.models import OsobaAutor, ZmluvaAutor
 from zmluvy.common import transliterate
 from django.utils import timezone
+from django.conf import settings
 from ipdb import set_trace as trace
 from collections import defaultdict
 from openpyxl import load_workbook
-from openpyxl.styles import Font, Color, colors, Alignment
+from openpyxl.styles import Font, Color, colors, Alignment, PatternFill
 from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.pagebreak import Break
 from glob import glob
+import re, os
 
 # 1. a 2. stlpec: uid a login autorov v RS
 # 3. stlpec: Autori uvedení ako autori hesiel
@@ -42,7 +44,6 @@ class Command(BaseCommand):
                 return False
         if not "Login" in row :
             if not "Meno" in row or not "Priezvisko" in row: 
-                trace()
                 self.stdout.write(self.style.ERROR(f"Súbor {fname} musí obsahovať stĺpec 'Login' alebo stĺpce 'Meno' a 'Prezvisk'o"))
                 return False
         return True
@@ -92,6 +93,9 @@ class Command(BaseCommand):
             raise SystemExit
 
         #najst csv subory 
+        if not os.path.isdir(za_mesiac):
+            self.stdout.write(self.style.ERROR(f"Priečinok {za_mesiac} nebol nájdený"))
+            raise SystemExit
         csv_subory = glob(f"{za_mesiac}/*.csv")
         self.pocet_znakov = {"rs": {}, "webrs":{}}
         self.data={}
@@ -130,6 +134,8 @@ class Command(BaseCommand):
             aodmena = 0 #sucet odmien za jednotlive hesla na zaklade zmluv
             for rs in self.data[autor]: # rs alebo webrs
                 for zmluva in self.data[autor][rs]:
+                    #if not zmluva in zvyplatit:
+                    #zmluva = re.sub(r"([^/]*)/(.*)",r"\2-\1",zmluva)
                     if not zmluva in zvyplatit:
                         self.stdout.write(self.style.ERROR(f"Autor {autor}: nemá v databáze zmluvu {zmluva}"))
                         continue
@@ -137,7 +143,10 @@ class Command(BaseCommand):
                     aodmena += pocet_znakov*zvyplatit[zmluva]/36000
                     pass
             if aodmena - adata.preplatok > min_vyplatit: # bude sa vyplácať, preplatok sa zohľadní a jeho hodnota sa aktualizuje v db
-                self.stdout.write(self.style.SUCCESS(f"Autor {autor}: bude vyplatené {aodmena - adata.preplatok} € (platba {aodmena} mínus preplatok {adata.preplatok})"))
+                if adata.preplatok > 0:
+                    self.stdout.write(self.style.SUCCESS(f"Autor {autor}: bude vyplatené {aodmena - adata.preplatok} € (platba {aodmena} mínus preplatok {adata.preplatok})"))
+                else:
+                    self.stdout.write(self.style.SUCCESS(f"Autor {autor}: bude vyplatené {aodmena} €"))
                 sumy_na_vyplatenie[autor] = [aodmena, adata.preplatok]
                 #aktualizovať preplatok
                 pass
@@ -146,7 +155,10 @@ class Command(BaseCommand):
                 #aktualizovať preplatok
                 pass
             else: #po odpočítaní preplatku zostane suma menšia ako min_vyplatit. Nevyplatí sa, počká sa na ďalšie platby
-                self.stdout.write(self.style.WARNING(f"Autor {autor}: nebude vyplatené {aodmena - adata.preplatok} € (nízka suma, platba {aodmena} mínus preplatok {adata.preplatok})"))
+                if adata.preplatok > 0:
+                    self.stdout.write(self.style.WARNING(f"Autor {autor}: nebude vyplatené {aodmena - adata.preplatok} € (nízka suma, platba {aodmena} mínus preplatok {adata.preplatok})"))
+                else:
+                    self.stdout.write(self.style.WARNING(f"Autor {autor}: nebude vyplatené {aodmena - adata.preplatok} € (nízka suma)"))
                 pass
         # styly buniek, https://openpyxl.readthedocs.io/en/default/styles.html
         # default font dokumentu je Arial
@@ -161,7 +173,7 @@ class Command(BaseCommand):
 
         # vyplnit harok vypocet
         #hlavicka
-        #vypocet_hlavicka = ["Autor", "Odmena/AH", "Odviesť daň", "Počet znakov", "Odmena", "2% LF", "LF zaokr.", "19% daň", "daň zaokr.", "Vyplatiť"]
+        #vypocet_hlavicka = ["Autor", "Odmena/AH", "Odviesť daň", "Počet znakov", "Odmena", "2% LF", "LF zaokr.", "19% daň", "Daň zaokr.", "Autorovi"]
         vypocet_hlavicka = ["Autor", "Odviesť daň", "Odmena", "Preplatok", "Odmena - Preplatok", "2% LF", "LF zaokr.", "19% daň", "daň zaokr.", "Vyplatiť"]
 
         for i, val in enumerate(vypocet_hlavicka):
@@ -188,6 +200,7 @@ class Command(BaseCommand):
             vypocet[f"I{ii}"] = f"=ROUNDDOWN(H{ii},2)"
             vypocet[f"J{ii}"] = f"=E{ii}-G{ii}-I{ii}"
         pass
+        trace()
         vypocet[f"A{ii+1}"] = "Na úhradu#"
         vypocet[f"E{ii+1}"] = f"=SUM(E2:E{ii})"
         vypocet[f"G{ii+1}"] = f"=SUM(G2:G{ii})"
@@ -202,13 +215,18 @@ class Command(BaseCommand):
         vyplatit["A5"] = "za obdobie '{}'".format(za_mesiac.split("/")[-1])
         vyplatit["A5"].alignment = acenter
 
-        vyplatit["A7"] = "Odmena:"
+        vyplatit["A7"] = "Prevody spolu:"
         #vyplatit.merge_cells("B7:G7")
         vyplatit["B7"] = f"=Výpočet!E{ii+1}" 
         vyplatit[f"B7"].alignment = aleft
         vyplatit[f"B7"].font = fbold
         vyplatit["A8"] = "Z čísla účtu EnÚ:"
         vyplatit["B8"] = ucetEnÚ
+        # Farba pozadia
+        for i, rowOfCellObjects in enumerate(vyplatit['A7':'G8']):
+            for n, cellObj in enumerate(rowOfCellObjects):
+                cellObj.fill = PatternFill("solid", fgColor="FFFF00")
+
 
         #Litfond
         pos = 10
@@ -243,6 +261,11 @@ class Command(BaseCommand):
         vyplatit[f"B{e}"] = f"=Výpočet!I{ii+1}"
         vyplatit[f"B{e}"].alignment = aleft
         vyplatit[f"B{e}"].font = fbold
+
+        # Farba pozadia
+        for i, rowOfCellObjects in enumerate(vyplatit['A10':'G21']):
+            for n, cellObj in enumerate(rowOfCellObjects):
+                cellObj.fill = PatternFill("solid", fgColor="FDEADA")
         
         #autori
         pos += 6
