@@ -19,8 +19,11 @@ class Command(BaseCommand):
             for row in reader:
                 if row[0] == "Uid": continue
                 self.logins[row[1]] = row[0]
-                if len(row) > 2 and row[2]:
-                    self.aktivni_autori.append(row[2])
+                # aktívni autori v stĺpci 2
+                #if len(row) > 2 and row[2]:
+                    #self.aktivni_autori.append(row[2])
+                # všetci autori v rs
+                self.aktivni_autori.append(row[1])
 
     def handle(self, *args, **kwargs):
         self.read_aa()
