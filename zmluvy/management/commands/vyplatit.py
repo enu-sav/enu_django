@@ -285,11 +285,13 @@ class Command(BaseCommand):
         
         #nevyplácaní autori
         for i, autor in enumerate(self.suma_preplatok):
+            self.import_rs_webrs(autor)
             self.po_autoroch(autor)
 
         #vyplácaní autori
         pos += 6
         for i, autor in enumerate(self.suma_vyplatit):
+            self.import_rs_webrs(autor)
             self.po_autoroch(autor)
             a,b,c,d,e,f = range(pos, pos+6)
             adata = OsobaAutor.objects.filter(rs_login=autor)[0]
@@ -309,9 +311,6 @@ class Command(BaseCommand):
             vyplatit[f"B{f}"].font = fbold
             pos += 7
 
-        for autor in enumerate(self.suma_vyplatit):
-            self.import_rs_webrs(autor)
-
         pos += 7
         a,b,c,d,e,f = range(pos, pos+6)
         vyplatit[f"A{a}"] = "Spracovala:"
@@ -325,16 +324,92 @@ class Command(BaseCommand):
 
         workbook.save("xx.xlsx")
 
-    # zapíše nid a dátum platby do hárku Import RS/WEBRS
+
+    # zapíše údaje o platbe do hárku Po autoroch
     def import_rs_webrs(self, autor):
-        trace()
+        ws = self.importrs
+        for col in range(1,8):
+            ws.column_dimensions[get_column_letter(col)].width = 10
+        vyplaca_sa = False
         if autor in self.suma_vyplatit:
             vyplaca_sa = True
             odmena, preplatok = self.suma_vyplatit[autor]
         else:
             odmena, preplatok = self.suma_preplatok[autor]
 
+        ftitle = Font(name="Arial", bold=True, size='14')
+        fbold = Font(name="Arial", bold=True)
 
+        ws.merge_cells(f'A{self.ppos}:H{self.ppos}')
+        ws[f'A{self.ppos}'] = f"Vyplatenie autorskej odmeny za {self.obdobie}"
+        ws[f"A{self.ppos}"].alignment = Alignment(horizontal='center', vertical='center')
+        ws.row_dimensions[self.ppos].height = 70
+        ws[f"A{self.ppos}"].font = ftitle
+        self.ppos  += 1  
+
+
+        adata = OsobaAutor.objects.filter(rs_login=autor)[0]
+        self.bb( "Meno:" , self.meno_priezvisko(adata))
+        self.bb( "E-mail:" , adata.email)
+        self.bb( "Účet:", adata.bankovy_kontakt)
+        self.bb( "Dátum vytvorenia záznamu:" , date.today())
+        if vyplaca_sa:
+            if preplatok > 0:
+                self.bb( "Preplatok predchádzajúcich platieb:", preplatok)
+                self.bb( "Odmena za aktuálne obdobie:", odmena)
+                self.bb( "Na vyplatenie:", odmena-preplatok)
+                self.bb( "Nová hodnota preplatku:", 0)
+            else:
+                self.bb( "Na vyplatenie:", odmena-preplatok)
+            self.bb( "Dátum vyplatenia:", "")
+        else:
+                self.bb( "Preplatok predchádzajúcich platieb:", preplatok)
+                self.bb( "Odmena za aktuálne obdobie:", odmena)
+                self.bb( "Na vyplatenie:", 0)
+                self.bb( "Nová hodnota preplatku:", preplatok - odmena)
+        self.ppos  += 1  
+
+        ws.merge_cells(f'A{self.ppos}:H{self.ppos}')
+        ws[f'A{self.ppos}'] = "Prehľad platieb po heslách"
+        ws[f"A{self.ppos}"].alignment = Alignment(horizontal='center', vertical='center')
+        ws.row_dimensions[self.ppos].height = 40
+        ws[f"A{self.ppos}"].font = ftitle
+        self.ppos  += 1  
+
+        #vypísať vyplatené heslá a zrátať výslednú sumu
+        self.bb3(["Kniha/web","Zmluva","Heslo","Dátum zadania", "Suma [€/AH]","Počet znakov", "Vyplatiť [€]"],hdr=True)
+        zdata = ZmluvaAutor.objects.filter(zmluvna_strana__rs_login=autor)
+        zvyplatit = {}
+        for zmluva in zdata:
+            zvyplatit[zmluva.cislo_zmluvy] = zmluva.odmena
+        nitems = 0  #pocet hesiel
+        for rstype in self.data[autor]:
+            for zmluva in self.data[autor][rstype]:
+                for heslo in self.data[autor][rstype][zmluva]:
+                    #trace()
+                    if rstype=="rs":
+                        self.bb3(["kniha", zmluva , heslo[2], heslo[4], zvyplatit[zmluva], heslo[0]])
+                    else:
+                        self.bb3(["web", zmluva , heslo[2], heslo[4], zvyplatit[zmluva], heslo[0]])
+                    nitems += 1
+        #spočítať všetky sumy
+        #stĺpec so sumou: H
+        ws.merge_cells(f'A{self.ppos}:G{self.ppos}')
+        if vyplaca_sa:
+            ws[f'A{self.ppos}'] = "Odmena za heslá (na vyplatenie)"
+        else:
+            ws[f'A{self.ppos}'] = "Odmena za heslá (nevyplatí sa, odpočítaná z preplatku)"
+        ws[f'A{self.ppos}'].font = fbold
+        ws[f"H{self.ppos}"].alignment = Alignment(horizontal='right')
+        ws[f'H{self.ppos}'] = "=SUM(H{}:H{}".format(self.ppos-nitems,self.ppos-1) 
+        ws[f'H{self.ppos}'].font = fbold
+        ws[f"H{self.ppos}"].number_format= "0.00"
+        self.ppos  += 1  
+
+        #insert page break
+        page_break = Break(id=self.ppos-1)  # create Break obj
+        ws.row_breaks.append(page_break)  # insert page break
+        pass
     # zapíše údaje o platbe do hárku Po autoroch
     def po_autoroch(self, autor):
         ws = self.poautoroch
@@ -397,7 +472,10 @@ class Command(BaseCommand):
             for zmluva in self.data[autor][rstype]:
                 for heslo in self.data[autor][rstype][zmluva]:
                     #trace()
-                    self.bb3(["kniha" if rstype=="rs" else "web", zmluva , heslo[2], heslo[4], zvyplatit[zmluva], heslo[0]])
+                    if rstype=="rs":
+                        self.bb3(["kniha", zmluva , heslo[2], heslo[4], zvyplatit[zmluva], heslo[0]])
+                    else:
+                        self.bb3(["web", zmluva , heslo[2], heslo[4], zvyplatit[zmluva], heslo[0]])
                     nitems += 1
         #spočítať všetky sumy
         #stĺpec so sumou: H
