@@ -17,15 +17,13 @@ from datetime import date
 # 1. a 2. stlpec: uid a login autorov v RS
 # 3. stlpec: Autori uvedení ako autori hesiel
 
-ws_template = "data/Sablony/UhradaAutHonoraru.xlsx"
-ah_cesta = "data/Vyplacanie_autorskych_honorarov"
-litfond_odvod = 0.02
+ws_template = f"{settings.TEMPLATES_DIR}/UhradaAutHonoraru.xlsx"
+ah_cesta = settings.ROYALTIES_DIR
+litfond_odvod = 0.0 #Aktuálne 0.0 % kvôli Covid pandémii, inak 0.02 %
 min_vyplatit=20     #minimálna suma v Eur, ktorá sa vypláca
 ucetEnÚ = "SK36 8180 0000 0070 0061 8734 - Beliana"
 ucetLITA  = "SK47 0200 0000 0012 2545 9853" 
 ucetFin = "SK61 8180 5002 6780 2710 3305"
-
-
 
 class Command(BaseCommand):
     help = 'Vygenerovať podklady na vyplácanie autorských odmien'

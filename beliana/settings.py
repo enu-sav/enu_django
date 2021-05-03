@@ -132,7 +132,7 @@ STATIC_URL = '/static/'
 # Beliana specific settings
 # umiestnenie súborov
 DATA_SITE = f"{BASE_DIR}/data"
-SABLONY_DIR = f"{DATA_SITE}/Sablony"
-SABLONA_AUTORSKA_ZMLUVA = f"{DATA_SITE}/Sablony/AutorskaZmluva.fodt"
-ZMLUVY_DIR = f"{DATA_SITE}/Zmluvy"
-
+TEMPLATES_DIR = f"{DATA_SITE}/Sablony"
+ROYALTIES_DIR = f"{DATA_SITE}/Vyplacanie_autorskych_honorarov"
+AUTHORS_ČONTRACT_TEMPLATE = f"{TEMPLATES_DIR}/AutorskaZmluva.fodt"
+CONTRACTS_DIR = f"{DATA_SITE}/Zmluvy"
