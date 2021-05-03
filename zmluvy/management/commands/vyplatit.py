@@ -309,6 +309,9 @@ class Command(BaseCommand):
             vyplatit[f"B{f}"].font = fbold
             pos += 7
 
+        for autor in enumerate(self.suma_vyplatit):
+            self.import_rs_webrs(autor)
+
         pos += 7
         a,b,c,d,e,f = range(pos, pos+6)
         vyplatit[f"A{a}"] = "Spracovala:"
@@ -321,6 +324,16 @@ class Command(BaseCommand):
         vyplatit.print_area = f"A1:G{pos+7}"
 
         workbook.save("xx.xlsx")
+
+    # zapíše nid a dátum platby do hárku Import RS/WEBRS
+    def import_rs_webrs(self, autor):
+        trace()
+        if autor in self.suma_vyplatit:
+            vyplaca_sa = True
+            odmena, preplatok = self.suma_vyplatit[autor]
+        else:
+            odmena, preplatok = self.suma_preplatok[autor]
+
 
     # zapíše údaje o platbe do hárku Po autoroch
     def po_autoroch(self, autor):
