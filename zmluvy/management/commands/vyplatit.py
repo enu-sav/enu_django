@@ -7,7 +7,7 @@ from django.conf import settings
 from ipdb import set_trace as trace
 from collections import defaultdict
 from openpyxl import load_workbook
-from openpyxl.styles import Font, Color, colors, Alignment, PatternFill
+from openpyxl.styles import Font, Color, colors, Alignment, PatternFill , numbers
 from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.pagebreak import Break
 from glob import glob
@@ -29,7 +29,7 @@ class Command(BaseCommand):
     help = 'Vygenerovať podklady na vyplácanie autorských odmien'
 
     def add_arguments(self, parser):
-        parser.add_argument('--na-vyplatenie', type=str, help="Priečinok s názvom RRRR-MM so súbormi s údajmi pre vyplácanie autorských honorárov")
+        parser.add_argument('--na-vyplatenie', type=str, help="Priečinok s názvom RRRR-MM v {ah_cesta} so súbormi s údajmi pre vyplácanie autorských honorárov")
 
     def nacitat_udaje_grafik(self, fname):
         pass
@@ -101,6 +101,7 @@ class Command(BaseCommand):
         self.obdobie = za_mesiac.strip("/").split("/")[-1]
 
         #najst csv subory 
+        za_mesiac = os.path.join(ah_cesta, za_mesiac) 
         if not os.path.isdir(za_mesiac):
             self.stdout.write(self.style.ERROR(f"Priečinok {za_mesiac} nebol nájdený"))
             raise SystemExit
@@ -396,7 +397,7 @@ class Command(BaseCommand):
         ws[f"H{self.ppos}"].alignment = Alignment(horizontal='right')
         ws[f'H{self.ppos}'] = "=SUM(H{}:H{}".format(self.ppos-nitems,self.ppos-1) 
         ws[f'H{self.ppos}'].font = fbold
-        ws[f"H{self.ppos}"].alignment = Alignment(horizontal='center')
+        ws[f"H{self.ppos}"].number_format= "0.00"
         self.ppos  += 1  
 
         #insert page break
@@ -430,7 +431,6 @@ class Command(BaseCommand):
                 if type(item) is str and "Heslo" in item:
                     ws.merge_cells(f'{col[n]}{self.ppos}:{col[n+1]}{self.ppos}')
                     nc = 1
-
         else:
             nc = 0
             for n, item in enumerate(items):
@@ -447,8 +447,11 @@ class Command(BaseCommand):
                     ws[f"{col[n+nc]}{self.ppos}"] = item
                     ws[f"{col[n+nc]}{self.ppos}"].alignment = acenter
             # suma za heslo, posledné 2 položky sú suma/AH a počet znakov
+            ws[f"{col[n+nc]}{self.ppos}"].alignment = Alignment(horizontal='right')
             ws[f"{col[n+nc+1]}{self.ppos}"] = f"={col[n+nc-1]}{self.ppos}*{col[n+nc]}{self.ppos}/36000"
-            ws[f"{col[n+nc+1]}{self.ppos}"].alignment = acenter
+            ws[f"{col[n+nc+1]}{self.ppos}"].alignment = Alignment(horizontal='right')
+            #ws[f"{col[n+nc+1]}{self.ppos}"].style.number_format= numbers.NumberFormat.FORMAT_NUMBER_00
+            ws[f"{col[n+nc+1]}{self.ppos}"].number_format= "0.00"
             ws.row_dimensions[self.ppos].height = 16
         self.ppos  += 1  
 
