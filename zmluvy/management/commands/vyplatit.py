@@ -30,6 +30,7 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument('--na-vyplatenie', type=str, help="Priečinok s názvom RRRR-MM v {ah_cesta} so súbormi s údajmi pre vyplácanie autorských honorárov")
+        parser.add_argument('--datum-vyplatenia', type=str, help="Dátum vyplatenia hesiel v tvare 'dd.mm.rrrr'. Zadať až po vyplatení hesiel THS-kou. Ak sa nezadá, vygenerujú sa len podklady pre THS-ku na vyplácanie. Ak sa zadá, vygenerujú sa aj zoznamy vyplatených hesiel na importovanie do RS a WEBRS, ako aj potvrdenie o zaplatení na zaradenie do šanonu.")
 
     def nacitat_udaje_grafik(self, fname):
         pass
@@ -92,11 +93,22 @@ class Command(BaseCommand):
         return mp.strip()
 
     def handle(self, *args, **kwargs):
+        self.datum_vyplatenia = None # Ak None, nevygenerujú sa hárky ImportRS/WEBRS
         if kwargs['na_vyplatenie']:
             za_mesiac = kwargs['na_vyplatenie']
         else:
             self.stdout.write(self.style.ERROR(f"Nebol zadaný názov priečinka v {ah_cesta} s údajmi na vyplatenie"))
             raise SystemExit
+
+        if kwargs['datum_vyplatenia']:
+            self.datum_vyplatenia = kwargs['datum_vyplatenia']
+
+        if self.datum_vyplatenia:
+            self.stdout.write(self.style.WARNING(f"Bol zadaný dátum vyplatenia hesiel ({self.datum_vyplatenia})."))
+            self.stdout.write(self.style.WARNING(f"Vygenerujú sa zoznamy vyplatených hesiel na importovanie do RS a WEBRS, ako aj potvrdenie o zaplatení na zaradenie do šanonu."))
+        else:
+            self.stdout.write(self.style.WARNING(f"Nebol zadaný dátum vyplatenia hesiel ({self.datum_vyplatenia})."))
+            self.stdout.write(self.style.WARNING(f"Vygenerujú sa len podklady pre THS-ku na vyplácanie. Po vyplatení treba tento program spustiť ešte raz so zadaným dátum vyplatenia"))
 
         self.obdobie = za_mesiac.strip("/").split("/")[-1]
 
@@ -130,7 +142,6 @@ class Command(BaseCommand):
         for autor in self.data:
             # spanning relationship: zmluvna_strana->rs_login
             zdata = ZmluvaAutor.objects.filter(zmluvna_strana__rs_login=autor)
-            #trace()
             adata = OsobaAutor.objects.filter(rs_login=autor)
             if not adata:
                 self.stdout.write(self.style.ERROR(f"Autor {autor}: nemá záznam v databáze "))
@@ -181,12 +192,23 @@ class Command(BaseCommand):
         workbook = load_workbook(filename=ws_template)
         vyplatit = workbook[workbook.sheetnames[0]]
         vypocet = workbook[workbook.sheetnames[1]]
-        self.poautoroch = workbook[workbook.sheetnames[2]]
+
+        self.poautoroch = None
+        self.poautoroch = workbook.create_sheet("Po autoroch")
         self.ppos = 1   #poloha počiatočnej bunky v hárku poautoroch, inkrementovaná po každom zázname
-        self.importrs = workbook[workbook.sheetnames[3]]
-        self.rpos = 1   #poloha počiatočnej bunky v hárku importrs, inkrementovaná po každom zázname
-        self.importwebrs = workbook[workbook.sheetnames[4]]
-        self.wpos = 1   #poloha počiatočnej bunky v hárku importwebrs, inkrementovaná po každom zázname
+        if self.datum_vyplatenia:
+            self.importrs = workbook.create_sheet("Import RS")
+            self.importrs.column_dimensions["A"].width = 30
+            self.importrs["A1"] = "Odkaz"
+            self.importrs["B1"] = "Nid"
+            self.importrs["C1"] = "datum_vyplatenia"
+            self.rpos = 2   #poloha počiatočnej bunky v hárku importrs, inkrementovaná po každom zázname
+            self.importwebrs = workbook.create_sheet("Import WEBRS")
+            self.importwebrs.column_dimensions["A"].width = 30
+            self.importwebrs["A1"] = "Odkaz"
+            self.importwebrs["B1"] = "Nid"
+            self.importwebrs["C1"] = "datum_vyplatenia"
+            self.wpos = 2   #poloha počiatočnej bunky v hárku importwebrs, inkrementovaná po každom zázname
 
         # vyplnit harok vypocet
         #hlavicka
@@ -325,93 +347,33 @@ class Command(BaseCommand):
         workbook.save("xx.xlsx")
 
 
-    # zapíše údaje o platbe do hárku Po autoroch
+    # zapíše údaje o platbe do hárkov Import RS a Import Webrs
     def import_rs_webrs(self, autor):
-        ws = self.importrs
-        for col in range(1,8):
-            ws.column_dimensions[get_column_letter(col)].width = 10
-        vyplaca_sa = False
-        if autor in self.suma_vyplatit:
-            vyplaca_sa = True
-            odmena, preplatok = self.suma_vyplatit[autor]
-        else:
-            odmena, preplatok = self.suma_preplatok[autor]
-
-        ftitle = Font(name="Arial", bold=True, size='14')
-        fbold = Font(name="Arial", bold=True)
-
-        ws.merge_cells(f'A{self.ppos}:H{self.ppos}')
-        ws[f'A{self.ppos}'] = f"Vyplatenie autorskej odmeny za {self.obdobie}"
-        ws[f"A{self.ppos}"].alignment = Alignment(horizontal='center', vertical='center')
-        ws.row_dimensions[self.ppos].height = 70
-        ws[f"A{self.ppos}"].font = ftitle
-        self.ppos  += 1  
-
-
-        adata = OsobaAutor.objects.filter(rs_login=autor)[0]
-        self.bb( "Meno:" , self.meno_priezvisko(adata))
-        self.bb( "E-mail:" , adata.email)
-        self.bb( "Účet:", adata.bankovy_kontakt)
-        self.bb( "Dátum vytvorenia záznamu:" , date.today())
-        if vyplaca_sa:
-            if preplatok > 0:
-                self.bb( "Preplatok predchádzajúcich platieb:", preplatok)
-                self.bb( "Odmena za aktuálne obdobie:", odmena)
-                self.bb( "Na vyplatenie:", odmena-preplatok)
-                self.bb( "Nová hodnota preplatku:", 0)
-            else:
-                self.bb( "Na vyplatenie:", odmena-preplatok)
-            self.bb( "Dátum vyplatenia:", "")
-        else:
-                self.bb( "Preplatok predchádzajúcich platieb:", preplatok)
-                self.bb( "Odmena za aktuálne obdobie:", odmena)
-                self.bb( "Na vyplatenie:", 0)
-                self.bb( "Nová hodnota preplatku:", preplatok - odmena)
-        self.ppos  += 1  
-
-        ws.merge_cells(f'A{self.ppos}:H{self.ppos}')
-        ws[f'A{self.ppos}'] = "Prehľad platieb po heslách"
-        ws[f"A{self.ppos}"].alignment = Alignment(horizontal='center', vertical='center')
-        ws.row_dimensions[self.ppos].height = 40
-        ws[f"A{self.ppos}"].font = ftitle
-        self.ppos  += 1  
-
-        #vypísať vyplatené heslá a zrátať výslednú sumu
-        self.bb3(["Kniha/web","Zmluva","Heslo","Dátum zadania", "Suma [€/AH]","Počet znakov", "Vyplatiť [€]"],hdr=True)
-        zdata = ZmluvaAutor.objects.filter(zmluvna_strana__rs_login=autor)
-        zvyplatit = {}
-        for zmluva in zdata:
-            zvyplatit[zmluva.cislo_zmluvy] = zmluva.odmena
-        nitems = 0  #pocet hesiel
+        if not self.datum_vyplatenia: return
         for rstype in self.data[autor]:
+            if rstype=="rs":
+                ws = self.importrs
+                pos = self.rpos
+            else:
+                ws = self.importwebrs
+                pos = self.wpos
             for zmluva in self.data[autor][rstype]:
                 for heslo in self.data[autor][rstype][zmluva]:
-                    #trace()
-                    if rstype=="rs":
-                        self.bb3(["kniha", zmluva , heslo[2], heslo[4], zvyplatit[zmluva], heslo[0]])
-                    else:
-                        self.bb3(["web", zmluva , heslo[2], heslo[4], zvyplatit[zmluva], heslo[0]])
-                    nitems += 1
-        #spočítať všetky sumy
-        #stĺpec so sumou: H
-        ws.merge_cells(f'A{self.ppos}:G{self.ppos}')
-        if vyplaca_sa:
-            ws[f'A{self.ppos}'] = "Odmena za heslá (na vyplatenie)"
-        else:
-            ws[f'A{self.ppos}'] = "Odmena za heslá (nevyplatí sa, odpočítaná z preplatku)"
-        ws[f'A{self.ppos}'].font = fbold
-        ws[f"H{self.ppos}"].alignment = Alignment(horizontal='right')
-        ws[f'H{self.ppos}'] = "=SUM(H{}:H{}".format(self.ppos-nitems,self.ppos-1) 
-        ws[f'H{self.ppos}'].font = fbold
-        ws[f"H{self.ppos}"].number_format= "0.00"
-        self.ppos  += 1  
+                    link, lname = re.findall(r'"([^"]*)"',heslo[2]) 
+                    ws[f"A{pos}"].hyperlink = link
+                    ws[f"A{pos}"].value = lname
+                    ws[f"A{pos}"].style = "Hyperlink"
+                    ws[f"B{pos}"] = link.split("/")[-1]   #nid
+                    ws[f"C{pos}"] = self.datum_vyplatenia
+                    pos += 1
+            if rstype=="rs":
+                self.rpos = pos
+            else:
+                self.wpos = pos
 
-        #insert page break
-        page_break = Break(id=self.ppos-1)  # create Break obj
-        ws.row_breaks.append(page_break)  # insert page break
-        pass
     # zapíše údaje o platbe do hárku Po autoroch
     def po_autoroch(self, autor):
+        if not self.po_autoroch: return
         ws = self.poautoroch
         for col in range(1,8):
             ws.column_dimensions[get_column_letter(col)].width = 10
@@ -471,7 +433,6 @@ class Command(BaseCommand):
         for rstype in self.data[autor]:
             for zmluva in self.data[autor][rstype]:
                 for heslo in self.data[autor][rstype][zmluva]:
-                    #trace()
                     if rstype=="rs":
                         self.bb3(["kniha", zmluva , heslo[2], heslo[4], zvyplatit[zmluva], heslo[0]])
                     else:
