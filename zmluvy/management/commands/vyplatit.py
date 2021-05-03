@@ -12,6 +12,7 @@ from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.pagebreak import Break
 from glob import glob
 import re, os
+from datetime import date
 
 # 1. a 2. stlpec: uid a login autorov v RS
 # 3. stlpec: Autori uvedení ako autori hesiel
@@ -76,14 +77,21 @@ class Command(BaseCommand):
                     if not login in self.data: self.data[login] = {} 
                     if not rs_webrs in self.data[login]: self.data[login][rs_webrs] = {} 
                     if not zmluva in self.data[login][rs_webrs]: self.data[login][rs_webrs][zmluva] = []
-                    self.data[login][rs_webrs][zmluva].append([int(row[hdr["Dĺžka autorom odovzdaného textu"]])])
+                    nid = row[hdr["Nid"]] if rs_webrs == "rs" else row[hdr["Nid"]].replace("//rs","//webrs")
+                    self.data[login][rs_webrs][zmluva].append([
+                        int(row[hdr["Dĺžka autorom odovzdaného textu"]]),
+                        rs_webrs,
+                        f'=HYPERLINK("{nid}";"{row[hdr["nazov"]]}")',
+                        row[hdr['Autorská zmluva']],
+                        re.sub(r"<[^>]*>","",row[hdr['Dátum záznamu dĺžky']])
+                        ])
                     pass
 
     def meno_priezvisko(self, autor):
         mp = f"{autor.titul_pred_menom} {autor.meno} {autor.priezvisko}"
         if autor.titul_za_menom:
             mp = f"{mp}, {autor.titul_za_menom}"
-        return mp
+        return mp.strip()
 
     def handle(self, *args, **kwargs):
         if kwargs['na_vyplatenie']:
@@ -91,6 +99,8 @@ class Command(BaseCommand):
         else:
             self.stdout.write(self.style.ERROR(f"Nebol zadaný názov priečinka v {ah_cesta} s údajmi na vyplatenie"))
             raise SystemExit
+
+        self.obdobie = za_mesiac.strip("/").split("/")[-1]
 
         #najst csv subory 
         if not os.path.isdir(za_mesiac):
@@ -116,7 +126,8 @@ class Command(BaseCommand):
                 raise SystemExit
 
         #scitat pocty znakov a rozhodnut, ci sa bude vyplacat
-        sumy_na_vyplatenie={}
+        self.suma_vyplatit={}    # Vyplati sa
+        self.suma_preplatok={}   # strhne sa z preplatku
         for autor in self.data:
             # spanning relationship: zmluvna_strana->rs_login
             zdata = ZmluvaAutor.objects.filter(zmluvna_strana__rs_login=autor)
@@ -147,11 +158,12 @@ class Command(BaseCommand):
                     self.stdout.write(self.style.SUCCESS(f"Autor {autor}: bude vyplatené {aodmena - adata.preplatok} € (platba {aodmena} mínus preplatok {adata.preplatok})"))
                 else:
                     self.stdout.write(self.style.SUCCESS(f"Autor {autor}: bude vyplatené {aodmena} €"))
-                sumy_na_vyplatenie[autor] = [aodmena, adata.preplatok]
+                self.suma_vyplatit[autor] = [aodmena, adata.preplatok]
                 #aktualizovať preplatok
                 pass
             elif aodmena < adata.preplatok: # celú sumu možno odpočítať z preplatku
                 self.stdout.write(self.style.SUCCESS(f"Autor {autor}: Suma {aodmena} € sa nevyplatí, odpočíta sa od preplatku {adata.preplatok} €"))
+                self.suma_preplatok[autor] = [aodmena, adata.preplatok]
                 #aktualizovať preplatok
                 pass
             else: #po odpočítaní preplatku zostane suma menšia ako min_vyplatit. Nevyplatí sa, počká sa na ďalšie platby
@@ -170,6 +182,12 @@ class Command(BaseCommand):
         workbook = load_workbook(filename=ws_template)
         vyplatit = workbook[workbook.sheetnames[0]]
         vypocet = workbook[workbook.sheetnames[1]]
+        self.poautoroch = workbook[workbook.sheetnames[2]]
+        self.ppos = 1   #poloha počiatočnej bunky v hárku poautoroch, inkrementovaná po každom zázname
+        self.importrs = workbook[workbook.sheetnames[3]]
+        self.rpos = 1   #poloha počiatočnej bunky v hárku importrs, inkrementovaná po každom zázname
+        self.importwebrs = workbook[workbook.sheetnames[4]]
+        self.wpos = 1   #poloha počiatočnej bunky v hárku importwebrs, inkrementovaná po každom zázname
 
         # vyplnit harok vypocet
         #hlavicka
@@ -181,16 +199,16 @@ class Command(BaseCommand):
             vypocet.cell(row=1, column=i+1).font = fbold
             vypocet.column_dimensions[get_column_letter(i+1)].width = 14
         vypocet.column_dimensions[get_column_letter(1)].width = 20
+
         #zapisat udaje na vyplatenie
-        for i, autor in enumerate(sumy_na_vyplatenie):
-            zdata = ZmluvaAutor.objects.filter(zmluvna_strana__rs_login=autor)[0]
+        for i, autor in enumerate(self.suma_vyplatit):
             adata = OsobaAutor.objects.filter(rs_login=autor)[0]
             ii = i+2
             vypocet[f"A{ii}"] = autor
             vypocet[f"B{ii}"] = adata.zdanit if adata.zdanit else 'ano'
             vypocet[f"B{ii}"].alignment = aright
-            vypocet[f"C{ii}"] = sumy_na_vyplatenie[autor][0]
-            vypocet[f"D{ii}"] = sumy_na_vyplatenie[autor][1]
+            vypocet[f"C{ii}"] = self.suma_vyplatit[autor][0]
+            vypocet[f"D{ii}"] = self.suma_vyplatit[autor][1]
             vypocet[f"E{ii}"] = f"=C{ii}-D{ii}"
             #vypocet[f"F{ii}"] = f"=E{ii}*0.02"
             vypocet[f"F{ii}"] = f'=IF(B{ii}="ano",E{ii}*{litfond_odvod},0'
@@ -200,7 +218,6 @@ class Command(BaseCommand):
             vypocet[f"I{ii}"] = f"=ROUNDDOWN(H{ii},2)"
             vypocet[f"J{ii}"] = f"=E{ii}-G{ii}-I{ii}"
         pass
-        trace()
         vypocet[f"A{ii+1}"] = "Na úhradu#"
         vypocet[f"E{ii+1}"] = f"=SUM(E2:E{ii})"
         vypocet[f"G{ii+1}"] = f"=SUM(G2:G{ii})"
@@ -212,7 +229,7 @@ class Command(BaseCommand):
 
         # vyplnit harok Na vyplatenie
         vyplatit.merge_cells('A5:G5')
-        vyplatit["A5"] = "za obdobie '{}'".format(za_mesiac.split("/")[-1])
+        vyplatit["A5"] = f"za obdobie '{self.obdobie}'"
         vyplatit["A5"].alignment = acenter
 
         vyplatit["A7"] = "Prevody spolu:"
@@ -267,9 +284,14 @@ class Command(BaseCommand):
             for n, cellObj in enumerate(rowOfCellObjects):
                 cellObj.fill = PatternFill("solid", fgColor="FDEADA")
         
-        #autori
+        #nevyplácaní autori
+        for i, autor in enumerate(self.suma_preplatok):
+            self.po_autoroch(autor)
+
+        #vyplácaní autori
         pos += 6
-        for i, autor in enumerate(sumy_na_vyplatenie):
+        for i, autor in enumerate(self.suma_vyplatit):
+            self.po_autoroch(autor)
             a,b,c,d,e,f = range(pos, pos+6)
             adata = OsobaAutor.objects.filter(rs_login=autor)[0]
             vyplatit[f"A{a}"] = "Komu:"
@@ -279,7 +301,7 @@ class Command(BaseCommand):
             vyplatit[f"A{c}"] = "IBAN:"
             vyplatit[f"B{c}"] = adata.bankovy_kontakt
             vyplatit[f"A{d}"] = "VS:"
-            vyplatit[f"B{d}"] = za_mesiac.split("/")[-1]
+            vyplatit[f"B{d}"] = self.obdobie
             vyplatit[f"A{e}"] = "KS:"
             vyplatit[f"B{e}"] = "3014"
             vyplatit[f"A{f}"] = "Suma na úhradu:"
@@ -300,6 +322,138 @@ class Command(BaseCommand):
         vyplatit.print_area = f"A1:G{pos+7}"
 
         workbook.save("xx.xlsx")
+
+    # zapíše údaje o platbe do hárku Po autoroch
+    def po_autoroch(self, autor):
+        ws = self.poautoroch
+        for col in range(1,8):
+            ws.column_dimensions[get_column_letter(col)].width = 10
+        vyplaca_sa = False
+        if autor in self.suma_vyplatit:
+            vyplaca_sa = True
+            odmena, preplatok = self.suma_vyplatit[autor]
+        else:
+            odmena, preplatok = self.suma_preplatok[autor]
+
+        ftitle = Font(name="Arial", bold=True, size='14')
+        fbold = Font(name="Arial", bold=True)
+
+        ws.merge_cells(f'A{self.ppos}:H{self.ppos}')
+        ws[f'A{self.ppos}'] = f"Vyplatenie autorskej odmeny za {self.obdobie}"
+        ws[f"A{self.ppos}"].alignment = Alignment(horizontal='center', vertical='center')
+        ws.row_dimensions[self.ppos].height = 70
+        ws[f"A{self.ppos}"].font = ftitle
+        self.ppos  += 1  
+
+
+        adata = OsobaAutor.objects.filter(rs_login=autor)[0]
+        self.bb( "Meno:" , self.meno_priezvisko(adata))
+        self.bb( "E-mail:" , adata.email)
+        self.bb( "Účet:", adata.bankovy_kontakt)
+        self.bb( "Dátum vytvorenia záznamu:" , date.today())
+        if vyplaca_sa:
+            if preplatok > 0:
+                self.bb( "Preplatok predchádzajúcich platieb:", preplatok)
+                self.bb( "Odmena za aktuálne obdobie:", odmena)
+                self.bb( "Na vyplatenie:", odmena-preplatok)
+                self.bb( "Nová hodnota preplatku:", 0)
+            else:
+                self.bb( "Na vyplatenie:", odmena-preplatok)
+            self.bb( "Dátum vyplatenia:", "")
+        else:
+                self.bb( "Preplatok predchádzajúcich platieb:", preplatok)
+                self.bb( "Odmena za aktuálne obdobie:", odmena)
+                self.bb( "Na vyplatenie:", 0)
+                self.bb( "Nová hodnota preplatku:", preplatok - odmena)
+        self.ppos  += 1  
+
+        ws.merge_cells(f'A{self.ppos}:H{self.ppos}')
+        ws[f'A{self.ppos}'] = "Prehľad platieb po heslách"
+        ws[f"A{self.ppos}"].alignment = Alignment(horizontal='center', vertical='center')
+        ws.row_dimensions[self.ppos].height = 40
+        ws[f"A{self.ppos}"].font = ftitle
+        self.ppos  += 1  
+
+        #vypísať vyplatené heslá a zrátať výslednú sumu
+        self.bb3(["Kniha/web","Zmluva","Heslo","Dátum zadania", "Suma [€/AH]","Počet znakov", "Vyplatiť [€]"],hdr=True)
+        zdata = ZmluvaAutor.objects.filter(zmluvna_strana__rs_login=autor)
+        zvyplatit = {}
+        for zmluva in zdata:
+            zvyplatit[zmluva.cislo_zmluvy] = zmluva.odmena
+        nitems = 0  #pocet hesiel
+        for rstype in self.data[autor]:
+            for zmluva in self.data[autor][rstype]:
+                for heslo in self.data[autor][rstype][zmluva]:
+                    #trace()
+                    self.bb3(["kniha" if rstype=="rs" else "web", zmluva , heslo[2], heslo[4], zvyplatit[zmluva], heslo[0]])
+                    nitems += 1
+        #spočítať všetky sumy
+        #stĺpec so sumou: H
+        ws.merge_cells(f'A{self.ppos}:G{self.ppos}')
+        if vyplaca_sa:
+            ws[f'A{self.ppos}'] = "Odmena za heslá (na vyplatenie)"
+        else:
+            ws[f'A{self.ppos}'] = "Odmena za heslá (nevyplatí sa, odpočítaná z preplatku)"
+        ws[f'A{self.ppos}'].font = fbold
+        ws[f"H{self.ppos}"].alignment = Alignment(horizontal='right')
+        ws[f'H{self.ppos}'] = "=SUM(H{}:H{}".format(self.ppos-nitems,self.ppos-1) 
+        ws[f'H{self.ppos}'].font = fbold
+        ws[f"H{self.ppos}"].alignment = Alignment(horizontal='center')
+        self.ppos  += 1  
+
+        #insert page break
+        page_break = Break(id=self.ppos-1)  # create Break obj
+        ws.row_breaks.append(page_break)  # insert page break
+        pass
+
+    def bb(self, v1, v2):
+        ws = self.poautoroch
+        ws.merge_cells(f'A{self.ppos}:D{self.ppos}')
+        ws.merge_cells(f'E{self.ppos}:H{self.ppos}')
+        ws[f"A{self.ppos}"] = v1
+        ws[f"E{self.ppos}"] = v2
+        ws[f"E{self.ppos}"].alignment = Alignment(horizontal='left')
+        ws.row_dimensions[self.ppos].height = 16
+        self.ppos  += 1  
+
+    def bb3(self, items, hdr=False):
+        col="ABCDEFGHIJK"
+        ws = self.poautoroch
+
+        nc = 0
+        fbold = Font(name="Arial", bold=True)
+        acenter = Alignment(horizontal='center')
+        if hdr:
+            ws.row_dimensions[self.ppos].height = 30
+            for n, item in enumerate(items):
+                ws[f"{col[n+nc]}{self.ppos}"].font = fbold
+                ws[f"{col[n+nc]}{self.ppos}"].alignment = Alignment(wrapText=True, horizontal='center')
+                ws[f"{col[n+nc]}{self.ppos}"] = item
+                if type(item) is str and "Heslo" in item:
+                    ws.merge_cells(f'{col[n]}{self.ppos}:{col[n+1]}{self.ppos}')
+                    nc = 1
+
+        else:
+            nc = 0
+            for n, item in enumerate(items):
+                if type(item) is str and "HYPERLINK" in item:
+                    #=HYPERLINK("https://rs.beliana.sav.sk/node/218406";"langusta")
+                    link, lname = re.findall(r'"([^"]*)"',item) 
+                    ws[f"{col[n+nc]}{self.ppos}"].alignment = acenter
+                    ws.merge_cells(f'{col[n]}{self.ppos}:{col[n+1]}{self.ppos}')
+                    nc = 1
+                    ws[f"{col[n]}{self.ppos}"].hyperlink = link
+                    ws[f"{col[n]}{self.ppos}"].value = lname
+                    ws[f"{col[n]}{self.ppos}"].style = "Hyperlink"
+                else:
+                    ws[f"{col[n+nc]}{self.ppos}"] = item
+                    ws[f"{col[n+nc]}{self.ppos}"].alignment = acenter
+            # suma za heslo, posledné 2 položky sú suma/AH a počet znakov
+            ws[f"{col[n+nc+1]}{self.ppos}"] = f"={col[n+nc-1]}{self.ppos}*{col[n+nc]}{self.ppos}/36000"
+            ws[f"{col[n+nc+1]}{self.ppos}"].alignment = acenter
+            ws.row_dimensions[self.ppos].height = 16
+        self.ppos  += 1  
+
 
 #row_number = 20  # the row that you want to insert page break
 #page_break = Break(id=row_number)  # create Break obj
