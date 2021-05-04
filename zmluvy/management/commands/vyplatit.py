@@ -430,12 +430,15 @@ class Command(BaseCommand):
         self.bb( "E-mail:" , adata.email)
         self.bb( "Účet:", adata.bankovy_kontakt)
         self.bb( "Dátum vytvorenia záznamu:" , date.today().strftime("%d.%m.%Y"))
+        #trace()
         if vyplaca_sa:
             if preplatok > 0:
                 self.bb( "Preplatok predchádzajúcich platieb:", preplatok)
                 self.bb( "Odmena za aktuálne obdobie:", odmena)
                 self.bb( "Na vyplatenie:", odmena-preplatok)
                 self.bb( "Nová hodnota preplatku:", 0)
+                adata.preplatok = 0
+                #adata.save()
             else:
                 self.bb( "Na vyplatenie:", odmena-preplatok)
             self.bb( "Dátum vyplatenia:", "")
@@ -444,6 +447,8 @@ class Command(BaseCommand):
                 self.bb( "Odmena za aktuálne obdobie:", odmena)
                 self.bb( "Na vyplatenie:", 0)
                 self.bb( "Nová hodnota preplatku:", preplatok - odmena)
+                adata.preplatok = preplatok - odmena
+                #adata.save()
         self.ppos  += 1  
 
         ws.merge_cells(f'A{self.ppos}:H{self.ppos}')
