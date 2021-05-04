@@ -123,19 +123,21 @@ class Command(BaseCommand):
         self.data={}
 
         for csv_subor in csv_subory:
-            print(csv_subor)
-            if "_rs" in csv_subor:
+            if "export_vyplatit_rs" in csv_subor:
+                self.stdout.write(self.style.WARNING(f"Načítavam údaje zo súboru {csv_subor}"))
                 hdr = self.nacitat_udaje_autor(csv_subor, "rs")
-            elif "_webrs" in csv_subor:
+            elif "export_vyplatit_webrs" in csv_subor:
+                self.stdout.write(self.style.WARNING(f"Načítavam údaje zo súboru {csv_subor}"))
                 hdr = self.nacitat_udaje_autor(csv_subor, "webrs")
             elif "_grafik" in csv_subor:
+                self.stdout.write(self.style.WARNING(f"Načítavam údaje zo súboru {csv_subor}"))
                 self.nacitat_udaje_grafik(csv_subor)
                 pass
-            else:
-                aux_name = csv_subor.split("/")[-1]
-                self.stdout.write(self.style.ERROR(f"V priečinku {ah_cesta}/{za_mesiac} bol nájdený neznámy súbor {aux_name}"))
-                self.stdout.write(self.style.ERROR("Súbor odstráňte alebo opravte jeho názov"))
-                raise SystemExit
+            #else:
+                #aux_name = csv_subor.split("/")[-1]
+                #self.stdout.write(self.style.ERROR(f"V priečinku {ah_cesta}/{za_mesiac} bol nájdený neznámy súbor {aux_name}"))
+                #self.stdout.write(self.style.ERROR("Súbor odstráňte alebo opravte jeho názov"))
+                #raise SystemExit
 
         #scitat pocty znakov a rozhodnut, ci sa bude vyplacat
         self.suma_vyplatit={}    # Vyplati sa
@@ -241,7 +243,7 @@ class Command(BaseCommand):
             vypocet[f"I{ii}"] = f"=ROUNDDOWN(H{ii},2)"
             vypocet[f"J{ii}"] = f"=E{ii}-G{ii}-I{ii}"
         pass
-        vypocet[f"A{ii+1}"] = "Na úhradu#"
+        vypocet[f"A{ii+1}"] = "Na úhradu"
         vypocet[f"E{ii+1}"] = f"=SUM(E2:E{ii})"
         vypocet[f"G{ii+1}"] = f"=SUM(G2:G{ii})"
         vypocet[f"I{ii+1}"] = f"=SUM(I2:I{ii})"
@@ -351,8 +353,29 @@ class Command(BaseCommand):
         krycilist["A2"].value = krycilist["A2"].value.replace("xx.xx.xxxx", date.today().strftime("%d.%m.%Y"))
         krycilist["E4"].value = "Dátum: {}".format(date.today().strftime("%d.%m.%Y"))
 
-        workbook.save("xx.xlsx")
+        if self.datum_vyplatenia:
+            fpath = os.path.join(za_mesiac,f"Vyplatene-{self.obdobie}.xlsx")
+            self.stdout.write(self.style.WARNING(f"Údaje o vyplácaní uložené do súboru {fpath}"))
+            workbook.save(fpath)
 
+            # vytvorit csv subory na importovanie
+            fpath = os.path.join(za_mesiac,f"Import-rs-{self.obdobie}.csv")
+            with open(fpath, "w") as csvfile:
+                csvWriter = csv.writer(csvfile, delimiter=',', quotechar='"')
+                for b, c in zip(self.importrs["b:c"][0], self.importrs["b:c"][1]) :
+                    csvWriter.writerow([b.value,c.value])
+            self.stdout.write(self.style.WARNING(f"Údaje na importovanie do RS boli uložené do súboru {fpath}"))
+
+            fpath = os.path.join(za_mesiac,f"Import-webrs-{self.obdobie}.csv")
+            with open(fpath, "w") as csvfile:
+                csvWriter = csv.writer(csvfile, delimiter=',', quotechar='"')
+                for b, c in zip(self.importwebrs["b:c"][0], self.importwebrs["b:c"][1]) :
+                    csvWriter.writerow([b.value,c.value])
+            self.stdout.write(self.style.WARNING(f"Údaje na importovanie do WEBRS boli uložené do súboru {fpath}"))
+        else:
+            fpath = os.path.join(za_mesiac,f"Vyplatit-{self.obdobie}-TSH.xlsx")
+            workbook.save(fpath)
+            self.stdout.write(self.style.WARNING(f"Údaje o vyplácaní na odoslanie TSH boli uložené do súboru {fpath}"))
 
     # zapíše údaje o platbe do hárkov Import RS a Import Webrs
     def import_rs_webrs(self, autor):
