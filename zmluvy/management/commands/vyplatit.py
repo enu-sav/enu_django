@@ -97,7 +97,7 @@ class Command(BaseCommand):
         if kwargs['na_vyplatenie']:
             za_mesiac = kwargs['na_vyplatenie']
         else:
-            self.stdout.write(self.style.ERROR(f"Nebol zadaný názov priečinka v {ah_cesta} s údajmi na vyplatenie"))
+            self.stdout.write(self.style.ERROR(f"Nebol zadaný názov priečinka v '{ah_cesta}' v tvare 'mm-rrrr' s údajmi na vyplatenie"))
             raise SystemExit
 
         if kwargs['datum_vyplatenia']:
@@ -112,8 +112,9 @@ class Command(BaseCommand):
 
         self.obdobie = za_mesiac.strip("/").split("/")[-1]
 
-        #najst csv subory 
         za_mesiac = os.path.join(ah_cesta, za_mesiac) 
+
+        #nájsť csv súbory 
         if not os.path.isdir(za_mesiac):
             self.stdout.write(self.style.ERROR(f"Priečinok {za_mesiac} nebol nájdený"))
             raise SystemExit
@@ -191,7 +192,8 @@ class Command(BaseCommand):
 
         workbook = load_workbook(filename=ws_template)
         vyplatit = workbook[workbook.sheetnames[0]]
-        vypocet = workbook[workbook.sheetnames[1]]
+        krycilist = workbook[workbook.sheetnames[1]]
+        vypocet = workbook[workbook.sheetnames[2]]
 
         self.poautoroch = None
         self.poautoroch = workbook.create_sheet("Po autoroch")
@@ -344,6 +346,11 @@ class Command(BaseCommand):
         vyplatit[f"E{f}"] = "vedúca org. zložky EnÚ CSČ SAV"
         vyplatit.print_area = f"A1:G{pos+7}"
 
+        #krycí list
+        krycilist["A1"].value = krycilist["A1"].value.replace("xx-xxxx", self.obdobie)
+        krycilist["A2"].value = krycilist["A2"].value.replace("xx.xx.xxxx", date.today().strftime("%d.%m.%Y"))
+        krycilist["E4"].value = "Dátum: {}".format(date.today().strftime("%d.%m.%Y"))
+
         workbook.save("xx.xlsx")
 
 
@@ -399,7 +406,7 @@ class Command(BaseCommand):
         self.bb( "Meno:" , self.meno_priezvisko(adata))
         self.bb( "E-mail:" , adata.email)
         self.bb( "Účet:", adata.bankovy_kontakt)
-        self.bb( "Dátum vytvorenia záznamu:" , date.today())
+        self.bb( "Dátum vytvorenia záznamu:" , date.today().strftime("%d.%m.%Y"))
         if vyplaca_sa:
             if preplatok > 0:
                 self.bb( "Preplatok predchádzajúcich platieb:", preplatok)
