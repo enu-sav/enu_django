@@ -4,6 +4,11 @@ from django.utils import timezone
 from django.contrib import messages
 from ipdb import set_trace as trace
 
+
+#záznam histórie
+#https://django-simple-history.readthedocs.io/en/latest/admin.html
+from simple_history.models import HistoricalRecords
+
 from .common import VytvoritAutorskuZmluvu
 
 class AnoNie(models.TextChoices):
@@ -72,6 +77,7 @@ class OsobaAutor (OsobaAuGaKo):
     # preplatok sposobeny vyplácaním 540 namiesto 360 (a možno aj iný dôvod)
     # výpočet je v súbore Kontrola-Kapcova-2018-2021-milos.ods, hárok Preplatok výpočet a Preplatok num.
     preplatok = models.FloatField("Preplatok", default=0)
+    history = HistoricalRecords()
     def __str__(self):
         return self.rs_login
     class Meta:
@@ -118,6 +124,7 @@ class ZmluvaAutor(Zmluva):
     #related_name: v admin.py umožní zobrazit zmluvy aytora cez pole zmluvy_link 
     zmluvna_strana = models.ForeignKey(OsobaAutor, on_delete=models.PROTECT, related_name='zmluvy')    
     odmena = models.FloatField("Odmena/AH", default=0)  #Eur/AH (36 000 znakov)
+    history = HistoricalRecords()
     class Meta:
         verbose_name = 'Autorská zmluva'
         verbose_name_plural = 'Autorské zmluvy'

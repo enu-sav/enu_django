@@ -7,12 +7,17 @@ from django.utils.translation import ngettext
 from beliana import settings
 from .models import OsobaAutor, ZmluvaAutor
 
-#umožniť zobrazenie autora v zozname zmluv
+#umožniť zobrazenie autora v zozname zmlúv
 #https://pypi.org/project/django-admin-relation-links/
 from django_admin_relation_links import AdminChangeLinksMixin
 
+#zobrazenie histórie
+#https://django-simple-history.readthedocs.io/en/latest/admin.html
+from simple_history.admin import SimpleHistoryAdmin
+
 @admin.register(OsobaAutor)
-class OsobaAutorAdmin(AdminChangeLinksMixin, admin.ModelAdmin):
+#class OsobaAutorAdmin(AdminChangeLinksMixin, admin.ModelAdmin):
+class OsobaAutorAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
     #zmluvy_link: pridá odkaz na všetky zmluvy autora do zoznamu
     list_display = ('rs_login', 'rs_uid', 'zmluvy_link', 'email', 'titul_pred_menom', 'meno', 'priezvisko', 'titul_za_menom', 'rodne_cislo', 'odbor', "adresa_ulica", "adresa_mesto", "adresa_stat", 'datum_aktualizacie', 'zdanit', 'preplatok', 'poznamka')
     ordering = ('datum_aktualizacie',)
@@ -60,7 +65,7 @@ class OsobaAutorAdmin(AdminChangeLinksMixin, admin.ModelAdmin):
 #admin.site.register(OsobaAutor, OsobaAutorAdmin)
 
 @admin.register(ZmluvaAutor)
-class ZmluvaAutorAdmin(AdminChangeLinksMixin, admin.ModelAdmin):
+class ZmluvaAutorAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
     # zmluvna_strana_link: pridá autora zmluvy do zoznamu, vďaka AdminChangeLinksMixin
     list_display = ('cislo_zmluvy', 'stav_zmluvy', 'zmluvna_strana_link', 'odmena', 'url_zmluvy_html', 'crz_datum', 'datum_pridania', 'datum_aktualizacie')
     ordering = ('zmluvna_strana',)
