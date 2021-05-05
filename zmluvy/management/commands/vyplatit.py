@@ -216,7 +216,7 @@ class VyplatitAutorskeOdmeny():
             vypocet.cell(row=1, column=i+1).value = vypocet_hlavicka[i]
             vypocet.cell(row=1, column=i+1).font = fbold
             vypocet.column_dimensions[get_column_letter(i+1)].width = 14
-        vypocet.column_dimensions[get_column_letter(1)].width = 20
+        vypocet.column_dimensions["A"].width = 20
 
         #zapisat udaje na vyplatenie
         for i, autor in enumerate(self.suma_vyplatit):
@@ -230,10 +230,11 @@ class VyplatitAutorskeOdmeny():
             vypocet[f"E{ii}"] = f"=C{ii}-D{ii}"
             #vypocet[f"F{ii}"] = f"=E{ii}*0.02"
             vypocet[f"F{ii}"] = f'=IF(B{ii}="ano",E{ii}*{litfond_odvod},0'
-            vypocet[f"G{ii}"] = f"=ROUNDDOWN(F{ii},2)"
+            #zaokrúhľovanie: https://podpora.financnasprava.sk/407328-Sp%C3%B4sob-zaokr%C3%BAh%C4%BEovania-v-roku-2020
+            vypocet[f"G{ii}"] = f"=ROUND(F{ii},2)"
             #vypocet[f"H{ii}"] = f"=(E{ii}-G{ii})*0.19"
             vypocet[f"H{ii}"] = f'=IF(B{ii}="ano",(E{ii}-G{ii})*0.19,0'
-            vypocet[f"I{ii}"] = f"=ROUNDDOWN(H{ii},2)"
+            vypocet[f"I{ii}"] = f"=ROUND(H{ii},2)"
             vypocet[f"J{ii}"] = f"=E{ii}-G{ii}-I{ii}"
         pass
         vypocet[f"A{ii+1}"] = "Na úhradu"
@@ -400,6 +401,8 @@ class VyplatitAutorskeOdmeny():
         ws = self.poautoroch
         for col in range(1,8):
             ws.column_dimensions[get_column_letter(col)].width = 10
+        ws.column_dimensions["D"].width = 14
+        ws.column_dimensions["E"].width = 14
         vyplaca_sa = False
         if autor in self.suma_vyplatit:
             vyplaca_sa = True
