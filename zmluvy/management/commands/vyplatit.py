@@ -13,6 +13,7 @@ from openpyxl.worksheet.pagebreak import Break
 from glob import glob
 import re, os
 from datetime import date
+import logging
 
 # 1. a 2. stlpec: uid a login autorov v RS
 # 3. stlpec: Autori uvedení ako autori hesiel
@@ -25,12 +26,9 @@ ucetEnÚ = "SK36 8180 0000 0070 0061 8734 - Beliana"
 ucetLITA  = "SK47 0200 0000 0012 2545 9853" 
 ucetFin = "SK61 8180 5002 6780 2710 3305"
 
-class Command(BaseCommand):
-    help = 'Vygenerovať podklady na vyplácanie autorských odmien'
-
-    def add_arguments(self, parser):
-        parser.add_argument('--na-vyplatenie', type=str, help="Priečinok s názvom RRRR-MM v {ah_cesta} so súbormi s údajmi pre vyplácanie autorských honorárov")
-        parser.add_argument('--datum-vyplatenia', type=str, help="Dátum vyplatenia hesiel v tvare 'dd.mm.rrrr'. Zadať až po vyplatení hesiel THS-kou. Ak sa nezadá, vygenerujú sa len podklady pre THS-ku na vyplácanie. Ak sa zadá, vygenerujú sa aj zoznamy vyplatených hesiel na importovanie do RS a WEBRS, ako aj potvrdenie o zaplatení na zaradenie do šanonu.")
+class VyplatitAutorskeOdmeny():
+    def __init__(self, za_mesiac, datum_vyplatenia=None):
+        self.vyplatit_odmeny(za_mesiac, datum_vyplatenia)
 
     def nacitat_udaje_grafik(self, fname):
         pass
@@ -40,11 +38,11 @@ class Command(BaseCommand):
         povinne = ["Nid", "Autorská zmluva", "Vyplatenie odmeny", "Dĺžka autorom odovzdaného textu", "Dátum záznamu dĺžky", "Dátum vyplatenia"]
         for item in povinne:
             if not item in row:
-                self.stdout.write(self.style.ERROR(f"Súbor {fname} musí obsahovať stĺpec '{item}'"))
+                self.log(self.ERROR, f"Súbor {fname} musí obsahovať stĺpec '{item}'")
                 return False
         if not "Login" in row :
             if not "Meno" in row or not "Priezvisko" in row: 
-                self.stdout.write(self.style.ERROR(f"Súbor {fname} musí obsahovať stĺpec 'Login' alebo stĺpce 'Meno' a 'Prezvisk'o"))
+                self.log(self.ERROR, f"Súbor {fname} musí obsahovať stĺpec 'Login' alebo stĺpce 'Meno' a 'Prezvisk'o")
                 return False
         return True
 
@@ -57,7 +55,7 @@ class Command(BaseCommand):
             for row in reader:
                 if not hdrOK:
                     if not self.hlavicka_test(fname, row):
-                        self.stdout.write(self.style.ERROR(f"Nesprávny súbor {fname}"))
+                        self.log(self.ERROR, f"Nesprávny súbor {fname}")
                         raise SystemExit
                     for n, ii in enumerate(row):
                         hdr[ii]=n
@@ -91,24 +89,19 @@ class Command(BaseCommand):
         if autor.titul_za_menom:
             mp = f"{mp}, {autor.titul_za_menom}"
         return mp.strip()
-
-    def handle(self, *args, **kwargs):
-        self.datum_vyplatenia = None # Ak None, nevygenerujú sa hárky ImportRS/WEBRS
-        if kwargs['na_vyplatenie']:
-            za_mesiac = kwargs['na_vyplatenie']
-        else:
-            self.stdout.write(self.style.ERROR(f"Nebol zadaný názov priečinka v '{ah_cesta}' v tvare 'mm-rrrr' s údajmi na vyplatenie"))
-            raise SystemExit
-
-        if kwargs['datum_vyplatenia']:
-            self.datum_vyplatenia = kwargs['datum_vyplatenia']
-
+            
+    def vyplatit_odmeny(self, za_mesiac, datum_vyplatenia=None): 
+        self.db_logger = logging.getLogger('db')
+        self.datum_vyplatenia = datum_vyplatenia # Ak None, nevygenerujú sa hárky ImportRS/WEBRS
         if self.datum_vyplatenia:
-            self.stdout.write(self.style.WARNING(f"Bol zadaný dátum vyplatenia hesiel ({self.datum_vyplatenia})."))
-            self.stdout.write(self.style.WARNING(f"Vygenerujú sa zoznamy vyplatených hesiel na importovanie do RS a WEBRS, ako aj potvrdenie o zaplatení na zaradenie do šanonu."))
+            self.db_logger.info(f"vyplatit.py --na_vyplatenie {za_mesiac} --datum-vyplatenia {self.datum_vyplatenia}: \nzoznamy vyplatených hesiel")
+            self.db_logger.info(f"\tVygenerujú sa zoznamy vyplatených hesiel na importovanie do RS a WEBRS, ako aj potvrdenie o zaplatení na zaradenie do šanonu.")
+            self.log(self.WARNING, f"Bol zadaný dátum vyplatenia hesiel ({self.datum_vyplatenia}).")
+            self.log(self.WARNING, f"Vygenerujú sa zoznamy vyplatených hesiel na importovanie do RS a WEBRS, ako aj potvrdenie o zaplatení na zaradenie do šanonu.")
         else:
-            self.stdout.write(self.style.WARNING(f"Nebol zadaný dátum vyplatenia hesiel ({self.datum_vyplatenia})."))
-            self.stdout.write(self.style.WARNING(f"Vygenerujú sa len podklady pre THS-ku na vyplácanie. Po vyplatení treba tento program spustiť ešte raz so zadaným dátum vyplatenia"))
+            self.db_logger.info(f"vyplatit.py --na_vyplatenie {za_mesiac}: podklady pre THS")
+            self.log(self.WARNING,f"Nebol zadaný dátum vyplatenia hesiel.")
+            self.log(self.WARNING, f"Vygenerujú sa len podklady pre THS-ku na vyplácanie. Po vyplatení treba tento program spustiť ešte raz so zadaným dátum vyplatenia")
 
         self.obdobie = za_mesiac.strip("/").split("/")[-1]
 
@@ -116,7 +109,7 @@ class Command(BaseCommand):
 
         #nájsť csv súbory 
         if not os.path.isdir(za_mesiac):
-            self.stdout.write(self.style.ERROR(f"Priečinok {za_mesiac} nebol nájdený"))
+            self.log(self.ERROR, f"Priečinok {za_mesiac} nebol nájdený")
             raise SystemExit
         csv_subory = glob(f"{za_mesiac}/*.csv")
         self.pocet_znakov = {"rs": {}, "webrs":{}}
@@ -124,19 +117,19 @@ class Command(BaseCommand):
 
         for csv_subor in csv_subory:
             if "export_vyplatit_rs" in csv_subor:
-                self.stdout.write(self.style.WARNING(f"Načítavam údaje zo súboru {csv_subor}"))
+                self.log(self.WARNING, f"Načítavam údaje zo súboru {csv_subor}")
                 hdr = self.nacitat_udaje_autor(csv_subor, "rs")
             elif "export_vyplatit_webrs" in csv_subor:
-                self.stdout.write(self.style.WARNING(f"Načítavam údaje zo súboru {csv_subor}"))
+                self.log(self.WARNING, f"Načítavam údaje zo súboru {csv_subor}")
                 hdr = self.nacitat_udaje_autor(csv_subor, "webrs")
             elif "_grafik" in csv_subor:
-                self.stdout.write(self.style.WARNING(f"Načítavam údaje zo súboru {csv_subor}"))
+                self.log(self.WARNING, f"Načítavam údaje zo súboru {csv_subor}")
                 self.nacitat_udaje_grafik(csv_subor)
                 pass
             #else:
                 #aux_name = csv_subor.split("/")[-1]
-                #self.stdout.write(self.style.ERROR(f"V priečinku {ah_cesta}/{za_mesiac} bol nájdený neznámy súbor {aux_name}"))
-                #self.stdout.write(self.style.ERROR("Súbor odstráňte alebo opravte jeho názov"))
+                #self.log(self.ERROR, f"V priečinku {ah_cesta}/{za_mesiac} bol nájdený neznámy súbor {aux_name}")
+                #self.log(self.ERROR, "Súbor odstráňte alebo opravte jeho názov")
                 #raise SystemExit
 
         #scitat pocty znakov a rozhodnut, ci sa bude vyplacat
@@ -147,7 +140,7 @@ class Command(BaseCommand):
             zdata = ZmluvaAutor.objects.filter(zmluvna_strana__rs_login=autor)
             adata = OsobaAutor.objects.filter(rs_login=autor)
             if not adata:
-                self.stdout.write(self.style.ERROR(f"Autor {autor}: nemá záznam v databáze "))
+                self.log(self.ERROR, f"Autor {autor}: nemá záznam v databáze ")
                 continue
             adata=adata[0]
             # pomocna struktura na vyplacanie
@@ -161,29 +154,29 @@ class Command(BaseCommand):
                     #if not zmluva in zvyplatit:
                     #zmluva = re.sub(r"([^/]*)/(.*)",r"\2-\1",zmluva)
                     if not zmluva in zvyplatit:
-                        self.stdout.write(self.style.ERROR(f"Autor {autor}: nemá v databáze zmluvu {zmluva}"))
+                        self.log(self.ERROR, f"Autor {autor}: nemá v databáze zmluvu {zmluva}")
                         continue
                     pocet_znakov = sum([z[0] for z in self.data[autor][rs][zmluva]])    #[0]: pocet znakov
                     aodmena += pocet_znakov*zvyplatit[zmluva]/36000
                     pass
             if aodmena - adata.preplatok > min_vyplatit: # bude sa vyplácať, preplatok sa zohľadní a jeho hodnota sa aktualizuje v db
                 if adata.preplatok > 0:
-                    self.stdout.write(self.style.SUCCESS(f"Autor {autor}: bude vyplatené {aodmena - adata.preplatok} € (platba {aodmena} mínus preplatok {adata.preplatok})"))
+                    self.log(self.SUCCESS, f"Autor {autor}: bude vyplatené {aodmena - adata.preplatok} € (platba {aodmena} mínus preplatok {adata.preplatok})")
                 else:
-                    self.stdout.write(self.style.SUCCESS(f"Autor {autor}: bude vyplatené {aodmena} €"))
+                    self.log(self.SUCCESS, f"Autor {autor}: bude vyplatené {aodmena} €")
                 self.suma_vyplatit[autor] = [aodmena, adata.preplatok]
                 #aktualizovať preplatok
                 pass
             elif aodmena < adata.preplatok: # celú sumu možno odpočítať z preplatku
-                self.stdout.write(self.style.SUCCESS(f"Autor {autor}: Suma {aodmena} € sa nevyplatí, odpočíta sa od preplatku {adata.preplatok} €"))
+                self.log(self.SUCCESS, f"Autor {autor}: Suma {aodmena} € sa nevyplatí, odpočíta sa od preplatku {adata.preplatok} €")
                 self.suma_preplatok[autor] = [aodmena, adata.preplatok]
                 #aktualizovať preplatok
                 pass
             else: #po odpočítaní preplatku zostane suma menšia ako min_vyplatit. Nevyplatí sa, počká sa na ďalšie platby
                 if adata.preplatok > 0:
-                    self.stdout.write(self.style.WARNING(f"Autor {autor}: nebude vyplatené {aodmena - adata.preplatok} € (nízka suma, platba {aodmena} mínus preplatok {adata.preplatok})"))
+                    self.log(self.WARNING, f"Autor {autor}: nebude vyplatené {aodmena - adata.preplatok} € (nízka suma, platba {aodmena} mínus preplatok {adata.preplatok})")
                 else:
-                    self.stdout.write(self.style.WARNING(f"Autor {autor}: nebude vyplatené {aodmena - adata.preplatok} € (nízka suma)"))
+                    self.log(self.WARNING, f"Autor {autor}: nebude vyplatené {aodmena - adata.preplatok} € (nízka suma)")
                 pass
         # styly buniek, https://openpyxl.readthedocs.io/en/default/styles.html
         # default font dokumentu je Arial
@@ -355,7 +348,7 @@ class Command(BaseCommand):
 
         if self.datum_vyplatenia:
             fpath = os.path.join(za_mesiac,f"Vyplatene-{self.obdobie}.xlsx")
-            self.stdout.write(self.style.WARNING(f"Údaje o vyplácaní uložené do súboru {fpath}"))
+            self.log(self.WARNING, f"Údaje o vyplácaní uložené do súboru {fpath}")
             workbook.save(fpath)
 
             # vytvorit csv subory na importovanie
@@ -364,18 +357,18 @@ class Command(BaseCommand):
                 csvWriter = csv.writer(csvfile, delimiter=',', quotechar='"')
                 for b, c in zip(self.importrs["b:c"][0], self.importrs["b:c"][1]) :
                     csvWriter.writerow([b.value,c.value])
-            self.stdout.write(self.style.WARNING(f"Údaje na importovanie do RS boli uložené do súboru {fpath}"))
+            self.log(self.WARNING, f"Údaje na importovanie do RS boli uložené do súboru {fpath}")
 
             fpath = os.path.join(za_mesiac,f"Import-webrs-{self.obdobie}.csv")
             with open(fpath, "w") as csvfile:
                 csvWriter = csv.writer(csvfile, delimiter=',', quotechar='"')
                 for b, c in zip(self.importwebrs["b:c"][0], self.importwebrs["b:c"][1]) :
                     csvWriter.writerow([b.value,c.value])
-            self.stdout.write(self.style.WARNING(f"Údaje na importovanie do WEBRS boli uložené do súboru {fpath}"))
+            self.log(self.WARNING, f"Údaje na importovanie do WEBRS boli uložené do súboru {fpath}")
         else:
             fpath = os.path.join(za_mesiac,f"Vyplatit-{self.obdobie}-TSH.xlsx")
             workbook.save(fpath)
-            self.stdout.write(self.style.WARNING(f"Údaje o vyplácaní na odoslanie TSH boli uložené do súboru {fpath}"))
+            self.log(self.WARNING, f"Údaje o vyplácaní na odoslanie TSH boli uložené do súboru {fpath}")
 
     # zapíše údaje o platbe do hárkov Import RS a Import Webrs
     def import_rs_webrs(self, autor):
@@ -430,7 +423,6 @@ class Command(BaseCommand):
         self.bb( "E-mail:" , adata.email)
         self.bb( "Účet:", adata.bankovy_kontakt)
         self.bb( "Dátum vytvorenia záznamu:" , date.today().strftime("%d.%m.%Y"))
-        #trace()
         if vyplaca_sa:
             if preplatok > 0:
                 self.bb( "Preplatok predchádzajúcich platieb:", preplatok)
@@ -546,3 +538,30 @@ class Command(BaseCommand):
 #row_number = 20  # the row that you want to insert page break
 #page_break = Break(id=row_number)  # create Break obj
 #ws.page_breaks.append(page_break)  # insert page break
+
+class Command(BaseCommand, VyplatitAutorskeOdmeny):
+    help = 'Vygenerovať podklady na vyplácanie autorských odmien'
+    WARNING, ERROR, SUCCESS = (1,2,3)
+
+    def log(self, ltype, text):
+        if ltype is self.WARNING:
+            self.stdout.write(self.style.WARNING(text))
+        elif ltype is self.ERROR:
+            self.stdout.write(self.style.ERROR(text))
+        elif ltype is self.SUCCESS:
+            self.stdout.write(self.style.SUCCESS(text))
+        
+
+    def add_arguments(self, parser):
+        parser.add_argument('--na-vyplatenie', type=str, help="Priečinok s názvom RRRR-MM v {ah_cesta} so súbormi s údajmi pre vyplácanie autorských honorárov")
+        parser.add_argument('--datum-vyplatenia', type=str, help="Dátum vyplatenia hesiel v tvare 'dd.mm.rrrr'. Zadať až po vyplatení hesiel THS-kou. Ak sa nezadá, vygenerujú sa len podklady pre THS-ku na vyplácanie. Ak sa zadá, vygenerujú sa aj zoznamy vyplatených hesiel na importovanie do RS a WEBRS, ako aj potvrdenie o zaplatení na zaradenie do šanonu.")
+
+    def handle(self, *args, **kwargs):
+        if kwargs['na_vyplatenie']:
+            za_mesiac = kwargs['na_vyplatenie']
+        else:
+            self.log(self.ERROR, f"Nebol zadaný názov priečinka v '{ah_cesta}' v tvare 'mm-rrrr' s údajmi na vyplatenie")
+            raise SystemExit
+
+        #VyplatitAutorskeOdmeny(za_mesiac, kwargs['datum_vyplatenia'])
+        self.vyplatit_odmeny(za_mesiac, kwargs['datum_vyplatenia'])
