@@ -20,10 +20,10 @@ import logging
 
 ws_template = f"{settings.TEMPLATES_DIR}/UhradaAutHonoraru.xlsx"
 ah_cesta = settings.ROYALTIES_DIR
-litfond_odvod = 0.0 #Aktuálne 0.0 % kvôli Covid pandémii, inak 0.02 %
+litfond_odvod = 0 #Aktuálne 0 kvôli Covid pandémii, inak 2 %
 min_vyplatit=20     #minimálna suma v Eur, ktorá sa vypláca
 ucetEnÚ = "SK36 8180 0000 0070 0061 8734 - Beliana"
-ucetLITA  = "SK47 0200 0000 0012 2545 9853" 
+ucetLitFond  = "SK47 0200 0000 0012 2545 9853" 
 ucetFin = "SK61 8180 5002 6780 2710 3305"
 
 class VyplatitAutorskeOdmeny():
@@ -210,7 +210,7 @@ class VyplatitAutorskeOdmeny():
         # vyplnit harok vypocet
         #hlavicka
         #vypocet_hlavicka = ["Autor", "Odmena/AH", "Odviesť daň", "Počet znakov", "Odmena", "2% LF", "LF zaokr.", "19% daň", "Daň zaokr.", "Autorovi"]
-        vypocet_hlavicka = ["Autor", "Odviesť daň", "Odmena", "Preplatok", "Odmena - Preplatok", "2% LF", "LF zaokr.", "19% daň", "daň zaokr.", "Vyplatiť"]
+        vypocet_hlavicka = ["Autor", "Odviesť daň", "Tr. pobyt v SR", "Odmena", "Preplatok", "Odmena - Preplatok", "2% LF", "LF zaokr.", "19% daň", "daň zaokr.", "Vyplatiť"]
 
         for i, val in enumerate(vypocet_hlavicka):
             vypocet.cell(row=1, column=i+1).value = vypocet_hlavicka[i]
@@ -225,35 +225,36 @@ class VyplatitAutorskeOdmeny():
             vypocet[f"A{ii}"] = autor
             vypocet[f"B{ii}"] = adata.zdanit if adata.zdanit else 'ano'
             vypocet[f"B{ii}"].alignment = aright
-            vypocet[f"C{ii}"] = self.suma_vyplatit[autor][0]
-            vypocet[f"D{ii}"] = self.suma_vyplatit[autor][1]
-            vypocet[f"E{ii}"] = f"=C{ii}-D{ii}"
-            #vypocet[f"F{ii}"] = f"=E{ii}*0.02"
-            vypocet[f"F{ii}"] = f'=IF(B{ii}="ano",E{ii}*{litfond_odvod},0'
+            vypocet[f"C{ii}"] = "ano" if adata.adresa_stat == "Slovenská republika" else "nie"
+            vypocet[f"D{ii}"] = round(self.suma_vyplatit[autor][0],2)
+            vypocet[f"E{ii}"] = self.suma_vyplatit[autor][1]
+            vypocet[f"F{ii}"] = f"=D{ii}-E{ii}"
+            #vypocet[f"G{ii}"] = f"=F{ii}*0.02"
+            vypocet[f"G{ii}"] = f'=IF(C{ii}="ano",F{ii}*{litfond_odvod},0'
             #zaokrúhľovanie: https://podpora.financnasprava.sk/407328-Sp%C3%B4sob-zaokr%C3%BAh%C4%BEovania-v-roku-2020
-            vypocet[f"G{ii}"] = f"=ROUND(F{ii},2)"
-            #vypocet[f"H{ii}"] = f"=(E{ii}-G{ii})*0.19"
-            vypocet[f"H{ii}"] = f'=IF(B{ii}="ano",(E{ii}-G{ii})*0.19,0'
-            vypocet[f"I{ii}"] = f"=ROUND(H{ii},2)"
-            vypocet[f"J{ii}"] = f"=E{ii}-G{ii}-I{ii}"
+            vypocet[f"H{ii}"] = f"=ROUND(G{ii},2)"
+            #vypocet[f"I{ii}"] = f"=(F{ii}-H{ii})*0.19"
+            vypocet[f"I{ii}"] = f'=IF(B{ii}="ano",(F{ii}-H{ii})*0.19,0'
+            vypocet[f"J{ii}"] = f"=ROUND(I{ii},2)"
+            vypocet[f"K{ii}"] = f"=F{ii}-H{ii}-J{ii}"
         pass
         vypocet[f"A{ii+1}"] = "Na úhradu"
-        vypocet[f"E{ii+1}"] = f"=SUM(E2:E{ii})"
-        vypocet[f"G{ii+1}"] = f"=SUM(G2:G{ii})"
-        vypocet[f"I{ii+1}"] = f"=SUM(I2:I{ii})"
+        vypocet[f"F{ii+1}"] = f"=SUM(F2:F{ii})"
+        vypocet[f"H{ii+1}"] = f"=SUM(H2:G{ii})"
         vypocet[f"J{ii+1}"] = f"=SUM(J2:J{ii})"
+        vypocet[f"K{ii+1}"] = f"=SUM(K2:K{ii})"
         for i, val in enumerate(vypocet_hlavicka):
             vypocet.cell(row=ii+1, column=i+1).font = fbold
         #vypocet.freeze_panes = "A2"
 
         # vyplnit harok Na vyplatenie
-        vyplatit.merge_cells('A5:G5')
+        vyplatit.merge_cells('A5:H5')
         vyplatit["A5"] = f"za obdobie '{self.obdobie}'"
         vyplatit["A5"].alignment = acenter
 
         vyplatit["A7"] = "Prevody spolu:"
         #vyplatit.merge_cells("B7:G7")
-        vyplatit["B7"] = f"=Výpočet!E{ii+1}" 
+        vyplatit["B7"] = f"=Výpočet!F{ii+1}" 
         vyplatit[f"B7"].alignment = aleft
         vyplatit[f"B7"].font = fbold
         vyplatit["A8"] = "Z čísla účtu EnÚ:"
@@ -272,13 +273,13 @@ class VyplatitAutorskeOdmeny():
         vyplatit[f"A{b}"] = "Názov:"
         vyplatit[f"B{b}"] = "Literárny fond"
         vyplatit[f"A{c}"] = "IBAN:"
-        vyplatit[f"B{c}"] = ucetLITA
+        vyplatit[f"B{c}"] = ucetLitFond
         vyplatit[f"A{d}"] = "VS:"
         vyplatit[f"B{d}"] = "2001"
         vyplatit[f"A{e}"] = "KS:"
         vyplatit[f"B{e}"] = "558"
         vyplatit[f"A{f}"] = "Suma na úhradu:"
-        vyplatit[f"B{f}"] = f"=Výpočet!G{ii+1}"
+        vyplatit[f"B{f}"] = f"=Výpočet!H{ii+1}"
         vyplatit[f"B{f}"].alignment = aleft
         vyplatit[f"B{f}"].font = fbold
         
@@ -294,7 +295,7 @@ class VyplatitAutorskeOdmeny():
         vyplatit[f"A{d}"] = "VS:"
         vyplatit[f"B{d}"] = "2001"
         vyplatit[f"A{e}"] = "Suma na úhradu:"
-        vyplatit[f"B{e}"] = f"=Výpočet!I{ii+1}"
+        vyplatit[f"B{e}"] = f"=Výpočet!J{ii+1}"
         vyplatit[f"B{e}"].alignment = aleft
         vyplatit[f"B{e}"].font = fbold
 
@@ -326,7 +327,7 @@ class VyplatitAutorskeOdmeny():
             vyplatit[f"A{e}"] = "KS:"
             vyplatit[f"B{e}"] = "3014"
             vyplatit[f"A{f}"] = "Suma na úhradu:"
-            vyplatit[f"B{f}"] = f"=Výpočet!J{i+2}"
+            vyplatit[f"B{f}"] = f"=Výpočet!K{i+2}"
             vyplatit[f"B{f}"].alignment = aleft
             vyplatit[f"B{f}"].font = fbold
             pos += 7
