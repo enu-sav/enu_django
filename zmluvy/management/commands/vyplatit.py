@@ -180,15 +180,15 @@ class VyplatitAutorskeOdmeny():
                 pass
         # styly buniek, https://openpyxl.readthedocs.io/en/default/styles.html
         # default font dokumentu je Arial
-        fbold = Font(name="Arial", bold=True)
-        aright = Alignment(horizontal='right')
+        self.fbold = Font(name="Arial", bold=True)
+        self.aright = Alignment(horizontal='right')
         acenter = Alignment(horizontal='center')
         aleft = Alignment(horizontal='left')
 
         workbook = load_workbook(filename=ws_template)
         vyplatit = workbook[workbook.sheetnames[0]]
-        krycilist = workbook[workbook.sheetnames[1]]
-        vypocet = workbook[workbook.sheetnames[2]]
+        self.krycilist = workbook[workbook.sheetnames[1]]
+        self.vypocet = workbook[workbook.sheetnames[2]]
 
         self.poautoroch = None
         self.poautoroch = workbook.create_sheet("Po autoroch")
@@ -207,45 +207,18 @@ class VyplatitAutorskeOdmeny():
             self.importwebrs["C1"] = "datum_vyplatenia"
             self.wpos = 2   #poloha počiatočnej bunky v hárku importwebrs, inkrementovaná po každom zázname
 
-        # vyplnit harok vypocet
-        #hlavicka
-        #vypocet_hlavicka = ["Autor", "Odmena/AH", "Odviesť daň", "Počet znakov", "Odmena", "2% LF", "LF zaokr.", "19% daň", "Daň zaokr.", "Autorovi"]
-        vypocet_hlavicka = ["Autor", "Odviesť daň", "Tr. pobyt v SR", "Odmena", "Preplatok", "Odmena - Preplatok", "2% LF", "LF zaokr.", "19% daň", "daň zaokr.", "Vyplatiť"]
+        #krycí list, zapísať základné údaje
+        dtoday = date.today().strftime("%d.%m.%Y")
+        self.krycilist["A2"].value = self.krycilist["A2"].value.replace("xx-xxxx", self.obdobie)
+        self.krycilist["A34"].value = self.krycilist["A34"].value.replace("xx-xxxx", self.obdobie)
+        self.krycilist["A31"].value = self.krycilist["A31"].value.replace("xx.xx.xxxx", dtoday)
+        self.krycilist["A35"].value = self.krycilist["A35"].value.replace("xx.xx.xxxx", dtoday)
+        self.krycilist["E37"].value = "Dátum: {}".format(dtoday)
+        self.kstart = 5 #poloha počiatočnej bunky v hárku 'Krycí list',, inkrementovaná po každom zázname
+        self.kpos = self.kstart
+        self.kmax = 23 #max počet riadkov v krycom liste, inak sa pokazí formátovanie
 
-        for i, val in enumerate(vypocet_hlavicka):
-            vypocet.cell(row=1, column=i+1).value = vypocet_hlavicka[i]
-            vypocet.cell(row=1, column=i+1).font = fbold
-            vypocet.column_dimensions[get_column_letter(i+1)].width = 14
-        vypocet.column_dimensions["A"].width = 20
-
-        #zapisat udaje na vyplatenie
-        for i, autor in enumerate(self.suma_vyplatit):
-            adata = OsobaAutor.objects.filter(rs_login=autor)[0]
-            ii = i+2
-            vypocet[f"A{ii}"] = autor
-            vypocet[f"B{ii}"] = adata.zdanit if adata.zdanit else 'ano'
-            vypocet[f"B{ii}"].alignment = aright
-            vypocet[f"C{ii}"] = "ano" if adata.adresa_stat == "Slovenská republika" else "nie"
-            vypocet[f"D{ii}"] = round(self.suma_vyplatit[autor][0],2)
-            vypocet[f"E{ii}"] = self.suma_vyplatit[autor][1]
-            vypocet[f"F{ii}"] = f"=D{ii}-E{ii}"
-            #vypocet[f"G{ii}"] = f"=F{ii}*0.02"
-            vypocet[f"G{ii}"] = f'=IF(C{ii}="ano",F{ii}*{litfond_odvod},0'
-            #zaokrúhľovanie: https://podpora.financnasprava.sk/407328-Sp%C3%B4sob-zaokr%C3%BAh%C4%BEovania-v-roku-2020
-            vypocet[f"H{ii}"] = f"=ROUND(G{ii},2)"
-            #vypocet[f"I{ii}"] = f"=(F{ii}-H{ii})*0.19"
-            vypocet[f"I{ii}"] = f'=IF(B{ii}="ano",(F{ii}-H{ii})*0.19,0'
-            vypocet[f"J{ii}"] = f"=ROUND(I{ii},2)"
-            vypocet[f"K{ii}"] = f"=F{ii}-H{ii}-J{ii}"
-        pass
-        vypocet[f"A{ii+1}"] = "Na úhradu"
-        vypocet[f"F{ii+1}"] = f"=SUM(F2:F{ii})"
-        vypocet[f"H{ii+1}"] = f"=SUM(H2:G{ii})"
-        vypocet[f"J{ii+1}"] = f"=SUM(J2:J{ii})"
-        vypocet[f"K{ii+1}"] = f"=SUM(K2:K{ii})"
-        for i, val in enumerate(vypocet_hlavicka):
-            vypocet.cell(row=ii+1, column=i+1).font = fbold
-        #vypocet.freeze_panes = "A2"
+        sum_row = self.vyplnit_harok_vypocet()
 
         # vyplnit harok Na vyplatenie
         vyplatit.merge_cells('A5:H5')
@@ -254,9 +227,9 @@ class VyplatitAutorskeOdmeny():
 
         vyplatit["A7"] = "Prevody spolu:"
         #vyplatit.merge_cells("B7:G7")
-        vyplatit["B7"] = f"=Výpočet!F{ii+1}" 
+        vyplatit["B7"] = f"=Výpočet!F{sum_row}" 
         vyplatit[f"B7"].alignment = aleft
-        vyplatit[f"B7"].font = fbold
+        vyplatit[f"B7"].font = self.fbold
         vyplatit["A8"] = "Z čísla účtu EnÚ:"
         vyplatit["B8"] = ucetEnÚ
         # Farba pozadia
@@ -279,9 +252,9 @@ class VyplatitAutorskeOdmeny():
         vyplatit[f"A{e}"] = "KS:"
         vyplatit[f"B{e}"] = "558"
         vyplatit[f"A{f}"] = "Suma na úhradu:"
-        vyplatit[f"B{f}"] = f"=Výpočet!H{ii+1}"
+        vyplatit[f"B{f}"] = f"=Výpočet!H{sum_row}"
         vyplatit[f"B{f}"].alignment = aleft
-        vyplatit[f"B{f}"].font = fbold
+        vyplatit[f"B{f}"].font = self.fbold
         
         #daň
         pos += 7
@@ -295,9 +268,9 @@ class VyplatitAutorskeOdmeny():
         vyplatit[f"A{d}"] = "VS:"
         vyplatit[f"B{d}"] = "2001"
         vyplatit[f"A{e}"] = "Suma na úhradu:"
-        vyplatit[f"B{e}"] = f"=Výpočet!J{ii+1}"
+        vyplatit[f"B{e}"] = f"=Výpočet!J{sum_row}"
         vyplatit[f"B{e}"].alignment = aleft
-        vyplatit[f"B{e}"].font = fbold
+        vyplatit[f"B{e}"].font = self.fbold
 
         # Farba pozadia
         for i, rowOfCellObjects in enumerate(vyplatit['A10':'G21']):
@@ -314,6 +287,7 @@ class VyplatitAutorskeOdmeny():
         for i, autor in enumerate(self.suma_vyplatit):
             self.import_rs_webrs(autor)
             self.po_autoroch(autor)
+            self.kryci_list(autor, i)
             a,b,c,d,e,f = range(pos, pos+6)
             adata = OsobaAutor.objects.filter(rs_login=autor)[0]
             vyplatit[f"A{a}"] = "Komu:"
@@ -329,7 +303,7 @@ class VyplatitAutorskeOdmeny():
             vyplatit[f"A{f}"] = "Suma na úhradu:"
             vyplatit[f"B{f}"] = f"=Výpočet!K{i+2}"
             vyplatit[f"B{f}"].alignment = aleft
-            vyplatit[f"B{f}"].font = fbold
+            vyplatit[f"B{f}"].font = self.fbold
             pos += 7
 
         pos += 7
@@ -343,10 +317,17 @@ class VyplatitAutorskeOdmeny():
         vyplatit[f"E{f}"] = "vedúca org. zložky EnÚ CSČ SAV"
         vyplatit.print_area = f"A1:G{pos+7}"
 
-        #krycí list
-        krycilist["A1"].value = krycilist["A1"].value.replace("xx-xxxx", self.obdobie)
-        krycilist["A2"].value = krycilist["A2"].value.replace("xx.xx.xxxx", date.today().strftime("%d.%m.%Y"))
-        krycilist["E4"].value = "Dátum: {}".format(date.today().strftime("%d.%m.%Y"))
+        #suma v kryci_list
+        self.krycilist[f"A{self.kpos}"] = "Spolu"
+        self.krycilist[f"A{self.kpos}"].font = self.fbold
+        self.krycilist[f"H{self.kpos}"] = f"=SUM(H{self.kstart}:H{self.kpos-1})"
+        self.krycilist[f"H{self.kpos}"].font = self.fbold
+        self.krycilist[f"I{self.kpos}"] = f"=SUM(I{self.kstart}:I{self.kpos-1})"
+        self.krycilist[f"I{self.kpos}"].font = self.fbold
+        self.krycilist[f"J{self.kpos}"] = f"=SUM(J{self.kstart}:J{self.kpos-1})"
+        self.krycilist[f"J{self.kpos}"].font = self.fbold
+        self.krycilist[f"K{self.kpos}"] = f"=SUM(K{self.kstart}:K{self.kpos-1})"
+        self.krycilist[f"K{self.kpos}"].font = self.fbold
 
         if self.datum_vyplatenia:
             fpath = os.path.join(za_mesiac,f"Vyplatene-{self.obdobie}.xlsx")
@@ -372,6 +353,48 @@ class VyplatitAutorskeOdmeny():
             workbook.save(fpath)
             self.log(self.WARNING, f"Údaje o vyplácaní na odoslanie TSH boli uložené do súboru {fpath}")
 
+    def vyplnit_harok_vypocet(self):
+        # vyplnit harok vypocet
+        #hlavicka
+        #vypocet_hlavicka = ["Autor", "Odmena/AH", "Odviesť daň", "Počet znakov", "Odmena", "2% LF", "LF zaokr.", "19% daň", "Daň zaokr.", "Autorovi"]
+        vypocet_hlavicka = ["Autor", "Odviesť daň", "Tr. pobyt v SR", "Odmena", "Preplatok", "Odmena - Preplatok", "2% LF", "LF zaokr.", "19% daň", "daň zaokr.", "Vyplatiť"]
+
+        for i, val in enumerate(vypocet_hlavicka):
+            self.vypocet.cell(row=1, column=i+1).value = vypocet_hlavicka[i]
+            self.vypocet.cell(row=1, column=i+1).font = self.fbold
+            self.vypocet.column_dimensions[get_column_letter(i+1)].width = 14
+        self.vypocet.column_dimensions["A"].width = 20
+
+        #zapísať údaje na vyplatenie
+        for i, autor in enumerate(self.suma_vyplatit):
+            adata = OsobaAutor.objects.filter(rs_login=autor)[0]
+            ii = i+2
+            self.vypocet[f"A{ii}"] = autor
+            self.vypocet[f"B{ii}"] = adata.zdanit if adata.zdanit else 'ano'
+            self.vypocet[f"B{ii}"].alignment = self.aright
+            self.vypocet[f"C{ii}"] = "ano" if adata.adresa_stat == "Slovenská republika" else "nie"
+            self.vypocet[f"D{ii}"] = round(self.suma_vyplatit[autor][0],2)
+            self.vypocet[f"E{ii}"] = self.suma_vyplatit[autor][1]
+            self.vypocet[f"F{ii}"] = f"=D{ii}-E{ii}"
+            #self.vypocet[f"G{ii}"] = f"=F{ii}*0.02"
+            self.vypocet[f"G{ii}"] = f'=IF(C{ii}="ano",F{ii}*{litfond_odvod},0'
+            #zaokrúhľovanie: https://podpora.financnasprava.sk/407328-Sp%C3%B4sob-zaokr%C3%BAh%C4%BEovania-v-roku-2020
+            self.vypocet[f"H{ii}"] = f"=ROUND(G{ii},2)"
+            #self.vypocet[f"I{ii}"] = f"=(F{ii}-H{ii})*0.19"
+            self.vypocet[f"I{ii}"] = f'=IF(B{ii}="ano",(F{ii}-H{ii})*0.19,0'
+            self.vypocet[f"J{ii}"] = f"=ROUND(I{ii},2)"
+            self.vypocet[f"K{ii}"] = f"=F{ii}-H{ii}-J{ii}"
+        pass
+        self.vypocet[f"A{ii+1}"] = "Na úhradu"
+        self.vypocet[f"F{ii+1}"] = f"=SUM(F2:F{ii})"
+        self.vypocet[f"H{ii+1}"] = f"=SUM(H2:G{ii})"
+        self.vypocet[f"J{ii+1}"] = f"=SUM(J2:J{ii})"
+        self.vypocet[f"K{ii+1}"] = f"=SUM(K2:K{ii})"
+        for i, val in enumerate(vypocet_hlavicka):
+            self.vypocet.cell(row=ii+1, column=i+1).font = self.fbold
+        #self.vypocet.freeze_panes = "A2"
+        return ii+1 #vratit riadok so suctami
+
     # zapíše údaje o platbe do hárkov Import RS a Import Webrs
     def import_rs_webrs(self, autor):
         if not self.datum_vyplatenia: return
@@ -396,6 +419,17 @@ class VyplatitAutorskeOdmeny():
             else:
                 self.wpos = pos
 
+    # zapíše údaje o platbe do hárku 'Krycí list'
+    def kryci_list(self, autor, ind):
+        adata = OsobaAutor.objects.filter(rs_login=autor)[0]
+        self.krycilist[f"A{self.kpos}"].value = self.meno_priezvisko(adata)
+        self.krycilist[f"D{self.kpos}"].value = adata.rodne_cislo
+        self.krycilist[f"H{self.kpos}"].value = f"=Výpočet!F{ind+2}"    #brutto
+        self.krycilist[f"I{self.kpos}"].value = f"=Výpočet!J{ind+2}"    #daň
+        self.krycilist[f"J{self.kpos}"].value = f"=Výpočet!H{ind+2}"    #LitFond
+        self.krycilist[f"K{self.kpos}"].value = f"=Výpočet!K{ind+2}"    #netto
+        self.kpos += 1
+
     # zapíše údaje o platbe do hárku Po autoroch
     def po_autoroch(self, autor):
         if not self.po_autoroch: return
@@ -412,7 +446,6 @@ class VyplatitAutorskeOdmeny():
             odmena, preplatok = self.suma_preplatok[autor]
 
         ftitle = Font(name="Arial", bold=True, size='14')
-        fbold = Font(name="Arial", bold=True)
 
         ws.merge_cells(f'A{self.ppos}:H{self.ppos}')
         ws[f'A{self.ppos}'] = f"Vyplatenie autorskej odmeny za {self.obdobie}"
@@ -476,10 +509,10 @@ class VyplatitAutorskeOdmeny():
             ws[f'A{self.ppos}'] = "Odmena za heslá (na vyplatenie)"
         else:
             ws[f'A{self.ppos}'] = "Odmena za heslá (nevyplatí sa, odpočítaná z preplatku)"
-        ws[f'A{self.ppos}'].font = fbold
+        ws[f'A{self.ppos}'].font = self.fbold
         ws[f"H{self.ppos}"].alignment = Alignment(horizontal='right')
         ws[f'H{self.ppos}'] = "=SUM(H{}:H{}".format(self.ppos-nitems,self.ppos-1) 
-        ws[f'H{self.ppos}'].font = fbold
+        ws[f'H{self.ppos}'].font = self.fbold
         ws[f"H{self.ppos}"].number_format= "0.00"
         self.ppos  += 1  
 
@@ -503,12 +536,11 @@ class VyplatitAutorskeOdmeny():
         ws = self.poautoroch
 
         nc = 0
-        fbold = Font(name="Arial", bold=True)
         acenter = Alignment(horizontal='center')
         if hdr:
             ws.row_dimensions[self.ppos].height = 30
             for n, item in enumerate(items):
-                ws[f"{col[n+nc]}{self.ppos}"].font = fbold
+                ws[f"{col[n+nc]}{self.ppos}"].font = self.fbold
                 ws[f"{col[n+nc]}{self.ppos}"].alignment = Alignment(wrapText=True, horizontal='center')
                 ws[f"{col[n+nc]}{self.ppos}"] = item
                 if type(item) is str and "Heslo" in item:
