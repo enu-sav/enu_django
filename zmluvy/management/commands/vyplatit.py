@@ -149,8 +149,10 @@ class VyplatitAutorskeOdmeny():
                 zvyplatit[zmluva.cislo_zmluvy] = zmluva.odmena
             # vypocitat odmenu za vsetky hesla
             aodmena = 0 #sucet odmien za jednotlive hesla na zaklade zmluv
+            zmluvy_autora = set()
             for rs in self.data[autor]: # rs alebo webrs
                 for zmluva in self.data[autor][rs]:
+                    zmluvy_autora.add(zmluva)
                     #if not zmluva in zvyplatit:
                     #zmluva = re.sub(r"([^/]*)/(.*)",r"\2-\1",zmluva)
                     if not zmluva in zvyplatit:
@@ -159,17 +161,19 @@ class VyplatitAutorskeOdmeny():
                     pocet_znakov = sum([z[0] for z in self.data[autor][rs][zmluva]])    #[0]: pocet znakov
                     aodmena += pocet_znakov*zvyplatit[zmluva]/36000
                     pass
+            list_of_strings = [str(s) for s in zmluvy_autora]
+            zmluvy_autora = ",".join(list_of_strings)
             if aodmena - adata.preplatok > min_vyplatit: # bude sa vyplácať, preplatok sa zohľadní a jeho hodnota sa aktualizuje v db
                 if adata.preplatok > 0:
                     self.log(self.SUCCESS, f"Autor {autor}: bude vyplatené {aodmena - adata.preplatok} € (platba {aodmena} mínus preplatok {adata.preplatok})")
                 else:
                     self.log(self.SUCCESS, f"Autor {autor}: bude vyplatené {aodmena} €")
-                self.suma_vyplatit[autor] = [aodmena, adata.preplatok]
+                self.suma_vyplatit[autor] = [aodmena, adata.preplatok, zmluvy_autora]
                 #aktualizovať preplatok
                 pass
             elif aodmena < adata.preplatok: # celú sumu možno odpočítať z preplatku
                 self.log(self.SUCCESS, f"Autor {autor}: Suma {aodmena} € sa nevyplatí, odpočíta sa od preplatku {adata.preplatok} €")
-                self.suma_preplatok[autor] = [aodmena, adata.preplatok]
+                self.suma_preplatok[autor] = [aodmena, adata.preplatok, zmluvy_autora]
                 #aktualizovať preplatok
                 pass
             else: #po odpočítaní preplatku zostane suma menšia ako min_vyplatit. Nevyplatí sa, počká sa na ďalšie platby
@@ -227,7 +231,7 @@ class VyplatitAutorskeOdmeny():
 
         vyplatit["A7"] = "Prevody spolu:"
         #vyplatit.merge_cells("B7:G7")
-        vyplatit["B7"] = f"=Výpočet!F{sum_row}" 
+        vyplatit["B7"] = f"=Výpočet!G{sum_row}" 
         vyplatit[f"B7"].alignment = aleft
         vyplatit[f"B7"].font = self.fbold
         vyplatit["A8"] = "Z čísla účtu EnÚ:"
@@ -236,7 +240,6 @@ class VyplatitAutorskeOdmeny():
         for i, rowOfCellObjects in enumerate(vyplatit['A7':'G8']):
             for n, cellObj in enumerate(rowOfCellObjects):
                 cellObj.fill = PatternFill("solid", fgColor="FFFF00")
-
 
         #Litfond
         pos = 10
@@ -252,7 +255,7 @@ class VyplatitAutorskeOdmeny():
         vyplatit[f"A{e}"] = "KS:"
         vyplatit[f"B{e}"] = "558"
         vyplatit[f"A{f}"] = "Suma na úhradu:"
-        vyplatit[f"B{f}"] = f"=Výpočet!H{sum_row}"
+        vyplatit[f"B{f}"] = f"=Výpočet!I{sum_row}"
         vyplatit[f"B{f}"].alignment = aleft
         vyplatit[f"B{f}"].font = self.fbold
         
@@ -268,7 +271,7 @@ class VyplatitAutorskeOdmeny():
         vyplatit[f"A{d}"] = "VS:"
         vyplatit[f"B{d}"] = "2001"
         vyplatit[f"A{e}"] = "Suma na úhradu:"
-        vyplatit[f"B{e}"] = f"=Výpočet!J{sum_row}"
+        vyplatit[f"B{e}"] = f"=Výpočet!K{sum_row}"
         vyplatit[f"B{e}"].alignment = aleft
         vyplatit[f"B{e}"].font = self.fbold
 
@@ -301,7 +304,7 @@ class VyplatitAutorskeOdmeny():
             vyplatit[f"A{e}"] = "KS:"
             vyplatit[f"B{e}"] = "3014"
             vyplatit[f"A{f}"] = "Suma na úhradu:"
-            vyplatit[f"B{f}"] = f"=Výpočet!K{i+2}"
+            vyplatit[f"B{f}"] = f"=Výpočet!L{i+2}"
             vyplatit[f"B{f}"].alignment = aleft
             vyplatit[f"B{f}"].font = self.fbold
             pos += 7
@@ -353,11 +356,11 @@ class VyplatitAutorskeOdmeny():
             workbook.save(fpath)
             self.log(self.WARNING, f"Údaje o vyplácaní na odoslanie TSH boli uložené do súboru {fpath}")
 
+    # vyplnit harok vypocet
     def vyplnit_harok_vypocet(self):
-        # vyplnit harok vypocet
         #hlavicka
         #vypocet_hlavicka = ["Autor", "Odmena/AH", "Odviesť daň", "Počet znakov", "Odmena", "2% LF", "LF zaokr.", "19% daň", "Daň zaokr.", "Autorovi"]
-        vypocet_hlavicka = ["Autor", "Odviesť daň", "Tr. pobyt v SR", "Odmena", "Preplatok", "Odmena - Preplatok", "2% LF", "LF zaokr.", "19% daň", "daň zaokr.", "Vyplatiť"]
+        vypocet_hlavicka = ["Autor", "Zmluvy", "Odviesť daň", "Tr. pobyt v SR", "Odmena", "Preplatok", "Odmena - Preplatok", "2% LF", "LF zaokr.", "19% daň", "daň zaokr.", "Vyplatiť"]
 
         for i, val in enumerate(vypocet_hlavicka):
             self.vypocet.cell(row=1, column=i+1).value = vypocet_hlavicka[i]
@@ -370,29 +373,29 @@ class VyplatitAutorskeOdmeny():
             adata = OsobaAutor.objects.filter(rs_login=autor)[0]
             ii = i+2
             self.vypocet[f"A{ii}"] = autor
-            self.vypocet[f"B{ii}"] = adata.zdanit if adata.zdanit else 'ano'
-            self.vypocet[f"B{ii}"].alignment = self.aright
-            self.vypocet[f"C{ii}"] = "ano" if adata.adresa_stat == "Slovenská republika" else "nie"
-            self.vypocet[f"D{ii}"] = round(self.suma_vyplatit[autor][0],2)
-            self.vypocet[f"E{ii}"] = self.suma_vyplatit[autor][1]
-            self.vypocet[f"F{ii}"] = f"=D{ii}-E{ii}"
-            #self.vypocet[f"G{ii}"] = f"=F{ii}*0.02"
-            self.vypocet[f"G{ii}"] = f'=IF(C{ii}="ano",F{ii}*{litfond_odvod},0'
+            self.vypocet[f"B{ii}"] = self.suma_vyplatit[autor][2 ]
+            self.vypocet[f"C{ii}"] = adata.zdanit if adata.zdanit else 'ano'
+            self.vypocet[f"C{ii}"].alignment = self.aright
+            self.vypocet[f"D{ii}"] = "ano" if adata.adresa_stat == "Slovenská republika" else "nie"
+            self.vypocet[f"E{ii}"] = round(self.suma_vyplatit[autor][0],2)
+            self.vypocet[f"F{ii}"] = self.suma_vyplatit[autor][1]
+            self.vypocet[f"G{ii}"] = f"=E{ii}-F{ii}"
+            #self.vypocet[f"H{ii}"] = f"=G{ii}*0.02"
+            self.vypocet[f"H{ii}"] = f'=IF(D{ii}="ano",G{ii}*{litfond_odvod},0'
             #zaokrúhľovanie: https://podpora.financnasprava.sk/407328-Sp%C3%B4sob-zaokr%C3%BAh%C4%BEovania-v-roku-2020
-            self.vypocet[f"H{ii}"] = f"=ROUND(G{ii},2)"
-            #self.vypocet[f"I{ii}"] = f"=(F{ii}-H{ii})*0.19"
-            self.vypocet[f"I{ii}"] = f'=IF(B{ii}="ano",(F{ii}-H{ii})*0.19,0'
-            self.vypocet[f"J{ii}"] = f"=ROUND(I{ii},2)"
-            self.vypocet[f"K{ii}"] = f"=F{ii}-H{ii}-J{ii}"
+            self.vypocet[f"I{ii}"] = f"=ROUND(H{ii},2)"
+            #self.vypocet[f"J{ii}"] = f"=(G{ii}-I{ii})*0.19"
+            self.vypocet[f"J{ii}"] = f'=IF(C{ii}="ano",(G{ii}-I{ii})*0.19,0'
+            self.vypocet[f"K{ii}"] = f"=ROUND(J{ii},2)"
+            self.vypocet[f"L{ii}"] = f"=G{ii}-I{ii}-K{ii}"
         pass
         self.vypocet[f"A{ii+1}"] = "Na úhradu"
-        self.vypocet[f"F{ii+1}"] = f"=SUM(F2:F{ii})"
-        self.vypocet[f"H{ii+1}"] = f"=SUM(H2:G{ii})"
-        self.vypocet[f"J{ii+1}"] = f"=SUM(J2:J{ii})"
+        self.vypocet[f"G{ii+1}"] = f"=SUM(G2:G{ii})"
+        self.vypocet[f"I{ii+1}"] = f"=SUM(I2:I{ii})"
         self.vypocet[f"K{ii+1}"] = f"=SUM(K2:K{ii})"
+        self.vypocet[f"L{ii+1}"] = f"=SUM(L2:L{ii})"
         for i, val in enumerate(vypocet_hlavicka):
             self.vypocet.cell(row=ii+1, column=i+1).font = self.fbold
-        #self.vypocet.freeze_panes = "A2"
         return ii+1 #vratit riadok so suctami
 
     # zapíše údaje o platbe do hárkov Import RS a Import Webrs
@@ -424,10 +427,11 @@ class VyplatitAutorskeOdmeny():
         adata = OsobaAutor.objects.filter(rs_login=autor)[0]
         self.krycilist[f"A{self.kpos}"].value = self.meno_priezvisko(adata)
         self.krycilist[f"D{self.kpos}"].value = adata.rodne_cislo
-        self.krycilist[f"H{self.kpos}"].value = f"=Výpočet!F{ind+2}"    #brutto
-        self.krycilist[f"I{self.kpos}"].value = f"=Výpočet!J{ind+2}"    #daň
-        self.krycilist[f"J{self.kpos}"].value = f"=Výpočet!H{ind+2}"    #LitFond
-        self.krycilist[f"K{self.kpos}"].value = f"=Výpočet!K{ind+2}"    #netto
+        self.krycilist[f"F{self.kpos}"].value = f"=Výpočet!B{ind+2}" 
+        self.krycilist[f"H{self.kpos}"].value = f"=Výpočet!G{ind+2}"    #brutto
+        self.krycilist[f"I{self.kpos}"].value = f"=Výpočet!K{ind+2}"    #daň
+        self.krycilist[f"J{self.kpos}"].value = f"=Výpočet!I{ind+2}"    #LitFond
+        self.krycilist[f"K{self.kpos}"].value = f"=Výpočet!L{ind+2}"    #netto
         self.kpos += 1
 
     # zapíše údaje o platbe do hárku Po autoroch
@@ -441,9 +445,9 @@ class VyplatitAutorskeOdmeny():
         vyplaca_sa = False
         if autor in self.suma_vyplatit:
             vyplaca_sa = True
-            odmena, preplatok = self.suma_vyplatit[autor]
+            odmena, preplatok, zmluvy = self.suma_vyplatit[autor]
         else:
-            odmena, preplatok = self.suma_preplatok[autor]
+            odmena, preplatok, zmluvy = self.suma_preplatok[autor]
 
         ftitle = Font(name="Arial", bold=True, size='14')
 
