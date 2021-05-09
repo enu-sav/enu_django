@@ -6,7 +6,7 @@ from ipdb import set_trace as trace
 # 1. a 2. stlpec: uid a login autorov v RS
 # 3. stlpec: Autori uvedení ako autori hesiel
 aa_name = "../../../data/aktivni_autori_2021-03-13.csv"
-aa_name = "data/aktivni_autori_2021-03-13.csv"
+aa_name = "data/autori-marec_2021.csv"
 
 class Command(BaseCommand):
     help = 'Načítať používateľov exportovaných z redakčného systému (role Autor, Konzultant a Garant)'
@@ -27,6 +27,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **kwargs):
         self.read_aa()
+        trace()
         for login in self.logins:
             uid = self.logins[login]
             if login in self.aktivni_autori:
