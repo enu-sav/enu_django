@@ -35,7 +35,7 @@ class VyplatitAutorskeOdmeny():
 
     def hlavicka_test(self, fname, row):
         # povinné stĺpce v csv súbore:
-        povinne = ["Nid", "Autorská zmluva", "Vyplatenie odmeny", "Dĺžka autorom odovzdaného textu", "Dátum záznamu dĺžky", "Dátum vyplatenia"]
+        povinne = ["Nid", "Zmluva na vyplatenie", "Vyplatenie odmeny", "Dĺžka autorom odovzdaného textu", "Dátum záznamu dĺžky", "Dátum vyplatenia"]
         for item in povinne:
             if not item in row:
                 self.log(self.ERROR, f"Súbor {fname} musí obsahovať stĺpec '{item}'")
@@ -59,14 +59,14 @@ class VyplatitAutorskeOdmeny():
                         raise SystemExit
                     for n, ii in enumerate(row):
                         hdr[ii]=n
-                    if "Login" in row: hasLogin=True
+                    if "Prihlásiť sa" in row: hasLogin=True
                     hdrOK = True
                 if row[hdr["Vyplatenie odmeny"]] == "Heslo vypracoval autor, vyplatiť" and not row[hdr["Dátum vyplatenia"]]:
                     if hasLogin:
-                        login = row[hdr["Login"]]
+                        login = row[hdr["Prihlásiť sa"]]
                     else:
                         login = transliterate(row[hdr["Priezvisko"]])+transliterate(row[hdr["Meno"]])
-                    zmluva = row[hdr['Autorská zmluva']]
+                    zmluva = row[hdr['Zmluva na vyplatenie']]
                     #if not login in self.pocet_znakov: self.pocet_znakov[login] = {}
                     #if not zmluva in self.pocet_znakov[login]: self.pocet_znakov[login][zmluva] = {}
                     #self.pocet_znakov[login][zmluva] += int(row[hdr["Dĺžka autorom odovzdaného textu"]])
@@ -79,7 +79,7 @@ class VyplatitAutorskeOdmeny():
                         int(row[hdr["Dĺžka autorom odovzdaného textu"]]),
                         rs_webrs,
                         f'=HYPERLINK("{nid}";"{row[hdr["nazov"]]}")',
-                        row[hdr['Autorská zmluva']],
+                        row[hdr['Zmluva na vyplatenie']],
                         re.sub(r"<[^>]*>","",row[hdr['Dátum záznamu dĺžky']])
                         ])
                     pass

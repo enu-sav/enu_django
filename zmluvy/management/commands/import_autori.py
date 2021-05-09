@@ -27,7 +27,6 @@ class Command(BaseCommand):
 
     def handle(self, *args, **kwargs):
         self.read_aa()
-        trace()
         for login in self.logins:
             uid = self.logins[login]
             if login in self.aktivni_autori:
