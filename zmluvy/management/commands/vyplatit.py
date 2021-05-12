@@ -20,7 +20,8 @@ import logging
 
 ws_template = f"{settings.TEMPLATES_DIR}/UhradaAutHonoraru.xlsx"
 ah_cesta = settings.ROYALTIES_DIR
-litfond_odvod = 0 #Aktuálne 0 kvôli Covid pandémii, inak 2 %
+litfond_odvod = 2   #Aktuálne 0 kvôli Covid pandémii, inak 2 %
+dan_odvod = 19    # daň, napr. 19 %
 min_vyplatit=20     #minimálna suma v Eur, ktorá sa vypláca
 ucetEnÚ = "SK36 8180 0000 0070 0061 8734 - Beliana"
 ucetLitFond  = "SK47 0200 0000 0012 2545 9853" 
@@ -67,6 +68,10 @@ class VyplatitAutorskeOdmeny():
                     else:
                         login = transliterate(row[hdr["Priezvisko"]])+transliterate(row[hdr["Meno"]])
                     zmluva = row[hdr['Zmluva na vyplatenie']]
+                    if not zmluva:
+                        self.log(self.ERROR, f"Heslo {row[hdr['nazov']]} autora {row[hdr['Prihlásiť sa']]} nemá určenú zmluvu")
+                        continue
+                        pass
                     #if not login in self.pocet_znakov: self.pocet_znakov[login] = {}
                     #if not zmluva in self.pocet_znakov[login]: self.pocet_znakov[login][zmluva] = {}
                     #self.pocet_znakov[login][zmluva] += int(row[hdr["Dĺžka autorom odovzdaného textu"]])
@@ -168,7 +173,7 @@ class VyplatitAutorskeOdmeny():
                     self.log(self.SUCCESS, f"Autor {autor}: bude vyplatené {aodmena - adata.preplatok} € (platba {aodmena} mínus preplatok {adata.preplatok})")
                 else:
                     self.log(self.SUCCESS, f"Autor {autor}: bude vyplatené {aodmena} €")
-                self.suma_vyplatit[autor] = [aodmena, adata.preplatok, zmluvy_autora]
+                self.suma_vyplatit[autor] = [round(aodmena,2), adata.preplatok, zmluvy_autora]
                 #aktualizovať preplatok
                 pass
             elif aodmena < adata.preplatok: # celú sumu možno odpočítať z preplatku
@@ -245,7 +250,7 @@ class VyplatitAutorskeOdmeny():
         pos = 10
         a,b,c,d,e,f = range(pos, pos+6)
         vyplatit[f"A{a}"] = "Komu:"
-        vyplatit[f"B{a}"] = "2% z odmeny"
+        vyplatit[f"B{a}"] = f"Odvod Lit. fond ({litfond_odvod} %)"
         vyplatit[f"A{b}"] = "Názov:"
         vyplatit[f"B{b}"] = "Literárny fond"
         vyplatit[f"A{c}"] = "IBAN:"
@@ -311,11 +316,15 @@ class VyplatitAutorskeOdmeny():
 
         pos += 7
         a,b,c,d,e,f = range(pos, pos+6)
-        vyplatit[f"A{a}"] = "Spracovala:"
-        vyplatit[f"B{a}"] = "M. Sekeráková"
-        vyplatit[f"B{b}"] = "sekretariát EnÚ CSČ SAV"
+        vyplatit.merge_cells(f'A{a}:D{a}')
+        vyplatit[f"A{a}"] = "Výpočet autorských odmien bol realizovaný softvérovo na základe údajov z redakčného systému Encyclopaedie Beliany"
+        vyplatit[f"A{a}"].alignment = Alignment(wrapText=True, horizontal='left')
+        vyplatit.row_dimensions[a].height = 30
+        #vyplatit[f"A{a}"] = "Spracovala:"
+        #vyplatit[f"B{a}"] = "M. Sekeráková"
+        #vyplatit[f"B{b}"] = "sekretariát EnÚ CSČ SAV"
 
-        vyplatit[f"A{d}"] = "V Bratislave dňa"
+        vyplatit[f"A{d}"] = "V Bratislave dňa {}".format(date.today().strftime("%d.%m.%Y"))
         vyplatit[f"E{e}"] = "Ing. Tatiana Šrámková"
         vyplatit[f"E{f}"] = "vedúca org. zložky EnÚ CSČ SAV"
         vyplatit.print_area = f"A1:G{pos+7}"
@@ -359,8 +368,8 @@ class VyplatitAutorskeOdmeny():
     # vyplnit harok vypocet
     def vyplnit_harok_vypocet(self):
         #hlavicka
-        #vypocet_hlavicka = ["Autor", "Odmena/AH", "Odviesť daň", "Počet znakov", "Odmena", "2% LF", "LF zaokr.", "19% daň", "Daň zaokr.", "Autorovi"]
-        vypocet_hlavicka = ["Autor", "Zmluvy", "Odviesť daň", "Tr. pobyt v SR", "Odmena", "Preplatok", "Odmena - Preplatok", "2% LF", "LF zaokr.", "19% daň", "daň zaokr.", "Vyplatiť"]
+        #vypocet_hlavicka = ["Autor", "Odmena/AH", "Odviesť daň", "Počet znakov", "Odmena", "2% LF", "LF zaokr.", f"{dan_odvod} % daň", "Daň zaokr.", "Autorovi"]
+        vypocet_hlavicka = ["Autor", "Zmluvy", "Odviesť daň", "Odviesť LF", "Odmena", "Preplatok", "Odmena - Preplatok", "2% LF", "LF zaokr.", "{dan_odvod} % daň", "daň zaokr.", "Vyplatiť"]
 
         for i, val in enumerate(vypocet_hlavicka):
             self.vypocet.cell(row=1, column=i+1).value = vypocet_hlavicka[i]
@@ -381,11 +390,11 @@ class VyplatitAutorskeOdmeny():
             self.vypocet[f"F{ii}"] = self.suma_vyplatit[autor][1]
             self.vypocet[f"G{ii}"] = f"=E{ii}-F{ii}"
             #self.vypocet[f"H{ii}"] = f"=G{ii}*0.02"
-            self.vypocet[f"H{ii}"] = f'=IF(D{ii}="ano",G{ii}*{litfond_odvod},0'
+            self.vypocet[f"H{ii}"] = f'=IF(D{ii}="ano",G{ii}*{litfond_odvod/100},0'
             #zaokrúhľovanie: https://podpora.financnasprava.sk/407328-Sp%C3%B4sob-zaokr%C3%BAh%C4%BEovania-v-roku-2020
             self.vypocet[f"I{ii}"] = f"=ROUND(H{ii},2)"
-            #self.vypocet[f"J{ii}"] = f"=(G{ii}-I{ii})*0.19"
-            self.vypocet[f"J{ii}"] = f'=IF(C{ii}="ano",(G{ii}-I{ii})*0.19,0'
+            #self.vypocet[f"J{ii}"] = f"=(G{ii}-I{ii})*{dan_odvod/100}"
+            self.vypocet[f"J{ii}"] = f'=IF(C{ii}="ano",(G{ii}-I{ii})*{dan_odvod/100},0'
             self.vypocet[f"K{ii}"] = f"=ROUND(J{ii},2)"
             self.vypocet[f"L{ii}"] = f"=G{ii}-I{ii}-K{ii}"
         pass
@@ -461,6 +470,7 @@ class VyplatitAutorskeOdmeny():
 
         adata = OsobaAutor.objects.filter(rs_login=autor)[0]
         self.bb( "Meno:" , self.meno_priezvisko(adata))
+        self.bb( "Používateľské meno v RS / WEBRS:" , autor)
         self.bb( "E-mail:" , adata.email)
         self.bb( "Účet:", adata.bankovy_kontakt)
         self.bb( "Dátum vytvorenia záznamu:" , date.today().strftime("%d.%m.%Y"))
@@ -468,12 +478,29 @@ class VyplatitAutorskeOdmeny():
             if preplatok > 0:
                 self.bb( "Preplatok predchádzajúcich platieb:", preplatok)
                 self.bb( "Odmena za aktuálne obdobie:", odmena)
-                self.bb( "Na vyplatenie:", odmena-preplatok)
+                vypocet = odmena-preplatok
+                self.bb( "Odmena - Preplatok:", vypocet)
+                lf = round((odmena-preplatok)*litfond_odvod/100,2)
+                vypocet -= lf
+                self.bb( f"Odvod LitFond ({litfond_odvod} %, zaokr.):", lf)
+                dan = round(vypocet*dan_odvod/100,2)
+                vypocet -= dan
+                self.bb( f"Daň ({dan_odvod} %, zaokr.):", dan)
+                self.bb( "Na vyplatenie:", vypocet)
                 self.bb( "Nová hodnota preplatku:", 0)
                 adata.preplatok = 0
                 #adata.save()
-            else:
-                self.bb( "Na vyplatenie:", odmena-preplatok)
+            else:   #preplatok=0
+                self.bb( "Preplatok predchádzajúcich platieb:", 0)
+                self.bb( "Odmena za aktuálne obdobie:", odmena)
+                vypocet = odmena
+                lf = round((vypocet)*litfond_odvod/100,2)
+                vypocet -= lf
+                self.bb( f"Odvod LitFond ({litfond_odvod} %, zaokr.):", lf)
+                dan = round(vypocet*dan_odvod/100,2)
+                vypocet -= dan
+                self.bb( f"Daň ({dan_odvod} %, zaokr.):", dan)
+                self.bb( "Na vyplatenie:", vypocet)
             self.bb( "Dátum vyplatenia:", "")
         else:
                 self.bb( "Preplatok predchádzajúcich platieb:", preplatok)
@@ -518,7 +545,12 @@ class VyplatitAutorskeOdmeny():
         ws[f'H{self.ppos}'] = "=SUM(H{}:H{}".format(self.ppos-nitems,self.ppos-1) 
         ws[f'H{self.ppos}'].font = self.fbold
         ws[f"H{self.ppos}"].number_format= "0.00"
-        self.ppos  += 1  
+        self.ppos  += 2  
+        ws.merge_cells(f'A{self.ppos}:F{self.ppos}')
+        ws[f"A{self.ppos}"] = "Výpočet autorských odmien bol realizovaný softvérovo na základe údajov z redakčného systému Encyclopaedie Beliany"
+        ws[f"A{self.ppos}"].alignment = Alignment(wrapText=True, horizontal='left')
+        ws.row_dimensions[self.ppos].height = 30
+        self.ppos  += 2  
 
         #insert page break
         page_break = Break(id=self.ppos-1)  # create Break obj
