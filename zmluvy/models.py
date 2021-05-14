@@ -146,19 +146,26 @@ class Platba(models.Model):
 class PlatbaAutorskaOdmena(Platba):
     #obdobie: priečinok, z ktorého bola platba importovaná
     obdobie = models.CharField("Obdobie", max_length=20)  
-    zmluva = models.ForeignKey(ZmluvaAutor, on_delete=models.PROTECT)
+    #zoznam zmlúv, podľa ktorých sa vyplácalo
+    zmluva = models.CharField("Zmluva", max_length=200)
     #related_name: v admin.py umožní zobrazit platby autora v zozname autorov cez pole platby_link 
-    autor = models.ForeignKey(OsobaAutor, on_delete=models.PROTECT, related_name='platby', editable=False)
+    autor = models.ForeignKey(OsobaAutor, on_delete=models.PROTECT, related_name='platby')
     preplatok_pred = models.FloatField("Preplatok pred")
-    odmena = models.FloatField("Odmena")
+    odmena_rs = models.FloatField("Odmena (RS)")
+    odmena_webrs = models.FloatField("Odmena (WEBRS)")
+    znaky_rs = models.FloatField("Počet znakov (RS)")
+    znaky_webrs = models.FloatField("Počet znakov (WEBRS)")
     odvod_LF = models.FloatField("Odvod LF")
     odvedena_dan = models.FloatField("Odvedená daň")
     preplatok_po = models.FloatField("Preplatok po")
 
+    def odmena(self):
+        return self.odmena_rs + self.odmena_webrs
+
     # executed after 'save'
-    def clean(self):
-        if getattr(self, 'autor', None) is None: # check that current instance has 'autor' attribute not set
-            self.autor = self.zmluva.zmluvna_strana
+    #def clean(self):
+        #if getattr(self, 'autor', None) is None: # check that current instance has 'autor' attribute not set
+            #self.autor = self.zmluva.zmluvna_strana
 
     class Meta:
         verbose_name = 'Vyplatená autorská odmena'

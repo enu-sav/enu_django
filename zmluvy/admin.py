@@ -120,7 +120,7 @@ class ZmluvaAutorAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
 @admin.register(PlatbaAutorskaOdmena)
 class PlatbaAutorskaOdmenaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
     # zmluvna_strana_link: pridá autora zmluvy do zoznamu, vďaka AdminChangeLinksMixin
-    list_display = ('datum_uhradenia', 'obdobie', 'zmluva_link', 'autor', 'preplatok_pred', 'odmena', 'odvod_LF', 'odvedena_dan', 'uhradena_suma', 'preplatok_po')
+    list_display = ('datum_uhradenia', 'obdobie', 'zmluva', 'autor', 'preplatok_pred', 'odmena', 'odvod_LF', 'odvedena_dan', 'uhradena_suma', 'preplatok_po')
 
     ordering = ('datum_uhradenia',)
 
