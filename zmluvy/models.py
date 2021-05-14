@@ -121,7 +121,7 @@ class Zmluva(models.Model):
 class ZmluvaAutor(Zmluva):
     # v OsobaAutor je pristup k zmluve cez 'zmluvaautor'
     #models.PROTECT: Prevent deletion of the referenced object
-    #related_name: v admin.py umožní zobrazit zmluvy aytora cez pole zmluvy_link 
+    #related_name: v admin.py umožní zobrazit zmluvy autora v zozname autorov cez pole zmluvy_link 
     zmluvna_strana = models.ForeignKey(OsobaAutor, on_delete=models.PROTECT, related_name='zmluvy')    
     odmena = models.FloatField("Odmena/AH", default=0)  #Eur/AH (36 000 znakov)
     history = HistoricalRecords()
@@ -134,7 +134,6 @@ class ZmluvaAutor(Zmluva):
 #Súčasť Zmluvy 
 class Platba(models.Model):
     datum_uhradenia = models.DateField('Dátum vyplatenia')
-    zmluva = models.ForeignKey(ZmluvaAutor, on_delete=models.PROTECT, related_name='zmluva')    
     uhradena_suma = models.FloatField("Uhradená suma")
     class Meta:
         abstract = True
@@ -145,13 +144,21 @@ class Platba(models.Model):
 #------Platba1
 #------Platba2
 class PlatbaAutorskaOdmena(Platba):
+    # je related_name naozaj potrebne?
+    zmluva = models.ForeignKey(ZmluvaAutor, on_delete=models.PROTECT)
+    #related_name: v admin.py umožní zobrazit platby autora v zozname autorov cez pole platby_link 
+    autor = models.ForeignKey(OsobaAutor, on_delete=models.PROTECT, related_name='platby', editable=False)
     preplatok_pred = models.FloatField("Preplatok pred")
     odmena = models.FloatField("Odmena")
     odvod_LF = models.FloatField("Odvod LF")
     odvedena_dan = models.FloatField("Odvedená daň")
+
+    # executed after 'save'
+    def clean(self):
+        if getattr(self, 'autor', None) is None: # check that current instance has 'autor' attribute not set
+            self.autor = self.zmluva.zmluvna_strana
+
     class Meta:
         verbose_name = 'Vyplatená autorská odmena'
         verbose_name_plural = 'Vyplatené autorské odmeny'
-
-
 

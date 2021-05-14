@@ -19,7 +19,13 @@ from simple_history.admin import SimpleHistoryAdmin
 #class OsobaAutorAdmin(AdminChangeLinksMixin, admin.ModelAdmin):
 class OsobaAutorAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
     #zmluvy_link: pridá odkaz na všetky zmluvy autora do zoznamu
-    list_display = ('rs_login', 'rs_uid', 'zmluvy_link', 'email', 'titul_pred_menom', 'meno', 'priezvisko', 'titul_za_menom', 'rodne_cislo', 'odbor', "adresa_ulica", "adresa_mesto", "adresa_stat", 'datum_aktualizacie', 'zdanit', 'preplatok', 'poznamka')
+    #platby_link: pridá odkaz na všetky platby autora do zoznamu
+    list_display = (
+            'rs_login', 'rs_uid', 'zmluvy_link', 'platby_link','email', 
+            'titul_pred_menom', 'meno', 'priezvisko', 'titul_za_menom', 
+            'rodne_cislo', 'odbor', "adresa_ulica", "adresa_mesto", 
+            "adresa_stat", 'datum_aktualizacie', 'zdanit', 'preplatok', 'poznamka'
+            )
     ordering = ('datum_aktualizacie',)
     #search_fields = ('rs_login', 'priezvisko')
     #search_fields = ['rs_login', 'r_uid', 'email']
@@ -31,6 +37,9 @@ class OsobaAutorAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
     changelist_links = [
         ('zmluvy', {
             'label': 'Zmluvy',  # Used as label for the link
+        }),
+        ('platby', {
+            'label': 'Platby',  # Used as label for the link
         })
     ]
 
@@ -67,9 +76,9 @@ class OsobaAutorAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
 @admin.register(ZmluvaAutor)
 class ZmluvaAutorAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
     # zmluvna_strana_link: pridá autora zmluvy do zoznamu, vďaka AdminChangeLinksMixin
-    list_display = ('cislo_zmluvy', 'stav_zmluvy', 'zmluvna_strana_link', 'odmena', 'url_zmluvy_html', 'crz_datum', 'datum_pridania', 'datum_aktualizacie')
+    list_display = ('cislo_zmluvy', 'stav_zmluvy', 'zmluvna_strana_link', 
+            'odmena', 'url_zmluvy_html', 'crz_datum', 'datum_pridania', 'datum_aktualizacie')
     ordering = ('zmluvna_strana',)
-    #search_fields = ['cislo_zmluvy']
     search_fields = ['cislo_zmluvy','zmluvna_strana__rs_login', 'odmena', 'stav_zmluvy']
 
     # umožnené prostredníctvom AdminChangeLinksMixin
@@ -111,34 +120,30 @@ class ZmluvaAutorAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
 @admin.register(PlatbaAutorskaOdmena)
 class PlatbaAutorskaOdmenaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
     # zmluvna_strana_link: pridá autora zmluvy do zoznamu, vďaka AdminChangeLinksMixin
-    list_display = ('datum_uhradenia', 'zmluva_link', 'preplatok_pred', 'odmena', 'odvod_LF', 'odvedena_dan', 'uhradena_suma')
+    list_display = ('datum_uhradenia', 'zmluva_link', 'autor', 'preplatok_pred', 'odmena', 'odvod_LF', 'odvedena_dan', 'uhradena_suma')
 
     ordering = ('datum_uhradenia',)
 
     #search_fields = ['cislo_zmluvy']
     #search_fields = ['cislo_zmluvy','zmluvna_strana__rs_login', 'odmena', 'stav_zmluvy']
 
+    # zoradovatelny odkaz na cislo zmluvy
     # umožnené prostredníctvom AdminChangeLinksMixin
-    change_links = ['zmluva']
     change_links = [
         ('zmluva', {
-            'admin_order_field': 'zmluva__cislo_zmluvy',  # Allow to sort members by `zmluvna_strana_link` column
-        })
+            'admin_order_field': 'zmluva__cislo_zmluvy', # Allow to sort members by the `zmluva_link` column
+        }),
     ]
 
     #obj is None during the object creation, but set to the object being edited during an edit
-    #def get_readonly_fields(self, request, obj=None):
-        #if obj:
-            #return ["cislo_zmluvy", "zmluvna_strana"]
-        #else:
-            #return []
+    #predpokladá sa, že hodnoty sa importujú skriptom a že neskôr sa už neupravujú
+    def get_readonly_fields(self, request, obj=None):
+        if obj:
+            return ['zmluva', 'datum_uhradenia', 'preplatok_pred', 'odmena', 'odvod_LF', 'odvedena_dan', 'uhradena_suma']
+        else:
+            return []
 
     # formatovat datum
-    #def crz_datum(self, obj):
-        #result = ZmluvaAutor.objects.filter(cislo_zmluvy=obj)
-        #if result and result[0].datum_zverejnenia_CRZ:
-            #result = result[0]
-            #return obj.datum_zverejnenia_CRZ.strftime("%d-%m-%Y")
-        #else:
-            #return None
+    def datum_uhradenia(self, obj):
+        return obj.datum_uhradenia.strftime("%d-%m-%Y")
     #crz_datum.short_description = "Platná od"
