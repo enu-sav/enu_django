@@ -128,3 +128,30 @@ class ZmluvaAutor(Zmluva):
     class Meta:
         verbose_name = 'Autorská zmluva'
         verbose_name_plural = 'Autorské zmluvy'
+
+
+#Abstraktná tieda pre všetky platby
+#Súčasť Zmluvy 
+class Platba(models.Model):
+    datum_uhradenia = models.DateTimeField('Dátum vyplatenia')
+    zmluva = models.ForeignKey(ZmluvaAutor, on_delete=models.PROTECT, related_name='zmluva')    
+    uhradena_suma = models.FloatField("Uhradená suma")
+    class Meta:
+        abstract = True
+
+#Hierarchia:
+#Autor
+#---Zmluva1
+#------Platba1
+#------Platba2
+class PlatbaAutorskaOdmena(Platba):
+    preplatok_pred = models.FloatField("Preplatok pred")
+    odmena = models.FloatField("Odmena")
+    odvod_LF = models.FloatField("Odvod LF")
+    odvedena_dan = models.FloatField("Odvedená daň")
+    class Meta:
+        verbose_name = 'Vyplatená autorská odmena'
+        verbose_name_plural = 'Vyplatené autorské odmeny'
+
+
+

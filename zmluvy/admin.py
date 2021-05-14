@@ -5,7 +5,7 @@ from django.utils.translation import ngettext
 
 # Register your models here.
 from beliana import settings
-from .models import OsobaAutor, ZmluvaAutor
+from .models import OsobaAutor, ZmluvaAutor, PlatbaAutorskaOdmena
 
 #umožniť zobrazenie autora v zozname zmlúv
 #https://pypi.org/project/django-admin-relation-links/
@@ -107,4 +107,38 @@ class ZmluvaAutorAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
         else:
             return None
     crz_datum.short_description = "Platná od"
-#admin.site.register(ZmluvaAutor, ZmluvaAutorAdmin)
+
+@admin.register(PlatbaAutorskaOdmena)
+class PlatbaAutorskaOdmenaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
+    # zmluvna_strana_link: pridá autora zmluvy do zoznamu, vďaka AdminChangeLinksMixin
+    list_display = ('datum_uhradenia', 'zmluva_link', 'preplatok_pred', 'odmena', 'odvod_LF', 'odvedena_dan', 'uhradena_suma')
+
+    ordering = ('datum_uhradenia',)
+
+    #search_fields = ['cislo_zmluvy']
+    #search_fields = ['cislo_zmluvy','zmluvna_strana__rs_login', 'odmena', 'stav_zmluvy']
+
+    # umožnené prostredníctvom AdminChangeLinksMixin
+    change_links = ['zmluva']
+    change_links = [
+        ('zmluva', {
+            'admin_order_field': 'zmluva__cislo_zmluvy',  # Allow to sort members by `zmluvna_strana_link` column
+        })
+    ]
+
+    #obj is None during the object creation, but set to the object being edited during an edit
+    #def get_readonly_fields(self, request, obj=None):
+        #if obj:
+            #return ["cislo_zmluvy", "zmluvna_strana"]
+        #else:
+            #return []
+
+    # formatovat datum
+    #def crz_datum(self, obj):
+        #result = ZmluvaAutor.objects.filter(cislo_zmluvy=obj)
+        #if result and result[0].datum_zverejnenia_CRZ:
+            #result = result[0]
+            #return obj.datum_zverejnenia_CRZ.strftime("%d-%m-%Y")
+        #else:
+            #return None
+    #crz_datum.short_description = "Platná od"
