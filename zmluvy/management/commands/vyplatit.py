@@ -20,7 +20,7 @@ import logging
 
 ws_template = f"{settings.TEMPLATES_DIR}/UhradaAutHonoraru.xlsx"
 ah_cesta = settings.ROYALTIES_DIR
-litfond_odvod = 2   #Aktuálne 0 kvôli Covid pandémii, inak 2 %
+litfond_odvod = 0   #Aktuálne 0 kvôli Covid pandémii, inak 2 %
 dan_odvod = 19    # daň, napr. 19 %
 min_vyplatit=20     #minimálna suma v Eur, ktorá sa vypláca
 ucetEnÚ = "SK36 8180 0000 0070 0061 8734 - Beliana"
@@ -361,15 +361,15 @@ class VyplatitAutorskeOdmeny():
                     csvWriter.writerow([b.value,c.value])
             self.log(self.WARNING, f"Údaje na importovanie do WEBRS boli uložené do súboru {fpath}")
         else:
-            fpath = os.path.join(za_mesiac,f"Vyplatit-{self.obdobie}-TSH.xlsx")
+            fpath = os.path.join(za_mesiac,f"Vyplatit-{self.obdobie}-THS.xlsx")
             workbook.save(fpath)
-            self.log(self.WARNING, f"Údaje o vyplácaní na odoslanie TSH boli uložené do súboru {fpath}")
+            self.log(self.WARNING, f"Údaje o vyplácaní na odoslanie THS boli uložené do súboru {fpath}")
 
     # vyplnit harok vypocet
     def vyplnit_harok_vypocet(self):
         #hlavicka
         #vypocet_hlavicka = ["Autor", "Odmena/AH", "Odviesť daň", "Počet znakov", "Odmena", "2% LF", "LF zaokr.", f"{dan_odvod} % daň", "Daň zaokr.", "Autorovi"]
-        vypocet_hlavicka = ["Autor", "Zmluvy", "Odviesť daň", "Odviesť LF", "Odmena", "Preplatok", "Odmena - Preplatok", "2% LF", "LF zaokr.", "{dan_odvod} % daň", "daň zaokr.", "Vyplatiť"]
+        vypocet_hlavicka = ["Autor", "Zmluvy", "Odviesť daň", "Odviesť LF", "Odmena", "Preplatok", "Odmena - Preplatok", "2% LF", "LF zaokr.", f"{dan_odvod} % daň", "daň zaokr.", "Vyplatiť"]
 
         for i, val in enumerate(vypocet_hlavicka):
             self.vypocet.cell(row=1, column=i+1).value = vypocet_hlavicka[i]
