@@ -144,7 +144,8 @@ class Platba(models.Model):
 #------Platba1
 #------Platba2
 class PlatbaAutorskaOdmena(Platba):
-    # je related_name naozaj potrebne?
+    #obdobie: priečinok, z ktorého bola platba importovaná
+    obdobie = models.CharField("Obdobie", max_length=20)  
     zmluva = models.ForeignKey(ZmluvaAutor, on_delete=models.PROTECT)
     #related_name: v admin.py umožní zobrazit platby autora v zozname autorov cez pole platby_link 
     autor = models.ForeignKey(OsobaAutor, on_delete=models.PROTECT, related_name='platby', editable=False)
@@ -152,6 +153,7 @@ class PlatbaAutorskaOdmena(Platba):
     odmena = models.FloatField("Odmena")
     odvod_LF = models.FloatField("Odvod LF")
     odvedena_dan = models.FloatField("Odvedená daň")
+    preplatok_po = models.FloatField("Preplatok po")
 
     # executed after 'save'
     def clean(self):
