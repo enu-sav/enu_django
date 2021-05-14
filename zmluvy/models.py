@@ -48,7 +48,7 @@ class FyzickaOsoba(PersonCommon):
     rodne_cislo = models.CharField("Rodné číslo", max_length=20, blank=True)     #optional
     zdanit = models.CharField(max_length=3, choices=AnoNie.choices, blank=True) 
     poznamka = models.CharField("Poznámka", max_length=200, blank=True)
-    #pub_date = models.DateTimeField('date published')
+    #pub_date = models.DateField('date published')
 
     class Meta:
         abstract = True
@@ -105,11 +105,11 @@ class OsobaAutor (OsobaAuGaKo):
 
 class Zmluva(models.Model):
     cislo_zmluvy = models.CharField("Číslo zmluvy", max_length=50)
-    datum_pridania = models.DateTimeField('Dátum pridania', auto_now_add=True)
+    datum_pridania = models.DateField('Dátum pridania', auto_now_add=True)
     datum_aktualizacie = models.DateTimeField('Dátum aktualizácie', auto_now=True)
     stav_zmluvy = models.CharField(max_length=20, choices=StavZmluvy.choices, blank=True) 
     url_zmluvy = models.URLField('URL zmluvy', blank = True)
-    datum_zverejnenia_CRZ = models.DateTimeField('Dátum CRZ', blank=True, null=True)
+    datum_zverejnenia_CRZ = models.DateField('Dátum CRZ', blank=True, null=True)
 
     def __str__(self):
         return self.cislo_zmluvy
@@ -133,7 +133,7 @@ class ZmluvaAutor(Zmluva):
 #Abstraktná tieda pre všetky platby
 #Súčasť Zmluvy 
 class Platba(models.Model):
-    datum_uhradenia = models.DateTimeField('Dátum vyplatenia')
+    datum_uhradenia = models.DateField('Dátum vyplatenia')
     zmluva = models.ForeignKey(ZmluvaAutor, on_delete=models.PROTECT, related_name='zmluva')    
     uhradena_suma = models.FloatField("Uhradená suma")
     class Meta:
