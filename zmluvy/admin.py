@@ -21,10 +21,10 @@ class OsobaAutorAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
     #zmluvy_link: pridá odkaz na všetky zmluvy autora do zoznamu
     #platby_link: pridá odkaz na všetky platby autora do zoznamu
     list_display = (
-            'rs_login', 'rs_uid', 'zmluvy_link', 'platby_link','email', 
+            'rs_login', 'rs_uid', 'zmluvy_link', 'platby_link', 'preplatok', 'zdanit', 'email', 
             'titul_pred_menom', 'meno', 'priezvisko', 'titul_za_menom', 
             'rodne_cislo', 'odbor', "adresa_ulica", "adresa_mesto", 
-            "adresa_stat", 'datum_aktualizacie', 'zdanit', 'preplatok', 'poznamka'
+            "adresa_stat", 'datum_aktualizacie', 'poznamka'
             )
     ordering = ('datum_aktualizacie',)
     #search_fields = ('rs_login', 'priezvisko')
@@ -119,19 +119,18 @@ class ZmluvaAutorAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
 
 @admin.register(PlatbaAutorskaOdmena)
 class PlatbaAutorskaOdmenaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
-    # zmluvna_strana_link: pridá autora zmluvy do zoznamu, vďaka AdminChangeLinksMixin
-    list_display = ('datum_uhradenia', 'obdobie', 'zmluva', 'autor', 'preplatok_pred', 'odmena', 'odvod_LF', 'odvedena_dan', 'uhradena_suma', 'preplatok_po')
+    # autor_link: pridá autora zmluvy do zoznamu, vďaka AdminChangeLinksMixin
+    list_display = ('datum_uhradenia', 'obdobie', 'zmluva', 'autor_link', 'preplatok_pred', 'odmena', 'odvod_LF', 'odvedena_dan', 'uhradena_suma', 'preplatok_po')
 
     ordering = ('datum_uhradenia',)
 
-    #search_fields = ['cislo_zmluvy']
-    #search_fields = ['cislo_zmluvy','zmluvna_strana__rs_login', 'odmena', 'stav_zmluvy']
+    search_fields = ['obdobie', "zmluva", "autor__rs_login"]
 
-    # zoradovatelny odkaz na cislo zmluvy
+    # zoraďovateľný odkaz na číslo zmluvy
     # umožnené prostredníctvom AdminChangeLinksMixin
     change_links = [
-        ('zmluva', {
-            'admin_order_field': 'zmluva__cislo_zmluvy', # Allow to sort members by the `zmluva_link` column
+        ('autor', {
+            'admin_order_field': 'autor__rs_login', # Allow to sort members by the `autor_link` column
         }),
     ]
 

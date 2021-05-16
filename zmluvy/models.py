@@ -160,7 +160,7 @@ class PlatbaAutorskaOdmena(Platba):
     preplatok_po = models.FloatField("Preplatok po")
 
     def odmena(self):
-        return self.odmena_rs + self.odmena_webrs
+        return round(self.odmena_rs + self.odmena_webrs,2)
 
     # executed after 'save'
     #def clean(self):
