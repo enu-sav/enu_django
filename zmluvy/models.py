@@ -169,3 +169,11 @@ class PlatbaAutorskaOdmena(Platba):
         verbose_name = 'Vyplatená autorská odmena'
         verbose_name_plural = 'Vyplatené autorské odmeny'
 
+class PlatbaAutorskaSumar(models.Model):
+    #obdobie: priečinok, z ktorého bola platba importovaná
+    datum_uhradenia = models.DateField('Dátum vyplatenia')
+    obdobie = models.CharField("Obdobie", max_length=20)  
+
+    class Meta:
+        verbose_name = 'Platby sumárne'
+        verbose_name_plural = 'Platby sumárne'

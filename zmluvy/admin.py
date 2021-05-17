@@ -5,7 +5,7 @@ from django.utils.translation import ngettext
 
 # Register your models here.
 from beliana import settings
-from .models import OsobaAutor, ZmluvaAutor, PlatbaAutorskaOdmena
+from .models import OsobaAutor, ZmluvaAutor, PlatbaAutorskaOdmena, PlatbaAutorskaSumar
 
 #umožniť zobrazenie autora v zozname zmlúv
 #https://pypi.org/project/django-admin-relation-links/
@@ -146,3 +146,32 @@ class PlatbaAutorskaOdmenaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
     def datum_uhradenia(self, obj):
         return obj.datum_uhradenia.strftime("%d-%m-%Y")
     #crz_datum.short_description = "Platná od"
+
+@admin.register(PlatbaAutorskaSumar)
+class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
+    list_display = ['obdobie', 'datum_uhradenia', 'honorar_rs', 'honorar_webrs', 'honorar_spolu', 'odvod_LF', 'odvedena_dan']
+
+    def honorar_spolu(self, sumplatba):
+        platby = PlatbaAutorskaOdmena.objects.filter(obdobie=sumplatba.obdobie)
+        odmeny = [platba.odmena for platba in platby]
+        return sum(odmeny)
+
+    def honorar_rs(self, sumplatba):
+        platby = PlatbaAutorskaOdmena.objects.filter(obdobie=sumplatba.obdobie)
+        odmeny = [platba.odmena_rs for platba in platby]
+        return sum(odmeny)
+
+    def honorar_webrs(self, sumplatba):
+        platby = PlatbaAutorskaOdmena.objects.filter(obdobie=sumplatba.obdobie)
+        odmeny = [platba.odmena_webrs for platba in platby]
+        return sum(odmeny)
+
+    def odvedena_dan(self, sumplatba):
+        platby = PlatbaAutorskaOdmena.objects.filter(obdobie=sumplatba.obdobie)
+        odmeny = [platba.odvedena_dan for platba in platby]
+        return sum(odmeny)
+
+    def odvod_LF(self, sumplatba):
+        platby = PlatbaAutorskaOdmena.objects.filter(obdobie=sumplatba.obdobie)
+        odmeny = [platba.odvod_LF for platba in platby]
+        return sum(odmeny)

@@ -1,6 +1,6 @@
 import csv
 from django.core.management import BaseCommand, CommandError
-from zmluvy.models import OsobaAutor, ZmluvaAutor, PlatbaAutorskaOdmena
+from zmluvy.models import OsobaAutor, ZmluvaAutor, PlatbaAutorskaOdmena, PlatbaAutorskaSumar
 from zmluvy.common import transliterate
 from django.utils import timezone
 from django.conf import settings
@@ -168,26 +168,27 @@ class VyplatitAutorskeOdmeny():
                     pocet_znakov = sum([z[0] for z in self.data[autor][rs][zmluva]])    #[0]: pocet znakov
                     aodmena += pocet_znakov*zvyplatit[zmluva]/36000
                     pass
+            aodmena = round(round(aodmena,3),2)
             list_of_strings = [str(s) for s in zmluvy_autora]
             zmluvy_autora = ",".join(list_of_strings)
             if aodmena - adata.preplatok > min_vyplatit: # bude sa vyplácať, preplatok sa zohľadní a jeho hodnota sa aktualizuje v db
                 if adata.preplatok > 0:
-                    self.log(self.SUCCESS, f"Autor {autor}: bude vyplatené {aodmena - adata.preplatok} € (platba {aodmena} mínus preplatok {adata.preplatok})")
+                    self.log(self.SUCCESS, f"Autor %s: bude vyplatené %.2f € (platba %.2f mínus preplatok %.2f)"%(autor,aodmena - adata.preplatok,aodmena,adata.preplatok))
                 else:
-                    self.log(self.SUCCESS, f"Autor {autor}: bude vyplatené {aodmena} €")
+                    self.log(self.SUCCESS, f"Autor %s: bude vyplatené %.2f €"%(autor, aodmena))
                 self.suma_vyplatit[autor] = [round(aodmena,2), adata.preplatok, zmluvy_autora]
                 #aktualizovať preplatok
                 pass
             elif aodmena < adata.preplatok: # celú sumu možno odpočítať z preplatku
-                self.log(self.SUCCESS, f"Autor {autor}: Suma {aodmena} € sa nevyplatí, odpočíta sa od preplatku {adata.preplatok} €")
+                self.log(self.SUCCESS, f"Autor %s: Suma %.2f € sa nevyplatí, odpočíta sa od preplatku %.2f €"%(autor, aodmena,adata.preplatok) )
                 self.suma_preplatok[autor] = [aodmena, adata.preplatok, zmluvy_autora]
                 #aktualizovať preplatok
                 pass
             else: #po odpočítaní preplatku zostane suma menšia ako min_vyplatit. Nevyplatí sa, počká sa na ďalšie platby
                 if adata.preplatok > 0:
-                    self.log(self.WARNING, f"Autor {autor}: nebude vyplatené {aodmena - adata.preplatok} € (nízka suma, platba {aodmena} mínus preplatok {adata.preplatok})")
+                    self.log(self.WARNING, f"Autor %s: nebude vyplatené %.2f € (nízka suma, platba %.2f mínus preplatok %.2f)"%(autor,aodmena - adata.preplatok,aodmena,adata.preplatok))
                 else:
-                    self.log(self.WARNING, f"Autor {autor}: nebude vyplatené {aodmena - adata.preplatok} € (nízka suma)")
+                    self.log(self.WARNING, f"Autor %s: nebude vyplatené %.2f € (nízka suma)"%(autor,aodmena - adata.preplatok) )
                 pass
         # styly buniek, https://openpyxl.readthedocs.io/en/default/styles.html
         # default font dokumentu je Arial
@@ -721,6 +722,21 @@ class VyplatitAutorskeOdmeny():
             ws.row_dimensions[self.ppos].height = 16
         self.ppos  += 1  
 
+    def zrusit_vyplacanie(self, za_mesiac):
+        platby = PlatbaAutorskaOdmena.objects.filter(obdobie=za_mesiac)
+        for platba in platby:
+            #vrátit hodnotu preplatku
+            msg = f"Platba za autora {platba.autor.rs_login} za obdobie {za_mesiac} bola odstránená z databázy"
+            platba.autor.preplatok += platba.preplatok_pred-platba.preplatok_po
+            platba.autor.save()
+            #zmazať platbu
+            platba.delete()
+            self.log(self.SUCCESS, msg)
+            pass
+        sumarne = PlatbaAutorskaSumar.objects.filter(obdobie=za_mesiac)
+        sumarne.delete()
+
+
 
 #row_number = 20  # the row that you want to insert page break
 #page_break = Break(id=row_number)  # create Break obj
@@ -742,6 +758,7 @@ class Command(BaseCommand, VyplatitAutorskeOdmeny):
     def add_arguments(self, parser):
         parser.add_argument('--na-vyplatenie', type=str, help="Priečinok s názvom RRRR-MM v {ah_cesta} so súbormi s údajmi pre vyplácanie autorských honorárov")
         parser.add_argument('--datum-vyplatenia', type=str, help="Dátum vyplatenia hesiel v tvare 'dd.mm.rrrr'. Zadať až po vyplatení hesiel THS-kou. Ak sa nezadá, vygenerujú sa len podklady pre THS-ku na vyplácanie. Ak sa zadá, vygenerujú sa aj zoznamy vyplatených hesiel na importovanie do RS a WEBRS, ako aj potvrdenie o zaplatení na zaradenie do šanonu.")
+        parser.add_argument("--zrusit-vyplacanie" , default=False ,help="Zrušiť všetky platby pre vyplácanie určené prepínačom --na-vyplatenie", dest='zrusit_vyplacanie', action='store_true')
 
     def handle(self, *args, **kwargs):
         if kwargs['na_vyplatenie']:
@@ -751,4 +768,20 @@ class Command(BaseCommand, VyplatitAutorskeOdmeny):
             raise SystemExit
 
         #VyplatitAutorskeOdmeny(za_mesiac, kwargs['datum_vyplatenia'])
+        platby = PlatbaAutorskaOdmena.objects.filter(obdobie=za_mesiac)
+        if platby:
+            if kwargs['zrusit_vyplacanie']:
+                self.zrusit_vyplacanie(za_mesiac)
+                raise SystemExit
+                pass
+            else:
+                self.log(self.ERROR, f"Platby pre obdobie {za_mesiac} už v databáze existujú. Ak ich chcete nahradiť, najskôr ich odstráňte pomocou prepínača --zrusit-vyplacanie.")
+                raise SystemExit
+
         self.vyplatit_odmeny(za_mesiac, kwargs['datum_vyplatenia'])
+        PlatbaAutorskaSumar.objects.create(
+                obdobie = za_mesiac,
+                #datum_uhradenia = kwargs['datum_vyplatenia']
+                datum_uhradenia = re.sub(r"([^.]*)[.]([^.]*)[.](.*)", r"\3-\2-\1", self.datum_vyplatenia),
+                ) 
+
