@@ -70,8 +70,7 @@ class VyplatitAutorskeOdmeny():
                     zmluva = row[hdr['Zmluva na vyplatenie']]
                     if not zmluva:
                         self.log(self.ERROR, f"Heslo {row[hdr['nazov']]} autora {row[hdr['Prihlásiť sa']]} nemá určenú zmluvu")
-                        continue
-                        pass
+                        raise SystemExit
                     #if not login in self.pocet_znakov: self.pocet_znakov[login] = {}
                     #if not zmluva in self.pocet_znakov[login]: self.pocet_znakov[login][zmluva] = {}
                     #self.pocet_znakov[login][zmluva] += int(row[hdr["Dĺžka autorom odovzdaného textu"]])
@@ -146,12 +145,15 @@ class VyplatitAutorskeOdmeny():
             adata = OsobaAutor.objects.filter(rs_login=autor)
             if not adata:
                 self.log(self.ERROR, f"Autor {autor}: nemá záznam v databáze ")
-                continue
+                raise SystemExit
             adata=adata[0]
             # pomocna struktura na vyplacanie
             zvyplatit = {}
             for zmluva in zdata:
                 zvyplatit[zmluva.cislo_zmluvy] = zmluva.odmena_ah
+                if zmluva.odmena_ah < 1:
+                    self.log(self.ERROR, f"Zmluva {zmluva.cislo_zmluvy} autora {autor} nemá určenú odmenu/AH")
+                    raise SystemExit
             # vypocitat odmenu za vsetky hesla
             aodmena = 0 #sucet odmien za jednotlive hesla na zaklade zmluv
             zmluvy_autora = set()
@@ -162,7 +164,7 @@ class VyplatitAutorskeOdmeny():
                     #zmluva = re.sub(r"([^/]*)/(.*)",r"\2-\1",zmluva)
                     if not zmluva in zvyplatit:
                         self.log(self.ERROR, f"Autor {autor}: nemá v databáze zmluvu {zmluva}")
-                        continue
+                        raise SystemExit
                     pocet_znakov = sum([z[0] for z in self.data[autor][rs][zmluva]])    #[0]: pocet znakov
                     aodmena += pocet_znakov*zvyplatit[zmluva]/36000
                     pass
