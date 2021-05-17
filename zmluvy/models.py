@@ -76,7 +76,7 @@ class OsobaAutor (OsobaAuGaKo):
 
     # preplatok sposobeny vyplácaním 540 namiesto 360 (a možno aj iný dôvod)
     # výpočet je v súbore Kontrola-Kapcova-2018-2021-milos.ods, hárok Preplatok výpočet a Preplatok num.
-    preplatok = models.FloatField("Preplatok", default=0)
+    preplatok = models.DecimalField("Preplatok", max_digits=8, decimal_places=2, default=0)
     history = HistoricalRecords()
     def __str__(self):
         return self.rs_login
@@ -123,7 +123,7 @@ class ZmluvaAutor(Zmluva):
     #models.PROTECT: Prevent deletion of the referenced object
     #related_name: v admin.py umožní zobrazit zmluvy autora v zozname autorov cez pole zmluvy_link 
     zmluvna_strana = models.ForeignKey(OsobaAutor, on_delete=models.PROTECT, related_name='zmluvy')    
-    odmena_ah = models.FloatField("Odmena/AH", default=0)  #Eur/AH (36 000 znakov)
+    odmena_ah = models.DecimalField("Odmena/AH", max_digits=8, decimal_places=2, default=0) #Eur/AH (36 000 znakov)
     history = HistoricalRecords()
     class Meta:
         verbose_name = 'Autorská zmluva'
@@ -134,7 +134,7 @@ class ZmluvaAutor(Zmluva):
 #Súčasť Zmluvy 
 class Platba(models.Model):
     datum_uhradenia = models.DateField('Dátum vyplatenia')
-    uhradena_suma = models.FloatField("Uhradená suma")
+    uhradena_suma = models.DecimalField("Uhradená suma", max_digits=8, decimal_places=2, default=0)
     class Meta:
         abstract = True
 
@@ -150,15 +150,15 @@ class PlatbaAutorskaOdmena(Platba):
     zmluva = models.CharField("Zmluva", max_length=200)
     #related_name: v admin.py umožní zobrazit platby autora v zozname autorov cez pole platby_link 
     autor = models.ForeignKey(OsobaAutor, on_delete=models.PROTECT, related_name='platby')
-    preplatok_pred = models.FloatField("Preplatok pred")
-    odmena = models.FloatField("Odmena")
-    odmena_rs = models.FloatField("Odmena (RS)")
-    odmena_webrs = models.FloatField("Odmena (WEBRS)")
-    znaky_rs = models.FloatField("Počet znakov (RS)")
-    znaky_webrs = models.FloatField("Počet znakov (WEBRS)")
-    odvod_LF = models.FloatField("Odvod LF")
-    odvedena_dan = models.FloatField("Odvedená daň")
-    preplatok_po = models.FloatField("Preplatok po")
+    preplatok_pred = models.DecimalField("Preplatok pred", max_digits=8, decimal_places=2)
+    odmena = models.DecimalField("Odmena", max_digits=8, decimal_places=2)
+    odmena_rs = models.DecimalField("Odmena (RS)", max_digits=8, decimal_places=2)
+    odmena_webrs = models.DecimalField("Odmena (WEBRS)", max_digits=8, decimal_places=2)
+    znaky_rs = models.DecimalField("Počet znakov (RS)", max_digits=8, decimal_places=2)
+    znaky_webrs = models.DecimalField("Počet znakov (WEBRS)", max_digits=8, decimal_places=2)
+    odvod_LF = models.DecimalField("Odvod LF", max_digits=8, decimal_places=2)
+    odvedena_dan = models.DecimalField("Odvedená daň", max_digits=8, decimal_places=2)
+    preplatok_po = models.DecimalField("Preplatok po", max_digits=8, decimal_places=2)
 
     # executed after 'save'
     #def clean(self):
