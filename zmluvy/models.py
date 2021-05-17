@@ -123,7 +123,7 @@ class ZmluvaAutor(Zmluva):
     #models.PROTECT: Prevent deletion of the referenced object
     #related_name: v admin.py umožní zobrazit zmluvy autora v zozname autorov cez pole zmluvy_link 
     zmluvna_strana = models.ForeignKey(OsobaAutor, on_delete=models.PROTECT, related_name='zmluvy')    
-    odmena = models.FloatField("Odmena/AH", default=0)  #Eur/AH (36 000 znakov)
+    odmena_ah = models.FloatField("Odmena/AH", default=0)  #Eur/AH (36 000 znakov)
     history = HistoricalRecords()
     class Meta:
         verbose_name = 'Autorská zmluva'
@@ -151,6 +151,7 @@ class PlatbaAutorskaOdmena(Platba):
     #related_name: v admin.py umožní zobrazit platby autora v zozname autorov cez pole platby_link 
     autor = models.ForeignKey(OsobaAutor, on_delete=models.PROTECT, related_name='platby')
     preplatok_pred = models.FloatField("Preplatok pred")
+    odmena = models.FloatField("Odmena")
     odmena_rs = models.FloatField("Odmena (RS)")
     odmena_webrs = models.FloatField("Odmena (WEBRS)")
     znaky_rs = models.FloatField("Počet znakov (RS)")
@@ -158,9 +159,6 @@ class PlatbaAutorskaOdmena(Platba):
     odvod_LF = models.FloatField("Odvod LF")
     odvedena_dan = models.FloatField("Odvedená daň")
     preplatok_po = models.FloatField("Preplatok po")
-
-    def odmena(self):
-        return round(self.odmena_rs + self.odmena_webrs,2)
 
     # executed after 'save'
     #def clean(self):

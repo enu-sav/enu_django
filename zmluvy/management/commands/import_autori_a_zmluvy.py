@@ -92,7 +92,7 @@ class Command(BaseCommand):
                         continue
 
                     zm = ZmluvaAutor.objects.create(zmluvna_strana=oo)
-                    zm.odmena = autor[hdr["Dohodnutá odmena"]]
+                    zm.odmena_ah = autor[hdr["Dohodnutá odmena"]]
                     zm.cislo_zmluvy = autor[hdr["číslo zmluvy"]]
 
                     if autor[hdr["Dátum CRZ"]] and autor[hdr["Url zmluvy"]]:

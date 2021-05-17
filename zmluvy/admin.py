@@ -77,9 +77,9 @@ class OsobaAutorAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
 class ZmluvaAutorAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
     # zmluvna_strana_link: pridá autora zmluvy do zoznamu, vďaka AdminChangeLinksMixin
     list_display = ('cislo_zmluvy', 'stav_zmluvy', 'zmluvna_strana_link', 
-            'odmena', 'url_zmluvy_html', 'crz_datum', 'datum_pridania', 'datum_aktualizacie')
+            'odmena_ah', 'url_zmluvy_html', 'crz_datum', 'datum_pridania', 'datum_aktualizacie')
     ordering = ('zmluvna_strana',)
-    search_fields = ['cislo_zmluvy','zmluvna_strana__rs_login', 'odmena', 'stav_zmluvy']
+    search_fields = ['cislo_zmluvy','zmluvna_strana__rs_login', 'odmena_ah', 'stav_zmluvy']
 
     # umožnené prostredníctvom AdminChangeLinksMixin
     change_links = ['zmluvna_strana']
