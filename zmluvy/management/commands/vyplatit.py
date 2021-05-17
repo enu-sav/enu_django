@@ -1,6 +1,6 @@
 import csv
 from django.core.management import BaseCommand, CommandError
-from zmluvy.models import OsobaAutor, ZmluvaAutor
+from zmluvy.models import OsobaAutor, ZmluvaAutor, PlatbaAutorskaOdmena
 from zmluvy.common import transliterate
 from django.utils import timezone
 from django.conf import settings
@@ -151,7 +151,7 @@ class VyplatitAutorskeOdmeny():
             # pomocna struktura na vyplacanie
             zvyplatit = {}
             for zmluva in zdata:
-                zvyplatit[zmluva.cislo_zmluvy] = zmluva.odmena
+                zvyplatit[zmluva.cislo_zmluvy] = zmluva.odmena_ah
             # vypocitat odmenu za vsetky hesla
             aodmena = 0 #sucet odmien za jednotlive hesla na zaklade zmluv
             zmluvy_autora = set()
@@ -196,8 +196,8 @@ class VyplatitAutorskeOdmeny():
 
         workbook = load_workbook(filename=ws_template)
         vyplatit = workbook[workbook.sheetnames[0]]
-        self.krycilist = workbook[workbook.sheetnames[1]]
-        self.vypocet = workbook[workbook.sheetnames[2]]
+        self.vypocet = workbook[workbook.sheetnames[1]]
+        self.krycilist = workbook[workbook.sheetnames[2]]
 
         self.poautoroch = None
         self.poautoroch = workbook.create_sheet("Po autoroch")
@@ -368,14 +368,16 @@ class VyplatitAutorskeOdmeny():
     # vyplnit harok vypocet
     def vyplnit_harok_vypocet(self):
         #hlavicka
-        #vypocet_hlavicka = ["Autor", "Odmena/AH", "Odviesť daň", "Počet znakov", "Odmena", "2% LF", "LF zaokr.", f"{dan_odvod} % daň", "Daň zaokr.", "Autorovi"]
-        vypocet_hlavicka = ["Autor", "Zmluvy", "Odviesť daň", "Odviesť LF", "Odmena", "Preplatok", "Odmena - Preplatok", "2% LF", "LF zaokr.", f"{dan_odvod} % daň", "daň zaokr.", "Vyplatiť"]
+        #vypocet_hlavicka = ["Autor", "Odmena/AH", "Odviesť daň", "Počet znakov", "Odmena", "Odvod LF", "Odvod LF zaokr.", f"{dan_odvod} % daň", "Daň zaokr.", "Autorovi"]
+        vypocet_hlavicka = ["Autor", "Zmluvy", "Zmluva o nezdaňovaní", "Rezident SR", "Odmena", "Preplatok", "Odmena – Preplatok", "Odvod LF", "Odvod LF zaokr.", f"{dan_odvod} % daň", "daň zaokr.", "Vyplatiť"]
 
         for i, val in enumerate(vypocet_hlavicka):
             self.vypocet.cell(row=1, column=i+1).value = vypocet_hlavicka[i]
             self.vypocet.cell(row=1, column=i+1).font = self.fbold
+            self.vypocet.cell(row=1, column=i+1).alignment = Alignment(wrapText=True, horizontal='center')  
             self.vypocet.column_dimensions[get_column_letter(i+1)].width = 14
         self.vypocet.column_dimensions["A"].width = 20
+        self.vypocet.row_dimensions[1].height = 30
 
         #zapísať údaje na vyplatenie
         for i, autor in enumerate(self.suma_vyplatit):
@@ -383,9 +385,19 @@ class VyplatitAutorskeOdmeny():
             ii = i+2
             self.vypocet[f"A{ii}"] = autor
             self.vypocet[f"B{ii}"] = self.suma_vyplatit[autor][2 ]
-            self.vypocet[f"C{ii}"] = adata.zdanit if adata.zdanit else 'ano'
+            self.vypocet[f"B{ii}"].alignment = Alignment(wrapText=True, horizontal='center')
+            # Uvádzame, či je podpísaná zmluva o nezdaňovaní, čiže opak adata.zdanit
+            self.vypocet[f"C{ii}"] = "ano" if self.zmluva_nezdanit(adata) else "nie"
             self.vypocet[f"C{ii}"].alignment = self.aright
-            self.vypocet[f"D{ii}"] = "ano" if adata.adresa_stat == "Slovenská republika" else "nie"
+            self.vypocet[f"C{ii}"].alignment = Alignment(wrapText=True, horizontal='center')
+            # Pole "rezident SR", použije sa na Vúpočet odvody LF a dane: 
+            # odvod LF: zákov Zákon č. 13/1993 Z. z.  Zákon Národnej rady Slovenskej republiky o umeleckých fondoch
+            # odvádzajú sa 2 %, ak je trvalé bydlisko v SR
+            # odvádza sa aj v prípade dedičov (vtedy je to "preddavok", čo nás ale nezaujíma)
+            # Podľa zmluvy  ČR ttps://www.slov-lex.sk/pravne-predpisy/SK/ZZ/2003/238/20030714
+            # sa licenčné poplatky zdaňujú v štáte rezidencie. Daň teda neodvádzame.  
+            self.vypocet[f"D{ii}"] = "ano" if self.je_rezident(adata) else "nie"
+            self.vypocet[f"D{ii}"].alignment = Alignment(wrapText=True, horizontal='center')
             self.vypocet[f"E{ii}"] = round(self.suma_vyplatit[autor][0],2)
             self.vypocet[f"F{ii}"] = self.suma_vyplatit[autor][1]
             self.vypocet[f"G{ii}"] = f"=E{ii}-F{ii}"
@@ -394,7 +406,8 @@ class VyplatitAutorskeOdmeny():
             #zaokrúhľovanie: https://podpora.financnasprava.sk/407328-Sp%C3%B4sob-zaokr%C3%BAh%C4%BEovania-v-roku-2020
             self.vypocet[f"I{ii}"] = f"=ROUND(H{ii},2)"
             #self.vypocet[f"J{ii}"] = f"=(G{ii}-I{ii})*{dan_odvod/100}"
-            self.vypocet[f"J{ii}"] = f'=IF(C{ii}="ano",(G{ii}-I{ii})*{dan_odvod/100},0'
+            #self.vypocet[f"J{ii}"] = f'=IF(C{ii}="ano",(G{ii}-I{ii})*{dan_odvod/100},0'
+            self.vypocet[f"J{ii}"] = f'=IF(AND(C{ii}="nie",D{ii}="ano"),(G{ii}-I{ii})*{dan_odvod/100},0'
             self.vypocet[f"K{ii}"] = f"=ROUND(J{ii},2)"
             self.vypocet[f"L{ii}"] = f"=G{ii}-I{ii}-K{ii}"
         pass
@@ -406,6 +419,18 @@ class VyplatitAutorskeOdmeny():
         for i, val in enumerate(vypocet_hlavicka):
             self.vypocet.cell(row=ii+1, column=i+1).font = self.fbold
         return ii+1 #vratit riadok so suctami
+
+    def odviest_dan(self, adata): 
+        return self.je_rezident(adata) and adata.zdanit == "ano"
+
+    def odviest_lf(self, adata): 
+        return self.je_rezident(adata)
+
+    def je_rezident(self, adata):
+        return adata.adresa_stat == "Slovenská republika"
+
+    def zmluva_nezdanit(self, adata):
+        return adata.zdanit != "ano"
 
     # zapíše údaje o platbe do hárkov Import RS a Import Webrs
     def import_rs_webrs(self, autor):
@@ -457,6 +482,7 @@ class VyplatitAutorskeOdmeny():
             odmena, preplatok, zmluvy = self.suma_vyplatit[autor]
         else:
             odmena, preplatok, zmluvy = self.suma_preplatok[autor]
+        odmena = round(odmena,2)
 
         ftitle = Font(name="Arial", bold=True, size='14')
 
@@ -465,7 +491,7 @@ class VyplatitAutorskeOdmeny():
         ws[f"A{self.ppos}"].alignment = Alignment(horizontal='center', vertical='center')
         ws.row_dimensions[self.ppos].height = 70
         ws[f"A{self.ppos}"].font = ftitle
-        self.ppos  += 1  
+        self.ppos += 1  
 
 
         adata = OsobaAutor.objects.filter(rs_login=autor)[0]
@@ -473,38 +499,91 @@ class VyplatitAutorskeOdmeny():
         self.bb( "Používateľské meno v RS / WEBRS:" , autor)
         self.bb( "E-mail:" , adata.email)
         self.bb( "Účet:", adata.bankovy_kontakt)
-        self.bb( "Dátum vytvorenia záznamu:" , date.today().strftime("%d.%m.%Y"))
+        self.bb( "Dátum vytvorenia zápisu:" , date.today().strftime("%d.%m.%Y"))
+        # na uloženie do databázy:
+        vdata = {
+                "preplatok0":preplatok, # počiatočný preplatok
+                "odmena":0,             # round(odmena_rs+odmena_webrs)
+                "odmena_rs":0,
+                "odmena_webrs":0,
+                "znaky_rs":0,
+                "znaky_webrs":0,
+                "lf":0,                 # odvod litfond
+                "dan":0,                # dan
+                "vyplatit":0,           # suma vyplatená autorovi
+                "zmluva":set()          # zmluvy, podľa ktorých sa vyplácalo
+                }
+        
+        self.bb( "Preplatok predchádzajúcich platieb:", preplatok)
+        self.bb( "Odmena za aktuálne obdobie:", odmena)
+        vdata["odmena"] = odmena
         if vyplaca_sa:
             if preplatok > 0:
-                self.bb( "Preplatok predchádzajúcich platieb:", preplatok)
-                self.bb( "Odmena za aktuálne obdobie:", odmena)
                 vypocet = odmena-preplatok
-                self.bb( "Odmena - Preplatok:", vypocet)
-                lf = round((odmena-preplatok)*litfond_odvod/100,2)
-                vypocet -= lf
-                self.bb( f"Odvod LitFond ({litfond_odvod} %, zaokr.):", lf)
-                dan = round(vypocet*dan_odvod/100,2)
-                vypocet -= dan
-                self.bb( f"Daň ({dan_odvod} %, zaokr.):", dan)
-                self.bb( "Na vyplatenie:", vypocet)
+                self.bb( "Odmena – Preplatok:", vypocet)
+
+                #LitFond
+                if self.odviest_lf(adata):
+                    lf = round((odmena-preplatok)*litfond_odvod/100,2)
+                    vypocet -= lf
+                    self.bb( f"Odvod LitFond ({litfond_odvod} %, zaokr.):", lf)
+                else:
+                    lf = 0
+                    self.bb( f"Odvod LitFond (neodvádza sa, bydlisko mimo SR):", 0)
+                
+                #daň
+                if not self.je_rezident(adata):
+                    dan = 0
+                    vyplatit = round(vypocet,2)
+                    self.bb( f"Daň:", f"nezdanuje sa (nerezident, {adata.adresa_stat})")
+                elif self.zmluva_nezdanit(adata):  
+                    dan = 0
+                    vyplatit = round(vypocet,2)
+                    self.bb( f"Daň:", "nezdaňuje sa (podpísaná dohoda)")
+                else:
+                    dan = round(vypocet*dan_odvod/100,2)
+                    vyplatit = round(vypocet - dan,2)
+                    self.bb( f"Daň ({dan_odvod} %, zaokr.):", dan)
+
+                self.bb( "Na vyplatenie:", vyplatit)
                 self.bb( "Nová hodnota preplatku:", 0)
                 adata.preplatok = 0
+                vdata["lf"] = lf
+                vdata["dan"] = dan
+                vdata["vyplatit"] = vyplatit
                 #adata.save()
             else:   #preplatok=0
-                self.bb( "Preplatok predchádzajúcich platieb:", 0)
-                self.bb( "Odmena za aktuálne obdobie:", odmena)
                 vypocet = odmena
-                lf = round((vypocet)*litfond_odvod/100,2)
-                vypocet -= lf
-                self.bb( f"Odvod LitFond ({litfond_odvod} %, zaokr.):", lf)
-                dan = round(vypocet*dan_odvod/100,2)
-                vypocet -= dan
-                self.bb( f"Daň ({dan_odvod} %, zaokr.):", dan)
-                self.bb( "Na vyplatenie:", vypocet)
+
+                #LitFond
+                if self.odviest_lf(adata):
+                    lf = round(vypocet*litfond_odvod/100,2)
+                    vypocet -= lf
+                    self.bb( f"Odvod LitFond ({litfond_odvod} %, zaokr.):", lf)
+                else:
+                    lf = 0
+                    self.bb( f"Odvod LitFond:", "neodvádza sa, bydlisko mimo SR")
+
+                #daň
+                if not self.je_rezident(adata):
+                    dan = 0
+                    vyplatit = round(vypocet,2)
+                    self.bb( f"Daň:", f"nezdaňuje sa (nerezident, {adata.adresa_stat})")
+                elif self.zmluva_nezdanit(adata):  
+                    dan = 0
+                    vyplatit = round(vypocet,2)
+                    self.bb( f"Daň:", "nezdanuje sa (podpísaná dohoda)")
+                else:
+                    dan = round(vypocet*dan_odvod/100,2)
+                    vyplatit = round(vypocet - dan,2)
+                    self.bb( f"Daň ({dan_odvod} %, zaokr.):", dan)
+
+                self.bb( "Na vyplatenie:", vyplatit)
+                vdata["lf"] = lf
+                vdata["dan"] = dan
+                vdata["vyplatit"] = vyplatit
             self.bb( "Dátum vyplatenia:", "")
         else:
-                self.bb( "Preplatok predchádzajúcich platieb:", preplatok)
-                self.bb( "Odmena za aktuálne obdobie:", odmena)
                 self.bb( "Na vyplatenie:", 0)
                 self.bb( "Nová hodnota preplatku:", preplatok - odmena)
                 adata.preplatok = preplatok - odmena
@@ -523,16 +602,25 @@ class VyplatitAutorskeOdmeny():
         zdata = ZmluvaAutor.objects.filter(zmluvna_strana__rs_login=autor)
         zvyplatit = {}
         for zmluva in zdata:
-            zvyplatit[zmluva.cislo_zmluvy] = zmluva.odmena
+            zvyplatit[zmluva.cislo_zmluvy] = zmluva.odmena_ah
         nitems = 0  #pocet hesiel
         for rstype in self.data[autor]:
             for zmluva in self.data[autor][rstype]:
                 for heslo in self.data[autor][rstype][zmluva]:
                     if rstype=="rs":
                         self.bb3(["kniha", zmluva , heslo[2], heslo[4], zvyplatit[zmluva], heslo[0]])
+                        vdata["odmena_rs"] += zvyplatit[zmluva] * heslo[0] / 36000 
+                        vdata["znaky_rs"] += heslo[0]
+                        vdata["zmluva"].add(zmluva)
                     else:
                         self.bb3(["web", zmluva , heslo[2], heslo[4], zvyplatit[zmluva], heslo[0]])
+                        vdata["odmena_webrs"] += zvyplatit[zmluva] * heslo[0] / 36000 
+                        vdata["znaky_webrs"] += heslo[0]
+                        vdata["zmluva"].add(zmluva)
                     nitems += 1
+        #round(round,...,3),2) kvoli nepresnosti float aritmetiky (0.499999999997 namiesto 0.5)
+        vdata["odmena_webrs"] = round(round(vdata["odmena_webrs"],3),2)
+        vdata["odmena_rs"] = round(round(vdata["odmena_rs"],3),2)
         #spočítať všetky sumy
         #stĺpec so sumou: H
         ws.merge_cells(f'A{self.ppos}:G{self.ppos}')
@@ -552,9 +640,34 @@ class VyplatitAutorskeOdmeny():
         ws.row_dimensions[self.ppos].height = 30
         self.ppos  += 2  
 
+        #aktualizovať záznam v databáze
+        self.aktualizovat_db(adata, vdata)
+
         #insert page break
         page_break = Break(id=self.ppos-1)  # create Break obj
         ws.row_breaks.append(page_break)  # insert page break
+        pass
+
+    def aktualizovat_db(self, adata, vdata):
+        if not self.datum_vyplatenia: return
+        adata.save()
+        platba = PlatbaAutorskaOdmena.objects.create( 
+            datum_uhradenia = re.sub(r"([^.]*)[.]([^.]*)[.](.*)", r"\3-\2-\1", self.datum_vyplatenia),
+            uhradena_suma = round(vdata['vyplatit'], 2),
+            preplatok_pred = round(vdata['preplatok0'], 2) ,
+            obdobie = self.obdobie, 
+            zmluva = ', '.join(vdata['zmluva']), 
+            autor = adata, 
+            odmena = vdata['odmena'], 
+            #round(round,...,3),2) kvoli nepresnosti float aritmetiky (0.499999999997 namiesto 0.5)
+            odmena_rs = round(round(vdata["odmena_rs"],3),2),
+            odmena_webrs = round(round(vdata["odmena_webrs"],3),2),
+            znaky_rs =  vdata['znaky_rs'],
+            znaky_webrs =  vdata['znaky_webrs'],
+            odvod_LF = round(vdata['lf'], 2), 
+            odvedena_dan = round(vdata['dan'], 2),
+            preplatok_po = round(adata.preplatok, 2) 
+            )
         pass
 
     def bb(self, v1, v2):
