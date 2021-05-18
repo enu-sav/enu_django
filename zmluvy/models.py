@@ -123,7 +123,7 @@ class ZmluvaAutor(Zmluva):
     #models.PROTECT: Prevent deletion of the referenced object
     #related_name: v admin.py umožní zobrazit zmluvy autora v zozname autorov cez pole zmluvy_link 
     zmluvna_strana = models.ForeignKey(OsobaAutor, on_delete=models.PROTECT, related_name='zmluvy')    
-    odmena_ah = models.DecimalField("Odmena/AH", max_digits=8, decimal_places=2, default=0) #Eur/AH (36 000 znakov)
+    honorar_ah = models.DecimalField("Honorár/AH", max_digits=8, decimal_places=2, default=0) #Eur/AH (36 000 znakov)
     history = HistoricalRecords()
     class Meta:
         verbose_name = 'Autorská zmluva'
@@ -151,9 +151,9 @@ class PlatbaAutorskaOdmena(Platba):
     #related_name: v admin.py umožní zobrazit platby autora v zozname autorov cez pole platby_link 
     autor = models.ForeignKey(OsobaAutor, on_delete=models.PROTECT, related_name='platby')
     preplatok_pred = models.DecimalField("Preplatok pred", max_digits=8, decimal_places=2)
-    odmena = models.DecimalField("Odmena", max_digits=8, decimal_places=2)
-    odmena_rs = models.DecimalField("Odmena (RS)", max_digits=8, decimal_places=2)
-    odmena_webrs = models.DecimalField("Odmena (WEBRS)", max_digits=8, decimal_places=2)
+    honorar = models.DecimalField("Honorár", max_digits=8, decimal_places=2)
+    honorar_rs = models.DecimalField("Honorár (RS)", max_digits=8, decimal_places=2)
+    honorar_webrs = models.DecimalField("Honorár (WEBRS)", max_digits=8, decimal_places=2)
     znaky_rs = models.DecimalField("Počet znakov (RS)", max_digits=8, decimal_places=2)
     znaky_webrs = models.DecimalField("Počet znakov (WEBRS)", max_digits=8, decimal_places=2)
     odvod_LF = models.DecimalField("Odvod LF", max_digits=8, decimal_places=2)
@@ -166,8 +166,8 @@ class PlatbaAutorskaOdmena(Platba):
             #self.autor = self.zmluva.zmluvna_strana
 
     class Meta:
-        verbose_name = 'Vyplatená autorská odmena'
-        verbose_name_plural = 'Vyplatené autorské odmeny'
+        verbose_name = 'Vyplatený autorský honorár'
+        verbose_name_plural = 'Vyplatené autorské honoráre'
 
 class PlatbaAutorskaSumar(models.Model):
     #obdobie: priečinok, z ktorého bola platba importovaná

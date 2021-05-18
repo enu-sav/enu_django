@@ -77,9 +77,9 @@ class OsobaAutorAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
 class ZmluvaAutorAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
     # zmluvna_strana_link: pridá autora zmluvy do zoznamu, vďaka AdminChangeLinksMixin
     list_display = ('cislo_zmluvy', 'stav_zmluvy', 'zmluvna_strana_link', 
-            'odmena_ah', 'url_zmluvy_html', 'crz_datum', 'datum_pridania', 'datum_aktualizacie')
+            'honorar_ah', 'url_zmluvy_html', 'crz_datum', 'datum_pridania', 'datum_aktualizacie')
     ordering = ('zmluvna_strana',)
-    search_fields = ['cislo_zmluvy','zmluvna_strana__rs_login', 'odmena_ah', 'stav_zmluvy']
+    search_fields = ['cislo_zmluvy','zmluvna_strana__rs_login', 'honorar_ah', 'stav_zmluvy']
 
     # umožnené prostredníctvom AdminChangeLinksMixin
     change_links = ['zmluvna_strana']
@@ -120,7 +120,7 @@ class ZmluvaAutorAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
 @admin.register(PlatbaAutorskaOdmena)
 class PlatbaAutorskaOdmenaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
     # autor_link: pridá autora zmluvy do zoznamu, vďaka AdminChangeLinksMixin
-    list_display = ('datum_uhradenia', 'obdobie', 'zmluva', 'autor_link', 'preplatok_pred', 'odmena', 'odvod_LF', 'odvedena_dan', 'uhradena_suma', 'preplatok_po')
+    list_display = ('datum_uhradenia', 'obdobie', 'zmluva', 'autor_link', 'preplatok_pred', 'honorar', 'odvod_LF', 'odvedena_dan', 'uhradena_suma', 'preplatok_po')
 
     ordering = ('datum_uhradenia',)
 
@@ -138,7 +138,7 @@ class PlatbaAutorskaOdmenaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
     #predpokladá sa, že hodnoty sa importujú skriptom a že neskôr sa už neupravujú
     def get_readonly_fields(self, request, obj=None):
         if obj:
-            return ['zmluva', 'datum_uhradenia', 'preplatok_pred', 'odmena', 'odvod_LF', 'odvedena_dan', 'uhradena_suma']
+            return ['zmluva', 'datum_uhradenia', 'preplatok_pred', 'honorar', 'odvod_LF', 'odvedena_dan', 'uhradena_suma']
         else:
             return []
 
@@ -149,21 +149,21 @@ class PlatbaAutorskaOdmenaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
 
 @admin.register(PlatbaAutorskaSumar)
 class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
-    list_display = ['obdobie', 'datum_uhradenia', 'honorar_rs', 'honorar_webrs', 'honorar_spolu', 'odvod_LF', 'odvedena_dan']
+    list_display = ['obdobie', 'datum_uhradenia', 'honorar_rs', 'honorar_webrs', 'honorar_spolu', 'vyplatene_spolu', 'odvod_LF', 'odvedena_dan']
 
     def honorar_spolu(self, sumplatba):
         platby = PlatbaAutorskaOdmena.objects.filter(obdobie=sumplatba.obdobie)
-        odmeny = [platba.odmena for platba in platby]
+        odmeny = [platba.honorar for platba in platby]
         return sum(odmeny)
 
     def honorar_rs(self, sumplatba):
         platby = PlatbaAutorskaOdmena.objects.filter(obdobie=sumplatba.obdobie)
-        odmeny = [platba.odmena_rs for platba in platby]
+        odmeny = [platba.honorar_rs for platba in platby]
         return sum(odmeny)
 
     def honorar_webrs(self, sumplatba):
         platby = PlatbaAutorskaOdmena.objects.filter(obdobie=sumplatba.obdobie)
-        odmeny = [platba.odmena_webrs for platba in platby]
+        odmeny = [platba.honorar_webrs for platba in platby]
         return sum(odmeny)
 
     def odvedena_dan(self, sumplatba):
@@ -174,4 +174,9 @@ class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
     def odvod_LF(self, sumplatba):
         platby = PlatbaAutorskaOdmena.objects.filter(obdobie=sumplatba.obdobie)
         odmeny = [platba.odvod_LF for platba in platby]
+        return sum(odmeny)
+
+    def vyplatene_spolu(self, sumplatba):
+        platby = PlatbaAutorskaOdmena.objects.filter(obdobie=sumplatba.obdobie)
+        odmeny = [platba.uhradena_suma for platba in platby]
         return sum(odmeny)

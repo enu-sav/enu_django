@@ -150,12 +150,12 @@ class VyplatitAutorskeOdmeny():
             # pomocna struktura na vyplacanie
             zvyplatit = {}
             for zmluva in zdata:
-                zvyplatit[zmluva.cislo_zmluvy] = zmluva.odmena_ah
-                if zmluva.odmena_ah < 1:
-                    self.log(self.ERROR, f"Zmluva {zmluva.cislo_zmluvy} autora {autor} nemá určenú odmenu/AH")
+                zvyplatit[zmluva.cislo_zmluvy] = zmluva.honorar_ah
+                if zmluva.honorar_ah < 1:
+                    self.log(self.ERROR, f"Zmluva {zmluva.cislo_zmluvy} autora {autor} nemá určený honorár/AH")
                     raise SystemExit
             # vypocitat odmenu za vsetky hesla
-            aodmena = 0 #sucet odmien za jednotlive hesla na zaklade zmluv
+            ahonorar = 0 #sucet odmien za jednotlive hesla na zaklade zmluv
             zmluvy_autora = set()
             for rs in self.data[autor]: # rs alebo webrs
                 for zmluva in self.data[autor][rs]:
@@ -166,29 +166,29 @@ class VyplatitAutorskeOdmeny():
                         self.log(self.ERROR, f"Autor {autor}: nemá v databáze zmluvu {zmluva}")
                         raise SystemExit
                     pocet_znakov = sum([z[0] for z in self.data[autor][rs][zmluva]])    #[0]: pocet znakov
-                    aodmena += pocet_znakov*zvyplatit[zmluva]/36000
+                    ahonorar += pocet_znakov*zvyplatit[zmluva]/36000
                     pass
-            aodmena = round(round(aodmena,3),2)
+            ahonorar = round(round(ahonorar,3),2)
             list_of_strings = [str(s) for s in zmluvy_autora]
             zmluvy_autora = ",".join(list_of_strings)
-            if aodmena - adata.preplatok > min_vyplatit: # bude sa vyplácať, preplatok sa zohľadní a jeho hodnota sa aktualizuje v db
+            if ahonorar - adata.preplatok > min_vyplatit: # bude sa vyplácať, preplatok sa zohľadní a jeho hodnota sa aktualizuje v db
                 if adata.preplatok > 0:
-                    self.log(self.SUCCESS, f"Autor %s: bude vyplatené %.2f € (platba %.2f mínus preplatok %.2f)"%(autor,aodmena - adata.preplatok,aodmena,adata.preplatok))
+                    self.log(self.SUCCESS, f"Autor %s: bude vyplatené %.2f € (platba %.2f mínus preplatok %.2f)"%(autor,ahonorar - adata.preplatok,ahonorar,adata.preplatok))
                 else:
-                    self.log(self.SUCCESS, f"Autor %s: bude vyplatené %.2f €"%(autor, aodmena))
-                self.suma_vyplatit[autor] = [round(aodmena,2), adata.preplatok, zmluvy_autora]
+                    self.log(self.SUCCESS, f"Autor %s: bude vyplatené %.2f €"%(autor, ahonorar))
+                self.suma_vyplatit[autor] = [round(ahonorar,2), adata.preplatok, zmluvy_autora]
                 #aktualizovať preplatok
                 pass
-            elif aodmena < adata.preplatok: # celú sumu možno odpočítať z preplatku
-                self.log(self.SUCCESS, f"Autor %s: Suma %.2f € sa nevyplatí, odpočíta sa od preplatku %.2f €"%(autor, aodmena,adata.preplatok) )
-                self.suma_preplatok[autor] = [aodmena, adata.preplatok, zmluvy_autora]
+            elif ahonorar < adata.preplatok: # celú sumu možno odpočítať z preplatku
+                self.log(self.SUCCESS, f"Autor %s: Suma %.2f € sa nevyplatí, odpočíta sa od preplatku %.2f €"%(autor, ahonorar,adata.preplatok) )
+                self.suma_preplatok[autor] = [ahonorar, adata.preplatok, zmluvy_autora]
                 #aktualizovať preplatok
                 pass
             else: #po odpočítaní preplatku zostane suma menšia ako min_vyplatit. Nevyplatí sa, počká sa na ďalšie platby
                 if adata.preplatok > 0:
-                    self.log(self.WARNING, f"Autor %s: nebude vyplatené %.2f € (nízka suma, platba %.2f mínus preplatok %.2f)"%(autor,aodmena - adata.preplatok,aodmena,adata.preplatok))
+                    self.log(self.WARNING, f"Autor %s: nebude vyplatené %.2f € (nízka suma, platba %.2f mínus preplatok %.2f)"%(autor,ahonorar - adata.preplatok,ahonorar,adata.preplatok))
                 else:
-                    self.log(self.WARNING, f"Autor %s: nebude vyplatené %.2f € (nízka suma)"%(autor,aodmena - adata.preplatok) )
+                    self.log(self.WARNING, f"Autor %s: nebude vyplatené %.2f € (nízka suma)"%(autor,ahonorar - adata.preplatok) )
                 pass
         # styly buniek, https://openpyxl.readthedocs.io/en/default/styles.html
         # default font dokumentu je Arial
@@ -482,10 +482,10 @@ class VyplatitAutorskeOdmeny():
         vyplaca_sa = False
         if autor in self.suma_vyplatit:
             vyplaca_sa = True
-            odmena, preplatok, zmluvy = self.suma_vyplatit[autor]
+            honorar, preplatok, zmluvy = self.suma_vyplatit[autor]
         else:
-            odmena, preplatok, zmluvy = self.suma_preplatok[autor]
-        odmena = round(odmena,2)
+            honorar, preplatok, zmluvy = self.suma_preplatok[autor]
+        honorar = round(honorar,2)
 
         ftitle = Font(name="Arial", bold=True, size='14')
 
@@ -506,9 +506,9 @@ class VyplatitAutorskeOdmeny():
         # na uloženie do databázy:
         vdata = {
                 "preplatok0":preplatok, # počiatočný preplatok
-                "odmena":0,             # round(odmena_rs+odmena_webrs)
-                "odmena_rs":0,
-                "odmena_webrs":0,
+                "honorar":0,             # round(honorar_rs+honorar_webrs)
+                "honorar_rs":0,
+                "honorar_webrs":0,
                 "znaky_rs":0,
                 "znaky_webrs":0,
                 "lf":0,                 # odvod litfond
@@ -518,16 +518,16 @@ class VyplatitAutorskeOdmeny():
                 }
         
         self.bb( "Preplatok predchádzajúcich platieb:", preplatok)
-        self.bb( "Odmena za aktuálne obdobie:", odmena)
-        vdata["odmena"] = odmena
+        self.bb( "Odmena za aktuálne obdobie:", honorar)
+        vdata["honorar"] = honorar
         if vyplaca_sa:
             if preplatok > 0:
-                vypocet = odmena-preplatok
+                vypocet = honorar-preplatok
                 self.bb( "Odmena – Preplatok:", vypocet)
 
                 #LitFond
                 if self.odviest_lf(adata):
-                    lf = round((odmena-preplatok)*litfond_odvod/100,2)
+                    lf = round((honorar-preplatok)*litfond_odvod/100,2)
                     vypocet -= lf
                     self.bb( f"Odvod LitFond ({litfond_odvod} %, zaokr.):", lf)
                 else:
@@ -556,7 +556,7 @@ class VyplatitAutorskeOdmeny():
                 vdata["vyplatit"] = vyplatit
                 #adata.save()
             else:   #preplatok=0
-                vypocet = odmena
+                vypocet = honorar
 
                 #LitFond
                 if self.odviest_lf(adata):
@@ -588,8 +588,8 @@ class VyplatitAutorskeOdmeny():
             self.bb( "Dátum vyplatenia:", "")
         else:
                 self.bb( "Na vyplatenie:", 0)
-                self.bb( "Nová hodnota preplatku:", preplatok - odmena)
-                adata.preplatok = preplatok - odmena
+                self.bb( "Nová hodnota preplatku:", preplatok - honorar)
+                adata.preplatok = preplatok - honorar
                 #adata.save()
         self.ppos  += 1  
 
@@ -605,25 +605,25 @@ class VyplatitAutorskeOdmeny():
         zdata = ZmluvaAutor.objects.filter(zmluvna_strana__rs_login=autor)
         zvyplatit = {}
         for zmluva in zdata:
-            zvyplatit[zmluva.cislo_zmluvy] = zmluva.odmena_ah
+            zvyplatit[zmluva.cislo_zmluvy] = zmluva.honorar_ah
         nitems = 0  #pocet hesiel
         for rstype in self.data[autor]:
             for zmluva in self.data[autor][rstype]:
                 for heslo in self.data[autor][rstype][zmluva]:
                     if rstype=="rs":
                         self.bb3(["kniha", zmluva , heslo[2], heslo[4], zvyplatit[zmluva], heslo[0]])
-                        vdata["odmena_rs"] += zvyplatit[zmluva] * heslo[0] / 36000 
+                        vdata["honorar_rs"] += zvyplatit[zmluva] * heslo[0] / 36000 
                         vdata["znaky_rs"] += heslo[0]
                         vdata["zmluva"].add(zmluva)
                     else:
                         self.bb3(["web", zmluva , heslo[2], heslo[4], zvyplatit[zmluva], heslo[0]])
-                        vdata["odmena_webrs"] += zvyplatit[zmluva] * heslo[0] / 36000 
+                        vdata["honorar_webrs"] += zvyplatit[zmluva] * heslo[0] / 36000 
                         vdata["znaky_webrs"] += heslo[0]
                         vdata["zmluva"].add(zmluva)
                     nitems += 1
         #round(round,...,3),2) kvoli nepresnosti float aritmetiky (0.499999999997 namiesto 0.5)
-        vdata["odmena_webrs"] = round(round(vdata["odmena_webrs"],3),2)
-        vdata["odmena_rs"] = round(round(vdata["odmena_rs"],3),2)
+        vdata["honorar_webrs"] = round(round(vdata["honorar_webrs"],3),2)
+        vdata["honorar_rs"] = round(round(vdata["honorar_rs"],3),2)
         #spočítať všetky sumy
         #stĺpec so sumou: H
         ws.merge_cells(f'A{self.ppos}:G{self.ppos}')
@@ -661,10 +661,10 @@ class VyplatitAutorskeOdmeny():
             obdobie = self.obdobie, 
             zmluva = ', '.join(vdata['zmluva']), 
             autor = adata, 
-            odmena = vdata['odmena'], 
+            honorar = vdata['honorar'], 
             #round(round,...,3),2) kvoli nepresnosti float aritmetiky (0.499999999997 namiesto 0.5)
-            odmena_rs = round(round(vdata["odmena_rs"],3),2),
-            odmena_webrs = round(round(vdata["odmena_webrs"],3),2),
+            honorar_rs = round(round(vdata["honorar_rs"],3),2),
+            honorar_webrs = round(round(vdata["honorar_webrs"],3),2),
             znaky_rs =  vdata['znaky_rs'],
             znaky_webrs =  vdata['znaky_webrs'],
             odvod_LF = round(vdata['lf'], 2), 
