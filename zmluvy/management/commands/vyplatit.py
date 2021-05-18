@@ -222,10 +222,10 @@ class VyplatitAutorskeOdmeny():
         #krycí list, zapísať základné údaje
         dtoday = date.today().strftime("%d.%m.%Y")
         self.krycilist["A2"].value = self.krycilist["A2"].value.replace("xx-xxxx", self.obdobie)
-        self.krycilist["A34"].value = self.krycilist["A34"].value.replace("xx-xxxx", self.obdobie)
+        #self.krycilist["A35"].value = self.krycilist["A35"].value.replace("xx-xxxx", self.obdobie)
         self.krycilist["A31"].value = self.krycilist["A31"].value.replace("xx.xx.xxxx", dtoday)
         self.krycilist["A35"].value = self.krycilist["A35"].value.replace("xx.xx.xxxx", dtoday)
-        self.krycilist["E37"].value = "Dátum: {}".format(dtoday)
+        self.krycilist["E38"].value = "Dátum: {}".format(dtoday)
         self.kstart = 5 #poloha počiatočnej bunky v hárku 'Krycí list',, inkrementovaná po každom zázname
         self.kpos = self.kstart
         self.kmax = 23 #max počet riadkov v krycom liste, inak sa pokazí formátovanie
@@ -277,7 +277,8 @@ class VyplatitAutorskeOdmeny():
         vyplatit[f"A{c}"] = "IBAN:"
         vyplatit[f"B{c}"] = ucetFin
         vyplatit[f"A{d}"] = "VS:"
-        vyplatit[f"B{d}"] = "2001"
+        # predpokladáme, ze self.obdobie na tvar yyyy-mmxxx
+        vyplatit[f"B{d}"] = f"1700{self.obdobie[5:7]}{self.obdobie[:4]}"
         vyplatit[f"A{e}"] = "Suma na úhradu:"
         vyplatit[f"B{e}"] = f"=Výpočet!K{sum_row}"
         vyplatit[f"B{e}"].alignment = aleft
@@ -585,7 +586,7 @@ class VyplatitAutorskeOdmeny():
                 vdata["lf"] = lf
                 vdata["dan"] = dan
                 vdata["vyplatit"] = vyplatit
-            self.bb( "Dátum vyplatenia:", "")
+            self.bb( "Dátum vyplatenia:", self.datum_vyplatenia)
         else:
                 self.bb( "Na vyplatenie:", 0)
                 self.bb( "Nová hodnota preplatku:", preplatok - honorar)
@@ -779,9 +780,10 @@ class Command(BaseCommand, VyplatitAutorskeOdmeny):
                 raise SystemExit
 
         self.vyplatit_odmeny(za_mesiac, kwargs['datum_vyplatenia'])
-        PlatbaAutorskaSumar.objects.create(
+        if  kwargs['datum_vyplatenia']:
+            PlatbaAutorskaSumar.objects.create(
                 obdobie = za_mesiac,
                 #datum_uhradenia = kwargs['datum_vyplatenia']
-                datum_uhradenia = re.sub(r"([^.]*)[.]([^.]*)[.](.*)", r"\3-\2-\1", self.datum_vyplatenia),
+                datum_uhradenia = re.sub(r"([^.]*)[.]([^.]*)[.](.*)", r"\3-\2-\1", kwargs['datum_vyplatenia'])
                 ) 
 
