@@ -95,17 +95,15 @@ class VyplatitAutorskeOdmeny():
         return mp.strip()
             
     def vyplatit_odmeny(self, za_mesiac, datum_vyplatenia=None): 
-        self.db_logger = logging.getLogger('db')
         self.datum_vyplatenia = datum_vyplatenia # Ak None, nevygenerujú sa hárky ImportRS/WEBRS
         if self.datum_vyplatenia:
-            self.db_logger.info(f"vyplatit.py --na_vyplatenie {za_mesiac} --datum-vyplatenia {self.datum_vyplatenia}: \nzoznamy vyplatených hesiel")
-            self.db_logger.info(f"\tVygenerujú sa zoznamy vyplatených hesiel na importovanie do RS a WEBRS, ako aj potvrdenie o zaplatení na zaradenie do šanonu.")
-            self.log(self.WARNING, f"Bol zadaný dátum vyplatenia hesiel ({self.datum_vyplatenia}).")
-            self.log(self.WARNING, f"Vygenerujú sa zoznamy vyplatených hesiel na importovanie do RS a WEBRS, ako aj potvrdenie o zaplatení na zaradenie do šanonu.")
-        else:
-            self.db_logger.info(f"vyplatit.py --na_vyplatenie {za_mesiac}: podklady pre THS")
+            self.db_logger.info(f"Vytvorená platba {za_mesiac} a vygenerovaný záznam o platbách na založenie: vyplatit.py --na_vyplatenie {za_mesiac}: podklady pre THS")
             self.log(self.WARNING,f"Nebol zadaný dátum vyplatenia hesiel.")
             self.log(self.WARNING, f"Vygenerujú sa len podklady pre THS-ku na vyplácanie. Po vyplatení treba tento program spustiť ešte raz so zadaným dátum vyplatenia")
+        else:
+            self.db_logger.info(f"Vygenerované podklady pre THS za {za_mesiac}: vyplatit.py --na_vyplatenie {za_mesiac} --datum-vyplatenia {self.datum_vyplatenia}")
+            self.log(self.WARNING, f"Bol zadaný dátum vyplatenia hesiel ({self.datum_vyplatenia}).")
+            self.log(self.WARNING, f"Vygenerujú sa zoznamy vyplatených hesiel na importovanie do RS a WEBRS, ako aj potvrdenie o zaplatení na zaradenie do šanonu.")
 
         self.obdobie = za_mesiac.strip("/").split("/")[-1]
 
@@ -745,6 +743,7 @@ class VyplatitAutorskeOdmeny():
             pass
         sumarne = PlatbaAutorskaSumar.objects.filter(obdobie=za_mesiac)
         sumarne.delete()
+        self.db_logger.info(f"Zrušená platba {za_mesiac}: vyplatit.py --na_vyplatenie {za_mesiac} --zrusit-platbu")
 
 
 
@@ -768,7 +767,7 @@ class Command(BaseCommand, VyplatitAutorskeOdmeny):
     def add_arguments(self, parser):
         parser.add_argument('--na-vyplatenie', type=str, help="Priečinok s názvom RRRR-MM v {ah_cesta} so súbormi s údajmi pre vyplácanie autorských honorárov")
         parser.add_argument('--datum-vyplatenia', type=str, help="Dátum vyplatenia hesiel v tvare 'dd.mm.rrrr'. Zadať až po vyplatení hesiel THS-kou. Ak sa nezadá, vygenerujú sa len podklady pre THS-ku na vyplácanie. Ak sa zadá, vygenerujú sa aj zoznamy vyplatených hesiel na importovanie do RS a WEBRS, ako aj potvrdenie o zaplatení na zaradenie do šanonu.")
-        parser.add_argument("--zrusit-vyplacanie" , default=False ,help="Zrušiť všetky platby pre vyplácanie určené prepínačom --na-vyplatenie", dest='zrusit_vyplacanie', action='store_true')
+        parser.add_argument("--zrusit-platbu" , default=False ,help="Zrušiť všetky platby pre vyplácanie určené prepínačom --na-vyplatenie", dest='zrusit_platbu', action='store_true')
 
     def handle(self, *args, **kwargs):
         if kwargs['na_vyplatenie']:
@@ -777,22 +776,25 @@ class Command(BaseCommand, VyplatitAutorskeOdmeny):
             self.log(self.ERROR, f"Nebol zadaný názov priečinka v '{ah_cesta}' v tvare 'mm-rrrr' s údajmi na vyplatenie")
             raise SystemExit
 
-        #VyplatitAutorskeOdmeny(za_mesiac, kwargs['datum_vyplatenia'])
-        platby = PlatbaAutorskaOdmena.objects.filter(obdobie=za_mesiac)
-        if platby:
-            if kwargs['zrusit_vyplacanie']:
+        self.db_logger = logging.getLogger('db')
+        if kwargs['zrusit_platbu']:
+            platby = PlatbaAutorskaOdmena.objects.filter(obdobie=za_mesiac)
+            if platby:
                 self.zrusit_vyplacanie(za_mesiac)
-                raise SystemExit
-                pass
             else:
-                self.log(self.ERROR, f"Platby pre obdobie {za_mesiac} už v databáze existujú. Ak ich chcete nahradiť, najskôr ich odstráňte pomocou prepínača --zrusit-vyplacanie.")
+                self.log(self.ERROR, f"Platby pre obdobie {za_mesiac} v databáze existujú, nemám čo zrušiť.")
+            raise SystemExit
+        else:
+            platby = PlatbaAutorskaOdmena.objects.filter(obdobie=za_mesiac)
+            if platby:
+                self.log(self.ERROR, f"Platby pre obdobie {za_mesiac} už v databáze existujú. Ak chcete operáciu vykonať, najskôr ich odstráňte pomocou prepínača --zrusit-platbu.")
                 raise SystemExit
 
-        self.vyplatit_odmeny(za_mesiac, kwargs['datum_vyplatenia'])
-        if  kwargs['datum_vyplatenia']:
-            PlatbaAutorskaSumar.objects.create(
-                obdobie = za_mesiac,
-                #datum_uhradenia = kwargs['datum_vyplatenia']
-                datum_uhradenia = re.sub(r"([^.]*)[.]([^.]*)[.](.*)", r"\3-\2-\1", kwargs['datum_vyplatenia'])
-                ) 
+            self.vyplatit_odmeny(za_mesiac, kwargs['datum_vyplatenia'])
+            if  kwargs['datum_vyplatenia']:
+                PlatbaAutorskaSumar.objects.create(
+                    obdobie = za_mesiac,
+                    #datum_uhradenia = kwargs['datum_vyplatenia']
+                    datum_uhradenia = re.sub(r"([^.]*)[.]([^.]*)[.](.*)", r"\3-\2-\1", kwargs['datum_vyplatenia'])
+                    ) 
 
