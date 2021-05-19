@@ -223,9 +223,13 @@ class VyplatitAutorskeOdmeny():
         #krycí list, zapísať základné údaje
         dtoday = date.today().strftime("%d.%m.%Y")
         self.krycilist["A2"].value = self.krycilist["A2"].value.replace("xx-xxxx", self.obdobie)
-        self.krycilist["A31"].value = self.krycilist["A31"].value.replace("xx.xx.xxxx", self.datum_vyplatenia)
         self.krycilist["A34"].value = self.krycilist["A34"].value.replace("xx-xxxx", self.obdobie)
-        self.krycilist["A35"].value = self.krycilist["A35"].value.replace("xx.xx.xxxx", self.datum_vyplatenia)
+        if self.datum_vyplatenia:
+            self.krycilist["A31"].value = self.krycilist["A31"].value.replace("xx.xx.xxxx", self.datum_vyplatenia)
+            self.krycilist["A35"].value = self.krycilist["A35"].value.replace("xx.xx.xxxx", self.datum_vyplatenia)
+        else:
+            self.krycilist["A31"].value = self.krycilist["A31"].value.replace("xx.xx.xxxx", "- - -")
+            self.krycilist["A35"].value = self.krycilist["A35"].value.replace("xx.xx.xxxx", "- - -")
         self.krycilist["E38"].value = "Dátum: {}".format(self.datum_vyplatenia)
         self.kstart = 5 #poloha počiatočnej bunky v hárku 'Krycí list',, inkrementovaná po každom zázname
         self.kpos = self.kstart
