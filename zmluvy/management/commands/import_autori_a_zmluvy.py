@@ -6,6 +6,7 @@ from datetime import datetime
 
 from zmluvy.models import OsobaAutor, AnoNie, ZmluvaAutor, StavZmluvy
 from zmluvy.common import valid_iban
+import logging
 
 class Command(BaseCommand):
     help = 'Načítať používateľov a zmluvy (csv vytvorené z docx a pdf súborov)'
@@ -110,3 +111,5 @@ class Command(BaseCommand):
                     self.stdout.write(self.style.WARNING(f"OK: {login}"))
             else:
                 self.stdout.write(self.style.ERROR(f"Nenájdené medzi autormi: {login}"))
+        self.db_logger = logging.getLogger('db')
+        self.db_logger.info(f"import_autori_a_zmluvy.py: importovanie údajov o autoroch a ich zmluvách zo súboru {path}, celkový počet: {len(data)}.  ")
