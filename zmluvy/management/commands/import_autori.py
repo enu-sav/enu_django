@@ -1,6 +1,7 @@
 import csv
 from django.core.management import BaseCommand, CommandError
 from zmluvy.models import OsobaAutor
+import logging
 from ipdb import set_trace as trace
 
 # 1. a 2. stlpec: uid a login autorov v RS
@@ -37,3 +38,5 @@ class Command(BaseCommand):
                     rs_login = login,
                     )
                     self.stdout.write(self.style.SUCCESS(f"OK: {login}"))
+        self.db_logger = logging.getLogger('db')
+        self.db_logger.info(f"import_autori.py: importovanie zoznamu autorov zo súboru {aa_name}, celkový počet: {len(self.logins)}.  ")
