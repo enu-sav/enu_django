@@ -154,6 +154,8 @@ class VyplatitAutorskeOdmeny():
                 if zmluva.honorar_ah < 1:
                     self.log(self.ERROR, f"Zmluva {zmluva.cislo_zmluvy} autora {autor} nemá určený honorár/AH")
                     raise SystemExit
+                if not zmluva.datum_zverejnenia_CRZ:
+                    self.log(self.ERROR, f"Zmluva {zmluva.cislo_zmluvy} autora {autor} nie je zverejnená v CRZ")
             # vypocitat odmenu za vsetky hesla
             ahonorar = 0 #sucet odmien za jednotlive hesla na zaklade zmluv
             zmluvy_autora = set()
@@ -201,9 +203,8 @@ class VyplatitAutorskeOdmeny():
         vyplatit = workbook[workbook.sheetnames[0]]
         self.vypocet = workbook[workbook.sheetnames[1]]
         self.krycilist = workbook[workbook.sheetnames[2]]
+        self.poautoroch = workbook[workbook.sheetnames[3]]
 
-        self.poautoroch = None
-        self.poautoroch = workbook.create_sheet("Po autoroch")
         self.ppos = 1   #poloha počiatočnej bunky v hárku poautoroch, inkrementovaná po každom zázname
         if self.datum_vyplatenia:
             self.importrs = workbook.create_sheet("Import RS")
@@ -222,10 +223,10 @@ class VyplatitAutorskeOdmeny():
         #krycí list, zapísať základné údaje
         dtoday = date.today().strftime("%d.%m.%Y")
         self.krycilist["A2"].value = self.krycilist["A2"].value.replace("xx-xxxx", self.obdobie)
-        #self.krycilist["A35"].value = self.krycilist["A35"].value.replace("xx-xxxx", self.obdobie)
-        self.krycilist["A31"].value = self.krycilist["A31"].value.replace("xx.xx.xxxx", dtoday)
-        self.krycilist["A35"].value = self.krycilist["A35"].value.replace("xx.xx.xxxx", dtoday)
-        self.krycilist["E38"].value = "Dátum: {}".format(dtoday)
+        self.krycilist["A31"].value = self.krycilist["A31"].value.replace("xx.xx.xxxx", self.datum_vyplatenia)
+        self.krycilist["A34"].value = self.krycilist["A34"].value.replace("xx-xxxx", self.obdobie)
+        self.krycilist["A35"].value = self.krycilist["A35"].value.replace("xx.xx.xxxx", self.datum_vyplatenia)
+        self.krycilist["E38"].value = "Dátum: {}".format(self.datum_vyplatenia)
         self.kstart = 5 #poloha počiatočnej bunky v hárku 'Krycí list',, inkrementovaná po každom zázname
         self.kpos = self.kstart
         self.kmax = 23 #max počet riadkov v krycom liste, inak sa pokazí formátovanie
@@ -328,6 +329,11 @@ class VyplatitAutorskeOdmeny():
         #vyplatit[f"B{a}"] = "M. Sekeráková"
         #vyplatit[f"B{b}"] = "sekretariát EnÚ CSČ SAV"
 
+        #vyplatit[f"A{d}"] = "V Bratislave dňa {}".format(date.today().strftime("%d.%m.%Y"))
+        if self.datum_vyplatenia:
+            vyplatit[f"A{d}"] = "V Bratislave dňa {}".format(self.datum_vyplatenia)
+        else:
+            vyplatit[f"A{d}"] = "V Bratislave dňa {}".format(date.today().strftime("%d.%m.%Y"))
         vyplatit[f"A{d}"] = "V Bratislave dňa {}".format(date.today().strftime("%d.%m.%Y"))
         vyplatit[f"E{e}"] = "Ing. Tatiana Šrámková"
         vyplatit[f"E{f}"] = "vedúca org. zložky EnÚ CSČ SAV"
@@ -372,8 +378,7 @@ class VyplatitAutorskeOdmeny():
     # vyplnit harok vypocet
     def vyplnit_harok_vypocet(self):
         #hlavicka
-        #vypocet_hlavicka = ["Autor", "Odmena/AH", "Odviesť daň", "Počet znakov", "Odmena", "Odvod LF", "Odvod LF zaokr.", f"{dan_odvod} % daň", "Daň zaokr.", "Autorovi"]
-        vypocet_hlavicka = ["Autor", "Zmluvy", "Zmluva o nezdaňovaní", "Rezident SR", "Odmena", "Preplatok", "Odmena – Preplatok", "Odvod LF", "Odvod LF zaokr.", f"{dan_odvod} % daň", "daň zaokr.", "Vyplatiť"]
+        vypocet_hlavicka = ["Autor", "Zmluvy", "Zmluva o nezdaňovaní", "Rezident SR", "Honorár", "Preplatok", "Honorár – Preplatok", "Odvod LF", "Odvod LF zaokr.", f"{dan_odvod} % daň", "daň zaokr.", "Vyplatiť"]
 
         for i, val in enumerate(vypocet_hlavicka):
             self.vypocet.cell(row=1, column=i+1).value = vypocet_hlavicka[i]
@@ -491,7 +496,7 @@ class VyplatitAutorskeOdmeny():
         ftitle = Font(name="Arial", bold=True, size='14')
 
         ws.merge_cells(f'A{self.ppos}:H{self.ppos}')
-        ws[f'A{self.ppos}'] = f"Vyplatenie autorskej odmeny za {self.obdobie}"
+        ws[f'A{self.ppos}'] = f"Vyplatenie autorského honorára za obdobie {self.obdobie}"
         ws[f"A{self.ppos}"].alignment = Alignment(horizontal='center', vertical='center')
         ws.row_dimensions[self.ppos].height = 70
         ws[f"A{self.ppos}"].font = ftitle
@@ -519,12 +524,12 @@ class VyplatitAutorskeOdmeny():
                 }
         
         self.bb( "Preplatok predchádzajúcich platieb:", preplatok)
-        self.bb( "Odmena za aktuálne obdobie:", honorar)
+        self.bb( "Honorár za aktuálne obdobie:", honorar)
         vdata["honorar"] = honorar
         if vyplaca_sa:
             if preplatok > 0:
                 vypocet = honorar-preplatok
-                self.bb( "Odmena – Preplatok:", vypocet)
+                self.bb( "Honorár – Preplatok:", vypocet)
 
                 #LitFond
                 if self.odviest_lf(adata):
@@ -549,7 +554,7 @@ class VyplatitAutorskeOdmeny():
                     vyplatit = round(vypocet - dan,2)
                     self.bb( f"Daň ({dan_odvod} %, zaokr.):", dan)
 
-                self.bb( "Na vyplatenie:", vyplatit)
+                self.bb( "Vyplatiť:", vyplatit)
                 self.bb( "Nová hodnota preplatku:", 0)
                 adata.preplatok = 0
                 vdata["lf"] = lf
@@ -582,13 +587,13 @@ class VyplatitAutorskeOdmeny():
                     vyplatit = round(vypocet - dan,2)
                     self.bb( f"Daň ({dan_odvod} %, zaokr.):", dan)
 
-                self.bb( "Na vyplatenie:", vyplatit)
+                self.bb( "Vyplatiť:", vyplatit)
                 vdata["lf"] = lf
                 vdata["dan"] = dan
                 vdata["vyplatit"] = vyplatit
             self.bb( "Dátum vyplatenia:", self.datum_vyplatenia)
         else:
-                self.bb( "Na vyplatenie:", 0)
+                self.bb( "Vyplatiť:", 0)
                 self.bb( "Nová hodnota preplatku:", preplatok - honorar)
                 adata.preplatok = preplatok - honorar
                 #adata.save()
@@ -629,9 +634,9 @@ class VyplatitAutorskeOdmeny():
         #stĺpec so sumou: H
         ws.merge_cells(f'A{self.ppos}:G{self.ppos}')
         if vyplaca_sa:
-            ws[f'A{self.ppos}'] = "Odmena za heslá (na vyplatenie)"
+            ws[f'A{self.ppos}'] = "Honorár za heslá (vyplatí sa po odčítaní preplatku a odvodov)"
         else:
-            ws[f'A{self.ppos}'] = "Odmena za heslá (nevyplatí sa, odpočítaná z preplatku)"
+            ws[f'A{self.ppos}'] = "Honorár za heslá (nevyplatí sa, odpočíta sa z preplatku)"
         ws[f'A{self.ppos}'].font = self.fbold
         ws[f"H{self.ppos}"].alignment = Alignment(horizontal='right')
         ws[f'H{self.ppos}'] = "=SUM(H{}:H{}".format(self.ppos-nitems,self.ppos-1) 
