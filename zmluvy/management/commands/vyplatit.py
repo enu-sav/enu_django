@@ -230,7 +230,6 @@ class VyplatitAutorskeOdmeny():
         else:
             self.krycilist["A31"].value = self.krycilist["A31"].value.replace("xx.xx.xxxx", "- - -")
             self.krycilist["A35"].value = self.krycilist["A35"].value.replace("xx.xx.xxxx", "- - -")
-        self.krycilist["E38"].value = "Dátum: {}".format(self.datum_vyplatenia)
         self.kstart = 5 #poloha počiatočnej bunky v hárku 'Krycí list',, inkrementovaná po každom zázname
         self.kpos = self.kstart
         self.kmax = 23 #max počet riadkov v krycom liste, inak sa pokazí formátovanie
