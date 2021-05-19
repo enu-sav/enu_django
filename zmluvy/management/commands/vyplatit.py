@@ -67,7 +67,7 @@ class VyplatitAutorskeOdmeny():
                         login = row[hdr["Prihlásiť sa"]]
                     else:
                         login = transliterate(row[hdr["Priezvisko"]])+transliterate(row[hdr["Meno"]])
-                    zmluva = row[hdr['Zmluva na vyplatenie']]
+                    zmluva = row[hdr['Zmluva na vyplatenie']].strip()   # odstranit medzery na zaciatku a konci
                     if not zmluva:
                         self.log(self.ERROR, f"Heslo {row[hdr['nazov']]} autora {row[hdr['Prihlásiť sa']]} nemá určenú zmluvu")
                         raise SystemExit
