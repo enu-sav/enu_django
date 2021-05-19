@@ -167,8 +167,8 @@ class VyplatitAutorskeOdmeny():
                     if not zmluva in zvyplatit:
                         self.log(self.ERROR, f"Autor {autor}: nemá v databáze zmluvu {zmluva}")
                         raise SystemExit
-                    pocet_znakov = sum([z[0] for z in self.data[autor][rs][zmluva]])    #[0]: pocet znakov
-                    ahonorar += pocet_znakov*zvyplatit[zmluva]/36000
+                    # spocitat zaokruhlene sumy, aby vypocet bol konzistentny so scitanim v harku po_autoroch 
+                    ahonorar = ahonorar + sum([round(z[0]*zvyplatit[zmluva]/36000,2) for z in self.data[autor][rs][zmluva]])    #[0]: pocet znakov
                     pass
             ahonorar = round(round(ahonorar,3),2)
             list_of_strings = [str(s) for s in zmluvy_autora]
@@ -724,7 +724,8 @@ class VyplatitAutorskeOdmeny():
                     ws[f"{col[n+nc]}{self.ppos}"].alignment = acenter
             # suma za heslo, posledné 2 položky sú suma/AH a počet znakov
             ws[f"{col[n+nc]}{self.ppos}"].alignment = Alignment(horizontal='right')
-            ws[f"{col[n+nc+1]}{self.ppos}"] = f"={col[n+nc-1]}{self.ppos}*{col[n+nc]}{self.ppos}/36000"
+            #ws[f"{col[n+nc+1]}{self.ppos}"] = f"={col[n+nc-1]}{self.ppos}*{col[n+nc]}{self.ppos}/36000"
+            ws[f"{col[n+nc+1]}{self.ppos}"].value = round(items[-2]*items[-1]/36000,2)
             ws[f"{col[n+nc+1]}{self.ppos}"].alignment = Alignment(horizontal='right')
             #ws[f"{col[n+nc+1]}{self.ppos}"].style.number_format= numbers.NumberFormat.FORMAT_NUMBER_00
             ws[f"{col[n+nc+1]}{self.ppos}"].number_format= "0.00"
