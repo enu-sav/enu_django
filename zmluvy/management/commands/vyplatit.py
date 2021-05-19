@@ -97,13 +97,13 @@ class VyplatitAutorskeOdmeny():
     def vyplatit_odmeny(self, za_mesiac, datum_vyplatenia=None): 
         self.datum_vyplatenia = datum_vyplatenia # Ak None, nevygenerujú sa hárky ImportRS/WEBRS
         if self.datum_vyplatenia:
-            self.db_logger.info(f"Vytvorená platba {za_mesiac} a vygenerovaný záznam o platbách na založenie: vyplatit.py --na_vyplatenie {za_mesiac}: podklady pre THS")
-            self.log(self.WARNING,f"Nebol zadaný dátum vyplatenia hesiel.")
-            self.log(self.WARNING, f"Vygenerujú sa len podklady pre THS-ku na vyplácanie. Po vyplatení treba tento program spustiť ešte raz so zadaným dátum vyplatenia")
+            self.db_logger.info(f"Vytvorená platba {za_mesiac} a vygenerovaný záznam o platbách na založenie: vyplatit.py --na_vyplatenie {za_mesiac}")
+            self.log(self.SUCCESS, f"Bol zadaný dátum vyplatenia hesiel ({self.datum_vyplatenia}).")
+            self.log(self.WARNING, f"Vygenerujú sa zoznamy vyplatených hesiel na importovanie do RS a WEBRS, ako aj potvrdenie o zaplatení na zaradenie do šanonu.")
         else:
             self.db_logger.info(f"Vygenerované podklady pre THS za {za_mesiac}: vyplatit.py --na_vyplatenie {za_mesiac} --datum-vyplatenia {self.datum_vyplatenia}")
-            self.log(self.WARNING, f"Bol zadaný dátum vyplatenia hesiel ({self.datum_vyplatenia}).")
-            self.log(self.WARNING, f"Vygenerujú sa zoznamy vyplatených hesiel na importovanie do RS a WEBRS, ako aj potvrdenie o zaplatení na zaradenie do šanonu.")
+            self.log(self.SUCCESS,f"Nebol zadaný dátum vyplatenia hesiel.")
+            self.log(self.WARNING, f"Vygenerujú sa len podklady pre THS-ku na vyplácanie. Po vyplatení treba tento program spustiť ešte raz so zadaným dátum vyplatenia")
 
         self.obdobie = za_mesiac.strip("/").split("/")[-1]
 
@@ -352,10 +352,12 @@ class VyplatitAutorskeOdmeny():
         self.krycilist[f"K{self.kpos}"] = f"=SUM(K{self.kstart}:K{self.kpos-1})"
         self.krycilist[f"K{self.kpos}"].font = self.fbold
 
-        if self.datum_vyplatenia:
+        if self.datum_vyplatenia and not self.negenerovat_subory:
             fpath = os.path.join(za_mesiac,f"Vyplatene-{self.obdobie}.xlsx")
-            self.log(self.WARNING, f"Údaje o vyplácaní uložené do súboru {fpath}")
             workbook.save(fpath)
+            msg = f"Údaje o vyplácaní uložené do súboru {fpath}"
+            self.log(self.WARNING, msg)
+            self.db_logger.warning(msg)
 
             # vytvorit csv subory na importovanie
             fpath = os.path.join(za_mesiac,f"Import-rs-{self.obdobie}.csv")
@@ -363,18 +365,23 @@ class VyplatitAutorskeOdmeny():
                 csvWriter = csv.writer(csvfile, delimiter=',', quotechar='"')
                 for b, c in zip(self.importrs["b:c"][0], self.importrs["b:c"][1]) :
                     csvWriter.writerow([b.value,c.value])
-            self.log(self.WARNING, f"Údaje na importovanie do RS boli uložené do súboru {fpath}")
+            msg = f"Údaje na importovanie do RS boli uložené do súboru {fpath}"
+            self.log(self.WARNING, msg)
 
             fpath = os.path.join(za_mesiac,f"Import-webrs-{self.obdobie}.csv")
             with open(fpath, "w") as csvfile:
                 csvWriter = csv.writer(csvfile, delimiter=',', quotechar='"')
                 for b, c in zip(self.importwebrs["b:c"][0], self.importwebrs["b:c"][1]) :
                     csvWriter.writerow([b.value,c.value])
-            self.log(self.WARNING, f"Údaje na importovanie do WEBRS boli uložené do súboru {fpath}")
+            msg = f"Údaje na importovanie do WEBRS boli uložené do súboru {fpath}"
+            self.log(self.WARNING, msg)
         else:
             fpath = os.path.join(za_mesiac,f"Vyplatit-{self.obdobie}-THS.xlsx")
-            workbook.save(fpath)
-            self.log(self.WARNING, f"Údaje o vyplácaní na odoslanie THS boli uložené do súboru {fpath}")
+            if not self.negenerovat_subory:
+                workbook.save(fpath)
+                msg = f"Údaje o vyplácaní na odoslanie THS boli uložené do súboru {fpath}"
+                self.log(self.WARNING, msg)
+                self.db_logger.warning(msg)
 
     # vyplnit harok vypocet
     def vyplnit_harok_vypocet(self):
@@ -766,8 +773,9 @@ class Command(BaseCommand, VyplatitAutorskeOdmeny):
 
     def add_arguments(self, parser):
         parser.add_argument('--na-vyplatenie', type=str, help="Priečinok s názvom RRRR-MM v {ah_cesta} so súbormi s údajmi pre vyplácanie autorských honorárov")
-        parser.add_argument('--datum-vyplatenia', type=str, help="Dátum vyplatenia hesiel v tvare 'dd.mm.rrrr'. Zadať až po vyplatení hesiel THS-kou. Ak sa nezadá, vygenerujú sa len podklady pre THS-ku na vyplácanie. Ak sa zadá, vygenerujú sa aj zoznamy vyplatených hesiel na importovanie do RS a WEBRS, ako aj potvrdenie o zaplatení na zaradenie do šanonu.")
+        parser.add_argument('--datum-vyplatenia', type=str, help="Dátum vyplatenia hesiel v tvare 'dd.mm.rrrr'. Zadať až po vyplatení hesiel THS-kou. Ak sa nezadá, vygenerujú sa len podklady pre THS-ku na vyplácanie. Ak sa zadá, aktualizuje sa databáza a vygenerujú sa zoznamy vyplatených hesiel na importovanie do RS a WEBRS, ako aj potvrdenie o zaplatení na zaradenie do šanonu.")
         parser.add_argument("--zrusit-platbu" , default=False ,help="Zrušiť všetky platby pre vyplácanie určené prepínačom --na-vyplatenie", dest='zrusit_platbu', action='store_true')
+        parser.add_argument("--negenerovat-subory" , default=False ,help="aktualizuje sa databáza, ale súbory sa negenerujú", dest='negenerovat_subory', action='store_true')
 
     def handle(self, *args, **kwargs):
         if kwargs['na_vyplatenie']:
@@ -775,6 +783,8 @@ class Command(BaseCommand, VyplatitAutorskeOdmeny):
         else:
             self.log(self.ERROR, f"Nebol zadaný názov priečinka v '{ah_cesta}' v tvare 'mm-rrrr' s údajmi na vyplatenie")
             raise SystemExit
+
+        self.negenerovat_subory = kwargs['negenerovat_subory']
 
         self.db_logger = logging.getLogger('db')
         if kwargs['zrusit_platbu']:
