@@ -97,11 +97,11 @@ class VyplatitAutorskeOdmeny():
     def vyplatit_odmeny(self, za_mesiac, datum_vyplatenia=None): 
         self.datum_vyplatenia = datum_vyplatenia # Ak None, nevygenerujú sa hárky ImportRS/WEBRS
         if self.datum_vyplatenia:
-            self.db_logger.info(f"Vytvorená platba {za_mesiac} a vygenerovaný záznam o platbách na založenie: vyplatit.py --na_vyplatenie {za_mesiac}")
+            self.db_logger.info(f"Vytvorená platba {za_mesiac} a vygenerovaný záznam o platbách na založenie: vyplatit.py --na-vyplatenie {za_mesiac} --datum-vyplatenia {self.datum_vyplatenia}")
             self.log(self.SUCCESS, f"Bol zadaný dátum vyplatenia hesiel ({self.datum_vyplatenia}).")
             self.log(self.WARNING, f"Vygenerujú sa zoznamy vyplatených hesiel na importovanie do RS a WEBRS, ako aj potvrdenie o zaplatení na zaradenie do šanonu.")
         else:
-            self.db_logger.info(f"Vygenerované podklady pre THS za {za_mesiac}: vyplatit.py --na_vyplatenie {za_mesiac} --datum-vyplatenia {self.datum_vyplatenia}")
+            self.db_logger.info(f"Vygenerované podklady pre THS za {za_mesiac}: vyplatit.py --na-vyplatenie {za_mesiac}")
             self.log(self.SUCCESS,f"Nebol zadaný dátum vyplatenia hesiel.")
             self.log(self.WARNING, f"Vygenerujú sa len podklady pre THS-ku na vyplácanie. Po vyplatení treba tento program spustiť ešte raz so zadaným dátum vyplatenia")
 
