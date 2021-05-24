@@ -565,6 +565,7 @@ class VyplatitAutorskeOdmeny():
                 self.bb( "Vyplatiť:", vyplatit)
                 self.bb( "Nová hodnota preplatku:", 0)
                 adata.preplatok = 0
+                adata._change_reason = 'vyplacanie.py: preplatok znížený na 0 € (vyplácanie %s).'%self.obdobie
                 vdata["lf"] = lf
                 vdata["dan"] = dan
                 vdata["vyplatit"] = vyplatit
@@ -604,6 +605,7 @@ class VyplatitAutorskeOdmeny():
                 self.bb( "Vyplatiť:", 0)
                 self.bb( "Nová hodnota preplatku:", preplatok - honorar)
                 adata.preplatok = preplatok - honorar
+                adata._change_reason = 'vyplacanie.py: preplatok znížený o %0.2f € na %0.2f € (vyplácanie %s).'%(honorar, preplatok - honorar, self.obdobie)
                 #adata.save()
         self.ppos  += 1  
 
@@ -742,7 +744,10 @@ class VyplatitAutorskeOdmeny():
         for platba in platby:
             #vrátit hodnotu preplatku
             msg = f"Platba za autora {platba.autor.rs_login} za obdobie {za_mesiac} bola odstránená z databázy"
-            platba.autor.preplatok += platba.preplatok_pred-platba.preplatok_po
+            vratit = platba.preplatok_pred-platba.preplatok_po
+            platba.autor.preplatok += vratit
+            if vratit > 0.01:
+                platba.autor._change_reason = 'vyplacanie.py: zrušené vyplácanie %s, preplatok zvýšený o %0.2f € na %0.2f €.'%(za_mesiac, vratit, platba.autor.preplatok)
             platba.autor.save()
             #zmazať platbu
             platba.delete()

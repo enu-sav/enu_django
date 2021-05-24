@@ -33,10 +33,16 @@ class Command(BaseCommand):
             if login in self.aktivni_autori:
                 o_query_set = OsobaAutor.objects.filter(rs_uid=uid)
                 if not o_query_set:
-                    OsobaAutor.objects.create(
-                    rs_uid = uid,
-                    rs_login = login,
+                    #OsobaAutor.objects.create(
+                    #rs_uid = uid,
+                    #rs_login = login,
+                    #)
+                    novy_autor = OsobaAutor(
+                        rs_uid = uid,
+                        rs_login = login,
                     )
+                    novy_autor._change_reason = f'import_autori.py: vytvorený nový autor {login} (súbor {aa_name})'
+                    novy_autor.save()
                     self.stdout.write(self.style.SUCCESS(f"OK: {login}"))
         self.db_logger = logging.getLogger('db')
         self.db_logger.info(f"import_autori.py: importovanie zoznamu autorov zo súboru {aa_name}, celkový počet: {len(self.logins)}.  ")

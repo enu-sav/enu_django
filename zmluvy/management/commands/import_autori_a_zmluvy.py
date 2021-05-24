@@ -3,6 +3,7 @@ from django.core.management import BaseCommand, CommandError
 from django.utils import timezone
 from ipdb import set_trace as trace
 from datetime import datetime
+from simple_history.utils import update_change_reason
 
 from zmluvy.models import OsobaAutor, AnoNie, ZmluvaAutor, StavZmluvy
 from zmluvy.common import valid_iban
@@ -77,6 +78,7 @@ class Command(BaseCommand):
                     oo.preplatok = autor[hdr["Preplatok"]].replace(",",".")
                 if autor[hdr["Url zmluvy"]]:
                     oo.url_zmluvy = autor[hdr["Url zmluvy"]]
+                oo._change_reason = f'import_autori_a_zmluvy.py: načítané údaje autora (súbor {path})'
                 oo.save()
 
                 # pridať zmluvu
@@ -106,7 +108,10 @@ class Command(BaseCommand):
                         zm.stav_zmluvy = StavZmluvy.ZVEREJNENA_V_CRZ
                     datum_pridania = timezone.now()
                     zm.datum_aktualizacie = timezone.now()
+                    zm._change_reason = f'import_autori_a_zmluvy.py: vytvorená nová zmluva {zm.cislo_zmluvy} (súbor {path})'
+                    update_change_reason(oo, f'import_autori_a_zmluvy.py: pridaná zmluva {zm.cislo_zmluvy} (súbor {path})')
                     zm.save()
+                    pass
                 else:
                     self.stdout.write(self.style.WARNING(f"OK: {login}"))
             else:
