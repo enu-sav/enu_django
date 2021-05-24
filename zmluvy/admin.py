@@ -43,6 +43,14 @@ class OsobaAutorAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
         })
     ]
 
+    # zobraziť zoznam zmenených polí
+    history_list_display = ['changed_fields']
+    def changed_fields(self, obj):
+        if obj.prev_record:
+            delta = obj.diff_against(obj.prev_record)
+            return ", ".join(delta.changed_fields)
+        return None
+
     #obj is None during the object creation, but set to the object being edited during an edit
     def get_readonly_fields(self, request, obj=None):
         if obj:
@@ -116,6 +124,14 @@ class ZmluvaAutorAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
         else:
             return None
     crz_datum.short_description = "Platná od"
+
+    # zobraziť zoznam zmenených polí
+    history_list_display = ['changed_fields']
+    def changed_fields(self, obj):
+        if obj.prev_record:
+            delta = obj.diff_against(obj.prev_record)
+            return ", ".join(delta.changed_fields)
+        return None
 
 @admin.register(PlatbaAutorskaOdmena)
 class PlatbaAutorskaOdmenaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
