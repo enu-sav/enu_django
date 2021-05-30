@@ -13,14 +13,24 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+#from django.contrib import admin
+#from django.urls import include, path
+#from zmluvy.views import OsobaAutorListView
+
+#urlpatterns = [
+    #path('zmluvy/', include('zmluvy.urls')),
+    #path('admin/', admin.site.urls),
+    #path('', OsobaAutorListView.as_view(), name='article-list'),
+    #path('autori/', OsobaAutorListView.as_view())
+#]
+
 from django.contrib import admin
-from django.urls import include, path
-from zmluvy.views import OsobaAutorListView
+from django.urls import path, reverse_lazy
+from django.views.generic.base import RedirectView
+
 
 urlpatterns = [
-    path('zmluvy/', include('zmluvy.urls')),
+    path('', RedirectView.as_view(url=reverse_lazy('admin:index'))),
     path('admin/', admin.site.urls),
-    #path('', OsobaAutorListView.as_view(), name='article-list'),
-    path('autori/', OsobaAutorListView.as_view())
 ]
 
