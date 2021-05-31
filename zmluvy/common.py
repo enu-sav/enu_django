@@ -107,11 +107,11 @@ def VytvoritAutorskuZmluvu(zmluva):
 
     sablona = sablona.replace(f"{lt}adresa{gt}", addr)
     sablona_crz = sablona_crz.replace(f"{lt}adresa{gt}", "–")
-    if not autor.rodnecislo:
+    if not autor.rodne_cislo:
         return messages.ERROR, f"Chyba pri vytváraní súborov zmluvy: nie je určené rodné číslo autora'"
     sablona = sablona.replace(f"{lt}rodnecislo{gt}", autor.rodne_cislo)
     sablona_crz = sablona_crz.replace(f"{lt}rodnecislo{gt}", "–")
-    if not autor.bankovykontakt:
+    if not autor.bankovy_kontakt:
         return messages.ERROR, f"Chyba pri vytváraní súborov zmluvy: nie je určený bankový kontakt (napr. ISBN) autora'"
     sablona = sablona.replace(f"{lt}bankovykontakt{gt}", autor.bankovy_kontakt)
     sablona_crz = sablona_crz.replace(f"{lt}bankovykontakt{gt}", "–")

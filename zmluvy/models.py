@@ -27,10 +27,10 @@ class StavZmluvy(models.TextChoices):
 # Abstraktná trieda so všetkými spoločnými poľami, nepoužívaná samostatne
 class PersonCommon(models.Model):
     # IBAN alebo aj kompletný popis s BIC a číslom účtu
-    bankovy_kontakt = models.CharField("Bankový kontakt", max_length=200, blank=True)
+    bankovy_kontakt = models.CharField("Bankový kontakt", max_length=200)
     adresa_ulica = models.CharField("Adresa – ulica a číslo domu", max_length=200, blank=True)
-    adresa_mesto = models.CharField("Adresa – PSČ a mesto", max_length=200, blank=True)
-    adresa_stat = models.CharField("Adresa – štát", max_length=100, blank=True)
+    adresa_mesto = models.CharField("Adresa – PSČ a mesto", max_length=200)
+    adresa_stat = models.CharField("Adresa – štát", max_length=100)
     datum_aktualizacie = models.DateField('Dátum aktualizácie', auto_now=True)
     class Meta:
         abstract = True
@@ -45,7 +45,7 @@ class FyzickaOsoba(PersonCommon):
     meno = models.CharField("Meno", max_length=200)
     priezvisko = models.CharField("Priezvisko", max_length=200)
     titul_za_menom = models.CharField("Titul za menom", max_length=100, blank=True)     #optional
-    rodne_cislo = models.CharField("Rodné číslo", max_length=20, blank=True)     #optional
+    rodne_cislo = models.CharField("Rodné číslo", max_length=20) 
     zdanit = models.CharField(max_length=3, choices=AnoNie.choices, blank=True) 
     poznamka = models.CharField("Poznámka", max_length=200, blank=True)
     #pub_date = models.DateField('date published')
@@ -62,7 +62,7 @@ class OsobaAuGaKo(FyzickaOsoba):
     rs_uid = models.IntegerField("Uid v RS")
     rs_login = models.CharField("Login v RS", max_length=100)
     posobisko = models.CharField("Pôsobisko", max_length=200, blank=True)       #optional
-    odbor = models.CharField("Odbor", max_length=200, blank=True)               #optional
+    odbor = models.CharField("Odbor", max_length=200)
     #v_RS_od = models.DateField('V RS od', blank=True)
 
     def __str__(self):
