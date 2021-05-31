@@ -84,25 +84,6 @@ class OsobaAutor (OsobaAuGaKo):
         verbose_name = 'Autor'
         verbose_name_plural = 'Autori'
 
-    # v databaze vytvorit alebo aktualizovat zaznam o zmluve
-    def VytvoritZmluvu(self, cislozmluvy, odmena):
-        status, msg = VytvoritAutorskuZmluvu(self, cislozmluvy, odmena)
-        trace()
-        if status == messages.SUCCESS:
-            #vytvorit zaznam o zmluve
-            o_query_set = ZmluvaAutor.objects.filter(zmluvna_strana=self)
-            if o_query_set:
-                zm = o_query_set.first()
-            else:
-                zm = ZmluvaAutor.objects.create(zmluvna_strana=self)
-            zm.odmena = odmena
-            zm.cislo_zmluvy = cislozmluvy
-            datum_pridania = timezone.now(),
-            zm.datum_aktualizacie = timezone.now()
-            zm.stav_zmluvy = StavZmluvy.VYTVORENA
-            zm.save()
-        return status, msg
-
 class Zmluva(models.Model):
     cislo_zmluvy = models.CharField("Číslo zmluvy", max_length=50)
     datum_pridania = models.DateField('Dátum pridania', auto_now_add=True)
@@ -128,7 +109,6 @@ class ZmluvaAutor(Zmluva):
     class Meta:
         verbose_name = 'Autorská zmluva'
         verbose_name_plural = 'Autorské zmluvy'
-
 
 #Abstraktná tieda pre všetky platby
 #Súčasť Zmluvy 

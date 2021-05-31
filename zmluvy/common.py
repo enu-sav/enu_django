@@ -67,42 +67,59 @@ def num2text(num):
     num=str(num)
     return s[num[0]] + d[num[1]]
 
-def VytvoritAutorskuZmluvu(autor, cislozmluvy, odmena):
+def VytvoritAutorskuZmluvu(zmluva):
+    #úvodné testy
+    if not os.path.isdir(settings.CONTRACTS_DIR):
+        return messages.ERROR, f"Chyba pri vytváraní súborov zmluvy: neexistuje priečinok '{settings.CONTRACTS_DIR}'"
+    
     # nacitat sablonu
     lt="&lt;"
     gt="&gt;"
-    with open(settings.SABLONA_AUTORSKA_ZMLUVA, "r") as f:
-        sablona = f.read()
-    sablona = sablona.replace(f"{lt}cislozmluvy{gt}", cislozmluvy)
+    autor = zmluva.zmluvna_strana
     mp = f"{autor.titul_pred_menom} {autor.meno} {autor.priezvisko}"
     if autor.titul_za_menom:
         mp = f"{mp}, {autor.titul_za_menom}"
-    sablona = sablona.replace(f"{lt}menopriezvisko{gt}", mp)
     addr = f"{autor.adresa_mesto}, {autor.adresa_stat}"
     if autor.adresa_ulica:
         addr = f"{autor.adresa_ulica}, {addr}"
-    sablona = sablona.replace(f"{lt}adresa{gt}", addr)
-    sablona = sablona.replace(f"{lt}rodnecislo{gt}", autor.rodne_cislo)
-    sablona = sablona.replace(f"{lt}bankovykontakt{gt}", autor.bankovy_kontakt)
-    sablona = sablona.replace(f"{lt}email{gt}", autor.email)
+
+    # zmluva na podpis s kompletnými údajmi
+    with open(settings.AUTHORS_ČONTRACT_TEMPLATE, "r") as f:
+        sablona = f.read()
+    # zmluva pre CRZ
+
+    sablona = sablona.replace(f"{lt}cislozmluvy{gt}", zmluva.cislo_zmluvy)
+    sablona = sablona.replace(f"{lt}menopriezvisko{gt}", mp)
     sablona = sablona.replace(f"{lt}odbor{gt}", autor.odbor)
-    sablona = sablona.replace(f"{lt}odmenanum{gt}", odmena)
-    sablona = sablona.replace(f"{lt}odmenatext{gt}", num2text(odmena))
+    sablona = sablona.replace(f"{lt}odmenanum{gt}", str(zmluva.honorar_ah).replace(".",","))
+    sablona = sablona.replace(f"{lt}odmenatext{gt}", num2text(zmluva.honorar_ah))
     sablona = sablona.replace(f"{lt}dnesnydatum{gt}", timezone.now().strftime("%d. %m. %Y").replace(' 0',' '))
+    sablona_crz = sablona
+
+    sablona = sablona.replace(f"{lt}adresa{gt}", addr)
+    sablona_crz = sablona_crz.replace(f"{lt}adresa{gt}", "–")
+    sablona = sablona.replace(f"{lt}rodnecislo{gt}", autor.rodne_cislo)
+    sablona_crz = sablona_crz.replace(f"{lt}rodnecislo{gt}", "–")
+    sablona = sablona.replace(f"{lt}bankovykontakt{gt}", autor.bankovy_kontakt)
+    sablona_crz = sablona_crz.replace(f"{lt}bankovykontakt{gt}", "–")
+    sablona = sablona.replace(f"{lt}email{gt}", autor.email)
+    sablona_crz = sablona_crz.replace(f"{lt}email{gt}", "–")
 
     #ulozit
-    fname = f"{autor.rs_login}-{cislozmluvy.replace('/','-')}.fodt"
-    nazov_zmluvy_log = os.path.join(settings.ZMLUVY_DIR.split("/")[-1],autor.rs_login,fname)
-
-    if not os.path.isdir(settings.ZMLUVY_DIR):
-        return messages.ERROR, f"Chyba pri vytváraní súboru '{nazov_zmluvy_log}': neexistuje priečinok '{settings.ZMLUVY_DIR}'"
-    
     #Create directory admin.rs_login if necessary
-    odir = os.path.join(settings.ZMLUVY_DIR,autor.rs_login)
-    nazov_zmluvy = os.path.join(odir,fname)
+    odir = os.path.join(settings.CONTRACTS_DIR,autor.rs_login)
     if not os.path.isdir(odir):
         os.makedirs(odir)
+    vytvorene_subory = []
+    fname = f"{autor.rs_login}-{zmluva.cislo_zmluvy.replace('/','-')}.fodt"
+    fname_crz = f"{autor.rs_login}-{zmluva.cislo_zmluvy.replace('/','-')}-CRZ.fodt"
+    for fn, tx in ((fname, sablona), (fname_crz, sablona_crz)): 
+        print(fn)
+        nazov_zmluvy_log = os.path.join(settings.CONTRACTS_DIR.split("/")[-1],autor.rs_login,fn)
+        nazov_zmluvy = os.path.join(odir,fn)
 
-    with open(nazov_zmluvy, "w") as f:
-        f.write(sablona)
-    return messages.SUCCESS, f"Zmluva '{nazov_zmluvy_log}' bola úspešne vytvorená"
+        with open(nazov_zmluvy, "w") as f:
+            f.write(tx)
+        vytvorene_subory.append(nazov_zmluvy_log)
+    fnames = ", ".join(vytvorene_subory)
+    return messages.SUCCESS, f"Súbory zmluvy {zmluva.cislo_zmluvy} boli úspešne vytvorené ({fnames})."

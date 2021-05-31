@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.utils import timezone
 from django import forms
 from ipdb import set_trace as trace
 from django.contrib import messages
@@ -7,7 +8,8 @@ from simple_history.utils import update_change_reason
 
 # Register your models here.
 from beliana import settings
-from .models import OsobaAutor, ZmluvaAutor, PlatbaAutorskaOdmena, PlatbaAutorskaSumar
+from .models import OsobaAutor, ZmluvaAutor, PlatbaAutorskaOdmena, PlatbaAutorskaSumar, StavZmluvy
+from .common import VytvoritAutorskuZmluvu
 
 #umožniť zobrazenie autora v zozname zmlúv
 #https://pypi.org/project/django-admin-relation-links/
@@ -52,7 +54,6 @@ class OsobaAutorAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
     #search_fields = ('rs_login', 'priezvisko')
     #search_fields = ['rs_login', 'r_uid', 'email']
     search_fields = ['rs_login', 'email']
-    actions = ['vytvorit_autorsku_zmluvu']
 
     #Konfigurácia poľa zmluvy_link (pripojené k ZmluvaAutor cez ForeignKey)
     #changelist_links = ['zmluvy'];
@@ -79,28 +80,7 @@ class OsobaAutorAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
             return ["rs_uid", "rs_login"]
         else:
             return []
-    def vytvorit_autorsku_zmluvu(self, request, queryset):
-        #updated = queryset.update(status='p')
-        success=0
-        failed=0
-        for autor  in queryset:
-            status, msg = autor.VytvoritZmluvu("999", "540")
-            if status == messages.ERROR:
-                self.message_user(request, msg, status)
-                failed += 1
-            else:
-                self.message_user(request, msg, status)
-                success += 1
 
-        #trace()
-        if success:
-            self.message_user(request, ngettext(
-                'Úspešne vytvorené autorské zmluvy: %d',
-                'Úspešne vytvorené autorské zmluvy: %d',
-                success,
-            ) % success, messages.SUCCESS)
-        pass
-    vytvorit_autorsku_zmluvu.short_description = f"Vytvoriť autorskú zmluvu"
 #admin.site.register(OsobaAutor, OsobaAutorAdmin)
 
 # Pridať dodatočné pole popis_zmeny, použije sa ako change_reason v SimpleHistoryAdmin
@@ -129,6 +109,7 @@ class ZmluvaAutorAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
             'honorar_ah', 'url_zmluvy_html', 'crz_datum', 'datum_pridania', 'datum_aktualizacie')
     ordering = ('zmluvna_strana',)
     search_fields = ['cislo_zmluvy','zmluvna_strana__rs_login', 'honorar_ah', 'stav_zmluvy']
+    actions = ['vytvorit_subory_zmluvy']
 
     # umožnené prostredníctvom AdminChangeLinksMixin
     change_links = ['zmluvna_strana']
@@ -173,6 +154,29 @@ class ZmluvaAutorAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
             delta = obj.diff_against(obj.prev_record)
             return ", ".join(delta.changed_fields)
         return None
+
+    def vytvorit_subory_zmluvy(self, request, queryset):
+        for zmluva  in queryset:
+            if not zmluva.stav_zmluvy or zmluva.stav_zmluvy == StavZmluvy.VYTVORENA: 
+                status, msg = VytvoritAutorskuZmluvu(zmluva)
+                if status != messages.ERROR:
+                    zmluva.stav_zmluvy = StavZmluvy.VYTVORENA
+                    zmluva.datum_aktualizacie = timezone.now(),
+                    zmluva.save()
+                self.message_user(request, msg, status)
+            else:
+                self.message_user(request, f"Súbory zmluvy {zmluva.cislo_zmluvy} neboli vytvorené, lebo zmluva je už v stave '{StavZmluvy(zmluva.stav_zmluvy).label}'", messages.ERROR)
+                continue
+
+        #trace()
+        #if success:
+            #self.message_user(request, ngettext(
+                #'Úspešne vytvorené autorské zmluvy: %d',
+                #'Úspešne vytvorené autorské zmluvy: %d',
+                #success,
+            #) % success, messages.SUCCESS)
+
+    vytvorit_subory_zmluvy.short_description = f"Vytvoriť súbory zmluvy"
 
 @admin.register(PlatbaAutorskaOdmena)
 class PlatbaAutorskaOdmenaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
