@@ -32,6 +32,11 @@ DEBUG = os.environ['DEBUG']
 
 ALLOWED_HOSTS = os.environ['ALLOWED_HOSTS']
 
+#Type of automatically added primary key, if none is specified
+#Since Django 3.2 the default has been changed to 'django.db.models.BigAutoField'
+#Specify the type here to get rid of the warning i
+#    Auto-created primary key used when not defining a primary key type, by default 'django.db.models.AutoField'. 
+DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
 
 # Application definition
 
