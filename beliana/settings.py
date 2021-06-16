@@ -163,9 +163,8 @@ LOGGING = {
 }
 
 # Beliana specific settings
-# umiestnenie súborov
-DATA_SITE = f"{BASE_DIR}/data"
-TEMPLATES_DIR = f"{DATA_SITE}/Sablony"
-ROYALTIES_DIR = f"{DATA_SITE}/Vyplacanie_autorskych_honorarov"
-AUTHORS_ČONTRACT_TEMPLATE = f"{TEMPLATES_DIR}/AutorskaZmluva.fodt"
-CONTRACTS_DIR = f"{DATA_SITE}/Zmluvy"
+DATA_SITE = os.environ['DATA_SITE']
+TEMPLATES_DIR = os.environ['TEMPLATES_DIR']
+ROYALTIES_DIR = os.environ['ROYALTIES_DIR']
+AUTHORS_CONTRACT_TEMPLATE = os.environ['AUTHORS_CONTRACT_TEMPLATE']
+CONTRACTS_DIR = os.environ['CONTRACTS_DIR']
