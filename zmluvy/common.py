@@ -89,10 +89,10 @@ def VytvoritAutorskuZmluvu(zmluva):
 
     # zmluva na podpis s kompletnými údajmi
     try:
-        with open(settings.AUTHORS_ČONTRACT_TEMPLATE, "r") as f:
+        with open(settings.AUTHORS_CONTRACT_TEMPLATE, "r") as f:
             sablona = f.read()
     except:
-        return messages.ERROR, f"Chyba pri vytváraní súborov zmluvy: chyba pri čítaní šablóny '{settings.AUTHORS_ČONTRACT_TEMPLATE}'"
+        return messages.ERROR, f"Chyba pri vytváraní súborov zmluvy: chyba pri čítaní šablóny '{settings.AUTHORS_CONTRACT_TEMPLATE}'"
     # zmluva pre CRZ
 
     sablona = sablona.replace(f"{lt}cislozmluvy{gt}", zmluva.cislo_zmluvy)
