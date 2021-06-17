@@ -63,7 +63,7 @@ class FyzickaOsoba(PersonCommon):
 
 #Autor, Konzultant, Garant, v RS s loginom PriezviskoMeno`
 class OsobaAuGaKo(FyzickaOsoba):
-    rs_uid = models.IntegerField("Uid v RS")
+    rs_uid = models.IntegerField("Uid v RS", null=True, blank=True) #not needed, kept for eventual future usage
     rs_login = models.CharField("Login v RS", max_length=100)
     posobisko = models.CharField("Pôsobisko", max_length=200, null=True, blank=True)       #optional
     odbor = models.CharField("Odbor", max_length=200)
