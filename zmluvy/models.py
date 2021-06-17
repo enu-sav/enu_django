@@ -110,9 +110,14 @@ class ZmluvaAutor(Zmluva):
     zmluvna_strana = models.ForeignKey(OsobaAutor, on_delete=models.PROTECT, related_name='zmluvy')    
     honorar_ah = models.DecimalField("Honorár/AH", max_digits=8, decimal_places=2, default=0) #Eur/AH (36 000 znakov)
     history = HistoricalRecords()
+    subory = models.FileField("Súbory", upload_to='AutorskeZmluvy/', null=True, blank=True )
     class Meta:
         verbose_name = 'Autorská zmluva'
         verbose_name_plural = 'Autorské zmluvy'
+
+    def save(self, *args, **kwargs):
+        super(Zmluva, self).save(*args, **kwargs)
+        #filename = self.subory.url
 
 #Abstraktná tieda pre všetky platby
 #Súčasť Zmluvy 
@@ -161,3 +166,4 @@ class PlatbaAutorskaSumar(models.Model):
     class Meta:
         verbose_name = 'Platby sumárne'
         verbose_name_plural = 'Platby sumárne'
+

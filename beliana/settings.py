@@ -169,8 +169,12 @@ LOGGING = {
 }
 
 # Beliana specific settings
-DATA_SITE = os.environ['DATA_SITE']
+DATA_DIR = os.environ['DATA_DIR']
 TEMPLATES_DIR = os.environ['TEMPLATES_DIR']
 ROYALTIES_DIR = os.environ['ROYALTIES_DIR']
 AUTHORS_CONTRACT_TEMPLATE = os.environ['AUTHORS_CONTRACT_TEMPLATE']
-CONTRACTS_DIR = os.environ['CONTRACTS_DIR']
+
+# potrebné kvôli generovaniu zmlúv
+#MEDIA_ROOT = os.path.join(DATA_DIR, 'subory')
+MEDIA_ROOT = os.environ['MEDIA_ROOT']
+MEDIA_URL = '/subory/'

@@ -28,9 +28,18 @@ from django.contrib import admin
 from django.urls import path, reverse_lazy
 from django.views.generic.base import RedirectView
 
+#required by file upload
+from django.conf import settings # new
+from django.urls import include # new
+from django.conf.urls.static import static # new
 
+from ipdb import set_trace as trace
+
+#trace()
 urlpatterns = [
     path('', RedirectView.as_view(url=reverse_lazy('admin:index'))),
     path('admin/', admin.site.urls),
+    # Recent versions of Python however have special syntax to include an iterable in a list by using the asterisk (*)
+    *static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT) # needed because of file upload
 ]
 
