@@ -47,9 +47,9 @@ class OsobaAutorAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportMod
     #zmluvy_link: pridá odkaz na všetky zmluvy autora do zoznamu
     #platby_link: pridá odkaz na všetky platby autora do zoznamu
     list_display = (
-            'rs_login', 'rs_uid', 'zmluvy_link', 'platby_link', 'preplatok', 'zdanit', 'email', 
-            'titul_pred_menom', 'meno', 'priezvisko', 'titul_za_menom', 
-            'rodne_cislo', 'odbor', "adresa_ulica", "adresa_mesto", 
+            'rs_login', 'rs_uid', 'zmluvy_link', 'platby_link', 'preplatok', 'zdanit', 'email',
+            'titul_pred_menom', 'meno', 'priezvisko', 'titul_za_menom',
+            'rodne_cislo', 'odbor', "adresa_ulica", "adresa_mesto",
             "adresa_stat", 'datum_aktualizacie', 'poznamka'
             )
     ordering = ('datum_aktualizacie',)
@@ -107,7 +107,7 @@ class ZmluvaAutorAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
     # modifikovať formulár na pridanie poľa Popis zmeny
     form = ZmluvaAutorForm
     # zmluvna_strana_link: pridá autora zmluvy do zoznamu, vďaka AdminChangeLinksMixin
-    list_display = ('cislo_zmluvy', 'stav_zmluvy', 'zmluvna_strana_link', 
+    list_display = ('cislo_zmluvy', 'stav_zmluvy', 'zmluvna_strana_link',
             'honorar_ah', 'url_zmluvy_html', 'crz_datum', 'datum_pridania', 'datum_aktualizacie')
     ordering = ('zmluvna_strana',)
     search_fields = ['cislo_zmluvy','zmluvna_strana__rs_login', 'honorar_ah', 'stav_zmluvy']
@@ -159,7 +159,7 @@ class ZmluvaAutorAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
 
     def vytvorit_subory_zmluvy(self, request, queryset):
         for zmluva  in queryset:
-            if not zmluva.stav_zmluvy or zmluva.stav_zmluvy == StavZmluvy.VYTVORENA: 
+            if not zmluva.stav_zmluvy or zmluva.stav_zmluvy == StavZmluvy.VYTVORENA:
                 status, msg = VytvoritAutorskuZmluvu(zmluva)
                 if status != messages.ERROR:
                     zmluva.stav_zmluvy = StavZmluvy.VYTVORENA

@@ -41,12 +41,12 @@ class PersonCommon(models.Model):
 # nie je nevyhnutne v RS (jaz. redaktor a pod)
 class FyzickaOsoba(PersonCommon):
     email = models.EmailField("Email", max_length=200)
-    titul_pred_menom = models.CharField("Titul pred menom", max_length=100, blank=True) #optional
+    titul_pred_menom = models.CharField("Titul pred menom", max_length=100, null=True, blank=True) #optional
     meno = models.CharField("Meno", max_length=200)
     priezvisko = models.CharField("Priezvisko", max_length=200)
-    titul_za_menom = models.CharField("Titul za menom", max_length=100, blank=True)     #optional
+    titul_za_menom = models.CharField("Titul za menom", max_length=100, null=True, blank=True)     #optional
     rodne_cislo = models.CharField("Rodné číslo", max_length=20) 
-    zdanit = models.CharField(max_length=3, choices=AnoNie.choices, blank=True) 
+    zdanit = models.CharField(max_length=3, choices=AnoNie.choices, null=True, blank=True) 
     poznamka = models.CharField("Poznámka", max_length=200, blank=True)
     #pub_date = models.DateField('date published')
 
@@ -61,7 +61,7 @@ class FyzickaOsoba(PersonCommon):
 class OsobaAuGaKo(FyzickaOsoba):
     rs_uid = models.IntegerField("Uid v RS")
     rs_login = models.CharField("Login v RS", max_length=100)
-    posobisko = models.CharField("Pôsobisko", max_length=200, blank=True)       #optional
+    posobisko = models.CharField("Pôsobisko", max_length=200, null=True, blank=True)       #optional
     odbor = models.CharField("Odbor", max_length=200)
     #v_RS_od = models.DateField('V RS od', blank=True)
 
