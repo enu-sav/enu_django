@@ -48,9 +48,7 @@ class OsobaAutorAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportMod
     #platby_link: pridá odkaz na všetky platby autora do zoznamu
     list_display = (
             'rs_login', 'rs_uid', 'zmluvy_link', 'platby_link', 'preplatok', 'zdanit', 'email',
-            'titul_pred_menom', 'meno', 'priezvisko', 'titul_za_menom',
-            'rodne_cislo', 'odbor', "adresa_ulica", "adresa_mesto",
-            "adresa_stat", 'datum_aktualizacie', 'poznamka'
+            'menopriezvisko', 'rodne_cislo', 'odbor', "adresa", "koresp_adresa", 'datum_aktualizacie', 'poznamka'
             )
     ordering = ('datum_aktualizacie',)
     #search_fields = ('rs_login', 'priezvisko')
@@ -82,6 +80,20 @@ class OsobaAutorAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportMod
             return ["rs_uid", "rs_login"]
         else:
             return []
+
+    def menopriezvisko(self, obj):
+        return f"{obj.titul_pred_menom} {obj.meno} {obj.priezvisko}, {obj.titul_za_menom}".strip().strip(",")
+    menopriezvisko.short_description = "Meno a tituly"
+
+    def adresa(self, obj):
+        if obj.adresa_mesto:
+            return f"{obj.adresa_ulica} {obj.adresa_mesto}, {obj.adresa_stat}".strip()
+    adresa.short_description = "Trvalé bydlisko"
+
+    def koresp_adresa(self, obj):
+        if obj.koresp_adresa_mesto:
+            return f"{obj.koresp_adresa_institucia} {obj.koresp_adresa_ulica} {obj.koresp_adresa_mesto}, {obj.koresp_adresa_stat}".strip()
+    koresp_adresa.short_description = "Korešp. adresa"
 
 #admin.site.register(OsobaAutor, OsobaAutorAdmin)
 
