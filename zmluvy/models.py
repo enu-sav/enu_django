@@ -28,9 +28,13 @@ class StavZmluvy(models.TextChoices):
 class PersonCommon(models.Model):
     # IBAN alebo aj kompletný popis s BIC a číslom účtu
     bankovy_kontakt = models.CharField("Bankový kontakt", max_length=200)
-    adresa_ulica = models.CharField("Adresa – ulica a číslo domu", max_length=200, blank=True)
+    adresa_ulica = models.CharField("Adresa – ulica a číslo domu", max_length=200, null=True, blank=True)
     adresa_mesto = models.CharField("Adresa – PSČ a mesto", max_length=200)
     adresa_stat = models.CharField("Adresa – štát", max_length=100)
+    koresp_adresa_institucia = models.CharField("Korešponcenčná adresa – institucia", max_length=200, null=True, blank=True)
+    koresp_adresa_ulica = models.CharField("Korešponcenčná adresa – ulica a číslo domu", max_length=200, null=True, blank=True)
+    koresp_adresa_mesto = models.CharField("Korešponcenčná adresa – PSČ a mesto", max_length=200, null=True, blank=True)
+    koresp_adresa_stat = models.CharField("Korešponcenčná adresa – štát", max_length=10, null=True, blank=True)
     datum_aktualizacie = models.DateField('Dátum aktualizácie', auto_now=True)
     class Meta:
         abstract = True
