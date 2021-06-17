@@ -19,6 +19,8 @@ from django_admin_relation_links import AdminChangeLinksMixin
 #https://django-simple-history.readthedocs.io/en/latest/admin.html
 from simple_history.admin import SimpleHistoryAdmin
 
+from import_export.admin import ImportExportModelAdmin
+
 # Pridať dodatočné pole popis_zmeny, použije sa ako change_reason v SimpleHistoryAdmin
 class OsobaAutorForm(forms.ModelForm):
     #popis_zmeny = forms.CharField()
@@ -38,7 +40,7 @@ class OsobaAutorForm(forms.ModelForm):
 
 @admin.register(OsobaAutor)
 #class OsobaAutorAdmin(AdminChangeLinksMixin, admin.ModelAdmin):
-class OsobaAutorAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
+class OsobaAutorAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
 
     # modifikovať formulár na pridanie poľa Popis zmeny
     form = OsobaAutorForm

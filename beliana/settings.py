@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'simple_history',
     'django_db_logger',
+    'import_export',
 ]
 
 MIDDLEWARE = [
