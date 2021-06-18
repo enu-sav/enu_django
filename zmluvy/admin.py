@@ -82,7 +82,8 @@ class OsobaAutorAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportMod
             return []
 
     def menopriezvisko(self, obj):
-        return f"{obj.titul_pred_menom} {obj.meno} {obj.priezvisko}, {obj.titul_za_menom}".strip().strip(",")
+        if obj.priezvisko:
+            return f"{obj.titul_pred_menom} {obj.meno} {obj.priezvisko}, {obj.titul_za_menom}".strip().strip(",")
     menopriezvisko.short_description = "Meno a tituly"
 
     def adresa(self, obj):
