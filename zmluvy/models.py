@@ -4,6 +4,9 @@ from django.utils import timezone
 from django.contrib import messages
 from ipdb import set_trace as trace
 
+from beliana.settings import CONTRACTS_DIR_NAME 
+import os
+
 
 #záznam histórie
 #https://django-simple-history.readthedocs.io/en/latest/admin.html
@@ -110,14 +113,26 @@ class ZmluvaAutor(Zmluva):
     zmluvna_strana = models.ForeignKey(OsobaAutor, on_delete=models.PROTECT, related_name='zmluvy')    
     honorar_ah = models.DecimalField("Honorár/AH", max_digits=8, decimal_places=2, default=0) #Eur/AH (36 000 znakov)
     history = HistoricalRecords()
-    subory = models.FileField("Súbory", upload_to='AutorskeZmluvy/', null=True, blank=True )
     class Meta:
         verbose_name = 'Autorská zmluva'
         verbose_name_plural = 'Autorské zmluvy'
 
-    def save(self, *args, **kwargs):
-        super(Zmluva, self).save(*args, **kwargs)
-        #filename = self.subory.url
+#https://stackoverflow.com/questions/55543232/how-to-upload-multiple-files-from-the-django-admin
+def zmluva_autor_upload_location(instance, filename):
+    #Vykoná sa len pri vkladaní suborov cez GUI. Pri programovom vytváraní treba cestu nastaviť
+    dir_name = "{}-{}".format(instance.zmluva.zmluvna_strana.rs_login, instance.zmluva.cislo_zmluvy.replace("/","-"))
+    file_name = filename.replace(" ", "-")
+    return os.path.join(CONTRACTS_DIR_NAME, dir_name, file_name)
+
+class ZmluvaAutorSubor(models.Model):
+    # on_delete=models.CASCADE: when a ZmluvaAutor is deleted, upload models are also deleted
+    zmluva = models.ForeignKey(ZmluvaAutor, on_delete=models.CASCADE) 
+    file = models.FileField("Súbor",upload_to=zmluva_autor_upload_location, null = True, blank = True)
+    class Meta:
+        verbose_name = 'Súbor autorskej zmluvy'
+        verbose_name_plural = 'Súbory autorskej zmluvy'
+
+
 
 #Abstraktná tieda pre všetky platby
 #Súčasť Zmluvy 
@@ -166,4 +181,3 @@ class PlatbaAutorskaSumar(models.Model):
     class Meta:
         verbose_name = 'Platby sumárne'
         verbose_name_plural = 'Platby sumárne'
-

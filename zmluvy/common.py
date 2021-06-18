@@ -54,6 +54,7 @@ def num2text(num):
         '9': 'deväťsto',
     }
     d = {
+        '0': '',
         '1': 'desať',
         '2': 'dvadsať',
         '3': 'tridsať',
@@ -70,19 +71,19 @@ def num2text(num):
 def VytvoritAutorskuZmluvu(zmluva):
     #úvodné testy
     if not os.path.isdir(settings.CONTRACTS_DIR):
-        return messages.ERROR, f"Chyba pri vytváraní súborov zmluvy: neexistuje priečinok '{settings.CONTRACTS_DIR}'"
+        return messages.ERROR, f"Chyba pri vytváraní súborov zmluvy: neexistuje priečinok '{settings.CONTRACTS_DIR}'", None
     
     # nacitat sablonu
     lt="&lt;"
     gt="&gt;"
     autor = zmluva.zmluvna_strana
     if not autor.meno or not autor.priezvisko:
-        return messages.ERROR, f"Chyba pri vytváraní súborov zmluvy: nie je určené meno alebo priezvisko autora'"
+        return messages.ERROR, f"Chyba pri vytváraní súborov zmluvy: nie je určené meno alebo priezvisko autora'", None
     mp = f"{autor.titul_pred_menom} {autor.meno} {autor.priezvisko}"
     if autor.titul_za_menom:
         mp = f"{mp}, {autor.titul_za_menom}"
     if not autor.adresa_mesto or not autor.adresa_stat:
-        return messages.ERROR, f"Chyba pri vytváraní súborov zmluvy: nie je určené mesto alebo štát autora'"
+        return messages.ERROR, f"Chyba pri vytváraní súborov zmluvy: nie je určené mesto alebo štát autora'", None
     addr = f"{autor.adresa_mesto}, {autor.adresa_stat}"
     if autor.adresa_ulica:
         addr = f"{autor.adresa_ulica}, {addr}"
@@ -92,13 +93,13 @@ def VytvoritAutorskuZmluvu(zmluva):
         with open(settings.AUTHORS_CONTRACT_TEMPLATE, "r") as f:
             sablona = f.read()
     except:
-        return messages.ERROR, f"Chyba pri vytváraní súborov zmluvy: chyba pri čítaní šablóny '{settings.AUTHORS_CONTRACT_TEMPLATE}'"
+        return messages.ERROR, f"Chyba pri vytváraní súborov zmluvy: chyba pri čítaní šablóny '{settings.AUTHORS_CONTRACT_TEMPLATE}'", None
     # zmluva pre CRZ
 
     sablona = sablona.replace(f"{lt}cislozmluvy{gt}", zmluva.cislo_zmluvy)
     sablona = sablona.replace(f"{lt}menopriezvisko{gt}", mp)
     if not autor.odbor:
-        return messages.ERROR, f"Chyba pri vytváraní súborov zmluvy: nie je určený odbor autora'"
+        return messages.ERROR, f"Chyba pri vytváraní súborov zmluvy: nie je určený odbor autora'", None
     sablona = sablona.replace(f"{lt}odbor{gt}", autor.odbor)
     sablona = sablona.replace(f"{lt}odmenanum{gt}", str(zmluva.honorar_ah).replace(".",","))
     sablona = sablona.replace(f"{lt}odmenatext{gt}", num2text(zmluva.honorar_ah))
@@ -108,33 +109,34 @@ def VytvoritAutorskuZmluvu(zmluva):
     sablona = sablona.replace(f"{lt}adresa{gt}", addr)
     sablona_crz = sablona_crz.replace(f"{lt}adresa{gt}", "–")
     if not autor.rodne_cislo:
-        return messages.ERROR, f"Chyba pri vytváraní súborov zmluvy: nie je určené rodné číslo autora'"
+        return messages.ERROR, f"Chyba pri vytváraní súborov zmluvy: nie je určené rodné číslo autora'", None
     sablona = sablona.replace(f"{lt}rodnecislo{gt}", autor.rodne_cislo)
     sablona_crz = sablona_crz.replace(f"{lt}rodnecislo{gt}", "–")
     if not autor.bankovy_kontakt:
-        return messages.ERROR, f"Chyba pri vytváraní súborov zmluvy: nie je určený bankový kontakt (napr. ISBN) autora'"
+        return messages.ERROR, f"Chyba pri vytváraní súborov zmluvy: nie je určený bankový kontakt (napr. ISBN) autora'", None
     sablona = sablona.replace(f"{lt}bankovykontakt{gt}", autor.bankovy_kontakt)
     sablona_crz = sablona_crz.replace(f"{lt}bankovykontakt{gt}", "–")
     if not autor.email:
-        return messages.ERROR, f"Chyba pri vytváraní súborov zmluvy: nie je určený email autora'"
+        return messages.ERROR, f"Chyba pri vytváraní súborov zmluvy: nie je určený email autora'", None
     sablona = sablona.replace(f"{lt}email{gt}", autor.email)
     sablona_crz = sablona_crz.replace(f"{lt}email{gt}", "–")
 
     #ulozit
     #Create directory admin.rs_login if necessary
-    odir = os.path.join(settings.CONTRACTS_DIR,autor.rs_login)
+    auxname = f"{autor.rs_login}-{zmluva.cislo_zmluvy.replace('/','-')}"
+    odir = os.path.join(settings.CONTRACTS_DIR,auxname)
     if not os.path.isdir(odir):
         os.makedirs(odir)
     vytvorene_subory = []
-    fname = f"{autor.rs_login}-{zmluva.cislo_zmluvy.replace('/','-')}.fodt"
-    fname_crz = f"{autor.rs_login}-{zmluva.cislo_zmluvy.replace('/','-')}-CRZ.fodt"
+    fname = f"{auxname}.fodt"
+    fname_crz = f"{auxname}-CRZ.fodt"
     for fn, tx in ((fname, sablona), (fname_crz, sablona_crz)): 
         print(fn)
-        nazov_zmluvy_log = os.path.join(settings.CONTRACTS_DIR.split("/")[-1],autor.rs_login,fn)
+        nazov_zmluvy_log = os.path.join(settings.CONTRACTS_DIR.split("/")[-1],auxname,fn)
         nazov_zmluvy = os.path.join(odir,fn)
 
         with open(nazov_zmluvy, "w") as f:
             f.write(tx)
         vytvorene_subory.append(nazov_zmluvy_log)
     fnames = ", ".join(vytvorene_subory)
-    return messages.SUCCESS, f"Súbory zmluvy {zmluva.cislo_zmluvy} boli úspešne vytvorené ({fnames})."
+    return messages.SUCCESS, f"Súbory zmluvy {zmluva.cislo_zmluvy} boli úspešne vytvorené ({fnames}).", vytvorene_subory

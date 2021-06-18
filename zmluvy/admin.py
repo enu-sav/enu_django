@@ -8,7 +8,7 @@ from simple_history.utils import update_change_reason
 
 # Register your models here.
 from beliana import settings
-from .models import OsobaAutor, ZmluvaAutor, PlatbaAutorskaOdmena, PlatbaAutorskaSumar, StavZmluvy
+from .models import OsobaAutor, ZmluvaAutor, PlatbaAutorskaOdmena, PlatbaAutorskaSumar, StavZmluvy, ZmluvaAutorSubor
 from .common import VytvoritAutorskuZmluvu
 
 #umožniť zobrazenie autora v zozname zmlúv
@@ -114,6 +114,10 @@ class ZmluvaAutorForm(forms.ModelForm):
         model = ZmluvaAutor
         fields = "__all__"
 
+class ZmluvaAutorSuborAdmin(admin.StackedInline):
+    model = ZmluvaAutorSubor
+
+
 @admin.register(ZmluvaAutor)
 class ZmluvaAutorAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
     # modifikovať formulár na pridanie poľa Popis zmeny
@@ -124,6 +128,7 @@ class ZmluvaAutorAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
     ordering = ('zmluvna_strana',)
     search_fields = ['cislo_zmluvy','zmluvna_strana__rs_login', 'honorar_ah', 'stav_zmluvy']
     actions = ['vytvorit_subory_zmluvy']
+    inlines = [ZmluvaAutorSuborAdmin]
 
     # umožnené prostredníctvom AdminChangeLinksMixin
     change_links = ['zmluvna_strana']
@@ -172,11 +177,15 @@ class ZmluvaAutorAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
     def vytvorit_subory_zmluvy(self, request, queryset):
         for zmluva  in queryset:
             if not zmluva.stav_zmluvy or zmluva.stav_zmluvy == StavZmluvy.VYTVORENA:
-                status, msg = VytvoritAutorskuZmluvu(zmluva)
+                #vytvorene_subory: s cestou vzhľadom na MEDIA_ROOT 'AutorskeZmluvy/AdamAnton-1298/AdamAnton-1298.fodt'
+                status, msg, vytvorene_subory = VytvoritAutorskuZmluvu(zmluva)
                 if status != messages.ERROR:
                     zmluva.stav_zmluvy = StavZmluvy.VYTVORENA
                     zmluva.datum_aktualizacie = timezone.now(),
                     zmluva.save()
+                    for subor in vytvorene_subory:
+                        novy_subor = ZmluvaAutorSubor(zmluva=zmluva, file=subor)
+                        novy_subor.save()
                 self.message_user(request, msg, status)
             else:
                 self.message_user(request, f"Súbory zmluvy {zmluva.cislo_zmluvy} neboli vytvorené, lebo zmluva je už v stave '{StavZmluvy(zmluva.stav_zmluvy).label}'", messages.ERROR)
@@ -191,6 +200,11 @@ class ZmluvaAutorAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
             #) % success, messages.SUCCESS)
 
     vytvorit_subory_zmluvy.short_description = f"Vytvoriť súbory zmluvy"
+
+
+@admin.register(ZmluvaAutorSubor)
+class ZmluvaAutorSuborAdmin(admin.ModelAdmin):
+    list_display = (["zmluva", "file"])
 
 @admin.register(PlatbaAutorskaOdmena)
 class PlatbaAutorskaOdmenaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):

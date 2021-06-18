@@ -172,9 +172,11 @@ LOGGING = {
 DATA_DIR = os.environ['DATA_DIR']
 TEMPLATES_DIR = os.environ['TEMPLATES_DIR']
 ROYALTIES_DIR = os.environ['ROYALTIES_DIR']
+CONTRACTS_DIR_NAME = os.environ['CONTRACTS_DIR_NAME']
 AUTHORS_CONTRACT_TEMPLATE = os.environ['AUTHORS_CONTRACT_TEMPLATE']
 
 # potrebné kvôli generovaniu zmlúv
 #MEDIA_ROOT = os.path.join(DATA_DIR, 'subory')
 MEDIA_ROOT = os.environ['MEDIA_ROOT']
 MEDIA_URL = '/subory/'
+CONTRACTS_DIR = os.path.join(MEDIA_ROOT,CONTRACTS_DIR_NAME)
