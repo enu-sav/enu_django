@@ -54,6 +54,7 @@ class FyzickaOsoba(PersonCommon):
     titul_za_menom = models.CharField("Titul za menom", max_length=100, null=True, blank=True)     #optional
     rodne_cislo = models.CharField("Rodné číslo", max_length=20) 
     zdanit = models.CharField("Zdaniť", max_length=3, choices=AnoNie.choices, null=True, blank=True) 
+    rezident = models.CharField("Rezident SR", max_length=3, choices=AnoNie.choices, null=True, blank=True) 
     poznamka = models.CharField("Poznámka", max_length=200, blank=True)
     #pub_date = models.DateField('date published')
 
