@@ -60,6 +60,11 @@ class Command(BaseCommand):
                     oo.adresa_mesto = autor[hdr["Adresa2"]]
                 if autor[hdr["Adresa3"]]: 
                     oo.adresa_stat = autor[hdr["Adresa3"]]
+                    # predpokladáme, že všetci s trvalým pobytom v SR sú aj daňoví rezidenti SR
+                    if autor[hdr["Adresa3"]] == "Slovenská republika":
+                        oo.rezident = AnoNie.ANO
+                    else:
+                        oo.rezident = AnoNie.NIE
                 if autor[hdr["Rodné číslo"]]: 
                     oo.rodne_cislo = autor[hdr["Rodné číslo"]]
                 if autor[hdr["IBAN"]]: 
