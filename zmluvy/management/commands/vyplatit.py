@@ -781,7 +781,7 @@ class Command(BaseCommand, VyplatitAutorskeOdmeny):
         
 
     def add_arguments(self, parser):
-        parser.add_argument('--na-vyplatenie', type=str, help="Priečinok s názvom RRRR-MM v {ah_cesta} so súbormi s údajmi pre vyplácanie autorských honorárov")
+        parser.add_argument('--na-vyplatenie', type=str, help=f"Priečinok s názvom RRRR-MM v {ah_cesta} so súbormi s údajmi pre vyplácanie autorských honorárov")
         parser.add_argument('--datum-vyplatenia', type=str, help="Dátum vyplatenia hesiel v tvare 'dd.mm.rrrr'. Zadať až po vyplatení hesiel THS-kou. Ak sa nezadá, vygenerujú sa len podklady pre THS-ku na vyplácanie. Ak sa zadá, aktualizuje sa databáza a vygenerujú sa zoznamy vyplatených hesiel na importovanie do RS a WEBRS, ako aj potvrdenie o zaplatení na zaradenie do šanonu.")
         parser.add_argument("--zrusit-platbu" , default=False ,help="Zrušiť všetky platby pre vyplácanie určené prepínačom --na-vyplatenie", dest='zrusit_platbu', action='store_true')
         parser.add_argument("--negenerovat-subory" , default=False ,help="aktualizuje sa databáza, ale súbory sa negenerujú", dest='negenerovat_subory', action='store_true')
