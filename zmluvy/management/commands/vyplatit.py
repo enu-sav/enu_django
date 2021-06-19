@@ -89,7 +89,10 @@ class VyplatitAutorskeOdmeny():
                     pass
 
     def meno_priezvisko(self, autor):
-        mp = f"{autor.titul_pred_menom} {autor.meno} {autor.priezvisko}"
+        if autor.titul_pred_menom:
+            mp = f"{autor.titul_pred_menom} {autor.meno} {autor.priezvisko}"
+        else:
+            mp = f"{autor.meno} {autor.priezvisko}"
         if autor.titul_za_menom:
             mp = f"{mp}, {autor.titul_za_menom}"
         return mp.strip()
@@ -440,11 +443,12 @@ class VyplatitAutorskeOdmeny():
     def odviest_dan(self, adata): 
         return self.je_rezident(adata) and adata.zdanit == "ano"
 
+    # LF sa odvádza, len ak má autor trvalé bydlisko v SR
     def odviest_lf(self, adata): 
-        return self.je_rezident(adata)
+        return adata.adresa_stat == "Slovenská republika"
 
     def je_rezident(self, adata):
-        return adata.adresa_stat == "Slovenská republika"
+        return adata.rezident == "ano"
 
     def zmluva_nezdanit(self, adata):
         return adata.zdanit != "ano"
