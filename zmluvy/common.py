@@ -84,9 +84,19 @@ def VytvoritAutorskuZmluvu(zmluva):
         mp = f"{mp}, {autor.titul_za_menom}"
     if not autor.adresa_mesto or not autor.adresa_stat:
         return messages.ERROR, f"Chyba pri vytváraní súborov zmluvy: nie je určené mesto alebo štát autora'", None
+    #adresa
     addr = f"{autor.adresa_mesto}, {autor.adresa_stat}"
     if autor.adresa_ulica:
         addr = f"{autor.adresa_ulica}, {addr}"
+
+    #korešpondenčná adresa
+    kaddr=""
+    if autor.koresp_adresa_mesto:
+        kaddr = f"{autor.koresp_adresa_mesto}, {autor.koresp_adresa_stat}"
+        if autor.koresp_adresa_ulica:
+            kaddr = f"{autor.koresp_adresa_ulica}, {kaddr}"
+        if autor.koresp_adresa_institucia:
+            kaddr = f"{autor.koresp_adresa_institucia}, {kaddr}"
 
     # zmluva na podpis s kompletnými údajmi
     try:
@@ -107,6 +117,7 @@ def VytvoritAutorskuZmluvu(zmluva):
     sablona_crz = sablona
 
     sablona = sablona.replace(f"{lt}adresa{gt}", addr)
+    sablona = sablona.replace(f"{lt}kadresa{gt}", kaddr)
     sablona_crz = sablona_crz.replace(f"{lt}adresa{gt}", "–")
     if not autor.rodne_cislo:
         return messages.ERROR, f"Chyba pri vytváraní súborov zmluvy: nie je určené rodné číslo autora'", None
@@ -120,6 +131,25 @@ def VytvoritAutorskuZmluvu(zmluva):
         return messages.ERROR, f"Chyba pri vytváraní súborov zmluvy: nie je určený email autora'", None
     sablona = sablona.replace(f"{lt}email{gt}", autor.email)
     sablona_crz = sablona_crz.replace(f"{lt}email{gt}", "–")
+
+    if autor.posobisko:
+        sablona = sablona.replace(f"{lt}posobisko{gt}", autor.posobisko)
+    else:
+        sablona = sablona.replace(f"{lt}posobisko{gt}", "")
+    sablona = sablona.replace(f"{lt}zdanit{gt}", autor.zdanit)
+    sablona = sablona.replace(f"{lt}rezident{gt}", autor.rezident)
+
+    #korešpondenčná adresa
+    if autor.koresp_adresa_mesto:
+        sablona = sablona.replace(f"{lt}kadresa1{gt}", autor.koresp_adresa_institucia if autor.koresp_adresa_institucia else "")
+        sablona = sablona.replace(f"{lt}kadresa2{gt}", autor.koresp_adresa_ulica if autor.koresp_adresa_ulica else "")
+        sablona = sablona.replace(f"{lt}kadresa3{gt}", autor.koresp_adresa_mesto if autor.koresp_adresa_mesto else "")
+        sablona = sablona.replace(f"{lt}kadresa4{gt}", autor.koresp_adresa_stat if autor.koresp_adresa_stat else "")
+    else:
+        sablona = sablona.replace(f"{lt}kadresa1{gt}", "")
+        sablona = sablona.replace(f"{lt}kadresa2{gt}", autor.adresa_ulica if autor.adresa_ulica else "")
+        sablona = sablona.replace(f"{lt}kadresa3{gt}", autor.adresa_mesto if autor.adresa_mesto else "")
+        sablona = sablona.replace(f"{lt}kadresa4{gt}", autor.adresa_stat if autor.adresa_stat else "")
 
     #ulozit
     #Create directory admin.rs_login if necessary
