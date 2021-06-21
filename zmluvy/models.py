@@ -176,7 +176,7 @@ class PlatbaAutorskaOdmena(Platba):
 
 class PlatbaAutorskaSumar(models.Model):
     #obdobie: priečinok, z ktorého bola platba importovaná
-    datum_uhradenia = models.DateField('Dátum vyplatenia')
+    datum_uhradenia = models.DateField('Dátum vyplatenia', null=True, blank=True)
     obdobie = models.CharField("Obdobie", max_length=20)  
 
     class Meta:
