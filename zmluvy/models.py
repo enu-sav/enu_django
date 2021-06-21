@@ -4,7 +4,7 @@ from django.utils import timezone
 from django.contrib import messages
 from ipdb import set_trace as trace
 
-from beliana.settings import CONTRACTS_DIR_NAME 
+from beliana.settings import CONTRACTS_DIR_NAME, RLTS_DIR_NAME
 import os
 
 
@@ -119,8 +119,8 @@ class ZmluvaAutor(Zmluva):
         verbose_name_plural = 'Autorské zmluvy'
 
 #https://stackoverflow.com/questions/55543232/how-to-upload-multiple-files-from-the-django-admin
+#Vykoná sa len pri vkladaní suborov cez GUI. Pri programovom vytváraní treba cestu nastaviť
 def zmluva_autor_upload_location(instance, filename):
-    #Vykoná sa len pri vkladaní suborov cez GUI. Pri programovom vytváraní treba cestu nastaviť
     dir_name = "{}-{}".format(instance.zmluva.zmluvna_strana.rs_login, instance.zmluva.cislo_zmluvy.replace("/","-"))
     file_name = filename.replace(" ", "-")
     return os.path.join(CONTRACTS_DIR_NAME, dir_name, file_name)
@@ -184,11 +184,12 @@ class PlatbaAutorskaSumar(models.Model):
         verbose_name_plural = 'Platby sumárne'
 
 #https://stackoverflow.com/questions/55543232/how-to-upload-multiple-files-from-the-django-admin
+#Vykoná sa len pri vkladaní suborov cez GUI. Pri programovom vytváraní treba cestu nastaviť
 def platba_autorska_sumar_upload_location(instance, filename):
-    #Vykoná sa len pri vkladaní suborov cez GUI. Pri programovom vytváraní treba cestu nastaviť
-    dir_name = "{}-{}".format(instance.zmluva.zmluvna_strana.rs_login, instance.zmluva.cislo_zmluvy.replace("/","-"))
+    dir_name = instance.platba_autorska_sumar.obdobie
     file_name = filename.replace(" ", "-")
-    return os.path.join(CONTRACTS_DIR_NAME, dir_name, file_name)
+    #Vyplacanie_autorskych_honorarov/2021-02/export_vyplatit_rs-gasparik.csv
+    return os.path.join(RLTS_DIR_NAME, dir_name, file_name)
 
 class PlatbaAutorskaSumarSubor(models.Model):
     # on_delete=models.CASCADE: when a ZmluvaAutor is deleted, upload models are also deleted
