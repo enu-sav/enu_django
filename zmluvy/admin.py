@@ -8,7 +8,8 @@ from simple_history.utils import update_change_reason
 
 # Register your models here.
 from beliana import settings
-from .models import OsobaAutor, ZmluvaAutor, PlatbaAutorskaOdmena, PlatbaAutorskaSumar, StavZmluvy, ZmluvaAutorSubor
+# pripajanie suborov k objektu: krok 1, importovať XxxSubor
+from .models import OsobaAutor, ZmluvaAutor, PlatbaAutorskaOdmena, PlatbaAutorskaSumar, StavZmluvy, ZmluvaAutorSubor, PlatbaAutorskaSumarSubor
 from .common import VytvoritAutorskuZmluvu
 
 #umožniť zobrazenie autora v zozname zmlúv
@@ -117,9 +118,10 @@ class ZmluvaAutorForm(forms.ModelForm):
         model = ZmluvaAutor
         fields = "__all__"
 
+# pripajanie suborov k objektu: krok 2, vytvoriť XxxSuborAdmin
+# musí byť pred krokom 3
 class ZmluvaAutorSuborAdmin(admin.StackedInline):
     model = ZmluvaAutorSubor
-
 
 @admin.register(ZmluvaAutor)
 class ZmluvaAutorAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
@@ -131,6 +133,7 @@ class ZmluvaAutorAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
     ordering = ('zmluvna_strana',)
     search_fields = ['cislo_zmluvy','zmluvna_strana__rs_login', 'honorar_ah', 'stav_zmluvy']
     actions = ['vytvorit_subory_zmluvy']
+    # pripajanie suborov k objektu: krok 3, inline do XxxAdmin 
     inlines = [ZmluvaAutorSuborAdmin]
 
     # umožnené prostredníctvom AdminChangeLinksMixin
@@ -205,6 +208,7 @@ class ZmluvaAutorAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
     vytvorit_subory_zmluvy.short_description = f"Vytvoriť súbory zmluvy"
 
 
+# pripajanie suborov k objektu: krok 4, register XxxSubor a definicia XxxSuborAdmin
 @admin.register(ZmluvaAutorSubor)
 class ZmluvaAutorSuborAdmin(admin.ModelAdmin):
     list_display = (["zmluva", "file"])
@@ -239,9 +243,17 @@ class PlatbaAutorskaOdmenaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
         return obj.datum_uhradenia.strftime("%d-%m-%Y")
     #crz_datum.short_description = "Platná od"
 
+# pripajanie suborov k objektu: krok 2, vytvoriť XxxSuborAdmin
+# musí byť pred krokom 3
+class PlatbaAutorskaSumarSuborAdmin(admin.StackedInline):
+    model = PlatbaAutorskaSumarSubor
+
 @admin.register(PlatbaAutorskaSumar)
 class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
     list_display = ['obdobie', 'datum_uhradenia', 'honorar_rs', 'honorar_webrs', 'honorar_spolu', 'vyplatene_spolu', 'odvod_LF', 'odvedena_dan']
+    #actions = ['vyplatit_autorske_odmeny']
+    # pripajanie suborov k objektu: krok 3, inline do XxxAdmin 
+    inlines = [PlatbaAutorskaSumarSuborAdmin]
 
     def honorar_spolu(self, sumplatba):
         platby = PlatbaAutorskaOdmena.objects.filter(obdobie=sumplatba.obdobie)
@@ -272,3 +284,9 @@ class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
         platby = PlatbaAutorskaOdmena.objects.filter(obdobie=sumplatba.obdobie)
         odmeny = [platba.uhradena_suma for platba in platby]
         return sum(odmeny)
+
+# pripajanie suborov k objektu: krok 4, register XxxSubor a definicia XxxSuborAdmin
+@admin.register(PlatbaAutorskaSumarSubor)
+class PlatbaAutorskaSumarSuborAdmin(admin.ModelAdmin):
+    list_display = (["platba_autorska_sumar", "file"])
+

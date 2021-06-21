@@ -182,3 +182,18 @@ class PlatbaAutorskaSumar(models.Model):
     class Meta:
         verbose_name = 'Platby sumárne'
         verbose_name_plural = 'Platby sumárne'
+
+#https://stackoverflow.com/questions/55543232/how-to-upload-multiple-files-from-the-django-admin
+def platba_autorska_sumar_upload_location(instance, filename):
+    #Vykoná sa len pri vkladaní suborov cez GUI. Pri programovom vytváraní treba cestu nastaviť
+    dir_name = "{}-{}".format(instance.zmluva.zmluvna_strana.rs_login, instance.zmluva.cislo_zmluvy.replace("/","-"))
+    file_name = filename.replace(" ", "-")
+    return os.path.join(CONTRACTS_DIR_NAME, dir_name, file_name)
+
+class PlatbaAutorskaSumarSubor(models.Model):
+    # on_delete=models.CASCADE: when a ZmluvaAutor is deleted, upload models are also deleted
+    platba_autorska_sumar = models.ForeignKey(PlatbaAutorskaSumar, on_delete=models.CASCADE) 
+    file = models.FileField("Súbor",upload_to=platba_autorska_sumar_upload_location, null = True, blank = True)
+    class Meta:
+        verbose_name = 'Súbor vyplácania'
+        verbose_name_plural = 'Súbory vyplácania'
