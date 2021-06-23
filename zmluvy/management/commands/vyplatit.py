@@ -18,18 +18,25 @@ import logging
 # 1. a 2. stlpec: uid a login autorov v RS
 # 3. stlpec: Autori uvedení ako autori hesiel
 
-ws_template = f"{settings.TEMPLATES_DIR}/UhradaAutHonoraru.xlsx"
-ah_cesta = settings.ROYALTIES_DIR
-litfond_odvod = 0   #Aktuálne 0 kvôli Covid pandémii, inak 2 %
-dan_odvod = 19    # daň, napr. 19 %
-min_vyplatit=20     #minimálna suma v Eur, ktorá sa vypláca
-ucetEnÚ = "SK36 8180 0000 0070 0061 8734 - Beliana"
-ucetLitFond  = "SK47 0200 0000 0012 2545 9853" 
-ucetFin = "SK61 8180 5002 6780 2710 3305"
 
 class VyplatitAutorskeOdmeny():
-    def __init__(self, za_mesiac, datum_vyplatenia=None):
-        self.vyplatit_odmeny(za_mesiac, datum_vyplatenia)
+    ws_template = f"{settings.TEMPLATES_DIR}/UhradaAutHonoraru.xlsx"
+    ah_cesta = settings.ROYALTIES_DIR
+    litfond_odvod = 0   #Aktuálne 0 kvôli Covid pandémii, inak 2 %
+    dan_odvod = 19    # daň, napr. 19 %
+    min_vyplatit=20     #minimálna suma v Eur, ktorá sa vypláca
+    ucetEnÚ = "SK36 8180 0000 0070 0061 8734 - Beliana"
+    ucetLitFond  = "SK47 0200 0000 0012 2545 9853" 
+    ucetFin = "SK61 8180 5002 6780 2710 3305"
+    WARNING, ERROR, SUCCESS = (1,2,3)
+
+    #def __init__(self, za_mesiac, datum_vyplatenia=None):
+        #self.vyplatit_odmeny(za_mesiac, datum_vyplatenia)
+    def __init__(self, db_logger, log):
+        self.db_logger = db_logger
+        self.log = log
+        pass
+        #self.vyplatit_odmeny(za_mesiac, datum_vyplatenia)
 
     def nacitat_udaje_grafik(self, fname):
         pass
@@ -39,13 +46,11 @@ class VyplatitAutorskeOdmeny():
         povinne = ["Nid", "Zmluva na vyplatenie", "Vyplatenie odmeny", "Dĺžka autorom odovzdaného textu", "Dátum záznamu dĺžky", "Dátum vyplatenia"]
         for item in povinne:
             if not item in row:
-                self.log(self.ERROR, f"Súbor {fname} musí obsahovať stĺpec '{item}'")
-                return False
+                return self.ERROR, f"Súbor {fname} musí obsahovať stĺpec '{item}'"
         if not "Login" in row :
             if not "Meno" in row or not "Priezvisko" in row: 
-                self.log(self.ERROR, f"Súbor {fname} musí obsahovať stĺpec 'Login' alebo stĺpce 'Meno' a 'Prezvisk'o")
-                return False
-        return True
+                return f"Súbor {fname} musí obsahovať stĺpec 'Login' alebo stĺpce 'Meno' a 'Prezvisko'"
+        return "" 
 
     def nacitat_udaje_autor(self, fname, rs_webrs):
         hdr = {}
@@ -55,9 +60,9 @@ class VyplatitAutorskeOdmeny():
             hasLogin = False
             for row in reader:
                 if not hdrOK:
-                    if not self.hlavicka_test(fname, row):
-                        self.log(self.ERROR, f"Nesprávny súbor {fname}")
-                        raise SystemExit
+                    status = self.hlavicka_test(fname, row)
+                    if status:
+                        self.log(self.ERROR, status)
                     for n, ii in enumerate(row):
                         hdr[ii]=n
                     if "Prihlásiť sa" in row: hasLogin=True
@@ -70,7 +75,6 @@ class VyplatitAutorskeOdmeny():
                     zmluva = row[hdr['Zmluva na vyplatenie']].strip()   # odstranit medzery na zaciatku a konci
                     if not zmluva:
                         self.log(self.ERROR, f"Heslo {row[hdr['nazov']]} autora {row[hdr['Prihlásiť sa']]} nemá určenú zmluvu")
-                        raise SystemExit
                     #if not login in self.pocet_znakov: self.pocet_znakov[login] = {}
                     #if not zmluva in self.pocet_znakov[login]: self.pocet_znakov[login][zmluva] = {}
                     #self.pocet_znakov[login][zmluva] += int(row[hdr["Dĺžka autorom odovzdaného textu"]])
@@ -110,12 +114,11 @@ class VyplatitAutorskeOdmeny():
 
         self.obdobie = za_mesiac.strip("/").split("/")[-1]
 
-        za_mesiac = os.path.join(ah_cesta, za_mesiac) 
+        za_mesiac = os.path.join(VyplatitAutorskeOdmeny.ah_cesta, za_mesiac) 
 
         #nájsť csv súbory 
         if not os.path.isdir(za_mesiac):
             self.log(self.ERROR, f"Priečinok {za_mesiac} nebol nájdený")
-            raise SystemExit
         csv_subory = glob(f"{za_mesiac}/*.csv")
         self.pocet_znakov = {"rs": {}, "webrs":{}}
         self.data={}
@@ -133,9 +136,7 @@ class VyplatitAutorskeOdmeny():
                 pass
             #else:
                 #aux_name = csv_subor.split("/")[-1]
-                #self.log(self.ERROR, f"V priečinku {ah_cesta}/{za_mesiac} bol nájdený neznámy súbor {aux_name}")
-                #self.log(self.ERROR, "Súbor odstráňte alebo opravte jeho názov")
-                #raise SystemExit
+                self.log(self.ERROR, f"V priečinku {VyplatitAutorskeOdmeny.ah_cesta}/{za_mesiac} bol nájdený neznámy súbor {aux_name}. Súbor odstráňte alebo opravte jeho názov")
 
         #scitat pocty znakov a rozhodnut, ci sa bude vyplacat
         self.suma_vyplatit={}    # Vyplati sa
@@ -146,7 +147,6 @@ class VyplatitAutorskeOdmeny():
             adata = OsobaAutor.objects.filter(rs_login=autor)
             if not adata:
                 self.log(self.ERROR, f"Autor {autor}: nemá záznam v databáze ")
-                raise SystemExit
             adata=adata[0]
             # pomocna struktura na vyplacanie
             zvyplatit = {}
@@ -154,7 +154,6 @@ class VyplatitAutorskeOdmeny():
                 zvyplatit[zmluva.cislo_zmluvy] = zmluva.honorar_ah
                 if zmluva.honorar_ah < 1:
                     self.log(self.ERROR, f"Zmluva {zmluva.cislo_zmluvy} autora {autor} nemá určený honorár/AH")
-                    raise SystemExit
                 if not zmluva.datum_zverejnenia_CRZ:
                     self.log(self.ERROR, f"Zmluva {zmluva.cislo_zmluvy} autora {autor} nie je zverejnená v CRZ")
             # vypocitat odmenu za vsetky hesla
@@ -167,14 +166,13 @@ class VyplatitAutorskeOdmeny():
                     #zmluva = re.sub(r"([^/]*)/(.*)",r"\2-\1",zmluva)
                     if not zmluva in zvyplatit:
                         self.log(self.ERROR, f"Autor {autor}: nemá v databáze zmluvu {zmluva}")
-                        raise SystemExit
                     # spocitat zaokruhlene sumy, aby vypocet bol konzistentny so scitanim v harku po_autoroch 
                     ahonorar = ahonorar + sum([round(z[0]*zvyplatit[zmluva]/36000,2) for z in self.data[autor][rs][zmluva]])    #[0]: pocet znakov
                     pass
             ahonorar = round(round(ahonorar,3),2)
             list_of_strings = [str(s) for s in zmluvy_autora]
             zmluvy_autora = ",".join(list_of_strings)
-            if ahonorar - adata.preplatok > min_vyplatit: # bude sa vyplácať, preplatok sa zohľadní a jeho hodnota sa aktualizuje v db
+            if ahonorar - adata.preplatok > VyplatitAutorskeOdmeny.min_vyplatit: # bude sa vyplácať, preplatok sa zohľadní a jeho hodnota sa aktualizuje v db
                 if adata.preplatok > 0:
                     self.log(self.SUCCESS, f"Autor %s: bude vyplatené %.2f € (platba %.2f mínus preplatok %.2f)"%(autor,ahonorar - adata.preplatok,ahonorar,adata.preplatok))
                 else:
@@ -187,7 +185,7 @@ class VyplatitAutorskeOdmeny():
                 self.suma_preplatok[autor] = [ahonorar, adata.preplatok, zmluvy_autora]
                 #aktualizovať preplatok
                 pass
-            else: #po odpočítaní preplatku zostane suma menšia ako min_vyplatit. Nevyplatí sa, počká sa na ďalšie platby
+            else: #po odpočítaní preplatku zostane suma menšia ako VyplatitAutorskeOdmeny.min_vyplatit. Nevyplatí sa, počká sa na ďalšie platby
                 if adata.preplatok > 0:
                     self.log(self.WARNING, f"Autor %s: nebude vyplatené %.2f € (nízka suma, platba %.2f mínus preplatok %.2f)"%(autor,ahonorar - adata.preplatok,ahonorar,adata.preplatok))
                 else:
@@ -200,7 +198,7 @@ class VyplatitAutorskeOdmeny():
         acenter = Alignment(horizontal='center')
         aleft = Alignment(horizontal='left')
 
-        workbook = load_workbook(filename=ws_template)
+        workbook = load_workbook(filename=VyplatitAutorskeOdmeny.ws_template)
         vyplatit = workbook[workbook.sheetnames[0]]
         self.vypocet = workbook[workbook.sheetnames[1]]
         self.krycilist = workbook[workbook.sheetnames[2]]
@@ -248,7 +246,7 @@ class VyplatitAutorskeOdmeny():
         vyplatit[f"B7"].alignment = aleft
         vyplatit[f"B7"].font = self.fbold
         vyplatit["A8"] = "Z čísla účtu EnÚ:"
-        vyplatit["B8"] = ucetEnÚ
+        vyplatit["B8"] = VyplatitAutorskeOdmeny.ucetEnÚ
         # Farba pozadia
         for i, rowOfCellObjects in enumerate(vyplatit['A7':'G8']):
             for n, cellObj in enumerate(rowOfCellObjects):
@@ -258,11 +256,11 @@ class VyplatitAutorskeOdmeny():
         pos = 10
         a,b,c,d,e,f = range(pos, pos+6)
         vyplatit[f"A{a}"] = "Komu:"
-        vyplatit[f"B{a}"] = f"Odvod Lit. fond ({litfond_odvod} %)"
+        vyplatit[f"B{a}"] = f"Odvod Lit. fond ({VyplatitAutorskeOdmeny.litfond_odvod} %)"
         vyplatit[f"A{b}"] = "Názov:"
         vyplatit[f"B{b}"] = "Literárny fond"
         vyplatit[f"A{c}"] = "IBAN:"
-        vyplatit[f"B{c}"] = ucetLitFond
+        vyplatit[f"B{c}"] = VyplatitAutorskeOdmeny.ucetLitFond
         vyplatit[f"A{d}"] = "VS:"
         vyplatit[f"B{d}"] = "2001"
         vyplatit[f"A{e}"] = "KS:"
@@ -280,7 +278,7 @@ class VyplatitAutorskeOdmeny():
         vyplatit[f"A{b}"] = "Názov:"
         vyplatit[f"B{b}"] = "Finančná správa"
         vyplatit[f"A{c}"] = "IBAN:"
-        vyplatit[f"B{c}"] = ucetFin
+        vyplatit[f"B{c}"] = VyplatitAutorskeOdmeny.ucetFin
         vyplatit[f"A{d}"] = "VS:"
         # predpokladáme, ze self.obdobie na tvar yyyy-mmxxx
         vyplatit[f"B{d}"] = f"1700{self.obdobie[5:7]}{self.obdobie[:4]}"
@@ -355,7 +353,8 @@ class VyplatitAutorskeOdmeny():
         self.krycilist[f"K{self.kpos}"] = f"=SUM(K{self.kstart}:K{self.kpos-1})"
         self.krycilist[f"K{self.kpos}"].font = self.fbold
 
-        if self.datum_vyplatenia and not self.negenerovat_subory:
+        #if self.datum_vyplatenia and not self.negenerovat_subory:
+        if self.datum_vyplatenia:
             fpath = os.path.join(za_mesiac,f"Vyplatene-{self.obdobie}.xlsx")
             workbook.save(fpath)
             msg = f"Údaje o vyplácaní uložené do súboru {fpath}"
@@ -380,16 +379,20 @@ class VyplatitAutorskeOdmeny():
             self.log(self.WARNING, msg)
         else:
             fpath = os.path.join(za_mesiac,f"Vyplatit-{self.obdobie}-THS.xlsx")
-            if not self.negenerovat_subory:
-                workbook.save(fpath)
-                msg = f"Údaje o vyplácaní na odoslanie THS boli uložené do súboru {fpath}"
-                self.log(self.WARNING, msg)
-                self.db_logger.warning(msg)
+            #if not self.negenerovat_subory:
+                #workbook.save(fpath)
+                #msg = f"Údaje o vyplácaní na odoslanie THS boli uložené do súboru {fpath}"
+                #self.log(self.WARNING, msg)
+                #self.db_logger.warning(msg)
+            workbook.save(fpath)
+            msg = f"Údaje o vyplácaní na odoslanie THS boli uložené do súboru {fpath}"
+            self.log(self.WARNING, msg)
+            self.db_logger.warning(msg)
 
     # vyplnit harok vypocet
     def vyplnit_harok_vypocet(self):
         #hlavicka
-        vypocet_hlavicka = ["Autor", "Zmluvy", "Zmluva o nezdaňovaní", "Rezident SR", "Honorár", "Preplatok", "Honorár – Preplatok", "Odvod LF", "Odvod LF zaokr.", f"{dan_odvod} % daň", "daň zaokr.", "Vyplatiť"]
+        vypocet_hlavicka = ["Autor", "Zmluvy", "Zmluva o nezdaňovaní", "Rezident SR", "Honorár", "Preplatok", "Honorár – Preplatok", "Odvod LF", "Odvod LF zaokr.", f"{VyplatitAutorskeOdmeny.dan_odvod} % daň", "daň zaokr.", "Vyplatiť"]
 
         for i, val in enumerate(vypocet_hlavicka):
             self.vypocet.cell(row=1, column=i+1).value = vypocet_hlavicka[i]
@@ -422,12 +425,12 @@ class VyplatitAutorskeOdmeny():
             self.vypocet[f"F{ii}"] = self.suma_vyplatit[autor][1]
             self.vypocet[f"G{ii}"] = f"=E{ii}-F{ii}"
             #self.vypocet[f"H{ii}"] = f"=G{ii}*0.02"
-            self.vypocet[f"H{ii}"] = f'=IF(D{ii}="ano",G{ii}*{litfond_odvod/100},0'
+            self.vypocet[f"H{ii}"] = f'=IF(D{ii}="ano",G{ii}*{VyplatitAutorskeOdmeny.litfond_odvod/100},0'
             #zaokrúhľovanie: https://podpora.financnasprava.sk/407328-Sp%C3%B4sob-zaokr%C3%BAh%C4%BEovania-v-roku-2020
             self.vypocet[f"I{ii}"] = f"=ROUND(H{ii},2)"
-            #self.vypocet[f"J{ii}"] = f"=(G{ii}-I{ii})*{dan_odvod/100}"
-            #self.vypocet[f"J{ii}"] = f'=IF(C{ii}="ano",(G{ii}-I{ii})*{dan_odvod/100},0'
-            self.vypocet[f"J{ii}"] = f'=IF(AND(C{ii}="nie",D{ii}="ano"),(G{ii}-I{ii})*{dan_odvod/100},0'
+            #self.vypocet[f"J{ii}"] = f"=(G{ii}-I{ii})*{VyplatitAutorskeOdmeny.dan_odvod/100}"
+            #self.vypocet[f"J{ii}"] = f'=IF(C{ii}="ano",(G{ii}-I{ii})*{VyplatitAutorskeOdmeny.dan_odvod/100},0'
+            self.vypocet[f"J{ii}"] = f'=IF(AND(C{ii}="nie",D{ii}="ano"),(G{ii}-I{ii})*{VyplatitAutorskeOdmeny.dan_odvod/100},0'
             self.vypocet[f"K{ii}"] = f"=ROUND(J{ii},2)"
             self.vypocet[f"L{ii}"] = f"=G{ii}-I{ii}-K{ii}"
         pass
@@ -545,9 +548,9 @@ class VyplatitAutorskeOdmeny():
 
                 #LitFond
                 if self.odviest_lf(adata):
-                    lf = round((honorar-preplatok)*litfond_odvod/100,2)
+                    lf = round((honorar-preplatok)*VyplatitAutorskeOdmeny.litfond_odvod/100,2)
                     vypocet -= lf
-                    self.bb( f"Odvod LitFond ({litfond_odvod} %, zaokr.):", lf)
+                    self.bb( f"Odvod LitFond ({VyplatitAutorskeOdmeny.litfond_odvod} %, zaokr.):", lf)
                 else:
                     lf = 0
                     self.bb( f"Odvod LitFond (neodvádza sa, bydlisko mimo SR):", 0)
@@ -562,9 +565,9 @@ class VyplatitAutorskeOdmeny():
                     vyplatit = round(vypocet,2)
                     self.bb( f"Daň:", "nezdaňuje sa (podpísaná dohoda)")
                 else:
-                    dan = round(vypocet*dan_odvod/100,2)
+                    dan = round(vypocet*VyplatitAutorskeOdmeny.dan_odvod/100,2)
                     vyplatit = round(vypocet - dan,2)
-                    self.bb( f"Daň ({dan_odvod} %, zaokr.):", dan)
+                    self.bb( f"Daň ({VyplatitAutorskeOdmeny.dan_odvod} %, zaokr.):", dan)
 
                 self.bb( "Vyplatiť:", vyplatit)
                 self.bb( "Nová hodnota preplatku:", 0)
@@ -579,9 +582,9 @@ class VyplatitAutorskeOdmeny():
 
                 #LitFond
                 if self.odviest_lf(adata):
-                    lf = round(vypocet*litfond_odvod/100,2)
+                    lf = round(vypocet*VyplatitAutorskeOdmeny.litfond_odvod/100,2)
                     vypocet -= lf
-                    self.bb( f"Odvod LitFond ({litfond_odvod} %, zaokr.):", lf)
+                    self.bb( f"Odvod LitFond ({VyplatitAutorskeOdmeny.litfond_odvod} %, zaokr.):", lf)
                 else:
                     lf = 0
                     self.bb( f"Odvod LitFond:", "neodvádza sa, bydlisko mimo SR")
@@ -596,9 +599,9 @@ class VyplatitAutorskeOdmeny():
                     vyplatit = round(vypocet,2)
                     self.bb( f"Daň:", "nezdanuje sa (podpísaná dohoda)")
                 else:
-                    dan = round(vypocet*dan_odvod/100,2)
+                    dan = round(vypocet*VyplatitAutorskeOdmeny.dan_odvod/100,2)
                     vyplatit = round(vypocet - dan,2)
-                    self.bb( f"Daň ({dan_odvod} %, zaokr.):", dan)
+                    self.bb( f"Daň ({VyplatitAutorskeOdmeny.dan_odvod} %, zaokr.):", dan)
 
                 self.bb( "Vyplatiť:", vyplatit)
                 vdata["lf"] = lf
@@ -767,7 +770,8 @@ class VyplatitAutorskeOdmeny():
 #page_break = Break(id=row_number)  # create Break obj
 #ws.page_breaks.append(page_break)  # insert page break
 
-class Command(BaseCommand, VyplatitAutorskeOdmeny):
+#class Command(BaseCommand, VyplatitAutorskeOdmeny):
+class Command(BaseCommand):
     help = 'Vygenerovať podklady na vyplácanie autorských odmien'
     WARNING, ERROR, SUCCESS = (1,2,3)
 
@@ -781,7 +785,7 @@ class Command(BaseCommand, VyplatitAutorskeOdmeny):
         
 
     def add_arguments(self, parser):
-        parser.add_argument('--na-vyplatenie', type=str, help=f"Priečinok s názvom RRRR-MM v {ah_cesta} so súbormi s údajmi pre vyplácanie autorských honorárov")
+        parser.add_argument('--na-vyplatenie', type=str, help=f"Priečinok s názvom RRRR-MM v {VyplatitAutorskeOdmeny.ah_cesta} so súbormi s údajmi pre vyplácanie autorských honorárov")
         parser.add_argument('--datum-vyplatenia', type=str, help="Dátum vyplatenia hesiel v tvare 'dd.mm.rrrr'. Zadať až po vyplatení hesiel THS-kou. Ak sa nezadá, vygenerujú sa len podklady pre THS-ku na vyplácanie. Ak sa zadá, aktualizuje sa databáza a vygenerujú sa zoznamy vyplatených hesiel na importovanie do RS a WEBRS, ako aj potvrdenie o zaplatení na zaradenie do šanonu.")
         parser.add_argument("--zrusit-platbu" , default=False ,help="Zrušiť všetky platby pre vyplácanie určené prepínačom --na-vyplatenie", dest='zrusit_platbu', action='store_true')
         parser.add_argument("--negenerovat-subory" , default=False ,help="aktualizuje sa databáza, ale súbory sa negenerujú", dest='negenerovat_subory', action='store_true')
@@ -790,8 +794,7 @@ class Command(BaseCommand, VyplatitAutorskeOdmeny):
         if kwargs['na_vyplatenie']:
             za_mesiac = kwargs['na_vyplatenie']
         else:
-            self.log(self.ERROR, f"Nebol zadaný názov priečinka v '{ah_cesta}' v tvare 'mm-rrrr' s údajmi na vyplatenie")
-            raise SystemExit
+            self.log(self.ERROR, f"Nebol zadaný názov priečinka v '{VyplatitAutorskeOdmeny.ah_cesta}' v tvare 'mm-rrrr' s údajmi na vyplatenie")
 
         self.negenerovat_subory = kwargs['negenerovat_subory']
 
@@ -799,21 +802,25 @@ class Command(BaseCommand, VyplatitAutorskeOdmeny):
         if kwargs['zrusit_platbu']:
             platby = PlatbaAutorskaOdmena.objects.filter(obdobie=za_mesiac)
             if platby:
-                self.zrusit_vyplacanie(za_mesiac)
+                ao = VyplatitAutorskeOdmeny(self.db_logger, self.mylog)
+                ao.zrusit_vyplacanie(za_mesiac)
             else:
                 self.log(self.ERROR, f"Platby pre obdobie {za_mesiac} v databáze existujú, nemám čo zrušiť.")
-            raise SystemExit
         else:
             platby = PlatbaAutorskaOdmena.objects.filter(obdobie=za_mesiac)
             if platby:
                 self.log(self.ERROR, f"Platby pre obdobie {za_mesiac} už v databáze existujú. Ak chcete operáciu vykonať, najskôr ich odstráňte pomocou prepínača --zrusit-platbu.")
-                raise SystemExit
 
-            self.vyplatit_odmeny(za_mesiac, kwargs['datum_vyplatenia'])
+
+            ao = VyplatitAutorskeOdmeny(self.db_logger, self.mylog)
+            ao.vyplatit_odmeny(za_mesiac, kwargs['datum_vyplatenia'])
             if  kwargs['datum_vyplatenia']:
                 PlatbaAutorskaSumar.objects.create(
                     obdobie = za_mesiac,
                     #datum_uhradenia = kwargs['datum_vyplatenia']
                     datum_uhradenia = re.sub(r"([^.]*)[.]([^.]*)[.](.*)", r"\3-\2-\1", kwargs['datum_vyplatenia'])
                     ) 
+    def mylog(self, status, msg):
+        self.log(status, msg)
+        if status == self.ERROR: raise SystemExit
 
