@@ -3,11 +3,13 @@ import os, csv, re
 from glob import glob
 from datetime import date
 from django.conf import settings
+from django.contrib import messages
 from zmluvy.models import OsobaAutor, ZmluvaAutor, PlatbaAutorskaOdmena, PlatbaAutorskaSumar
 from openpyxl import load_workbook
 from openpyxl.styles import Font, Color, colors, Alignment, PatternFill , numbers
 from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.pagebreak import Break
+from ipdb import set_trace as trace
 
 
 class VyplatitAutorskeOdmeny():
@@ -23,49 +25,44 @@ class VyplatitAutorskeOdmeny():
 
     #def __init__(self, za_mesiac, datum_vyplatenia=None):
         #self.vyplatit_odmeny(za_mesiac, datum_vyplatenia)
-    def __init__(self, db_logger, log):
-        self.db_logger = db_logger
-        self.log = log
+    def __init__(self, subory_dir):
+        self.ah_cesta = subory_dir
+        self.logs = []
         pass
         #self.vyplatit_odmeny(za_mesiac, datum_vyplatenia)
+
+    def log(self, status, msg):
+        self.logs.append([status,msg])
+
+    def get_logs(self):
+        return self.logs
 
     def nacitat_udaje_grafik(self, fname):
         pass
 
     def hlavicka_test(self, fname, row):
         # povinné stĺpce v csv súbore:
-        povinne = ["Nid", "Zmluva na vyplatenie", "Vyplatenie odmeny", "Dĺžka autorom odovzdaného textu", "Dátum záznamu dĺžky", "Dátum vyplatenia"]
+        povinne = ["Nid", "Prihlásiť sa", "Zmluva na vyplatenie", "Vyplatenie odmeny", "Dĺžka autorom odovzdaného textu", "Dátum záznamu dĺžky", "Dátum vyplatenia"]
         for item in povinne:
             if not item in row:
-                return self.ERROR, f"Súbor {fname} musí obsahovať stĺpec '{item}'"
-        if not "Login" in row :
-            if not "Meno" in row or not "Priezvisko" in row: 
-                return f"Súbor {fname} musí obsahovať stĺpec 'Login' alebo stĺpce 'Meno' a 'Prezvisko'"
-        return "" 
+                raise Exception(f"Súbor {fname} musí obsahovať stĺpec '{item}'")
 
     def nacitat_udaje_autor(self, fname, rs_webrs):
         hdr = {}
         with open(fname, 'rt') as f:
             reader = csv.reader(f, dialect='excel')
             hdrOK = False
-            hasLogin = False
             for row in reader:
                 if not hdrOK:
-                    status = self.hlavicka_test(fname, row)
-                    if status:
-                        self.log(self.ERROR, status)
+                    self.hlavicka_test(fname, row)
                     for n, ii in enumerate(row):
                         hdr[ii]=n
-                    if "Prihlásiť sa" in row: hasLogin=True
                     hdrOK = True
                 if row[hdr["Vyplatenie odmeny"]] == "Heslo vypracoval autor, vyplatiť" and not row[hdr["Dátum vyplatenia"]]:
-                    if hasLogin:
-                        login = row[hdr["Prihlásiť sa"]]
-                    else:
-                        login = transliterate(row[hdr["Priezvisko"]])+transliterate(row[hdr["Meno"]])
+                    login = row[hdr["Prihlásiť sa"]]
                     zmluva = row[hdr['Zmluva na vyplatenie']].strip()   # odstranit medzery na zaciatku a konci
                     if not zmluva:
-                        self.log(self.ERROR, f"Heslo {row[hdr['nazov']]} autora {row[hdr['Prihlásiť sa']]} nemá určenú zmluvu")
+                        self.log(messages.ERROR, f"Heslo {row[hdr['nazov']]} autora {row[hdr['Prihlásiť sa']]} nemá určenú zmluvu")
                     #if not login in self.pocet_znakov: self.pocet_znakov[login] = {}
                     #if not zmluva in self.pocet_znakov[login]: self.pocet_znakov[login][zmluva] = {}
                     #self.pocet_znakov[login][zmluva] += int(row[hdr["Dĺžka autorom odovzdaného textu"]])
@@ -94,40 +91,32 @@ class VyplatitAutorskeOdmeny():
             
     def vyplatit_odmeny(self, za_mesiac, datum_vyplatenia=None): 
         self.datum_vyplatenia = datum_vyplatenia # Ak None, nevygenerujú sa hárky ImportRS/WEBRS
-        if self.datum_vyplatenia:
-            self.db_logger.info(f"Vytvorená platba {za_mesiac} a vygenerovaný záznam o platbách na založenie: vyplatit.py --na-vyplatenie {za_mesiac} --datum-vyplatenia {self.datum_vyplatenia}")
-            self.log(self.SUCCESS, f"Bol zadaný dátum vyplatenia hesiel ({self.datum_vyplatenia}).")
-            self.log(self.WARNING, f"Vygenerujú sa zoznamy vyplatených hesiel na importovanie do RS a WEBRS, ako aj potvrdenie o zaplatení na zaradenie do šanonu.")
-        else:
-            self.db_logger.info(f"Vygenerované podklady pre THS za {za_mesiac}: vyplatit.py --na-vyplatenie {za_mesiac}")
-            self.log(self.SUCCESS,f"Nebol zadaný dátum vyplatenia hesiel.")
-            self.log(self.WARNING, f"Vygenerujú sa len podklady pre THS-ku na vyplácanie. Po vyplatení treba tento program spustiť ešte raz so zadaným dátum vyplatenia")
 
         self.obdobie = za_mesiac.strip("/").split("/")[-1]
 
-        za_mesiac = os.path.join(VyplatitAutorskeOdmeny.ah_cesta, za_mesiac) 
+        za_mesiac = os.path.join(self.ah_cesta, za_mesiac) 
 
         #nájsť csv súbory 
         if not os.path.isdir(za_mesiac):
-            self.log(self.ERROR, f"Priečinok {za_mesiac} nebol nájdený")
+            raise Exception(f"Priečinok {za_mesiac} nebol nájdený")
         csv_subory = glob(f"{za_mesiac}/*.csv")
         self.pocet_znakov = {"rs": {}, "webrs":{}}
         self.data={}
 
         for csv_subor in csv_subory:
             if "export_vyplatit_rs" in csv_subor:
-                self.log(self.WARNING, f"Načítavam údaje zo súboru {csv_subor}")
+                self.log(messages.INFO, f"Načítané údaje zo súboru {csv_subor}")
                 hdr = self.nacitat_udaje_autor(csv_subor, "rs")
             elif "export_vyplatit_webrs" in csv_subor:
-                self.log(self.WARNING, f"Načítavam údaje zo súboru {csv_subor}")
+                self.log(messages.INFO, f"Načítané údaje zo súboru {csv_subor}")
                 hdr = self.nacitat_udaje_autor(csv_subor, "webrs")
             elif "_grafik" in csv_subor:
-                self.log(self.WARNING, f"Načítavam údaje zo súboru {csv_subor}")
+                self.log(messages.INFO, f"Načítané údaje zo súboru {csv_subor}")
                 self.nacitat_udaje_grafik(csv_subor)
                 pass
             #else:
                 #aux_name = csv_subor.split("/")[-1]
-                self.log(self.ERROR, f"V priečinku {VyplatitAutorskeOdmeny.ah_cesta}/{za_mesiac} bol nájdený neznámy súbor {aux_name}. Súbor odstráňte alebo opravte jeho názov")
+                self.log(messages.ERROR, f"V priečinku {self.ah_cesta}/{za_mesiac} bol nájdený neznámy súbor {aux_name}. Súbor odstráňte alebo opravte jeho názov")
 
         #scitat pocty znakov a rozhodnut, ci sa bude vyplacat
         self.suma_vyplatit={}    # Vyplati sa
@@ -137,16 +126,16 @@ class VyplatitAutorskeOdmeny():
             zdata = ZmluvaAutor.objects.filter(zmluvna_strana__rs_login=autor)
             adata = OsobaAutor.objects.filter(rs_login=autor)
             if not adata:
-                self.log(self.ERROR, f"Autor {autor}: nemá záznam v databáze ")
+                self.log(messages.ERROR, f"Autor {autor}: nemá záznam v databáze ")
             adata=adata[0]
             # pomocna struktura na vyplacanie
             zvyplatit = {}
             for zmluva in zdata:
                 zvyplatit[zmluva.cislo_zmluvy] = zmluva.honorar_ah
                 if zmluva.honorar_ah < 1:
-                    self.log(self.ERROR, f"Zmluva {zmluva.cislo_zmluvy} autora {autor} nemá určený honorár/AH")
+                    self.log(messages.ERROR, f"Zmluva {zmluva.cislo_zmluvy} autora {autor} nemá určený honorár/AH")
                 if not zmluva.datum_zverejnenia_CRZ:
-                    self.log(self.ERROR, f"Zmluva {zmluva.cislo_zmluvy} autora {autor} nie je zverejnená v CRZ")
+                    self.log(messages.ERROR, f"Zmluva {zmluva.cislo_zmluvy} autora {autor} nie je zverejnená v CRZ")
             # vypocitat odmenu za vsetky hesla
             ahonorar = 0 #sucet odmien za jednotlive hesla na zaklade zmluv
             zmluvy_autora = set()
@@ -156,7 +145,7 @@ class VyplatitAutorskeOdmeny():
                     #if not zmluva in zvyplatit:
                     #zmluva = re.sub(r"([^/]*)/(.*)",r"\2-\1",zmluva)
                     if not zmluva in zvyplatit:
-                        self.log(self.ERROR, f"Autor {autor}: nemá v databáze zmluvu {zmluva}")
+                        self.log(messages.ERROR, f"Autor {autor}: nemá v databáze zmluvu {zmluva}")
                     # spocitat zaokruhlene sumy, aby vypocet bol konzistentny so scitanim v harku po_autoroch 
                     ahonorar = ahonorar + sum([round(z[0]*zvyplatit[zmluva]/36000,2) for z in self.data[autor][rs][zmluva]])    #[0]: pocet znakov
                     pass
@@ -165,22 +154,22 @@ class VyplatitAutorskeOdmeny():
             zmluvy_autora = ",".join(list_of_strings)
             if ahonorar - adata.preplatok > VyplatitAutorskeOdmeny.min_vyplatit: # bude sa vyplácať, preplatok sa zohľadní a jeho hodnota sa aktualizuje v db
                 if adata.preplatok > 0:
-                    self.log(self.SUCCESS, f"Autor %s: bude vyplatené %.2f € (platba %.2f mínus preplatok %.2f)"%(autor,ahonorar - adata.preplatok,ahonorar,adata.preplatok))
+                    self.log(messages.INFO, f"Autor %s: bude vyplatené %.2f € (platba %.2f mínus preplatok %.2f)"%(autor,ahonorar - adata.preplatok,ahonorar,adata.preplatok))
                 else:
-                    self.log(self.SUCCESS, f"Autor %s: bude vyplatené %.2f €"%(autor, ahonorar))
+                    self.log(messages.INFO, f"Autor %s: bude vyplatené %.2f €"%(autor, ahonorar))
                 self.suma_vyplatit[autor] = [round(ahonorar,2), adata.preplatok, zmluvy_autora]
                 #aktualizovať preplatok
                 pass
             elif ahonorar < adata.preplatok: # celú sumu možno odpočítať z preplatku
-                self.log(self.SUCCESS, f"Autor %s: Suma %.2f € sa nevyplatí, odpočíta sa od preplatku %.2f €"%(autor, ahonorar,adata.preplatok) )
+                self.log(messages.INFO, f"Autor %s: Suma %.2f € sa nevyplatí, odpočíta sa od preplatku %.2f €"%(autor, ahonorar,adata.preplatok) )
                 self.suma_preplatok[autor] = [ahonorar, adata.preplatok, zmluvy_autora]
                 #aktualizovať preplatok
                 pass
             else: #po odpočítaní preplatku zostane suma menšia ako VyplatitAutorskeOdmeny.min_vyplatit. Nevyplatí sa, počká sa na ďalšie platby
                 if adata.preplatok > 0:
-                    self.log(self.WARNING, f"Autor %s: nebude vyplatené %.2f € (nízka suma, platba %.2f mínus preplatok %.2f)"%(autor,ahonorar - adata.preplatok,ahonorar,adata.preplatok))
+                    self.log(messages.INFO, f"Autor %s: nebude vyplatené %.2f € (nízka suma, platba %.2f mínus preplatok %.2f)"%(autor,ahonorar - adata.preplatok,ahonorar,adata.preplatok))
                 else:
-                    self.log(self.WARNING, f"Autor %s: nebude vyplatené %.2f € (nízka suma)"%(autor,ahonorar - adata.preplatok) )
+                    self.log(messages.INFO, f"Autor %s: nebude vyplatené %.2f € (nízka suma)"%(autor,ahonorar - adata.preplatok) )
                 pass
         # styly buniek, https://openpyxl.readthedocs.io/en/default/styles.html
         # default font dokumentu je Arial
@@ -349,8 +338,8 @@ class VyplatitAutorskeOdmeny():
             fpath = os.path.join(za_mesiac,f"Vyplatene-{self.obdobie}.xlsx")
             workbook.save(fpath)
             msg = f"Údaje o vyplácaní uložené do súboru {fpath}"
-            self.log(self.WARNING, msg)
-            self.db_logger.warning(msg)
+            self.log(messages.SUCCESS, msg)
+            #self.db_logger.warning(msg)
 
             # vytvorit csv subory na importovanie
             fpath = os.path.join(za_mesiac,f"Import-rs-{self.obdobie}.csv")
@@ -359,7 +348,7 @@ class VyplatitAutorskeOdmeny():
                 for b, c in zip(self.importrs["b:c"][0], self.importrs["b:c"][1]) :
                     csvWriter.writerow([b.value,c.value])
             msg = f"Údaje na importovanie do RS boli uložené do súboru {fpath}"
-            self.log(self.WARNING, msg)
+            self.log(messages.SUCCESS, msg)
 
             fpath = os.path.join(za_mesiac,f"Import-webrs-{self.obdobie}.csv")
             with open(fpath, "w") as csvfile:
@@ -367,18 +356,18 @@ class VyplatitAutorskeOdmeny():
                 for b, c in zip(self.importwebrs["b:c"][0], self.importwebrs["b:c"][1]) :
                     csvWriter.writerow([b.value,c.value])
             msg = f"Údaje na importovanie do WEBRS boli uložené do súboru {fpath}"
-            self.log(self.WARNING, msg)
+            self.log(messages.SUCCESS, msg)
         else:
             fpath = os.path.join(za_mesiac,f"Vyplatit-{self.obdobie}-THS.xlsx")
             #if not self.negenerovat_subory:
                 #workbook.save(fpath)
                 #msg = f"Údaje o vyplácaní na odoslanie THS boli uložené do súboru {fpath}"
-                #self.log(self.WARNING, msg)
+                #self.log(messages.WARNING, msg)
                 #self.db_logger.warning(msg)
             workbook.save(fpath)
             msg = f"Údaje o vyplácaní na odoslanie THS boli uložené do súboru {fpath}"
-            self.log(self.WARNING, msg)
-            self.db_logger.warning(msg)
+            self.log(messages.SUCCESS, msg)
+            #self.db_logger.warning(msg)
 
     # vyplnit harok vypocet
     def vyplnit_harok_vypocet(self):
@@ -749,9 +738,9 @@ class VyplatitAutorskeOdmeny():
             platba.autor.save()
             #zmazať platbu
             platba.delete()
-            self.log(self.SUCCESS, msg)
+            self.log(messages.SUCCESS, msg)
             pass
         sumarne = PlatbaAutorskaSumar.objects.filter(obdobie=za_mesiac)
         sumarne.delete()
-        self.db_logger.info(f"Zrušená platba {za_mesiac}: vyplatit.py --na_vyplatenie {za_mesiac} --zrusit-platbu")
+        #self.db_logger.info(f"Zrušená platba {za_mesiac}: vyplatit.py --na_vyplatenie {za_mesiac} --zrusit-platbu")
 

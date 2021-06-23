@@ -4,13 +4,16 @@ from django import forms
 from ipdb import set_trace as trace
 from django.contrib import messages
 from django.utils.translation import ngettext
+from django.conf import settings
 from simple_history.utils import update_change_reason
-import os
+import os, re
+import logging
 
 # Register your models here.
 # pripajanie suborov k objektu: krok 1, importovať XxxSubor
 from .models import OsobaAutor, ZmluvaAutor, PlatbaAutorskaOdmena, PlatbaAutorskaSumar, StavZmluvy, ZmluvaAutorSubor, PlatbaAutorskaSumarSubor
 from .common import VytvoritAutorskuZmluvu, VyplatitAutorskeOdmeny
+from .vyplatitautorske import VyplatitAutorskeOdmeny
 
 #umožniť zobrazenie autora v zozname zmlúv
 #https://pypi.org/project/django-admin-relation-links/
@@ -292,22 +295,33 @@ class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
             return
         platba = queryset[0]
         if platba.datum_uhradenia:
-            self.message_user(request, f"Platba {platba.obdobie} už bola vložená do databázy s dátumon vyplatenia {platba.datum_uhradenia}. Ak chcete platbu zopakovať, musíte ju zrušit pomocou 'Zrušiť platbu'", messages.ERROR)
+            self.message_user(request, f"Platba {platba.obdobie} už bola vložená do databázy s dátumom vyplatenia {platba.datum_uhradenia}. Ak chcete platbu zopakovať, musíte ju zrušit pomocou 'Zrušiť platbu'", messages.ERROR)
             return
-        #status, msg, vytvorene_subory = VyplatitAutorskeOdmeny(platba)
-        novy_subor = PlatbaAutorskaSumarSubor(platba_autorska_sumar=platba, file="test.txt")
-        novy_subor.save()
-        return
-        if status != messages.ERROR:
+        self.db_logger = logging.getLogger('db')
+        try:
+            vao = VyplatitAutorskeOdmeny(settings.RLTS_DIR)
+            vao.vyplatit_odmeny(platba.obdobie, "")
+            logs = vao.get_logs()
+            #status, msg, vytvorene_subory = VyplatitAutorskeOdmeny(platba)
+            for log in logs:
+                fname = re.findall(r"uložené do súboru ({}.*)".format(settings.MEDIA_ROOT),log[1]) 
+                if fname:
+                    fname = fname[0].replace(settings.MEDIA_ROOT,"")
+                    # odstrániť existujúcu verziu (verzie súboru)
+                    for oq in PlatbaAutorskaSumarSubor.objects.filter(file=fname): oq.delete()
+                    novy_subor = PlatbaAutorskaSumarSubor(platba_autorska_sumar=platba, file=fname)
+                    novy_subor.save()
+                self.message_user(request, log[1].replace(settings.MEDIA_ROOT,""), log[0])
             platba.datum_aktualizacie = timezone.now(),
             platba.save()
-            for subor in vytvorene_subory:
-                novy_subor = PlatbaAutorskaSumarSubor(platba_autorska_sumar=platba, file=subor)
-                novy_subor.save()
-        self.message_user(request, msg, status)
+            #self.message_user(request, msg, status)
+        except Exception as error:
+            trace()
+            self.message_user(request, error, messages.ERROR)
         #trace()
         pass
         #for zmluva  in queryset:
+
     vyplatit_autorske_odmeny.short_description = "Vyplatiť autorské odmeny"
 
     def zrusit_platbu(self, request, queryset):
@@ -316,7 +330,6 @@ class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
 
 # pripajanie suborov k objektu: krok 4, register XxxSubor a definicia XxxSuborAdmin
 @admin.register(PlatbaAutorskaSumarSubor)
-import common
 class PlatbaAutorskaSumarSuborAdmin(admin.ModelAdmin):
     list_display = (["platba_autorska_sumar", "file"])
 
