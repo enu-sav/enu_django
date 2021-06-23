@@ -1,13 +1,13 @@
 # rozne utilitky
 
-# test platnosti IBAN
-#https://rosettacode.org/wiki/IBAN#Python
 import re, os
 from beliana import settings
 from django.utils import timezone
 from django.contrib import messages
 from ipdb import set_trace as trace
  
+# test platnosti IBAN
+#https://rosettacode.org/wiki/IBAN#Python
 def valid_iban(iban):
     _country2length = dict(
         AL=28, AD=24, AT=20, AZ=28, BE=16, BH=22, BA=20, BR=29,
@@ -170,3 +170,4 @@ def VytvoritAutorskuZmluvu(zmluva):
         vytvorene_subory.append(nazov_zmluvy_log)
     fnames = ", ".join(vytvorene_subory)
     return messages.SUCCESS, f"Súbory zmluvy {zmluva.cislo_zmluvy} boli úspešne vytvorené ({fnames}).", vytvorene_subory
+
