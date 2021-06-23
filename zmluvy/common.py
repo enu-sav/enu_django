@@ -140,3 +140,7 @@ def VytvoritAutorskuZmluvu(zmluva):
         vytvorene_subory.append(nazov_zmluvy_log)
     fnames = ", ".join(vytvorene_subory)
     return messages.SUCCESS, f"Súbory zmluvy {zmluva.cislo_zmluvy} boli úspešne vytvorené ({fnames}).", vytvorene_subory
+
+def VyplatitAutorskeOdmeny(platba):
+    os.path.join(settings.RLTS_DIR_NAME, platba.obdobie)
+    pass

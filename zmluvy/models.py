@@ -171,17 +171,17 @@ class PlatbaAutorskaOdmena(Platba):
             #self.autor = self.zmluva.zmluvna_strana
 
     class Meta:
-        verbose_name = 'Vyplatený autorský honorár'
-        verbose_name_plural = 'Vyplatené autorské honoráre'
+        verbose_name = 'Aut. honorár po autoroch'
+        verbose_name_plural = 'Aut. honoráre po autoroch'
 
 class PlatbaAutorskaSumar(models.Model):
     #obdobie: priečinok, z ktorého bola platba importovaná
     datum_uhradenia = models.DateField('Dátum vyplatenia', null=True, blank=True)
-    obdobie = models.CharField("Obdobie", max_length=20)  
+    obdobie = models.CharField("Obdobie vyplácania", max_length=20)  
 
     class Meta:
-        verbose_name = 'Platby sumárne'
-        verbose_name_plural = 'Platby sumárne'
+        verbose_name = 'Vyplácanie aut. honorárov'
+        verbose_name_plural = 'Vyplácanie aut. honorárov'
 
 #https://stackoverflow.com/questions/55543232/how-to-upload-multiple-files-from-the-django-admin
 #Vykoná sa len pri vkladaní suborov cez GUI. Pri programovom vytváraní treba cestu nastaviť
@@ -196,5 +196,5 @@ class PlatbaAutorskaSumarSubor(models.Model):
     platba_autorska_sumar = models.ForeignKey(PlatbaAutorskaSumar, on_delete=models.CASCADE) 
     file = models.FileField("Súbor",upload_to=platba_autorska_sumar_upload_location, null = True, blank = True)
     class Meta:
-        verbose_name = 'Súbor vyplácania'
-        verbose_name_plural = 'Súbory vyplácania'
+        verbose_name = 'Súbor aut. honorárov'
+        verbose_name_plural = 'Súbory aut. honorárov'

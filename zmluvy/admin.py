@@ -5,12 +5,12 @@ from ipdb import set_trace as trace
 from django.contrib import messages
 from django.utils.translation import ngettext
 from simple_history.utils import update_change_reason
+import os
 
 # Register your models here.
-from beliana import settings
 # pripajanie suborov k objektu: krok 1, importovať XxxSubor
 from .models import OsobaAutor, ZmluvaAutor, PlatbaAutorskaOdmena, PlatbaAutorskaSumar, StavZmluvy, ZmluvaAutorSubor, PlatbaAutorskaSumarSubor
-from .common import VytvoritAutorskuZmluvu
+from .common import VytvoritAutorskuZmluvu, VyplatitAutorskeOdmeny
 
 #umožniť zobrazenie autora v zozname zmlúv
 #https://pypi.org/project/django-admin-relation-links/
@@ -251,7 +251,7 @@ class PlatbaAutorskaSumarSuborAdmin(admin.StackedInline):
 @admin.register(PlatbaAutorskaSumar)
 class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
     list_display = ['obdobie', 'datum_uhradenia', 'honorar_rs', 'honorar_webrs', 'honorar_spolu', 'vyplatene_spolu', 'odvod_LF', 'odvedena_dan']
-    #actions = ['vyplatit_autorske_odmeny']
+    actions = ['vyplatit_autorske_odmeny', 'zrusit_platbu']
     # pripajanie suborov k objektu: krok 3, inline do XxxAdmin 
     inlines = [PlatbaAutorskaSumarSuborAdmin]
 
@@ -285,8 +285,38 @@ class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
         odmeny = [platba.uhradena_suma for platba in platby]
         return sum(odmeny)
 
+    def vyplatit_autorske_odmeny(self, request, queryset):
+        self.message_user(request, f"vyplatit_autorske_odmeny: {len(queryset)}'", messages.WARNING)
+        if len(queryset) != 1:
+            self.message_user(request, f"Vybrať možno len jednu platbu", messages.ERROR)
+            return
+        platba = queryset[0]
+        if platba.datum_uhradenia:
+            self.message_user(request, f"Platba {platba.obdobie} už bola vložená do databázy s dátumon vyplatenia {platba.datum_uhradenia}. Ak chcete platbu zopakovať, musíte ju zrušit pomocou 'Zrušiť platbu'", messages.ERROR)
+            return
+        #status, msg, vytvorene_subory = VyplatitAutorskeOdmeny(platba)
+        novy_subor = PlatbaAutorskaSumarSubor(platba_autorska_sumar=platba, file="test.txt")
+        novy_subor.save()
+        return
+        if status != messages.ERROR:
+            platba.datum_aktualizacie = timezone.now(),
+            platba.save()
+            for subor in vytvorene_subory:
+                novy_subor = PlatbaAutorskaSumarSubor(platba_autorska_sumar=platba, file=subor)
+                novy_subor.save()
+        self.message_user(request, msg, status)
+        #trace()
+        pass
+        #for zmluva  in queryset:
+    vyplatit_autorske_odmeny.short_description = "Vyplatiť autorské odmeny"
+
+    def zrusit_platbu(self, request, queryset):
+        pass
+    zrusit_platbu.short_description = "Zrušiť platbu"
+
 # pripajanie suborov k objektu: krok 4, register XxxSubor a definicia XxxSuborAdmin
 @admin.register(PlatbaAutorskaSumarSubor)
+import common
 class PlatbaAutorskaSumarSuborAdmin(admin.ModelAdmin):
     list_display = (["platba_autorska_sumar", "file"])
 
