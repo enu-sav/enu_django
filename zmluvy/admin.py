@@ -265,7 +265,7 @@ class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
             return self.inlines
 
     #obj is None during the object creation, but set to the object being edited during an edit
-    def get_readonly_fields(self, request, obj=None):
+    def _get_readonly_fields(self, request, obj=None):
         if obj:
             if obj.platba_zaznamenana == AnoNie.ANO:
                 # platba je zaznamenaná, zakázať všetko"
@@ -323,7 +323,7 @@ class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
         platba.datum_aktualizacie = timezone.now(),
         platba.save()
         pass
-    zaznamenat_platby_do_db.short_description = "Zaznamenať platby do DB"
+    zaznamenat_platby_do_db.short_description = "Zaznamenať platby do databázy"
 
     def vytvorit_podklady_pre_THS(self, request, queryset):
         if len(queryset) != 1:
@@ -342,8 +342,9 @@ class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
     def vyplatit_autorske_odmeny(self, request, platba):
         self.db_logger = logging.getLogger('db')
         try:
+            dat_uhradenia = platba.datum_uhradenia.isoformat() if platba.datum_uhradenia else None
             vao = VyplatitAutorskeOdmeny(settings.RLTS_DIR)
-            vao.vyplatit_odmeny(platba.obdobie, platba.datum_uhradenia.isoformat())
+            vao.vyplatit_odmeny(platba.obdobie, dat_uhradenia)
             logs = vao.get_logs()
             #status, msg, vytvorene_subory = VyplatitAutorskeOdmeny(platba)
             for log in logs:
@@ -365,8 +366,24 @@ class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
     vyplatit_autorske_odmeny.short_description = "Vyplatiť autorské odmeny (pre THS)"
 
     def zrusit_platbu(self, request, queryset):
-        pass
-    zrusit_platbu.short_description = "Zrušiť platbu"
+        if len(queryset) != 1:
+            self.message_user(request, f"Vybrať možno len jednu platbu", messages.ERROR)
+            return
+        platba = queryset[0]
+        if platba.platba_zaznamenana == AnoNie.NIE: 
+            self.message_user(request, f"Platbu {platba.obdobie} nemožno zrušiť, lebo ešte nebola vložená do databázy", messages.ERROR)
+            return
+        vao = VyplatitAutorskeOdmeny(settings.RLTS_DIR)
+        vao.zrusit_vyplacanie(platba.obdobie)
+        platba.datum_uhradenia = None
+        platba.platba_zaznamenana = AnoNie.NIE
+        platba.save()
+        logs = vao.get_logs()
+        for log in logs:
+            self.message_user(request, log[1].replace(settings.MEDIA_ROOT,""), log[0])
+        #self.message_user(request, f"Platba {platba.obdobie} bola zrušená", messages.INFO)
+
+    zrusit_platbu.short_description = "Zrušiť záznam o platbách v databáze"
 
 # pripajanie suborov k objektu: krok 4, register XxxSubor a definicia XxxSuborAdmin
 @admin.register(PlatbaAutorskaSumarSubor)

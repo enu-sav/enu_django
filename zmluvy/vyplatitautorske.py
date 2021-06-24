@@ -741,7 +741,4 @@ class VyplatitAutorskeOdmeny():
             platba.delete()
             self.log(messages.SUCCESS, msg)
             pass
-        sumarne = PlatbaAutorskaSumar.objects.filter(obdobie=za_mesiac)
-        sumarne.delete()
-        #self.db_logger.info(f"Zrušená platba {za_mesiac}: vyplatit.py --na_vyplatenie {za_mesiac} --zrusit-platbu")
 
