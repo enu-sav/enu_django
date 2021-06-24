@@ -176,7 +176,8 @@ class PlatbaAutorskaOdmena(Platba):
 
 class PlatbaAutorskaSumar(models.Model):
     #obdobie: priečinok, z ktorého bola platba importovaná
-    datum_uhradenia = models.DateField('Dátum vyplatenia', null=True, blank=True)
+    datum_uhradenia = models.DateField('Platba bola vyplatená THS, dátum vyplatenia', null=True, blank=True)
+    platba_zaznamenana = models.CharField("Platba zaznanenaná v DB", max_length=3, choices=AnoNie.choices, default=AnoNie.NIE)
     obdobie = models.CharField("Obdobie vyplácania", max_length=20)  
 
     class Meta:

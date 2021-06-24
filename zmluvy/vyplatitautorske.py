@@ -333,11 +333,12 @@ class VyplatitAutorskeOdmeny():
         self.krycilist[f"K{self.kpos}"] = f"=SUM(K{self.kstart}:K{self.kpos-1})"
         self.krycilist[f"K{self.kpos}"].font = self.fbold
 
+        #Všetky súbory, ktoré majú byť uložené do DB, musia mať záznam logu, ktorú končí na 'uložené do súboru {fpath}'
         #if self.datum_vyplatenia and not self.negenerovat_subory:
         if self.datum_vyplatenia:
             fpath = os.path.join(za_mesiac,f"Vyplatene-{self.obdobie}.xlsx")
             workbook.save(fpath)
-            msg = f"Údaje o vyplácaní uložené do súboru {fpath}"
+            msg = f"Údaje o vyplácaní boli uložené do súboru {fpath}"
             self.log(messages.SUCCESS, msg)
             #self.db_logger.warning(msg)
 

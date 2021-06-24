@@ -11,7 +11,7 @@ import logging
 
 # Register your models here.
 # pripajanie suborov k objektu: krok 1, importovať XxxSubor
-from .models import OsobaAutor, ZmluvaAutor, PlatbaAutorskaOdmena, PlatbaAutorskaSumar, StavZmluvy, ZmluvaAutorSubor, PlatbaAutorskaSumarSubor
+from .models import OsobaAutor, ZmluvaAutor, PlatbaAutorskaOdmena, PlatbaAutorskaSumar, StavZmluvy, ZmluvaAutorSubor, PlatbaAutorskaSumarSubor, AnoNie
 from .common import VytvoritAutorskuZmluvu, VyplatitAutorskeOdmeny
 from .vyplatitautorske import VyplatitAutorskeOdmeny
 
@@ -254,9 +254,28 @@ class PlatbaAutorskaSumarSuborAdmin(admin.StackedInline):
 @admin.register(PlatbaAutorskaSumar)
 class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
     list_display = ['obdobie', 'datum_uhradenia', 'honorar_rs', 'honorar_webrs', 'honorar_spolu', 'vyplatene_spolu', 'odvod_LF', 'odvedena_dan']
-    actions = ['vyplatit_autorske_odmeny', 'zrusit_platbu']
+    actions = ['vytvorit_podklady_pre_THS', 'zaznamenat_platby_do_db', 'zrusit_platbu']
     # pripajanie suborov k objektu: krok 3, inline do XxxAdmin 
     inlines = [PlatbaAutorskaSumarSuborAdmin]
+
+    def get_inlines(self, request, obj):
+        if obj and obj.platba_zaznamenana == AnoNie.ANO:
+            return []
+        else:
+            return self.inlines
+
+    #obj is None during the object creation, but set to the object being edited during an edit
+    def get_readonly_fields(self, request, obj=None):
+        if obj:
+            if obj.platba_zaznamenana == AnoNie.ANO:
+                # platba je zaznamenaná, zakázať všetko"
+                return ["obdobie", "platba_zaznamenana", "datum_uhradenia"]
+            else:
+                # povoliť len "datum_uhradenia"
+                return ["obdobie", "platba_zaznamenana"]
+        else:
+            # V novej platbe povoliť len "obdobie"
+            return ["platba_zaznamenana", "datum_uhradenia"]
 
     def honorar_spolu(self, sumplatba):
         platby = PlatbaAutorskaOdmena.objects.filter(obdobie=sumplatba.obdobie)
@@ -288,19 +307,43 @@ class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
         odmeny = [platba.uhradena_suma for platba in platby]
         return sum(odmeny)
 
-    def vyplatit_autorske_odmeny(self, request, queryset):
-        self.message_user(request, f"vyplatit_autorske_odmeny: {len(queryset)}'", messages.WARNING)
+    def zaznamenat_platby_do_db(self, request, queryset):
         if len(queryset) != 1:
             self.message_user(request, f"Vybrať možno len jednu platbu", messages.ERROR)
             return
         platba = queryset[0]
-        if platba.datum_uhradenia:
-            self.message_user(request, f"Platba {platba.obdobie} už bola vložená do databázy s dátumom vyplatenia {platba.datum_uhradenia}. Ak chcete platbu zopakovať, musíte ju zrušit pomocou 'Zrušiť platbu'", messages.ERROR)
+        if platba.platba_zaznamenana == AnoNie.ANO:
+            self.message_user(request, f"Platba {platba.obdobie} už bola vložená do databázy s dátumom vyplatenia {platba.datum_uhradenia}. Ak chcete platbu opakovane vložiť do databázy, musíte ju zrušit (odstrániť z databázy) pomocou 'Zrušiť platbu'", messages.ERROR)
             return
+        if not platba.datum_uhradenia:
+            self.message_user(request, f"Platba nebola vložená do databázy, lebo nie je zadaný dátum jej vyplatenia THS-kou. ", messages.ERROR)
+            return
+        self.vyplatit_autorske_odmeny(request, platba)
+        platba.platba_zaznamenana = AnoNie.ANO
+        platba.datum_aktualizacie = timezone.now(),
+        platba.save()
+        pass
+    zaznamenat_platby_do_db.short_description = "Zaznamenať platby do DB"
+
+    def vytvorit_podklady_pre_THS(self, request, queryset):
+        if len(queryset) != 1:
+            self.message_user(request, f"Vybrať možno len jednu platbu", messages.ERROR)
+            return
+        platba = queryset[0]
+        if platba.platba_zaznamenana == AnoNie.ANO: 
+            self.message_user(request, f"Platba {platba.obdobie} už bola vložená do databázy s dátumom vyplatenia {platba.datum_uhradenia}. Ak chcete opakovane generovať podklady pre THS, platbu najskôr musíte zrušit (odstrániť z databázy) pomocou 'Zrušiť platbu'", messages.ERROR)
+            return
+        self.vyplatit_autorske_odmeny(request, platba)
+        platba.datum_aktualizacie = timezone.now(),
+        platba.save()
+        pass
+    vytvorit_podklady_pre_THS.short_description = "Vyplatiť autorské odmeny (pre THS)"
+
+    def vyplatit_autorske_odmeny(self, request, platba):
         self.db_logger = logging.getLogger('db')
         try:
             vao = VyplatitAutorskeOdmeny(settings.RLTS_DIR)
-            vao.vyplatit_odmeny(platba.obdobie, "")
+            vao.vyplatit_odmeny(platba.obdobie, platba.datum_uhradenia.isoformat())
             logs = vao.get_logs()
             #status, msg, vytvorene_subory = VyplatitAutorskeOdmeny(platba)
             for log in logs:
@@ -312,17 +355,14 @@ class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
                     novy_subor = PlatbaAutorskaSumarSubor(platba_autorska_sumar=platba, file=fname)
                     novy_subor.save()
                 self.message_user(request, log[1].replace(settings.MEDIA_ROOT,""), log[0])
-            platba.datum_aktualizacie = timezone.now(),
-            platba.save()
             #self.message_user(request, msg, status)
         except Exception as error:
-            trace()
             self.message_user(request, error, messages.ERROR)
         #trace()
         pass
         #for zmluva  in queryset:
 
-    vyplatit_autorske_odmeny.short_description = "Vyplatiť autorské odmeny"
+    vyplatit_autorske_odmeny.short_description = "Vyplatiť autorské odmeny (pre THS)"
 
     def zrusit_platbu(self, request, queryset):
         pass
