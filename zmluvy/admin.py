@@ -7,6 +7,7 @@ from django.utils.translation import ngettext
 from django.conf import settings
 from simple_history.utils import update_change_reason
 import os, re
+from tempfile import TemporaryFile
 import logging
 
 # Register your models here.
@@ -265,14 +266,15 @@ class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
             return self.inlines
 
     #obj is None during the object creation, but set to the object being edited during an edit
-    def _get_readonly_fields(self, request, obj=None):
+    def get_readonly_fields(self, request, obj=None):
         if obj:
             if obj.platba_zaznamenana == AnoNie.ANO:
                 # platba je zaznamenaná, zakázať všetko"
-                return ["obdobie", "platba_zaznamenana", "datum_uhradenia"]
+                return ["obdobie", "platba_zaznamenana", "datum_uhradenia", "vyplatene", "vyplatit_ths", "import_webrs", "import_rs"]
             else:
                 # povoliť len "datum_uhradenia"
-                return ["obdobie", "platba_zaznamenana"]
+                #return ["obdobie", "platba_zaznamenana"]
+                return ["obdobie", "platba_zaznamenana", "vyplatene", "vyplatit_ths", "import_webrs", "import_rs"]
         else:
             # V novej platbe povoliť len "obdobie"
             return ["platba_zaznamenana", "datum_uhradenia"]
@@ -337,7 +339,7 @@ class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
         platba.datum_aktualizacie = timezone.now(),
         platba.save()
         pass
-    vytvorit_podklady_pre_THS.short_description = "Vyplatiť autorské odmeny (pre THS)"
+    vytvorit_podklady_pre_THS.short_description = "Vytvoriť podklady na vyplatenie autorských odmien pre THS"
 
     def vyplatit_autorske_odmeny(self, request, platba):
         self.db_logger = logging.getLogger('db')
@@ -351,19 +353,23 @@ class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
                 fname = re.findall(r"uložené do súboru ({}.*)".format(settings.MEDIA_ROOT),log[1]) 
                 if fname:
                     fname = fname[0].replace(settings.MEDIA_ROOT,"")
-                    # odstrániť existujúcu verziu (verzie súboru)
-                    for oq in PlatbaAutorskaSumarSubor.objects.filter(file=fname): oq.delete()
-                    novy_subor = PlatbaAutorskaSumarSubor(platba_autorska_sumar=platba, file=fname)
-                    novy_subor.save()
+                    if "THS" in fname:
+                        platba.vyplatit_ths = fname
+                    elif "Vyplatene" in fname:
+                        platba.vyplatene = fname
+                    elif "Import-rs" in fname:
+                        platba.import_rs = fname
+                    elif "Import-webrs" in fname:
+                        platba.import_webrs = fname
+                        
                 self.message_user(request, log[1].replace(settings.MEDIA_ROOT,""), log[0])
+            platba.save()
             #self.message_user(request, msg, status)
         except Exception as error:
             self.message_user(request, error, messages.ERROR)
         #trace()
         pass
         #for zmluva  in queryset:
-
-    vyplatit_autorske_odmeny.short_description = "Vyplatiť autorské odmeny (pre THS)"
 
     def zrusit_platbu(self, request, queryset):
         if len(queryset) != 1:
@@ -377,6 +383,16 @@ class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
         vao.zrusit_vyplacanie(platba.obdobie)
         platba.datum_uhradenia = None
         platba.platba_zaznamenana = AnoNie.NIE
+        platba.vyplatit_ths.delete()
+        platba.vyplatene.delete()
+        platba.import_rs.delete()
+        platba.import_webrs.delete()
+        platba.vyplatit_ths=None
+        platba.vyplatene=None
+        platba.import_rs=None
+        platba.import_webrs=None
+        trace()
+        pass
         platba.save()
         logs = vao.get_logs()
         for log in logs:

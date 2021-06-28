@@ -174,16 +174,6 @@ class PlatbaAutorskaOdmena(Platba):
         verbose_name = 'Aut. honorár po autoroch'
         verbose_name_plural = 'Aut. honoráre po autoroch'
 
-class PlatbaAutorskaSumar(models.Model):
-    #obdobie: priečinok, z ktorého bola platba importovaná
-    datum_uhradenia = models.DateField('Platba bola vyplatená THS, dátum vyplatenia', null=True, blank=True)
-    platba_zaznamenana = models.CharField("Platba zaznanenaná v DB", max_length=3, choices=AnoNie.choices, default=AnoNie.NIE)
-    obdobie = models.CharField("Obdobie vyplácania", max_length=20)  
-
-    class Meta:
-        verbose_name = 'Vyplácanie aut. honorárov'
-        verbose_name_plural = 'Vyplácanie aut. honorárov'
-
 #https://stackoverflow.com/questions/55543232/how-to-upload-multiple-files-from-the-django-admin
 #Vykoná sa len pri vkladaní suborov cez GUI. Pri programovom vytváraní treba cestu nastaviť
 def platba_autorska_sumar_upload_location(instance, filename):
@@ -191,6 +181,20 @@ def platba_autorska_sumar_upload_location(instance, filename):
     file_name = filename.replace(" ", "-")
     #Vyplacanie_autorskych_honorarov/2021-02/export_vyplatit_rs-gasparik.csv
     return os.path.join(RLTS_DIR_NAME, dir_name, file_name)
+
+class PlatbaAutorskaSumar(models.Model):
+    #obdobie: priečinok, z ktorého bola platba importovaná
+    datum_uhradenia = models.DateField('Platba bola vyplatená THS, dátum vyplatenia', null=True, blank=True)
+    platba_zaznamenana = models.CharField("Platba zaznanenaná v DB", max_length=3, choices=AnoNie.choices, default=AnoNie.NIE)
+    obdobie = models.CharField("Obdobie vyplácania", max_length=20)  
+    vyplatit_ths = models.FileField("Vyplatit THS",upload_to=platba_autorska_sumar_upload_location, null = True, blank = True)
+    vyplatene = models.FileField("Vyplatené",upload_to=platba_autorska_sumar_upload_location, null = True, blank = True)
+    import_rs = models.FileField("Importovať do RS",upload_to=platba_autorska_sumar_upload_location, null = True, blank = True)
+    import_webrs = models.FileField("Importovať do WEBRS",upload_to=platba_autorska_sumar_upload_location, null = True, blank = True)
+
+    class Meta:
+        verbose_name = 'Vyplácanie aut. honorárov'
+        verbose_name_plural = 'Vyplácanie aut. honorárov'
 
 class PlatbaAutorskaSumarSubor(models.Model):
     # on_delete=models.CASCADE: when a ZmluvaAutor is deleted, upload models are also deleted

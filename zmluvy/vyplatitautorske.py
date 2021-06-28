@@ -740,5 +740,4 @@ class VyplatitAutorskeOdmeny():
             #zmazať platbu
             platba.delete()
             self.log(messages.SUCCESS, msg)
-            pass
 
