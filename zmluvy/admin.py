@@ -372,7 +372,7 @@ class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
         if platba.platba_zaznamenana == AnoNie.NIE: 
             self.message_user(request, f"Platbu {platba.obdobie} nemožno zrušiť, lebo ešte nebola vložená do databázy", messages.ERROR)
             return
-        vao = VyplatitAutorskeOdmeny(settings.RLTS_DIR)
+        vao = VyplatitAutorskeOdmeny()
         vao.zrusit_vyplacanie(platba.obdobie)
         platba.datum_uhradenia = None
         platba.platba_zaznamenana = AnoNie.NIE

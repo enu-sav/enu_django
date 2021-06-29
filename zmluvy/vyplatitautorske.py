@@ -22,8 +22,8 @@ class VyplatitAutorskeOdmeny():
     ucetFin = "SK61 8180 5002 6780 2710 3305"
     WARNING, ERROR, SUCCESS = (1,2,3)
 
-    def __init__(self, csv_subory):
-        self.csv_subory = csv_subory
+    def __init__(self, csv_subory=None):
+        if csv_subory: self.csv_subory = csv_subory
         self.logs = []
 
     def log(self, status, msg):
