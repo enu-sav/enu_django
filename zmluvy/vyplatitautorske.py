@@ -48,6 +48,7 @@ class VyplatitAutorskeOdmeny():
                 raise Exception(f"Súbor {fname} musí obsahovať stĺpec '{item}'")
 
     def nacitat_udaje_autor(self, fname, rs_webrs):
+        fn = fname.split("/")[-1]
         hdr = {}
         with open(fname, 'rt') as f:
             reader = csv.reader(f, dialect='excel')
@@ -62,22 +63,30 @@ class VyplatitAutorskeOdmeny():
                     login = row[hdr["Prihlásiť sa"]]
                     zmluva = row[hdr['Zmluva na vyplatenie']].strip()   # odstranit medzery na zaciatku a konci
                     if not zmluva:
-                        self.log(messages.ERROR, f"Heslo {row[hdr['nazov']]} autora {row[hdr['Prihlásiť sa']]} nemá určenú zmluvu")
+                        self.log(messages.ERROR, f"Heslo '{row[hdr['nazov']]}' bolo vynechané, lebo nemá zadanú zmluvu (súbor {fn}).")
+                        continue
                     #if not login in self.pocet_znakov: self.pocet_znakov[login] = {}
                     #if not zmluva in self.pocet_znakov[login]: self.pocet_znakov[login][zmluva] = {}
                     #self.pocet_znakov[login][zmluva] += int(row[hdr["Dĺžka autorom odovzdaného textu"]])
                     # zaznamenat len udaje o hesle a zmluve
                     if not login in self.data: self.data[login] = {} 
                     if not rs_webrs in self.data[login]: self.data[login][rs_webrs] = {} 
-                    if not zmluva in self.data[login][rs_webrs]: self.data[login][rs_webrs][zmluva] = []
-                    nid = row[hdr["Nid"]] if rs_webrs == "rs" else row[hdr["Nid"]].replace("//rs","//webrs")
-                    self.data[login][rs_webrs][zmluva].append([
-                        int(row[hdr["Dĺžka autorom odovzdaného textu"]]),
-                        rs_webrs,
-                        f'=HYPERLINK("{nid}";"{row[hdr["nazov"]]}")',
-                        row[hdr['Zmluva na vyplatenie']],
-                        re.sub(r"<[^>]*>","",row[hdr['Dátum záznamu dĺžky']])
-                        ])
+
+                    #overiť, či autor má zadanú zmluvu, v prípade chyby vynechať
+                    zdata = ZmluvaAutor.objects.filter(zmluvna_strana__rs_login=login)
+                    zmluvy_autora = [zmluva.cislo_zmluvy for zmluva in zdata]
+                    if zmluva in zmluvy_autora:
+                        if not zmluva in self.data[login][rs_webrs]: self.data[login][rs_webrs][zmluva] = []
+                        nid = row[hdr["Nid"]] if rs_webrs == "rs" else row[hdr["Nid"]].replace("//rs","//webrs")
+                        self.data[login][rs_webrs][zmluva].append([
+                            int(row[hdr["Dĺžka autorom odovzdaného textu"]]),
+                            rs_webrs,
+                            f'=HYPERLINK("{nid}";"{row[hdr["nazov"]]}")',
+                            row[hdr['Zmluva na vyplatenie']],
+                            re.sub(r"<[^>]*>","",row[hdr['Dátum záznamu dĺžky']])
+                            ])
+                    else:
+                        self.log(messages.ERROR, f"Heslo '{row[hdr['nazov']]}' bolo vynechané, lebo autor nemá zadaná zmluvu '{zmluva}' (súbor {fn})'.")
                     pass
 
     def meno_priezvisko(self, autor):
@@ -114,9 +123,6 @@ class VyplatitAutorskeOdmeny():
                 self.log(messages.INFO, f"Načítané údaje zo súboru {csv_subor}")
                 self.nacitat_udaje_grafik(csv_subor)
                 pass
-            #else:
-                #aux_name = csv_subor.split("/")[-1]
-                self.log(messages.ERROR, f"V priečinku {self.ah_cesta}/{za_mesiac} bol nájdený neznámy súbor {aux_name}. Súbor odstráňte alebo opravte jeho názov")
 
         #scitat pocty znakov a rozhodnut, ci sa bude vyplacat
         self.suma_vyplatit={}    # Vyplati sa
