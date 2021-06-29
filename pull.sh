@@ -3,7 +3,7 @@ sudo service enu_django stop
 echo `git log --pretty=format:'%h' -n 1` > commit
 (
 cd ..
-tar cvzf enu_django-`date --iso-8601`.tgz enu_django
+tar cvzf enu_django-`date --iso-8601`.tgz --exclude=.env enu_django
 )
 git pull
 ./manage.py makemigrations
