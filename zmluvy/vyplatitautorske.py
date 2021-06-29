@@ -14,7 +14,6 @@ from ipdb import set_trace as trace
 
 class VyplatitAutorskeOdmeny():
     ws_template = f"{settings.TEMPLATES_DIR}/UhradaAutHonoraru.xlsx"
-    ah_cesta = settings.ROYALTIES_DIR
     litfond_odvod = 0   #Aktuálne 0 kvôli Covid pandémii, inak 2 %
     dan_odvod = 19    # daň, napr. 19 %
     min_vyplatit=20     #minimálna suma v Eur, ktorá sa vypláca
@@ -23,13 +22,9 @@ class VyplatitAutorskeOdmeny():
     ucetFin = "SK61 8180 5002 6780 2710 3305"
     WARNING, ERROR, SUCCESS = (1,2,3)
 
-    #def __init__(self, za_mesiac, datum_vyplatenia=None):
-        #self.vyplatit_odmeny(za_mesiac, datum_vyplatenia)
-    def __init__(self, subory_dir):
-        self.ah_cesta = subory_dir
+    def __init__(self, csv_subory):
+        self.csv_subory = csv_subory
         self.logs = []
-        pass
-        #self.vyplatit_odmeny(za_mesiac, datum_vyplatenia)
 
     def log(self, status, msg):
         self.logs.append([status,msg])
@@ -98,21 +93,16 @@ class VyplatitAutorskeOdmeny():
             mp = f"{mp}, {autor.titul_za_menom}"
         return mp.strip()
             
-    def vyplatit_odmeny(self, za_mesiac, datum_vyplatenia=None): 
+    def vyplatit_odmeny(self, obdobie, datum_vyplatenia=None): 
         self.datum_vyplatenia = datum_vyplatenia # Ak None, nevygenerujú sa hárky ImportRS/WEBRS
 
-        self.obdobie = za_mesiac.strip("/").split("/")[-1]
-
-        za_mesiac = os.path.join(self.ah_cesta, za_mesiac) 
-
-        #nájsť csv súbory 
-        if not os.path.isdir(za_mesiac):
-            raise Exception(f"Priečinok {za_mesiac} nebol nájdený")
-        csv_subory = glob(f"{za_mesiac}/*.csv")
+        self.obdobie = obdobie
+        csv_path = os.path.join(settings.MEDIA_ROOT,settings.RLTS_DIR_NAME, obdobie) 
         self.pocet_znakov = {"rs": {}, "webrs":{}}
         self.data={}
 
-        for csv_subor in csv_subory:
+        for csv_subor in self.csv_subory:
+            csv_subor = os.path.join(settings.MEDIA_ROOT, csv_subor)
             if "export_vyplatit_rs" in csv_subor:
                 self.log(messages.INFO, f"Načítané údaje zo súboru {csv_subor}")
                 hdr = self.nacitat_udaje_autor(csv_subor, "rs")
@@ -338,14 +328,14 @@ class VyplatitAutorskeOdmeny():
         #Všetky súbory, ktoré majú byť uložené do DB, musia mať záznam logu, ktorú končí na 'uložené do súboru {fpath}'
         #if self.datum_vyplatenia and not self.negenerovat_subory:
         if self.datum_vyplatenia:
-            fpath = os.path.join(za_mesiac,f"Vyplatene-{self.obdobie}.xlsx")
+            fpath = os.path.join(csv_path,f"Vyplatene-{self.obdobie}.xlsx")
             workbook.save(fpath)
             msg = f"Údaje o vyplácaní boli uložené do súboru {fpath}"
             self.log(messages.SUCCESS, msg)
             #self.db_logger.warning(msg)
 
             # vytvorit csv subory na importovanie
-            fpath = os.path.join(za_mesiac,f"Import-rs-{self.obdobie}.csv")
+            fpath = os.path.join(csv_path,f"Import-rs-{self.obdobie}.csv")
             with open(fpath, "w") as csvfile:
                 csvWriter = csv.writer(csvfile, delimiter=',', quotechar='"')
                 for b, c in zip(self.importrs["b:c"][0], self.importrs["b:c"][1]) :
@@ -353,7 +343,7 @@ class VyplatitAutorskeOdmeny():
             msg = f"Údaje na importovanie do RS boli uložené do súboru {fpath}"
             self.log(messages.SUCCESS, msg)
 
-            fpath = os.path.join(za_mesiac,f"Import-webrs-{self.obdobie}.csv")
+            fpath = os.path.join(csv_path,f"Import-webrs-{self.obdobie}.csv")
             with open(fpath, "w") as csvfile:
                 csvWriter = csv.writer(csvfile, delimiter=',', quotechar='"')
                 for b, c in zip(self.importwebrs["b:c"][0], self.importwebrs["b:c"][1]) :
@@ -361,7 +351,7 @@ class VyplatitAutorskeOdmeny():
             msg = f"Údaje na importovanie do WEBRS boli uložené do súboru {fpath}"
             self.log(messages.SUCCESS, msg)
         else:
-            fpath = os.path.join(za_mesiac,f"Vyplatit-{self.obdobie}-THS.xlsx")
+            fpath = os.path.join(csv_path,f"Vyplatit-{self.obdobie}-THS.xlsx")
             #if not self.negenerovat_subory:
                 #workbook.save(fpath)
                 #msg = f"Údaje o vyplácaní na odoslanie THS boli uložené do súboru {fpath}"

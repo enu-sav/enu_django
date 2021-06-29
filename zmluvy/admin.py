@@ -32,7 +32,6 @@ class OsobaAutorForm(forms.ModelForm):
     popis_zmeny = forms.CharField(widget=forms.TextInput(attrs={'size':80}))
     def save(self, commit=True):
         popis_zmeny = self.cleaned_data.get('popis_zmeny', None)
-        #trace()
         # Get the form instance so I can write to its fields
         instance = super(OsobaAutorForm, self).save(commit=commit)
         # this writes the processed data to the description field
@@ -111,7 +110,6 @@ class ZmluvaAutorForm(forms.ModelForm):
     popis_zmeny = forms.CharField(widget=forms.TextInput(attrs={'size':80}))
     def save(self, commit=True):
         popis_zmeny = self.cleaned_data.get('popis_zmeny', None)
-        #trace()
         # Get the form instance so I can write to its fields
         instance = super(ZmluvaAutorForm, self).save(commit=commit)
         # this writes the processed data to the description field
@@ -200,14 +198,6 @@ class ZmluvaAutorAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
             else:
                 self.message_user(request, f"Súbory zmluvy {zmluva.cislo_zmluvy} neboli vytvorené, lebo zmluva je už v stave '{StavZmluvy(zmluva.stav_zmluvy).label}'", messages.ERROR)
                 continue
-
-        #trace()
-        #if success:
-            #self.message_user(request, ngettext(
-                #'Úspešne vytvorené autorské zmluvy: %d',
-                #'Úspešne vytvorené autorské zmluvy: %d',
-                #success,
-            #) % success, messages.SUCCESS)
 
     vytvorit_subory_zmluvy.short_description = f"Vytvoriť súbory zmluvy"
 
@@ -343,9 +333,13 @@ class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
 
     def vyplatit_autorske_odmeny(self, request, platba):
         self.db_logger = logging.getLogger('db')
+
+        #vytvoriť zoznam pripojených súborov
+        subory = platba.platbaautorskasumarsubor_set.all()
+        nazvy = [subor.file.name for subor in subory]
         try:
             dat_uhradenia = platba.datum_uhradenia.isoformat() if platba.datum_uhradenia else None
-            vao = VyplatitAutorskeOdmeny(settings.RLTS_DIR)
+            vao = VyplatitAutorskeOdmeny(nazvy)
             vao.vyplatit_odmeny(platba.obdobie, dat_uhradenia)
             logs = vao.get_logs()
             #status, msg, vytvorene_subory = VyplatitAutorskeOdmeny(platba)
@@ -367,7 +361,6 @@ class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
             #self.message_user(request, msg, status)
         except Exception as error:
             self.message_user(request, error, messages.ERROR)
-        #trace()
         pass
         #for zmluva  in queryset:
 
@@ -391,7 +384,6 @@ class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
         platba.vyplatene=None
         platba.import_rs=None
         platba.import_webrs=None
-        trace()
         pass
         platba.save()
         logs = vao.get_logs()
