@@ -47,7 +47,7 @@ class Command(BaseCommand):
                 self.log(self.ERROR, f"Platby pre obdobie {za_mesiac} už v databáze existujú. Ak chcete operáciu vykonať, najskôr ich odstráňte pomocou prepínača --zrusit-platbu.")
 
 
-            ao = VyplatitAutorskeOdmeny(self.db_logger, self.mylog)
+            ao = VyplatitAutorskeOdmeny(settings.ROYALTIES_DIR, self.db_logger, self.mylog)
             ao.vyplatit_odmeny(za_mesiac, kwargs['datum_vyplatenia'])
             if  kwargs['datum_vyplatenia']:
                 PlatbaAutorskaSumar.objects.create(

@@ -145,14 +145,10 @@ class VyplatitAutorskeOdmeny():
             # vypocitat odmenu za vsetky hesla
             ahonorar = 0 #sucet odmien za jednotlive hesla na zaklade zmluv
             zmluvy_autora = set()
+            # vytvoriť zoznam zmlúv a spocitat zaokruhlene sumy, aby vypocet bol konzistentny so scitanim v harku po_autoroch 
             for rs in self.data[autor]: # rs alebo webrs
                 for zmluva in self.data[autor][rs]:
                     zmluvy_autora.add(zmluva)
-                    #if not zmluva in zvyplatit:
-                    #zmluva = re.sub(r"([^/]*)/(.*)",r"\2-\1",zmluva)
-                    if not zmluva in zvyplatit:
-                        self.log(messages.ERROR, f"Autor {autor}: nemá v databáze zmluvu {zmluva}")
-                    # spocitat zaokruhlene sumy, aby vypocet bol konzistentny so scitanim v harku po_autoroch 
                     ahonorar = ahonorar + sum([round(z[0]*zvyplatit[zmluva]/36000,2) for z in self.data[autor][rs][zmluva]])    #[0]: pocet znakov
                     pass
             ahonorar = round(round(ahonorar,3),2)
