@@ -1,7 +1,7 @@
 
 import os, csv, re
 from glob import glob
-from datetime import date
+from datetime import date, datetime
 from django.conf import settings
 from django.contrib import messages
 from zmluvy.models import OsobaAutor, ZmluvaAutor, PlatbaAutorskaOdmena, PlatbaAutorskaSumar
@@ -171,6 +171,18 @@ class VyplatitAutorskeOdmeny():
         aleft = Alignment(horizontal='left')
 
         workbook = load_workbook(filename=VyplatitAutorskeOdmeny.ws_template)
+
+        #upraviť vlastnosti dokumentu
+        workbook.properties.creator = "EnÚ Django Author Management System"
+        if datum_vyplatenia:
+            workbook.properties.title=f"Podklady pre THS na vyplatenie autorských honorárov za obdobie {self.obdobie}" 
+        else:
+            workbook.properties.title=f"Záznam o platbe autorských honorárov za obdobie {self.obdobie}"
+        workbook.properties.created = datetime.now()
+        workbook.properties.revision = 1
+        workbook.properties.modified = datetime.now()
+        workbook.properties.lastPrinted = None
+
         vyplatit = workbook[workbook.sheetnames[0]]
         self.vypocet = workbook[workbook.sheetnames[1]]
         self.krycilist = workbook[workbook.sheetnames[2]]
