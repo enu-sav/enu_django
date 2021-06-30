@@ -4,20 +4,12 @@
 # enu_django-dev
 
 curdir=${PWD##*/}
-sudo service $curdir stop
-echo `git log --pretty=format:'%h' -n 1` > commit
-
 dt=`date -I`
-echo Backing up database content to dump-$dt.json
-./manage.py dumpdata --natural-foreign --natural-primary -e contenttypes -e auth.Permission --indent 2 > dump-$dt.json
 
-(
-echo Archiving everything to `pwd`/$dt
-cd ..
-tar czf $curdir-$dt.tgz --exclude=.env $curdir
-)
+sudo service $curdir stop
+./backup.sh
 git pull
-mv db.sqlite3 db.sqlite3.orig
+rm -f db.sqlite3
 rm -rf zmluvy/migrations
 ./manage.py makemigrations zmluvy
 ./manage.py migrate
