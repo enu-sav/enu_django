@@ -79,7 +79,9 @@ def VytvoritAutorskuZmluvu(zmluva):
     autor = zmluva.zmluvna_strana
     if not autor.meno or not autor.priezvisko:
         return messages.ERROR, f"Chyba pri vytváraní súborov zmluvy: nie je určené meno alebo priezvisko autora'", None
-    mp = f"{autor.titul_pred_menom} {autor.meno} {autor.priezvisko}"
+    mp = f"{autor.meno} {autor.priezvisko}"
+    if autor.titul_pred_menom:
+        mp = f"{autor.titul_pred_menom} {mp}"
     if autor.titul_za_menom:
         mp = f"{mp}, {autor.titul_za_menom}"
     if not autor.adresa_mesto or not autor.adresa_stat:
