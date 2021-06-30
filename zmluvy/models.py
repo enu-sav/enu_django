@@ -24,7 +24,7 @@ class StavZmluvy(models.TextChoices):
     PODPISANA_ENU = "podpisana_enu", "Podpísaná EnÚ"
     ODOSLANA_ZS = "odoslana_zs", "Odoslaná ZS"
     VRATENA_OD_ZS = "vratena_od_zs", "Vrátená od ZS"
-    ZVEREJNENA_V_CRZ = "zverejnena_v_crz", "Zverejnená v CRZ"
+    ZVEREJNENA_V_CRZ = "zverejnena_v_crz", "Platná / Zverejnená v CRZ"  #Nemusí byť v CRZ, ak bola uzatvorené pre r. 2012
 
 # Create your models here.     
 # Abstraktná trieda so všetkými spoločnými poľami, nepoužívaná samostatne
@@ -98,7 +98,7 @@ class Zmluva(models.Model):
     datum_aktualizacie = models.DateTimeField('Dátum aktualizácie', auto_now=True)
     stav_zmluvy = models.CharField(max_length=20, choices=StavZmluvy.choices, blank=True) 
     url_zmluvy = models.URLField('URL zmluvy', blank = True)
-    datum_zverejnenia_CRZ = models.DateField('Dátum CRZ', blank=True, null=True)
+    datum_zverejnenia_CRZ = models.DateField('Platná od / dátum CRZ', blank=True, null=True)
 
     def __str__(self):
         return self.cislo_zmluvy

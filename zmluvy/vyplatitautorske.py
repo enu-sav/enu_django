@@ -131,7 +131,7 @@ class VyplatitAutorskeOdmeny():
                 if zmluva.honorar_ah < 1:
                     self.log(messages.ERROR, f"Zmluva {zmluva.cislo_zmluvy} autora {autor} nemá určený honorár/AH")
                 if not zmluva.datum_zverejnenia_CRZ:
-                    self.log(messages.ERROR, f"Zmluva {zmluva.cislo_zmluvy} autora {autor} nie je zverejnená v CRZ")
+                    self.log(self.ERROR, f"Zmluva {zmluva.cislo_zmluvy} autora {autor} nemá uvedený dátum platnosti / zverejnenia v CRZ")
             # vypocitat odmenu za vsetky hesla
             ahonorar = 0 #sucet odmien za jednotlive hesla na zaklade zmluv
             zmluvy_autora = set()
