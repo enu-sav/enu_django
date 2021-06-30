@@ -17,6 +17,8 @@ cd ..
 tar czf $curdir-$dt.tgz --exclude=.env $curdir
 )
 git pull
+mv db.sqlite3 db.sqlite3.orig
+rm -rf zmluvy/migrations
 ./manage.py makemigrations zmluvy
 ./manage.py migrate
 ./manage.py loaddata dump-$dt.json
