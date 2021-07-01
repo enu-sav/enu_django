@@ -244,7 +244,7 @@ class PlatbaAutorskaSumarSuborAdmin(admin.StackedInline):
 
 @admin.register(PlatbaAutorskaSumar)
 class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
-    list_display = ['obdobie', 'datum_uhradenia', 'honorar_rs', 'honorar_webrs', 'honorar_spolu', 'vyplatene_spolu', 'odvod_LF', 'odvedena_dan']
+    list_display = ['obdobie', 'datum_uhradenia', 'datum_importovania', 'datum_zalozenia', 'honorar_rs', 'honorar_webrs', 'honorar_spolu', 'vyplatene_spolu', 'odvod_LF', 'odvedena_dan']
     actions = ['vytvorit_podklady_pre_THS', 'zaznamenat_platby_do_db', 'zrusit_platbu']
     # pripajanie suborov k objektu: krok 3, inline do XxxAdmin 
     inlines = [PlatbaAutorskaSumarSuborAdmin]

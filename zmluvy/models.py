@@ -184,7 +184,9 @@ def platba_autorska_sumar_upload_location(instance, filename):
 
 class PlatbaAutorskaSumar(models.Model):
     #obdobie: priečinok, z ktorého bola platba importovaná
-    datum_uhradenia = models.DateField('Platba bola vyplatená THS, dátum vyplatenia', null=True, blank=True)
+    datum_uhradenia = models.DateField('Vyplatené THS-kou', null=True, blank=True)
+    datum_importovania = models.DateField('Importované do RS/WEBRS', null=True, blank=True)
+    datum_zalozenia = models.DateField('Založené do šanonov (po autoroch)', null=True, blank=True)
     platba_zaznamenana = models.CharField("Platba zaznanenaná v DB", max_length=3, choices=AnoNie.choices, default=AnoNie.NIE)
     obdobie = models.CharField("Obdobie vyplácania", max_length=20)  
     vyplatit_ths = models.FileField("Vyplatit THS",upload_to=platba_autorska_sumar_upload_location, null = True, blank = True)
