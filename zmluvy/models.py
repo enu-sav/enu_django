@@ -195,6 +195,8 @@ class PlatbaAutorskaSumar(models.Model):
     class Meta:
         verbose_name = 'Vyplácanie aut. honorárov'
         verbose_name_plural = 'Vyplácanie aut. honorárov'
+    def __str__(self):
+        return f"Vyplácanie za obdobie {self.obdobie}"
 
 class PlatbaAutorskaSumarSubor(models.Model):
     # on_delete=models.CASCADE: when a ZmluvaAutor is deleted, upload models are also deleted
@@ -203,3 +205,7 @@ class PlatbaAutorskaSumarSubor(models.Model):
     class Meta:
         verbose_name = 'Súbor aut. honorárov'
         verbose_name_plural = 'Súbory aut. honorárov'
+    def __str__(self):
+        odkial = "webového" if "webrs" in self.file.name else "knižného"
+        
+        return f"Exportovaný súbor z {odkial} redakčného systému za obdobie {self.platba_autorska_sumar.obdobie}"

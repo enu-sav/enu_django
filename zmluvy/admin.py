@@ -396,5 +396,7 @@ class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
 # pripajanie suborov k objektu: krok 4, register XxxSubor a definicia XxxSuborAdmin
 @admin.register(PlatbaAutorskaSumarSubor)
 class PlatbaAutorskaSumarSuborAdmin(admin.ModelAdmin):
-    list_display = (["platba_autorska_sumar", "file"])
+    list_display = (["file", "platba_autorska_sumar"])
+    def get_readonly_fields(self, request, obj=None):
+        return ["platba_autorska_sumar", "file"]
 
