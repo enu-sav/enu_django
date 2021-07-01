@@ -193,6 +193,7 @@ class PlatbaAutorskaSumar(models.Model):
     vyplatene = models.FileField("Vyplatené",upload_to=platba_autorska_sumar_upload_location, null = True, blank = True)
     import_rs = models.FileField("Importovať do RS",upload_to=platba_autorska_sumar_upload_location, null = True, blank = True)
     import_webrs = models.FileField("Importovať do WEBRS",upload_to=platba_autorska_sumar_upload_location, null = True, blank = True)
+    history = HistoricalRecords()
 
     class Meta:
         verbose_name = 'Vyplácanie aut. honorárov'
