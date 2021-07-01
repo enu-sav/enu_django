@@ -242,8 +242,25 @@ class PlatbaAutorskaOdmenaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
 class PlatbaAutorskaSumarSuborAdmin(admin.StackedInline):
     model = PlatbaAutorskaSumarSubor
 
+# Pridať dodatočné pole popis_zmeny, použije sa ako change_reason v SimpleHistoryAdmin
+class PlatbaAutorskaSumarForm(forms.ModelForm):
+    #popis_zmeny = forms.CharField()
+    popis_zmeny = forms.CharField(widget=forms.TextInput(attrs={'size':80}))
+    def save(self, commit=True):
+        popis_zmeny = self.cleaned_data.get('popis_zmeny', None)
+        # Get the form instance so I can write to its fields
+        instance = super(PlatbaAutorskaSumarForm, self).save(commit=commit)
+        # this writes the processed data to the description field
+        instance._change_reason = popis_zmeny
+        return super(PlatbaAutorskaSumarForm, self).save(commit=commit)
+
+    class Meta:
+        model = PlatbaAutorskaSumar
+        fields = "__all__"
+
 @admin.register(PlatbaAutorskaSumar)
 class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
+    form = PlatbaAutorskaSumarForm
     list_display = ['obdobie', 'datum_uhradenia', 'datum_importovania', 'datum_zalozenia', 'honorar_rs', 'honorar_webrs', 'honorar_spolu', 'vyplatene_spolu', 'odvod_LF', 'odvedena_dan']
     actions = ['vytvorit_podklady_pre_THS', 'zaznamenat_platby_do_db', 'zrusit_platbu']
     # pripajanie suborov k objektu: krok 3, inline do XxxAdmin 
