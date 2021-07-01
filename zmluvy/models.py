@@ -189,7 +189,7 @@ class PlatbaAutorskaSumar(models.Model):
     datum_zalozenia = models.DateField('Založené do šanonov (po autoroch)', null=True, blank=True)
     platba_zaznamenana = models.CharField("Platba zaznanenaná v DB", max_length=3, choices=AnoNie.choices, default=AnoNie.NIE)
     obdobie = models.CharField("Obdobie vyplácania", max_length=20)  
-    vyplatit_ths = models.FileField("Vyplatit THS",upload_to=platba_autorska_sumar_upload_location, null = True, blank = True)
+    vyplatit_ths = models.FileField("Súbor pre THS-ku",upload_to=platba_autorska_sumar_upload_location, null = True, blank = True)
     vyplatene = models.FileField("Vyplatené",upload_to=platba_autorska_sumar_upload_location, null = True, blank = True)
     import_rs = models.FileField("Importovať do RS",upload_to=platba_autorska_sumar_upload_location, null = True, blank = True)
     import_webrs = models.FileField("Importovať do WEBRS",upload_to=platba_autorska_sumar_upload_location, null = True, blank = True)
