@@ -105,7 +105,7 @@ def VytvoritAutorskuZmluvu(zmluva):
     nazov_objektu = "Šablóna autorskej zmluvy"  #Presne takto mysí byť objekt pomenovaný
     sablona = SystemovySubor.objects.filter(subor_nazov = nazov_objektu)
     if not sablona:
-        return messages.ERROR, f"Súbor '{nazov_sablony}' nie je v systéme definovaný", None
+        return messages.ERROR, f"V systéme nie je definovaný súbor '{nazov_objektu}'.", None
     nazov_suboru = sablona[0].subor.file.name 
  
     try:

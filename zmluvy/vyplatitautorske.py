@@ -4,7 +4,7 @@ from glob import glob
 from datetime import date, datetime
 from django.conf import settings
 from django.contrib import messages
-from zmluvy.models import OsobaAutor, ZmluvaAutor, PlatbaAutorskaOdmena, PlatbaAutorskaSumar
+from zmluvy.models import OsobaAutor, ZmluvaAutor, PlatbaAutorskaOdmena, PlatbaAutorskaSumar, SystemovySubor
 from openpyxl import load_workbook
 from openpyxl.styles import Font, Color, colors, Alignment, PatternFill , numbers
 from openpyxl.utils import get_column_letter
@@ -13,7 +13,7 @@ from ipdb import set_trace as trace
 
 
 class VyplatitAutorskeOdmeny():
-    ws_template = f"{settings.TEMPLATES_DIR}/UhradaAutHonoraru.xlsx"
+    #ws_template = f"{settings.TEMPLATES_DIR}/UhradaAutHonoraru.xlsx"
     litfond_odvod = 0   #Aktuálne 0 kvôli Covid pandémii, inak 2 %
     dan_odvod = 19    # daň, napr. 19 %
     min_vyplatit=20     #minimálna suma v Eur, ktorá sa vypláca
@@ -96,6 +96,14 @@ class VyplatitAutorskeOdmeny():
     def vyplatit_odmeny(self, obdobie, datum_vyplatenia=None): 
         self.datum_vyplatenia = datum_vyplatenia # Ak None, nevygenerujú sa hárky ImportRS/WEBRS
 
+        #Súbor šablóny
+        nazov_objektu = "Šablóna vyplácania honorárov"  #Presne takto mysí byť objekt pomenovaný
+        sablona = SystemovySubor.objects.filter(subor_nazov = nazov_objektu)
+        if not sablona:
+            self.log(messages.ERROR, f"V systéme nie je definovaný súbor '{nazov_objektu}'.")
+            return
+        ws_template = sablona[0].subor.file.name 
+
         self.obdobie = obdobie
         csv_path = os.path.join(settings.MEDIA_ROOT,settings.RLTS_DIR_NAME, obdobie) 
         self.pocet_znakov = {"rs": {}, "webrs":{}}
@@ -170,7 +178,7 @@ class VyplatitAutorskeOdmeny():
         acenter = Alignment(horizontal='center')
         aleft = Alignment(horizontal='left')
 
-        workbook = load_workbook(filename=VyplatitAutorskeOdmeny.ws_template)
+        workbook = load_workbook(filename=ws_template)
 
         #upraviť vlastnosti dokumentu
         workbook.properties.creator = "EnÚ Django Author Management System"
