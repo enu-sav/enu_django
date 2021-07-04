@@ -459,5 +459,8 @@ class SystemovySuborAdmin(admin.ModelAdmin):
     fields = ("subor_nazov", "subor_popis", "subor")
     # názov sa nesmie meniť, podľa názvu sa v kóde súbor vyhľadáva
     def get_readonly_fields(self, request, obj=None):
-        return ["subor_nazov"]
+        if obj:
+            return ["subor_nazov"]
+        else:
+            return []
 
