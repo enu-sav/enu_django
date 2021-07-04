@@ -5,6 +5,7 @@ from beliana import settings
 from django.utils import timezone
 from django.contrib import messages
 from ipdb import set_trace as trace
+from .models import SystemovySubor
  
 # test platnosti IBAN
 #https://rosettacode.org/wiki/IBAN#Python
@@ -100,14 +101,22 @@ def VytvoritAutorskuZmluvu(zmluva):
         if autor.koresp_adresa_institucia:
             kaddr = f"{autor.koresp_adresa_institucia}, {kaddr}"
 
-    # zmluva na podpis s kompletnými údajmi
+    #Načítať súbor šablóny
+    nazov_objektu = "Šablóna autorskej zmluvy"  #Presne takto mysí byť objekt pomenovaný
+    sablona = SystemovySubor.objects.filter(subor_nazov = nazov_objektu)
+    if not sablona:
+        return messages.ERROR, f"Súbor '{nazov_sablony}' nie je v systéme definovaný", None
+    nazov_suboru = sablona[0].subor.file.name 
+ 
     try:
-        with open(settings.AUTHORS_CONTRACT_TEMPLATE, "r") as f:
+        #with open(settings.AUTHORS_CONTRACT_TEMPLATE, "r") as f:
+        with open(nazov_suboru, "r") as f:
             sablona = f.read()
     except:
         return messages.ERROR, f"Chyba pri vytváraní súborov zmluvy: chyba pri čítaní šablóny '{settings.AUTHORS_CONTRACT_TEMPLATE}'", None
-    # zmluva pre CRZ
 
+    # spoločné úpravy
+    # zmluva na podpis s kompletnými údajmi
     sablona = sablona.replace(f"{lt}cislozmluvy{gt}", zmluva.cislo_zmluvy)
     sablona = sablona.replace(f"{lt}menopriezvisko{gt}", mp)
     if not autor.odbor:
@@ -116,7 +125,7 @@ def VytvoritAutorskuZmluvu(zmluva):
     sablona = sablona.replace(f"{lt}odmenanum{gt}", str(zmluva.honorar_ah).replace(".",","))
     sablona = sablona.replace(f"{lt}odmenatext{gt}", num2text(zmluva.honorar_ah))
     sablona = sablona.replace(f"{lt}dnesnydatum{gt}", timezone.now().strftime("%d. %m. %Y").replace(' 0',' '))
-    sablona_crz = sablona
+    sablona_crz = sablona # zmluva pre CRZ
 
     sablona = sablona.replace(f"{lt}adresa{gt}", addr)
     sablona = sablona.replace(f"{lt}kadresa{gt}", kaddr)

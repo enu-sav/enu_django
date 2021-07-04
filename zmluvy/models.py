@@ -13,8 +13,6 @@ import os
 #https://django-simple-history.readthedocs.io/en/latest/admin.html
 from simple_history.models import HistoricalRecords
 
-from .common import VytvoritAutorskuZmluvu
-
 class AnoNie(models.TextChoices):
     ANO = 'ano', 'Áno'
     NIE = 'nie', 'Nie'
