@@ -394,7 +394,11 @@ class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
         vao = VyplatitAutorskeOdmeny()
         vao.zrusit_vyplacanie(platba.obdobie)
         platba.datum_uhradenia = None
+        platba.datum_importovania = None
+        platba.datum_zalozenia = None
+        platba.datum_oznamenia = None
         platba.platba_zaznamenana = AnoNie.NIE
+        #odstrániť súbory
         platba.vyplatit_ths.delete()
         platba.vyplatene.delete()
         platba.import_rs.delete()
