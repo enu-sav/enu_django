@@ -49,6 +49,29 @@ class OsobaAutorAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportMod
 
     # modifikovať formulár na pridanie poľa Popis zmeny
     form = OsobaAutorForm
+    #Ak pouzijeme 'fields', tak vznikne chyba suvisiaca so 'zmluvy_link' a 'platby_link'
+    _fields = (
+            'rs_login',
+            'titul_pred_menom',
+            'meno',
+            'priezvisko',
+            'titul_za_menom',
+            'rodne_cislo',
+            'bankovy_kontakt',
+            'zdanit',
+            'email',
+            'rezident',
+            'adresa_ulica',
+            'adresa_mesto',
+            'adresa_stat',
+            'koresp_adresa_institucia',
+            'koresp_adresa_ulica',
+            'koresp_adresa_mesto',
+            'koresp_adresa_stat',
+            'odbor',
+            'preplatok',
+            'poznamka'
+            )
     #zmluvy_link: pridá odkaz na všetky zmluvy autora do zoznamu
     #platby_link: pridá odkaz na všetky platby autora do zoznamu
     list_display = (
