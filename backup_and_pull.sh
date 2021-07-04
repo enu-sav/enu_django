@@ -6,9 +6,21 @@
 curdir=${PWD##*/}
 dt=`date -I`
 
-sudo service $curdir stop
+sudo -k # make sure to ask for password on next sudo
+if sudo true; then
+    sudo service $curdir stop
+else
+    echo "sudo command failed, aborting script"
+    exit 1
+fi
+
 ./backup.sh
-git pull
+#git pull
+if [[ ! $(git pull) ]]; then  
+    echo "git command failed, aborting script"
+    exit 1
+fi  
+
 rm -f db.sqlite3
 rm -rf zmluvy/migrations
 ./manage.py makemigrations zmluvy
