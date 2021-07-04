@@ -5,6 +5,7 @@ from ipdb import set_trace as trace
 from django.contrib import messages
 from django.utils.translation import ngettext
 from django.conf import settings
+from django.contrib.auth import get_permission_codename
 from simple_history.utils import update_change_reason
 import os, re
 from tempfile import TemporaryFile
@@ -198,9 +199,9 @@ class ZmluvaAutorAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
             else:
                 self.message_user(request, f"Súbory zmluvy {zmluva.cislo_zmluvy} neboli vytvorené, lebo zmluva je už v stave '{StavZmluvy(zmluva.stav_zmluvy).label}'", messages.ERROR)
                 continue
-
     vytvorit_subory_zmluvy.short_description = f"Vytvoriť súbory zmluvy"
-
+    #Oprávnenie na použitie akcie, viazané na 'change'
+    vytvorit_subory_zmluvy.allowed_permissions = ('change',)
 
 # pripajanie suborov k objektu: krok 4, register XxxSubor a definicia XxxSuborAdmin
 @admin.register(ZmluvaAutorSubor)
@@ -335,6 +336,8 @@ class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
         platba.save()
         pass
     zaznamenat_platby_do_db.short_description = "Zaznamenať platby do databázy"
+    #Oprávnenie na použitie akcie, viazané na 'change'
+    zaznamenat_platby_do_db.allowed_permissions = ('change',)
 
     def vytvorit_podklady_pre_THS(self, request, queryset):
         if len(queryset) != 1:
@@ -349,6 +352,8 @@ class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
         platba.save()
         pass
     vytvorit_podklady_pre_THS.short_description = "Vytvoriť podklady na vyplatenie autorských odmien pre THS"
+    #Oprávnenie na použitie akcie, viazané na 'change'
+    vytvorit_podklady_pre_THS.allowed_permissions = ('change',)
 
     def vyplatit_autorske_odmeny(self, request, platba):
         self.db_logger = logging.getLogger('db')
@@ -413,8 +418,10 @@ class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
         for log in logs:
             self.message_user(request, log[1].replace(settings.MEDIA_ROOT,""), log[0])
         #self.message_user(request, f"Platba {platba.obdobie} bola zrušená", messages.INFO)
-
     zrusit_platbu.short_description = "Zrušiť záznam o platbách v databáze"
+    #Oprávnenie na použitie akcie, viazané na 'delete'
+    zrusit_platbu.allowed_permissions = ('delete',)
+
 
 # pripajanie suborov k objektu: krok 4, register XxxSubor a definicia XxxSuborAdmin
 @admin.register(PlatbaAutorskaSumarSubor)
@@ -426,5 +433,8 @@ class PlatbaAutorskaSumarSuborAdmin(admin.ModelAdmin):
 @admin.register(SystemovySubor)
 class SystemovySuborAdmin(admin.ModelAdmin):
     list_display = ("subor_nazov", "subor_popis", "subor")
-    #def get_readonly_fields(self, request, obj=None):
-        #return ["subor_nazov", "subor_popis"]
+    fields = ("subor_nazov", "subor_popis", "subor")
+    # názov sa nesmie meniť, podľa názvu sa v kóde súbor vyhľadáva
+    def get_readonly_fields(self, request, obj=None):
+        return ["subor_nazov"]
+
