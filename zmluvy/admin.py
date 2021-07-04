@@ -12,7 +12,7 @@ import logging
 
 # Register your models here.
 # pripajanie suborov k objektu: krok 1, importovať XxxSubor
-from .models import OsobaAutor, ZmluvaAutor, PlatbaAutorskaOdmena, PlatbaAutorskaSumar, StavZmluvy, ZmluvaAutorSubor, PlatbaAutorskaSumarSubor, AnoNie
+from .models import OsobaAutor, ZmluvaAutor, PlatbaAutorskaOdmena, PlatbaAutorskaSumar, StavZmluvy, ZmluvaAutorSubor, PlatbaAutorskaSumarSubor, AnoNie, SystemovySubor
 from .common import VytvoritAutorskuZmluvu, VyplatitAutorskeOdmeny
 from .vyplatitautorske import VyplatitAutorskeOdmeny
 
@@ -419,3 +419,8 @@ class PlatbaAutorskaSumarSuborAdmin(admin.ModelAdmin):
     def get_readonly_fields(self, request, obj=None):
         return ["platba_autorska_sumar", "file"]
 
+@admin.register(SystemovySubor)
+class SystemovySuborAdmin(admin.ModelAdmin):
+    list_display = ("subor_nazov", "subor_popis", "subor")
+    #def get_readonly_fields(self, request, obj=None):
+        #return ["subor_nazov", "subor_popis"]

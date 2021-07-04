@@ -3,8 +3,9 @@ from django.db import models
 from django.utils import timezone
 from django.contrib import messages
 from ipdb import set_trace as trace
+from zmluvy.storage import OverwriteStorage
 
-from beliana.settings import CONTRACTS_DIR_NAME, RLTS_DIR_NAME
+from beliana.settings import CONTRACTS_DIR_NAME, RLTS_DIR_NAME, TMPLTS_DIR_NAME
 import os
 
 
@@ -212,3 +213,19 @@ class PlatbaAutorskaSumarSubor(models.Model):
         odkial = "webového" if "webrs" in self.file.name else "knižného"
         
         return f"Exportovaný súbor z {odkial} redakčného systému za obdobie {self.platba_autorska_sumar.obdobie}"
+
+def system_file_path(instance, filename):
+    return os.path.join(TMPLTS_DIR_NAME, filename)
+
+class SystemovySubor(models.Model):
+    subor_nazov =  models.CharField("Názov", max_length=40)
+    subor_popis = models.CharField("Popis/účel", max_length=40)
+    # opakované uploadovanie súboru vytvorí novú verziu
+    #subor = models.FileField("Súbor",upload_to=TMPLTS_DIR_NAME, null = True, blank = True)
+    # opakované uploadovanie súboru prepíše existujúci súbor (nevytvorí novú verziu)
+    subor = models.FileField(storage=OverwriteStorage(), upload_to=system_file_path, null = True, blank = True)
+    class Meta:
+        verbose_name = 'Systémový súbor'
+        verbose_name_plural = 'Systémové súbory'
+    def __str__(self):
+        return(self.subor_nazov)

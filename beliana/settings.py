@@ -174,6 +174,7 @@ TEMPLATES_DIR = os.environ['TEMPLATES_DIR']
 ROYALTIES_DIR = os.environ['ROYALTIES_DIR']
 CONTRACTS_DIR_NAME = os.environ['CONTRACTS_DIR_NAME']
 RLTS_DIR_NAME = os.environ['RLTS_DIR_NAME']
+TMPLTS_DIR_NAME = os.environ["TMPLTS_DIR_NAME"]
 AUTHORS_CONTRACT_TEMPLATE = os.environ['AUTHORS_CONTRACT_TEMPLATE']
 
 # potrebné kvôli generovaniu zmlúv
