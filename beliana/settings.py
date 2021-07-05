@@ -183,3 +183,8 @@ MEDIA_ROOT = os.environ['MEDIA_ROOT']
 MEDIA_URL = '/subory/'
 CONTRACTS_DIR = os.path.join(MEDIA_ROOT,CONTRACTS_DIR_NAME)
 RLTS_DIR = os.path.join(MEDIA_ROOT,RLTS_DIR_NAME)
+
+# Právo na použitie modulu import_export
+# Importovanie je možné pre OsobaAutor
+IMPORT_EXPORT_IMPORT_PERMISSION_CODE='add'
+IMPORT_EXPORT_EXPORT_PERMISSION_CODE='add'
