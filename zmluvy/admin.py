@@ -150,7 +150,7 @@ class ZmluvaAutorSuborAdmin(admin.StackedInline):
     model = ZmluvaAutorSubor
 
 @admin.register(ZmluvaAutor)
-class ZmluvaAutorAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
+class ZmluvaAutorAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
     # modifikovať formulár na pridanie poľa Popis zmeny
     form = ZmluvaAutorForm
     # zmluvna_strana_link: pridá autora zmluvy do zoznamu, vďaka AdminChangeLinksMixin
