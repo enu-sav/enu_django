@@ -29,10 +29,10 @@ class StavZmluvy(models.TextChoices):
 # Abstraktná trieda so všetkými spoločnými poľami, nepoužívaná samostatne
 class PersonCommon(models.Model):
     # IBAN alebo aj kompletný popis s BIC a číslom účtu
-    bankovy_kontakt = models.CharField("Bankový kontakt", max_length=200)
+    bankovy_kontakt = models.CharField("Bankový kontakt", max_length=200, null=True, blank=True)
     adresa_ulica = models.CharField("Adresa – ulica a číslo domu", max_length=200, null=True, blank=True)
-    adresa_mesto = models.CharField("Adresa – PSČ a mesto", max_length=200)
-    adresa_stat = models.CharField("Adresa – štát", max_length=100)
+    adresa_mesto = models.CharField("Adresa – PSČ a mesto", max_length=200, null=True, blank=True)
+    adresa_stat = models.CharField("Adresa – štát", max_length=100, null=True, blank=True)
     koresp_adresa_institucia = models.CharField("Korešpondenčná adresa – institucia", max_length=200, null=True, blank=True)
     koresp_adresa_ulica = models.CharField("Korešpondenčná adresa – ulica a číslo domu", max_length=200, null=True, blank=True)
     koresp_adresa_mesto = models.CharField("Korešpondenčná adresa – PSČ a mesto", max_length=200, null=True, blank=True)
@@ -46,12 +46,12 @@ class PersonCommon(models.Model):
 
 # nie je nevyhnutne v RS (jaz. redaktor a pod)
 class FyzickaOsoba(PersonCommon):
-    email = models.EmailField("Email", max_length=200)
+    email = models.EmailField("Email", max_length=200, null=True, blank=True)
     titul_pred_menom = models.CharField("Titul pred menom", max_length=100, null=True, blank=True) #optional
     meno = models.CharField("Meno", max_length=200)
     priezvisko = models.CharField("Priezvisko", max_length=200)
     titul_za_menom = models.CharField("Titul za menom", max_length=100, null=True, blank=True)     #optional
-    rodne_cislo = models.CharField("Rodné číslo", max_length=20) 
+    rodne_cislo = models.CharField("Rodné číslo", max_length=20, null=True, blank=True) 
     zdanit = models.CharField("Zdaniť", max_length=3, choices=AnoNie.choices, null=True, blank=True) 
     rezident = models.CharField("Rezident SR", max_length=3, choices=AnoNie.choices, null=True, blank=True) 
     poznamka = models.CharField("Poznámka", max_length=200, blank=True)
@@ -69,7 +69,7 @@ class OsobaAuGaKo(FyzickaOsoba):
     rs_uid = models.IntegerField("Uid v RS", null=True, blank=True) #not needed, kept for eventual future usage
     rs_login = models.CharField("Login v RS", max_length=100)
     posobisko = models.CharField("Pôsobisko", max_length=200, null=True, blank=True)       #optional
-    odbor = models.CharField("Odbor", max_length=200)
+    odbor = models.CharField("Odbor", max_length=200, null=True, blank=True)
     #v_RS_od = models.DateField('V RS od', blank=True)
 
     def __str__(self):
