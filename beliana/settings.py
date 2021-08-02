@@ -176,6 +176,7 @@ CONTRACTS_DIR_NAME = os.environ['CONTRACTS_DIR_NAME']
 RLTS_DIR_NAME = os.environ['RLTS_DIR_NAME']
 TMPLTS_DIR_NAME = os.environ["TMPLTS_DIR_NAME"]
 AUTHORS_CONTRACT_TEMPLATE = os.environ['AUTHORS_CONTRACT_TEMPLATE']
+TAX_AGMT_DIR_NAME = os.environ["TAX_AGMT_DIR_NAME"]
 
 # potrebné kvôli generovaniu zmlúv
 #MEDIA_ROOT = os.path.join(DATA_DIR, 'subory')

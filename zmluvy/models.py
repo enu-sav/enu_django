@@ -5,7 +5,7 @@ from django.contrib import messages
 from ipdb import set_trace as trace
 from zmluvy.storage import OverwriteStorage
 
-from beliana.settings import CONTRACTS_DIR_NAME, RLTS_DIR_NAME, TMPLTS_DIR_NAME
+from beliana.settings import CONTRACTS_DIR_NAME, RLTS_DIR_NAME, TMPLTS_DIR_NAME, TAX_AGMT_DIR_NAME
 import os
 
 
@@ -44,6 +44,10 @@ class PersonCommon(models.Model):
 # spol. s r. o., alebo iné, majú 
 #class PartnerOrganizacia(PersonCommon)L
 
+# cesta k súborom s dohodou o nezdaňovaní
+def tax_agmt_path(instance, filename):
+    return os.path.join(TAX_AGMT_DIR_NAME, filename)
+
 # nie je nevyhnutne v RS (jaz. redaktor a pod)
 class FyzickaOsoba(PersonCommon):
     email = models.EmailField("Email", max_length=200, null=True, blank=True)
@@ -56,6 +60,10 @@ class FyzickaOsoba(PersonCommon):
     rezident = models.CharField("Rezident SR", max_length=3, choices=AnoNie.choices, null=True, blank=True) 
     poznamka = models.CharField("Poznámka", max_length=200, blank=True)
     #pub_date = models.DateField('date published')
+    # opakované uploadovanie súboru vytvorí novú verziu
+    #subor = models.FileField("Súbor",upload_to=TMPLTS_DIR_NAME, null = True, blank = True)
+    # opakované uploadovanie súboru prepíše existujúci súbor (nevytvorí novú verziu)
+    dohodasubor = models.FileField("Dohoda o nezdanení", storage=OverwriteStorage(), upload_to=tax_agmt_path, null = True, blank = True)
 
     class Meta:
         abstract = True
