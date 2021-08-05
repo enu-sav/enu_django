@@ -78,8 +78,9 @@ def VytvoritAutorskuZmluvu(zmluva):
     lt="&lt;"
     gt="&gt;"
     autor = zmluva.zmluvna_strana
-    if not autor.meno or not autor.priezvisko:
-        return messages.ERROR, f"Chyba pri vytváraní súborov zmluvy: nie je určené meno alebo priezvisko autora'", None
+    chyba_login = OveritUdajeAutora(autor)
+    if chyba_login:
+        return messages.ERROR, f"Chyba pri vytváraní súborov zmluvy, údaje autora {autor.rs_login} sú nekompletné (chýba {chyba_login}).", None
     mp = f"{autor.meno} {autor.priezvisko}"
     if autor.titul_pred_menom:
         mp = f"{autor.titul_pred_menom} {mp}"
@@ -186,11 +187,15 @@ def VyplatitAutorskeOdmeny(platba):
     os.path.join(settings.RLTS_DIR_NAME, platba.obdobie)
     pass
 
-def OveritUdajeAutora(login):
-    adata = OsobaAutor.objects.filter(rs_login=login)
-    if not adata:
-        return f"Autor {login} neexistuje"
-    adata = adata[0]
+def OveritUdajeAutora(autor):
+    #argument moze byt OsobaAutor alebo str
+    if isinstance(autor, OsobaAutor):
+        adata = autor
+    else:
+        adata = OsobaAutor.objects.filter(rs_login=autor)
+        if not adata:
+            return f"Autor {login} neexistuje"
+        adata = adata[0]
     chyby = ""
     if not adata.meno: chyby = f"{chyby} meno,"
     if not adata.priezvisko: chyby = f"{chyby} priezvisko,"

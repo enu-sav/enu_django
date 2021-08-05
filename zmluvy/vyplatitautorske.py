@@ -59,7 +59,7 @@ class VyplatitAutorskeOdmeny():
                     login = row[hdr["Prihlásiť sa"]]
                     chyba_login = OveritUdajeAutora(login)
                     if chyba_login:
-                        self.log(messages.ERROR, f"Heslo '{row[hdr['nazov']]}' bolo vynechané, lebo údaje jeho autora {login} sú nekompletné ({chyba_login}).")
+                        self.log(messages.ERROR, f"Heslo '{row[hdr['nazov']]}' bolo vynechané, lebo údaje jeho autora {login} sú nekompletné (chýba {chyba_login}).")
                         continue
                     zmluva = row[hdr['Zmluva na vyplatenie']].strip()   # odstranit medzery na zaciatku a konci
                     if not zmluva:
