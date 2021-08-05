@@ -58,7 +58,7 @@ class VyplatitAutorskeOdmeny():
                     login = row[hdr["Prihlásiť sa"]]
                     zmluva = row[hdr['Zmluva na vyplatenie']].strip()   # odstranit medzery na zaciatku a konci
                     if not zmluva:
-                        self.log(messages.ERROR, f"Heslo '{row[hdr['nazov']]}' bolo vynechané, lebo nemá zadanú zmluvu (súbor {fn}).")
+                        self.log(messages.ERROR, f"Heslo '{row[hdr['nazov']]}' bolo vynechané, lebo nemá zadané číslo zmluvy (súbor {fn}).")
                         continue
                     #if not login in self.pocet_znakov: self.pocet_znakov[login] = {}
                     #if not zmluva in self.pocet_znakov[login]: self.pocet_znakov[login][zmluva] = {}
@@ -81,7 +81,7 @@ class VyplatitAutorskeOdmeny():
                             re.sub(r"<[^>]*>","",row[hdr['Dátum záznamu dĺžky']])
                             ])
                     else:
-                        self.log(messages.ERROR, f"Heslo '{row[hdr['nazov']]}' bolo vynechané, lebo autor nemá zadaná zmluvu '{zmluva}' (súbor {fn})'.")
+                        self.log(messages.ERROR, f"Heslo '{row[hdr['nazov']]}' bolo vynechané, lebo autor {login} nemá priradenú zmluvu '{zmluva}' (súbor {fn})'.")
                     pass
 
     def meno_priezvisko(self, autor):
