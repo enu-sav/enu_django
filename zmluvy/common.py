@@ -5,7 +5,7 @@ from beliana import settings
 from django.utils import timezone
 from django.contrib import messages
 from ipdb import set_trace as trace
-from .models import SystemovySubor
+from .models import SystemovySubor, OsobaAutor, AnoNie
  
 # test platnosti IBAN
 #https://rosettacode.org/wiki/IBAN#Python
@@ -185,3 +185,25 @@ def VytvoritAutorskuZmluvu(zmluva):
 def VyplatitAutorskeOdmeny(platba):
     os.path.join(settings.RLTS_DIR_NAME, platba.obdobie)
     pass
+
+def OveritUdajeAutora(login):
+    adata = OsobaAutor.objects.filter(rs_login=login)
+    if not adata:
+        return f"Autor {login} neexistuje"
+    adata = adata[0]
+    chyby = ""
+    if not adata.meno: chyby = f"{chyby} meno,"
+    if not adata.priezvisko: chyby = f"{chyby} priezvisko,"
+    if not adata.rodne_cislo: chyby = f"{chyby} rodné číslo,"
+    if not adata.bankovy_kontakt: chyby = f"{chyby} bankový kontakt,"
+    if not adata.adresa_mesto: chyby = f"{chyby} PSČ a mesto,"
+    if not adata.adresa_ulica: chyby = f"{chyby} ulica,"
+    if not adata.adresa_stat: chyby = f"{chyby} štát,"
+    if not adata.zdanit: 
+        chyby = f"{chyby} údaj o zdaňovaní,"
+    elif adata.zdanit == AnoNie.NIE:
+        if not adata.datum_dohoda_podpis: chyby = f"{chyby} dátum podpisu dohody o nezdaňovaní,"
+        if not adata.dohodasubor: chyby = f"{chyby} súbor s textom dohody o nezdaňovaní,"
+    if not adata.rezident: chyby = f"{chyby} daňový rezident SR,"
+    if not adata.odbor: chyby = f"{chyby} odbor"
+    return chyby.strip(" ").strip(",")

@@ -10,6 +10,7 @@ from openpyxl.styles import Font, Color, colors, Alignment, PatternFill , number
 from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.pagebreak import Break
 from ipdb import set_trace as trace
+from .common import OveritUdajeAutora
 
 
 class VyplatitAutorskeOdmeny():
@@ -56,6 +57,10 @@ class VyplatitAutorskeOdmeny():
                     hdrOK = True
                 if row[hdr["Vyplatenie odmeny"]] == "Heslo vypracoval autor, vyplatiť" and not row[hdr["Dátum vyplatenia"]]:
                     login = row[hdr["Prihlásiť sa"]]
+                    chyba_login = OveritUdajeAutora(login)
+                    if chyba_login:
+                        self.log(messages.ERROR, f"Heslo '{row[hdr['nazov']]}' bolo vynechané, lebo údaje jeho autora {login} sú nekompletné ({chyba_login}).")
+                        continue
                     zmluva = row[hdr['Zmluva na vyplatenie']].strip()   # odstranit medzery na zaciatku a konci
                     if not zmluva:
                         self.log(messages.ERROR, f"Heslo '{row[hdr['nazov']]}' bolo vynechané, lebo nemá zadané číslo zmluvy (súbor {fn}).")
@@ -171,6 +176,12 @@ class VyplatitAutorskeOdmeny():
                 else:
                     self.log(messages.INFO, f"Autor %s: nebude vyplatené %.2f € (nízka suma)"%(autor,ahonorar - adata.preplatok) )
                 pass
+
+        #Ak neboli načítané žiadne platné údaje
+        if not self.suma_vyplatit:
+            self.log(messages.INFO, f"Neboli načítané žiadne platné dáta pre vyplácanie. Súbory na vyplácanie neboli vytvorené")
+            return
+
         # styly buniek, https://openpyxl.readthedocs.io/en/default/styles.html
         # default font dokumentu je Arial
         self.fbold = Font(name="Arial", bold=True)
