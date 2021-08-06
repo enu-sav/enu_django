@@ -41,6 +41,18 @@ def transliterate(text):
         t += oo[ii.find(c)]
     return t.replace("-","")
 
+# musí mať 9 alebo 10 znakov (bez lomky)
+# Ak má 10 znakov, musí byť deliteľné 11 bezo zvyšku
+def valid_rodne_cislo(rc):
+    rc = rc.replace("/","")
+    if len(rc) == 9:
+        return True
+    if len(rc) == 10:
+        return not int(rc)%11
+    else:
+        return False
+
+
 # konvertuje cislo v tvare XY0 do textoveho retazca
 def num2text(num):
     s = {
@@ -81,6 +93,10 @@ def VytvoritAutorskuZmluvu(zmluva):
     chyba_login = OveritUdajeAutora(autor)
     if chyba_login:
         return messages.ERROR, f"Chyba pri vytváraní súborov zmluvy, údaje autora {autor.rs_login} sú nekompletné (chýba {chyba_login}).", None
+    if not valid_iban(autor.bankovy_kontakt):
+        return messages.ERROR, f"Chyba pri vytváraní súborov, IBAN autora {autor.rs_login} je nesprávny.", None
+    if not valid_rodne_cislo(autor.rodne_cislo):
+        return messages.ERROR, f"Chyba pri vytváraní súborov, rodné číslo autora {autor.rs_login} je nesprávne.", None
     mp = f"{autor.meno} {autor.priezvisko}"
     if autor.titul_pred_menom:
         mp = f"{autor.titul_pred_menom} {mp}"
