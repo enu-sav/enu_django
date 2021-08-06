@@ -10,7 +10,7 @@ from openpyxl.styles import Font, Color, colors, Alignment, PatternFill , number
 from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.pagebreak import Break
 from ipdb import set_trace as trace
-from .common import OveritUdajeAutora
+from .common import OveritUdajeAutora, valid_rodne_cislo, valid_iban
 
 
 class VyplatitAutorskeOdmeny():
@@ -137,6 +137,13 @@ class VyplatitAutorskeOdmeny():
             if chyba_login:
                 self.log(messages.ERROR, f"Heslá autora {autor} nebudú vyplatené, lebo údaje autora sú nekompletné (chýba {chyba_login}).")
                 continue
+            if not valid_iban(adata.bankovy_kontakt):
+                self.log(messages.ERROR, f"Heslá autora {autor} nebudú vyplatené, lebo IBAN autora je nesprávny.")
+                continue
+            if not valid_rodne_cislo(adata.rodne_cislo):
+                self.log(messages.ERROR, f"Heslá autora {autor} nebudú vyplatené, lebo rodné číslo autora je nesprávne.")
+                continue
+
             # pomocna struktura na vyplacanie
             zvyplatit = {}
             for zmluva in zdata:
