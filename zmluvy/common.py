@@ -86,8 +86,6 @@ def VytvoritAutorskuZmluvu(zmluva):
         mp = f"{autor.titul_pred_menom} {mp}"
     if autor.titul_za_menom:
         mp = f"{mp}, {autor.titul_za_menom}"
-    if not autor.adresa_mesto or not autor.adresa_stat:
-        return messages.ERROR, f"Chyba pri vytváraní súborov zmluvy: nie je určené mesto alebo štát autora'", None
     #adresa
     addr = f"{autor.adresa_mesto}, {autor.adresa_stat}"
     if autor.adresa_ulica:
@@ -120,8 +118,6 @@ def VytvoritAutorskuZmluvu(zmluva):
     # zmluva na podpis s kompletnými údajmi
     sablona = sablona.replace(f"{lt}cislozmluvy{gt}", zmluva.cislo_zmluvy)
     sablona = sablona.replace(f"{lt}menopriezvisko{gt}", mp)
-    if not autor.odbor:
-        return messages.ERROR, f"Chyba pri vytváraní súborov zmluvy: nie je určený odbor autora'", None
     sablona = sablona.replace(f"{lt}odbor{gt}", autor.odbor)
     sablona = sablona.replace(f"{lt}odmenanum{gt}", str(zmluva.honorar_ah).replace(".",","))
     sablona = sablona.replace(f"{lt}odmenatext{gt}", num2text(zmluva.honorar_ah))
@@ -131,16 +127,10 @@ def VytvoritAutorskuZmluvu(zmluva):
     sablona = sablona.replace(f"{lt}adresa{gt}", addr)
     sablona = sablona.replace(f"{lt}kadresa{gt}", kaddr)
     sablona_crz = sablona_crz.replace(f"{lt}adresa{gt}", "–")
-    if not autor.rodne_cislo:
-        return messages.ERROR, f"Chyba pri vytváraní súborov zmluvy: nie je určené rodné číslo autora'", None
     sablona = sablona.replace(f"{lt}rodnecislo{gt}", autor.rodne_cislo)
     sablona_crz = sablona_crz.replace(f"{lt}rodnecislo{gt}", "–")
-    if not autor.bankovy_kontakt:
-        return messages.ERROR, f"Chyba pri vytváraní súborov zmluvy: nie je určený bankový kontakt (napr. ISBN) autora'", None
     sablona = sablona.replace(f"{lt}bankovykontakt{gt}", autor.bankovy_kontakt)
     sablona_crz = sablona_crz.replace(f"{lt}bankovykontakt{gt}", "–")
-    if not autor.email:
-        return messages.ERROR, f"Chyba pri vytváraní súborov zmluvy: nie je určený email autora'", None
     sablona = sablona.replace(f"{lt}email{gt}", autor.email)
     sablona_crz = sablona_crz.replace(f"{lt}email{gt}", "–")
 
