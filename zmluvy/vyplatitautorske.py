@@ -57,10 +57,6 @@ class VyplatitAutorskeOdmeny():
                     hdrOK = True
                 if row[hdr["Vyplatenie odmeny"]] == "Heslo vypracoval autor, vyplatiť" and not row[hdr["Dátum vyplatenia"]]:
                     login = row[hdr["Prihlásiť sa"]]
-                    chyba_login = OveritUdajeAutora(login)
-                    if chyba_login:
-                        self.log(messages.ERROR, f"Heslo '{row[hdr['nazov']]}' bolo vynechané, lebo údaje jeho autora {login} sú nekompletné (chýba {chyba_login}).")
-                        continue
                     zmluva = row[hdr['Zmluva na vyplatenie']].strip()   # odstranit medzery na zaciatku a konci
                     if not zmluva:
                         self.log(messages.ERROR, f"Heslo '{row[hdr['nazov']]}' bolo vynechané, lebo nemá zadané číslo zmluvy (súbor {fn}).")
@@ -137,6 +133,10 @@ class VyplatitAutorskeOdmeny():
             if not adata:
                 self.log(messages.ERROR, f"Autor {autor}: nemá záznam v databáze ")
             adata=adata[0]
+            chyba_login = OveritUdajeAutora(adata)
+            if chyba_login:
+                self.log(messages.ERROR, f"Heslá autora {autor} nebudú vyplatené, lebo údaje autora sú nekompletné (chýba {chyba_login}).")
+                continue
             # pomocna struktura na vyplacanie
             zvyplatit = {}
             for zmluva in zdata:
