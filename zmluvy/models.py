@@ -118,7 +118,7 @@ class Zmluva(models.Model):
 
 # cesta k súborom dohody
 def contract_path(instance, filename):
-    return os.path.join(CONTRACT_DIR_NAME, filename)
+    return os.path.join(CONTRACTS_DIR_NAME, filename)
 
 class ZmluvaAutor(Zmluva):
     # v OsobaAutor je pristup k zmluve cez 'zmluvaautor'
