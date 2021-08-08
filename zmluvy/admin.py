@@ -13,7 +13,7 @@ import logging
 
 # Register your models here.
 # pripajanie suborov k objektu: krok 1, importovať XxxSubor
-from .models import OsobaAutor, ZmluvaAutor, PlatbaAutorskaOdmena, PlatbaAutorskaSumar, StavZmluvy, ZmluvaAutorSubor, PlatbaAutorskaSumarSubor, AnoNie, SystemovySubor
+from .models import OsobaAutor, ZmluvaAutor, PlatbaAutorskaOdmena, PlatbaAutorskaSumar, StavZmluvy, PlatbaAutorskaSumarSubor, AnoNie, SystemovySubor
 from .common import VytvoritAutorskuZmluvu, VyplatitAutorskeOdmeny
 from .vyplatitautorske import VyplatitAutorskeOdmeny
 
@@ -144,11 +144,6 @@ class ZmluvaAutorForm(forms.ModelForm):
         model = ZmluvaAutor
         fields = "__all__"
 
-# pripajanie suborov k objektu: krok 2, vytvoriť XxxSuborAdmin
-# musí byť pred krokom 3
-class ZmluvaAutorSuborAdmin(admin.StackedInline):
-    model = ZmluvaAutorSubor
-
 @admin.register(ZmluvaAutor)
 class ZmluvaAutorAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
     # modifikovať formulár na pridanie poľa Popis zmeny
@@ -159,8 +154,6 @@ class ZmluvaAutorAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportMo
     ordering = ('zmluvna_strana',)
     search_fields = ['cislo_zmluvy','zmluvna_strana__rs_login', 'honorar_ah', 'stav_zmluvy']
     actions = ['vytvorit_subory_zmluvy']
-    # pripajanie suborov k objektu: krok 3, inline do XxxAdmin 
-    inlines = [ZmluvaAutorSuborAdmin]
 
     # umožnené prostredníctvom AdminChangeLinksMixin
     change_links = ['zmluvna_strana']
@@ -220,9 +213,6 @@ class ZmluvaAutorAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportMo
                         else:
                             zmluva.vygenerovana_subor=subor
                     zmluva.save()
-                    #for subor in vytvorene_subory:
-                        #novy_subor = ZmluvaAutorSubor(zmluva=zmluva, file=subor)
-                        #novy_subor.save()
                 self.message_user(request, msg, status)
             else:
                 self.message_user(request, f"Súbory zmluvy {zmluva.cislo_zmluvy} neboli vytvorené, lebo zmluva je už v stave '{StavZmluvy(zmluva.stav_zmluvy).label}'", messages.ERROR)
@@ -230,11 +220,6 @@ class ZmluvaAutorAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportMo
     vytvorit_subory_zmluvy.short_description = f"Vytvoriť súbory zmluvy"
     #Oprávnenie na použitie akcie, viazané na 'change'
     vytvorit_subory_zmluvy.allowed_permissions = ('change',)
-
-# pripajanie suborov k objektu: krok 4, register XxxSubor a definicia XxxSuborAdmin
-@admin.register(ZmluvaAutorSubor)
-class ZmluvaAutorSuborAdmin(admin.ModelAdmin):
-    list_display = (["zmluva", "file"])
 
 @admin.register(PlatbaAutorskaOdmena)
 class PlatbaAutorskaOdmenaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):

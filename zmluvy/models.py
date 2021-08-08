@@ -141,16 +141,6 @@ def zmluva_autor_upload_location(instance, filename):
     file_name = filename.replace(" ", "-")
     return os.path.join(CONTRACTS_DIR_NAME, dir_name, file_name)
 
-class ZmluvaAutorSubor(models.Model):
-    # on_delete=models.CASCADE: when a ZmluvaAutor is deleted, upload models are also deleted
-    zmluva = models.ForeignKey(ZmluvaAutor, on_delete=models.CASCADE) 
-    file = models.FileField("Súbor",upload_to=zmluva_autor_upload_location, null = True, blank = True)
-    class Meta:
-        verbose_name = 'Súbor autorskej zmluvy'
-        verbose_name_plural = 'Súbory autorskej zmluvy'
-
-
-
 #Abstraktná tieda pre všetky platby
 #Súčasť Zmluvy 
 class Platba(models.Model):
