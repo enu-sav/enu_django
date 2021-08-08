@@ -18,12 +18,12 @@ class AnoNie(models.TextChoices):
     NIE = 'nie', 'Nie'
 
 class StavZmluvy(models.TextChoices):
+    ODOSLANY_DOTAZNIK = "odoslany_dotaznik", "Odoslaný dotazník"#Autorovi bol odoslaný dotazník na vyplnenie
     VYTVORENA = "vytvorena", "Vytvorená"                        #Úvodný stav, ak sa zmluva vytvára v EnÚ
-    PRIJATA = "prijata", "Prijatá"                              #Úvodný stav, ak bola zmluva vytvorená mimo EnÚ
     PODPISANA_ENU = "podpisana_enu", "Podpísaná EnÚ"
-    ODOSLANA_ZS = "odoslana_zs", "Odoslaná ZS"
-    VRATENA_OD_ZS = "vratena_od_zs", "Vrátená od ZS"
-    ZVEREJNENA_V_CRZ = "zverejnena_v_crz", "Platná / Zverejnená v CRZ"  #Nemusí byť v CRZ, ak bola uzatvorené pre r. 2012
+    ODOSLANA_AUTOROVI = "odoslana_autorovi", "Odoslaná autorovi"
+    VRATENA_OD_AUTORA = "vratena_od_autora", "Vrátená od autora"
+    ZVEREJNENA_V_CRZ = "zverejnena_v_crz", "Platná / Zverejnená v CRZ" #Nemusí byť v CRZ, ak bola uzatvorená pred r. 2012
 
 # Create your models here.     
 # Abstraktná trieda so všetkými spoločnými poľami, nepoužívaná samostatne
