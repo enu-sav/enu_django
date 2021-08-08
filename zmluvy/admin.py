@@ -105,7 +105,10 @@ class OsobaAutorAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportMod
     #obj is None during the object creation, but set to the object being edited during an edit
     def get_readonly_fields(self, request, obj=None):
         if obj:
-            return ["rs_uid", "rs_login"]
+            if obj.zdanit == AnoNie.ANO:
+                return ["rs_uid", "rs_login","datum_dohoda_oznamenie", "datum_dohoda_podpis", "dohodasubor"]
+            else:
+                return ["rs_uid", "rs_login"]
         else:
             return []
 
