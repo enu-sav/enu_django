@@ -173,9 +173,9 @@ class ZmluvaAutorAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportMo
     #obj is None during the object creation, but set to the object being edited during an edit
     def get_readonly_fields(self, request, obj=None):
         if obj:
-            return ["cislo_zmluvy", "zmluvna_strana"]
+            return ["cislo_zmluvy", "zmluvna_strana", "vygenerovana_subor", "vygenerovana_crz_subor"]
         else:
-            return []
+            return ["vygenerovana_subor", "vygenerovana_crz_subor"]
 
     # formátovať pole url_zmluvy
     def url_zmluvy_html(self, obj):
@@ -214,10 +214,15 @@ class ZmluvaAutorAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportMo
                 if status != messages.ERROR:
                     zmluva.stav_zmluvy = StavZmluvy.VYTVORENA
                     zmluva.datum_aktualizacie = timezone.now(),
-                    zmluva.save()
                     for subor in vytvorene_subory:
-                        novy_subor = ZmluvaAutorSubor(zmluva=zmluva, file=subor)
-                        novy_subor.save()
+                        if "CRZ" in subor:
+                            zmluva.vygenerovana_crz_subor=subor
+                        else:
+                            zmluva.vygenerovana_subor=subor
+                    zmluva.save()
+                    #for subor in vytvorene_subory:
+                        #novy_subor = ZmluvaAutorSubor(zmluva=zmluva, file=subor)
+                        #novy_subor.save()
                 self.message_user(request, msg, status)
             else:
                 self.message_user(request, f"Súbory zmluvy {zmluva.cislo_zmluvy} neboli vytvorené, lebo zmluva je už v stave '{StavZmluvy(zmluva.stav_zmluvy).label}'", messages.ERROR)

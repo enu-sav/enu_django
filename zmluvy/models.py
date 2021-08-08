@@ -116,12 +116,19 @@ class Zmluva(models.Model):
         verbose_name = 'Zmluva'
         verbose_name_plural = 'Zmluvy'
 
+# cesta k súborom dohody
+def contract_path(instance, filename):
+    return os.path.join(CONTRACT_DIR_NAME, filename)
+
 class ZmluvaAutor(Zmluva):
     # v OsobaAutor je pristup k zmluve cez 'zmluvaautor'
     #models.PROTECT: Prevent deletion of the referenced object
     #related_name: v admin.py umožní zobrazit zmluvy autora v zozname autorov cez pole zmluvy_link 
     zmluvna_strana = models.ForeignKey(OsobaAutor, on_delete=models.PROTECT, related_name='zmluvy')    
     honorar_ah = models.DecimalField("Honorár/AH", max_digits=8, decimal_places=2, default=0) #Eur/AH (36 000 znakov)
+    vygenerovana_subor = models.FileField("Vygenerovaný súbor zmluvy", storage=OverwriteStorage(), upload_to=contract_path, null = True, blank = True)
+    vygenerovana_crz_subor = models.FileField("Vygenerovaný súbor zmluvy pre CRZ", storage=OverwriteStorage(), upload_to=contract_path, null = True, blank = True)
+    podpisana_subor = models.FileField("Podpísaná zmluva", storage=OverwriteStorage(), upload_to=contract_path, null = True, blank = True)
     history = HistoricalRecords()
     class Meta:
         verbose_name = 'Autorská zmluva'
