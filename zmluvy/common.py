@@ -159,15 +159,17 @@ def VytvoritAutorskuZmluvu(zmluva):
 
     #korešpondenčná adresa
     if autor.koresp_adresa_mesto:
+        mesto = re.sub(r"^([0-9]{3}) *([0-9]{2}) +",r"\1 \2  ",autor.koresp_adresa_mesto)
         sablona = sablona.replace(f"{lt}kadresa1{gt}", autor.koresp_adresa_institucia if autor.koresp_adresa_institucia else "")
         sablona = sablona.replace(f"{lt}kadresa2{gt}", autor.koresp_adresa_ulica if autor.koresp_adresa_ulica else "")
-        sablona = sablona.replace(f"{lt}kadresa3{gt}", autor.koresp_adresa_mesto if autor.koresp_adresa_mesto else "")
+        sablona = sablona.replace(f"{lt}kadresa3{gt}", mesto)
         sablona = sablona.replace(f"{lt}kadresa4{gt}", autor.koresp_adresa_stat if autor.koresp_adresa_stat else "")
     else:
-        sablona = sablona.replace(f"{lt}kadresa1{gt}", "")
-        sablona = sablona.replace(f"{lt}kadresa2{gt}", autor.adresa_ulica if autor.adresa_ulica else "")
-        sablona = sablona.replace(f"{lt}kadresa3{gt}", autor.adresa_mesto if autor.adresa_mesto else "")
-        sablona = sablona.replace(f"{lt}kadresa4{gt}", autor.adresa_stat if autor.adresa_stat else "")
+        mesto = re.sub(r"^([0-9]{3}) *([0-9]{2}) +",r"\1 \2  ",autor.adresa_mesto)
+        sablona = sablona.replace(f"{lt}kadresa1{gt}", autor.adresa_ulica if autor.adresa_ulica else "")
+        sablona = sablona.replace(f"{lt}kadresa2{gt}", mesto)
+        sablona = sablona.replace(f"{lt}kadresa3{gt}", autor.adresa_stat if autor.adresa_stat else "")
+        sablona = sablona.replace(f"{lt}kadresa4{gt}", "")
 
     #ulozit
     #Create directory admin.rs_login if necessary
