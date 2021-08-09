@@ -75,7 +75,7 @@ class OsobaAutorAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportMod
     #zmluvy_link: pridá odkaz na všetky zmluvy autora do zoznamu
     #platby_link: pridá odkaz na všetky platby autora do zoznamu
     list_display = (
-            'rs_login', 'zmluvy_link', 'platby_link', 'preplatok', 'dohodasubor', "datum_dohoda_podpis", "datum_dohoda_oznamenie", 'rezident', 'email',
+            'rs_login', 'zmluvy_link', 'platby_link', 'preplatok', 'zdanit', 'dohodasubor', "datum_dohoda_podpis", "datum_dohoda_oznamenie", 'rezident', 'email',
             'menopriezvisko', 'rodne_cislo', 'odbor', "adresa", "koresp_adresa", 'datum_aktualizacie', 'poznamka'
             )
     ordering = ('datum_aktualizacie',)
