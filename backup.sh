@@ -15,7 +15,7 @@ echo Backing up database content to dump-$dt.json
 ./manage.py dumpdata --natural-foreign --natural-primary -e contenttypes -e auth.Permission --indent 2 > dump-$dt.json
 
 (
-echo Archiving everything to backup/`pwd`/$dt
 cd ..
+echo Archiving everything to `pwd`/backup/$curdir-$dt.tgz
 tar czf backup/$curdir-$dt.tgz --exclude=.env $curdir
 )
