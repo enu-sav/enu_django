@@ -21,9 +21,9 @@ if [[ ! $(git pull) ]]; then
     exit 1
 fi  
 
-rm -f db.sqlite3
-rm -rf zmluvy/migrations
+#rm -f db.sqlite3
+#rm -rf zmluvy/migrations
 ./manage.py makemigrations zmluvy
 ./manage.py migrate
-./manage.py loaddata dump-$dt.json
+#./manage.py loaddata dump-$dt.json
 sudo service $curdir start
