@@ -29,7 +29,9 @@ class StavZmluvy(models.TextChoices):
 # Abstraktná trieda so všetkými spoločnými poľami, nepoužívaná samostatne
 class PersonCommon(models.Model):
     # IBAN alebo aj kompletný popis s BIC a číslom účtu
-    bankovy_kontakt = models.CharField("Bankový kontakt", max_length=200, null=True, blank=True)
+    bankovy_kontakt = models.CharField("Bankový kontakt", 
+            help_text = "Zadajte IBAN účtu autora.",
+            max_length=200, null=True, blank=True)
     adresa_ulica = models.CharField("Adresa – ulica a číslo domu", max_length=200, null=True, blank=True)
     adresa_mesto = models.CharField("Adresa – PSČ a mesto", max_length=200, null=True, blank=True)
     adresa_stat = models.CharField("Adresa – štát", max_length=100, null=True, blank=True)
@@ -56,16 +58,26 @@ class FyzickaOsoba(PersonCommon):
     priezvisko = models.CharField("Priezvisko", max_length=200)
     titul_za_menom = models.CharField("Titul za menom", max_length=100, null=True, blank=True)     #optional
     rodne_cislo = models.CharField("Rodné číslo", max_length=20, null=True, blank=True) 
-    zdanit = models.CharField("Zdaniť", max_length=3, choices=AnoNie.choices, null=True, blank=True) 
-    datum_dohoda_podpis = models.DateField('Dohoda podpísaná', blank=True, null=True)
-    datum_dohoda_oznamenie = models.DateField('Dohoda oznámená', blank=True, null=True)
-    rezident = models.CharField("Rezident SR", max_length=3, choices=AnoNie.choices, null=True, blank=True) 
+    zdanit = models.CharField("Zdaniť",
+            help_text = "Zvoľte 'Nie', ak autor podpísal dohodu o nezdaňovaní. V tom prípade treba vyplniť aj polia 'Dohoda podpísaná' a 'Dohoda o nezdaňovaní'.",
+            max_length=3, choices=AnoNie.choices, null=True, blank=True) 
+    datum_dohoda_podpis = models.DateField('Dohoda podpísaná',
+            help_text = "Zadajte dátum podpisu dohody o nezdaňovaní.",
+            blank=True, null=True)
+    datum_dohoda_oznamenie = models.DateField('Dohoda oznámená', 
+            help_text = "Zadajte dátum oznámenia existencie dohody o nezdaňovaní Finančnej správe. Oznámenie sa posiela v termíne do konca januára roku, ktorý nasleduje po roku, keď po prvýkrát nebol honorár zdanený.",
+            blank=True, null=True)
+    rezident = models.CharField("Rezident SR", 
+            help_text = "Uveďte, či je autor daňovík s neobmedzenou daňovou povinnosťou v SR (daňový rezident SR). Ak autor nie je daňový rezident SR, tak sa jeho honorár nezdaňuje.",
+            max_length=3, choices=AnoNie.choices, null=True, blank=True) 
     poznamka = models.CharField("Poznámka", max_length=200, blank=True)
     #pub_date = models.DateField('date published')
     # opakované uploadovanie súboru vytvorí novú verziu
     #subor = models.FileField("Súbor",upload_to=TMPLTS_DIR_NAME, null = True, blank = True)
     # opakované uploadovanie súboru prepíše existujúci súbor (nevytvorí novú verziu)
-    dohodasubor = models.FileField("Dohoda o nezdanení", storage=OverwriteStorage(), upload_to=tax_agmt_path, null = True, blank = True)
+    dohodasubor = models.FileField("Dohoda o nezdaňovaní", 
+            help_text = "Vložte pdf súbor so zoskenovanou dohodou o nezdaňovaní.",
+            storage=OverwriteStorage(), upload_to=tax_agmt_path, null = True, blank = True)
 
     class Meta:
         abstract = True
@@ -105,9 +117,15 @@ class Zmluva(models.Model):
     cislo_zmluvy = models.CharField("Číslo zmluvy", max_length=50)
     datum_pridania = models.DateField('Dátum pridania', auto_now_add=True)
     datum_aktualizacie = models.DateTimeField('Dátum aktualizácie', auto_now=True)
-    stav_zmluvy = models.CharField(max_length=20, choices=StavZmluvy.choices, blank=True) 
-    url_zmluvy = models.URLField('URL zmluvy', blank = True)
-    datum_zverejnenia_CRZ = models.DateField('Platná od / dátum CRZ', blank=True, null=True)
+    stav_zmluvy = models.CharField(max_length=20,
+            help_text = "Z ponuky zvoľte aktuálny stav zmluvy. Autorský honorár môže byť vyplatený len vtedy, keď je v stave 'Platná / Zverejnená v CRZ.",
+            choices=StavZmluvy.choices, blank=True) 
+    url_zmluvy = models.URLField('URL zmluvy', 
+            help_text = "Zadajte URL pdf súboru zmluvy zo stránky CRZ.",
+            blank = True)
+    datum_zverejnenia_CRZ = models.DateField('Platná od / dátum CRZ', 
+            help_text = "Zadajte dátum účinnosti zmluvy (dátum zverejnenia v CRZ + 1 deň).",
+            blank=True, null=True)
 
     def __str__(self):
         return self.cislo_zmluvy
@@ -126,9 +144,15 @@ class ZmluvaAutor(Zmluva):
     #related_name: v admin.py umožní zobrazit zmluvy autora v zozname autorov cez pole zmluvy_link 
     zmluvna_strana = models.ForeignKey(OsobaAutor, on_delete=models.PROTECT, related_name='zmluvy')    
     honorar_ah = models.DecimalField("Honorár/AH", max_digits=8, decimal_places=2, default=0) #Eur/AH (36 000 znakov)
-    vygenerovana_subor = models.FileField("Vygenerovaný súbor zmluvy", storage=OverwriteStorage(), upload_to=contract_path, null = True, blank = True)
-    vygenerovana_crz_subor = models.FileField("Vygenerovaný súbor zmluvy pre CRZ", storage=OverwriteStorage(), upload_to=contract_path, null = True, blank = True)
-    podpisana_subor = models.FileField("Podpísaná zmluva", storage=OverwriteStorage(), upload_to=contract_path, null = True, blank = True)
+    vygenerovana_subor = models.FileField("Vygenerovaný súbor zmluvy", 
+            help_text = "Súbor zmluvy na poslanie autorovi na podpis, vygenerovaný akciou 'Vytvoriť súbory zmluvy'.",
+            storage=OverwriteStorage(), upload_to=contract_path, null = True, blank = True)
+    vygenerovana_crz_subor = models.FileField("Vygenerovaný súbor zmluvy pre CRZ", 
+            help_text = "Anonymizovaný súbor zmluvy na vloženie do CRZ, vygenerovaný akciou 'Vytvoriť súbory zmluvy'.",
+            storage=OverwriteStorage(), upload_to=contract_path, null = True, blank = True)
+    podpisana_subor = models.FileField("Podpísaná zmluva", 
+            help_text = "Vložte pdf súbor so zoskenovanou podpísanou zmluvou.",
+            storage=OverwriteStorage(), upload_to=contract_path, null = True, blank = True)
     history = HistoricalRecords()
     class Meta:
         verbose_name = 'Autorská zmluva'
