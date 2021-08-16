@@ -49,6 +49,7 @@ class VyplatitAutorskeOdmeny():
         #test zdvojenych hesiel (ak ma dve LS, tak je v csv dvakrat)
         duplitest=set()
         with open(fname, 'rt') as f:
+            print(fname)
             reader = csv.reader(f, dialect='excel')
             hdrOK = False
             for row in reader:
@@ -57,13 +58,19 @@ class VyplatitAutorskeOdmeny():
                     for n, ii in enumerate(row):
                         hdr[ii]=n
                     hdrOK = True
-                if row[hdr["Vyplatenie odmeny"]] == "Heslo vypracoval autor, vyplatiť" and not row[hdr["Dátum vyplatenia"]] and row[hdr["Nid"]] not in duplitest:
-                    duplitest.add(row[hdr["Nid"]])
+                nid = row[hdr["Nid"]] if rs_webrs == "rs" else row[hdr["Nid"]].replace("//rs","//webrs")
+                if row[hdr["Vyplatenie odmeny"]] == "Heslo vypracoval autor, vyplatiť" and not row[hdr["Dátum vyplatenia"]] and nid not in duplitest:
+                    duplitest.add(nid)
 
                     login = row[hdr["Prihlásiť sa"]]
+                    print(login)
                     zmluva = row[hdr['Zmluva na vyplatenie']].strip()   # odstranit medzery na zaciatku a konci
                     if not zmluva:
-                        self.log(messages.ERROR, f"Heslo '{row[hdr['nazov']]}' bolo vynechané, lebo nemá zadané číslo zmluvy (súbor {fn}).")
+                        self.log(messages.ERROR, f"Heslo autora {login} bolo vynechané, lebo nemá zadané číslo zmluvy ({row[hdr['nazov']]}', {nid}, súbor {fn}).")
+                        continue
+
+                    if not row[hdr["Dĺžka autorom odovzdaného textu"]]:
+                        self.log(messages.ERROR, f"Heslo autora {login} bolo vynechané, lebo nemá zadanú dĺžku textu ({row[hdr['nazov']]}', {nid}, súbor {fn}).")
                         continue
                     #if not login in self.pocet_znakov: self.pocet_znakov[login] = {}
                     #if not zmluva in self.pocet_znakov[login]: self.pocet_znakov[login][zmluva] = {}
@@ -77,7 +84,6 @@ class VyplatitAutorskeOdmeny():
                     zmluvy_autora = [zmluva.cislo_zmluvy for zmluva in zdata]
                     if zmluva in zmluvy_autora:
                         if not zmluva in self.data[login][rs_webrs]: self.data[login][rs_webrs][zmluva] = []
-                        nid = row[hdr["Nid"]] if rs_webrs == "rs" else row[hdr["Nid"]].replace("//rs","//webrs")
                         self.data[login][rs_webrs][zmluva].append([
                             int(row[hdr["Dĺžka autorom odovzdaného textu"]]),
                             rs_webrs,
@@ -86,7 +92,7 @@ class VyplatitAutorskeOdmeny():
                             re.sub(r"<[^>]*>","",row[hdr['Dátum záznamu dĺžky']])
                             ])
                     else:
-                        self.log(messages.ERROR, f"Heslo '{row[hdr['nazov']]}' bolo vynechané, lebo autor {login} nemá priradenú zmluvu '{zmluva}' (súbor {fn})'.")
+                        self.log(messages.ERROR, f"Heslo autora {login} bolo vynechané, lebo autor nemá priradenú zmluvu {zmluva} ({row[hdr['nazov']]}, súbor {fn}).")
                     pass
 
     def meno_priezvisko(self, autor):
@@ -132,6 +138,7 @@ class VyplatitAutorskeOdmeny():
         self.suma_preplatok={}   # strhne sa z preplatku
         for autor in self.data:
             # spanning relationship: zmluvna_strana->rs_login
+            print(autor)
             zdata = ZmluvaAutor.objects.filter(zmluvna_strana__rs_login=autor)
             adata = OsobaAutor.objects.filter(rs_login=autor)
             if not adata:
