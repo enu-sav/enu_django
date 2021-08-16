@@ -46,6 +46,8 @@ class VyplatitAutorskeOdmeny():
     def nacitat_udaje_autor(self, fname, rs_webrs):
         fn = fname.split("/")[-1]
         hdr = {}
+        #test zdvojenych hesiel (ak ma dve LS, tak je v csv dvakrat)
+        duplitest=set()
         with open(fname, 'rt') as f:
             reader = csv.reader(f, dialect='excel')
             hdrOK = False
@@ -55,7 +57,9 @@ class VyplatitAutorskeOdmeny():
                     for n, ii in enumerate(row):
                         hdr[ii]=n
                     hdrOK = True
-                if row[hdr["Vyplatenie odmeny"]] == "Heslo vypracoval autor, vyplatiť" and not row[hdr["Dátum vyplatenia"]]:
+                if row[hdr["Vyplatenie odmeny"]] == "Heslo vypracoval autor, vyplatiť" and not row[hdr["Dátum vyplatenia"]] and row[hdr["Nid"]] not in duplitest:
+                    duplitest.add(row[hdr["Nid"]])
+
                     login = row[hdr["Prihlásiť sa"]]
                     zmluva = row[hdr['Zmluva na vyplatenie']].strip()   # odstranit medzery na zaciatku a konci
                     if not zmluva:
