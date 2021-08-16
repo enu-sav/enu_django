@@ -136,6 +136,7 @@ class VyplatitAutorskeOdmeny():
             adata = OsobaAutor.objects.filter(rs_login=autor)
             if not adata:
                 self.log(messages.ERROR, f"Autor {autor}: nemá záznam v databáze ")
+                continue
             adata=adata[0]
             chyba_login = OveritUdajeAutora(adata)
             if chyba_login:
