@@ -18,7 +18,8 @@ class AnoNie(models.TextChoices):
     NIE = 'nie', 'Nie'
 
 class StavZmluvy(models.TextChoices):
-    ODOSLANY_DOTAZNIK = "odoslany_dotaznik", "Odoslaný dotazník"#Autorovi bol odoslaný dotazník na vyplnenie
+    POZIADAVKA = "odoslana_poziadavka", "Odoslaná požiadavka na sekretariát"#Autorovi bol odoslaný dotazník na vyplnenie
+    ODOSLANY_DOTAZNIK = "odoslany_dotaznik", "Odoslaný dotazník autorovi"#Autorovi bol odoslaný dotazník na vyplnenie
     VYTVORENA = "vytvorena", "Vytvorená"                        #Úvodný stav, ak sa zmluva vytvára v EnÚ
     PODPISANA_ENU = "podpisana_enu", "Podpísaná EnÚ"
     ODOSLANA_AUTOROVI = "odoslana_autorovi", "Odoslaná autorovi"
