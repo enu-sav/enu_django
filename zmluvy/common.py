@@ -210,7 +210,8 @@ def OveritUdajeAutora(autor):
     if not adata.rodne_cislo: chyby = f"{chyby} rodné číslo,"
     if not adata.bankovy_kontakt: chyby = f"{chyby} bankový kontakt,"
     if not adata.adresa_mesto: chyby = f"{chyby} PSČ a mesto,"
-    if not adata.adresa_ulica: chyby = f"{chyby} ulica,"
+    # ulica sa netestuje, môže byť nezadaná
+    #if not adata.adresa_ulica: chyby = f"{chyby} ulica,"
     if not adata.adresa_stat: chyby = f"{chyby} štát,"
     if not adata.zdanit: 
         chyby = f"{chyby} údaj o zdaňovaní,"
