@@ -66,11 +66,11 @@ class VyplatitAutorskeOdmeny():
                     print(login)
                     zmluva = row[hdr['Zmluva na vyplatenie']].strip()   # odstranit medzery na zaciatku a konci
                     if not zmluva:
-                        self.log(messages.ERROR, f"Heslo autora {login} bolo vynechané, lebo nemá zadané číslo zmluvy ({row[hdr['nazov']]}', {nid}, súbor {fn}).")
+                        self.log(messages.ERROR, f"Chyba v hesle, chýba číslo zmluvy: {login}, {row[hdr['nazov']]}, {nid}, súbor {fn}).")
                         continue
 
                     if not row[hdr["Dĺžka autorom odovzdaného textu"]]:
-                        self.log(messages.ERROR, f"Heslo autora {login} bolo vynechané, lebo nemá zadanú dĺžku textu ({row[hdr['nazov']]}', {nid}, súbor {fn}).")
+                        self.log(messages.ERROR, f"Chyba v hesle, chýba počet znakov: {login} {row[hdr['nazov']]}, {nid}, súbor {fn}).")
                         continue
                     #if not login in self.pocet_znakov: self.pocet_znakov[login] = {}
                     #if not zmluva in self.pocet_znakov[login]: self.pocet_znakov[login][zmluva] = {}
@@ -92,7 +92,7 @@ class VyplatitAutorskeOdmeny():
                             re.sub(r"<[^>]*>","",row[hdr['Dátum záznamu dĺžky']])
                             ])
                     else:
-                        self.log(messages.ERROR, f"Heslo autora {login} bolo vynechané, lebo autor nemá priradenú zmluvu {zmluva} ({row[hdr['nazov']]}, súbor {fn}).")
+                        self.log(messages.ERROR, f"Chyba zmluvy, autor nemá priradenú zmluvu {zmluva}: {login}, {row[hdr['nazov']]}, {nid}, súbor {fn}.")
                     pass
 
     def meno_priezvisko(self, autor):
