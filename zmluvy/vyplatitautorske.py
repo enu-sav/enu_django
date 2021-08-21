@@ -28,6 +28,7 @@ class VyplatitAutorskeOdmeny():
         if obdobie:
             self.obdobie = obdobie
         self.datum_vyplatenia = datum_vyplatenia # Ak None, nevygenerujú sa hárky ImportRS/WEBRS
+        self.kmax = 23 #max počet riadkov v krycom liste, inak sa pokazí formátovanie
         self.logs = []
 
     def log(self, status, msg):
@@ -95,6 +96,9 @@ class VyplatitAutorskeOdmeny():
                     else:
                         self.log(messages.ERROR, f"Chyba zmluvy, autor nemá priradenú zmluvu {zmluva}: {login}, {row[hdr['nazov']]}, {nid}, súbor {fn}.")
                     pass
+
+    def _meno_priezvisko(self, autor):
+        return f"{autor.meno} {autor.priezvisko}"
 
     def meno_priezvisko(self, autor):
         if autor.titul_pred_menom:
@@ -215,7 +219,7 @@ class VyplatitAutorskeOdmeny():
         workbook = load_workbook(filename=ws_template)
 
         #upraviť vlastnosti dokumentu
-        workbook.properties.creator = "EnÚ Django Author Management System"
+        workbook.properties.creator = "DjangoBel, systém na správu autorských zmlúv Encyclopaedie Beliany"
         if self.datum_vyplatenia:
             workbook.properties.title=f"Podklady pre THS na vyplatenie autorských honorárov ku dňu {self.obdobie}" 
         else:
@@ -225,10 +229,16 @@ class VyplatitAutorskeOdmeny():
         workbook.properties.modified = datetime.now()
         workbook.properties.lastPrinted = None
 
+        #Inicializácia hárkov
         vyplatit = workbook[workbook.sheetnames[0]]
         self.vypocet = workbook[workbook.sheetnames[1]]
-        self.krycilist = workbook[workbook.sheetnames[2]]
-        self.poautoroch = workbook[workbook.sheetnames[3]]
+        if len(self.suma_vyplatit ) > self.kmax: #autorov na vyplatenie je viac ako na jednu stranu
+            self.krycilist = workbook["Krycí list 2"]
+            workbook.remove_sheet(workbook["Krycí list"])
+        else:
+            self.krycilist = workbook["Krycí list"]
+            workbook.remove_sheet(workbook["Krycí list 2"])
+        self.poautoroch = workbook.create_sheet("Po autoroch")
 
         self.ppos = 1   #poloha počiatočnej bunky v hárku poautoroch, inkrementovaná po každom zázname
         if self.datum_vyplatenia:
@@ -257,7 +267,6 @@ class VyplatitAutorskeOdmeny():
             self.krycilist["A35"].value = self.krycilist["A35"].value.replace("xx.xx.xxxx", "- - -")
         self.kstart = 5 #poloha počiatočnej bunky v hárku 'Krycí list',, inkrementovaná po každom zázname
         self.kpos = self.kstart
-        self.kmax = 23 #max počet riadkov v krycom liste, inak sa pokazí formátovanie
 
         sum_row = self.vyplnit_harok_vypocet()
 
@@ -368,8 +377,8 @@ class VyplatitAutorskeOdmeny():
         vyplatit.print_area = f"A1:G{pos+7}"
 
         #suma v kryci_list
-        self.krycilist[f"A{self.kpos}"] = "Spolu"
-        self.krycilist[f"A{self.kpos}"].font = self.fbold
+        self.krycilist[f"B{self.kpos}"] = "Spolu"
+        self.krycilist[f"B{self.kpos}"].font = self.fbold
         self.krycilist[f"H{self.kpos}"] = f"=SUM(H{self.kstart}:H{self.kpos-1})"
         self.krycilist[f"H{self.kpos}"].font = self.fbold
         self.krycilist[f"I{self.kpos}"] = f"=SUM(I{self.kstart}:I{self.kpos-1})"
@@ -510,7 +519,8 @@ class VyplatitAutorskeOdmeny():
     # zapíše údaje o platbe do hárku 'Krycí list'
     def kryci_list_riadok(self, autor, ind):
         adata = OsobaAutor.objects.filter(rs_login=autor)[0]
-        self.krycilist[f"A{self.kpos}"].value = self.meno_priezvisko(adata)
+        self.krycilist[f"A{self.kpos}"].value = ind
+        self.krycilist[f"B{self.kpos}"].value = self.meno_priezvisko(adata)
         self.krycilist[f"D{self.kpos}"].value = adata.rodne_cislo
         self.krycilist[f"F{self.kpos}"].value = f"=Výpočet!B{ind+2}" 
         self.krycilist[f"H{self.kpos}"].value = f"=Výpočet!G{ind+2}"    #brutto
@@ -521,7 +531,6 @@ class VyplatitAutorskeOdmeny():
 
     # zapíše údaje o platbe do hárku Po autoroch
     def po_autoroch(self, autor):
-        if not self.po_autoroch: return
         ws = self.poautoroch
         for col in range(1,8):
             ws.column_dimensions[get_column_letter(col)].width = 10
