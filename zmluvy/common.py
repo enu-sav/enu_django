@@ -213,7 +213,7 @@ def OveritUdajeAutora(autor):
     # ulica sa netestuje, môže byť nezadaná
     #if not adata.adresa_ulica: chyby = f"{chyby} ulica,"
     if not adata.adresa_stat: chyby = f"{chyby} štát,"
-    if not adata.zdanit: 
+    if not adata.zdanit and adata.rezident == AnoNie.ANO: 
         chyby = f"{chyby} údaj o zdaňovaní,"
     elif adata.zdanit == AnoNie.NIE:
         if not adata.datum_dohoda_podpis: chyby = f"{chyby} dátum podpisu dohody o nezdaňovaní,"
