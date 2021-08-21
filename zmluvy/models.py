@@ -218,7 +218,10 @@ class PlatbaAutorskaSumar(models.Model):
     datum_oznamenia = models.DateField('Oznámené FS (mesačné)', null=True, blank=True)
     #platba_zaznamenana: nastavované programovo
     platba_zaznamenana = models.CharField("Platba zaznanenaná v DB", max_length=3, choices=AnoNie.choices, default=AnoNie.NIE)
-    obdobie = models.CharField("Obdobie vyplácania", max_length=20)  
+    obdobie = models.CharField("Identifikátor vyplácania",
+            help_text = "Ako identifikátor vyplácania sa použije dátum jeho vytvorenia",
+            max_length=20, default = datetime.datetime.now().strftime('%Y-%m-%d')
+            )
     vyplatit_ths = models.FileField("Súbor pre THS-ku",upload_to=platba_autorska_sumar_upload_location, null = True, blank = True)
     vyplatene = models.FileField("Vyplatené",upload_to=platba_autorska_sumar_upload_location, null = True, blank = True)
     import_rs = models.FileField("Importovať do RS",upload_to=platba_autorska_sumar_upload_location, null = True, blank = True)
