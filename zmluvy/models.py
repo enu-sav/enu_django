@@ -25,6 +25,7 @@ class StavZmluvy(models.TextChoices):
     ODOSLANA_AUTOROVI = "odoslana_autorovi", "Odoslaná autorovi"
     VRATENA_OD_AUTORA = "vratena_od_autora", "Vrátená od autora"
     ZVEREJNENA_V_CRZ = "zverejnena_v_crz", "Platná / Zverejnená v CRZ" #Nemusí byť v CRZ, ak bola uzatvorená pred r. 2012
+    NEPLATNA = "neplatna", "Nelatná / Nebola verejnená v CRZ" #Nemusí byť v CRZ, ak bola uzatvorená pred r. 2012
 
 # Create your models here.     
 # Abstraktná trieda so všetkými spoločnými poľami, nepoužívaná samostatne
