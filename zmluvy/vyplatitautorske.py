@@ -97,10 +97,10 @@ class VyplatitAutorskeOdmeny():
                         self.log(messages.ERROR, f"Chyba zmluvy, autor nemá priradenú zmluvu {zmluva}: {login}, {row[hdr['nazov']]}, {nid}, súbor {fn}.")
                     pass
 
-    def _meno_priezvisko(self, autor):
+    def meno_priezvisko(self, autor):
         return f"{autor.meno} {autor.priezvisko}"
 
-    def meno_priezvisko(self, autor):
+    def _meno_priezvisko(self, autor):
         if autor.titul_pred_menom:
             mp = f"{autor.titul_pred_menom} {autor.meno} {autor.priezvisko}"
         else:
