@@ -24,7 +24,7 @@ class VyplatitAutorskeOdmeny():
     WARNING, ERROR, SUCCESS = (1,2,3)
 
     def __init__(self, csv_subory=None):
-        if csv_subory: self.csv_subory = csv_subory
+        self.csv_subory = csv_subory
         self.logs = []
 
     def log(self, status, msg):
@@ -105,6 +105,10 @@ class VyplatitAutorskeOdmeny():
         return mp.strip()
             
     def vyplatit_odmeny(self, obdobie, datum_vyplatenia=None): 
+        if not self.csv_subory:
+            self.log(messages.ERROR, f"Vyplácanie {obdobie} nemá priradený žiadny exportovaný csv súbor s údajmi pre vyplácanie") 
+            return
+
         self.datum_vyplatenia = datum_vyplatenia # Ak None, nevygenerujú sa hárky ImportRS/WEBRS
 
         #Súbor šablóny
