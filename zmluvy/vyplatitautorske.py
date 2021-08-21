@@ -23,8 +23,11 @@ class VyplatitAutorskeOdmeny():
     ucetFin = "SK61 8180 5002 6780 2710 3305"
     WARNING, ERROR, SUCCESS = (1,2,3)
 
-    def __init__(self, csv_subory=None):
+    def __init__(self, csv_subory=None, obdobie=None, datum_vyplatenia=None): 
         self.csv_subory = csv_subory
+        if obdobie:
+            self.obdobie = obdobie
+        self.datum_vyplatenia = datum_vyplatenia # Ak None, nevygenerujú sa hárky ImportRS/WEBRS
         self.logs = []
 
     def log(self, status, msg):
@@ -49,7 +52,6 @@ class VyplatitAutorskeOdmeny():
         #test zdvojenych hesiel (ak ma dve LS, tak je v csv dvakrat)
         duplitest=set()
         with open(fname, 'rt') as f:
-            print(fname)
             reader = csv.reader(f, dialect='excel')
             hdrOK = False
             for row in reader:
@@ -63,7 +65,6 @@ class VyplatitAutorskeOdmeny():
                     duplitest.add(nid)
 
                     login = row[hdr["Prihlásiť sa"]]
-                    print(login)
                     zmluva = row[hdr['Zmluva na vyplatenie']].strip()   # odstranit medzery na zaciatku a konci
                     if not zmluva:
                         self.log(messages.ERROR, f"Chyba v hesle, chýba číslo zmluvy: {login}, {row[hdr['nazov']]}, {nid}, súbor {fn}).")
@@ -104,12 +105,10 @@ class VyplatitAutorskeOdmeny():
             mp = f"{mp}, {autor.titul_za_menom}"
         return mp.strip()
             
-    def vyplatit_odmeny(self, obdobie, datum_vyplatenia=None): 
+    def vyplatit_odmeny(self):
         if not self.csv_subory:
-            self.log(messages.ERROR, f"Vyplácanie {obdobie} nemá priradený žiadny exportovaný csv súbor s údajmi pre vyplácanie") 
+            self.log(messages.ERROR, f"Vyplácanie {self.obdobie} nemá priradený žiadny exportovaný csv súbor s údajmi pre vyplácanie") 
             return
-
-        self.datum_vyplatenia = datum_vyplatenia # Ak None, nevygenerujú sa hárky ImportRS/WEBRS
 
         #Súbor šablóny
         nazov_objektu = "Šablóna vyplácania honorárov"  #Presne takto mysí byť objekt pomenovaný
@@ -119,8 +118,7 @@ class VyplatitAutorskeOdmeny():
             return
         ws_template = sablona[0].subor.file.name 
 
-        self.obdobie = obdobie
-        csv_path = os.path.join(settings.MEDIA_ROOT,settings.RLTS_DIR_NAME, obdobie) 
+        csv_path = os.path.join(settings.MEDIA_ROOT,settings.RLTS_DIR_NAME, self.obdobie) 
         self.pocet_znakov = {"rs": {}, "webrs":{}}
         self.data={}
 
@@ -218,10 +216,10 @@ class VyplatitAutorskeOdmeny():
 
         #upraviť vlastnosti dokumentu
         workbook.properties.creator = "EnÚ Django Author Management System"
-        if datum_vyplatenia:
-            workbook.properties.title=f"Podklady pre THS na vyplatenie autorských honorárov za obdobie {self.obdobie}" 
+        if self.datum_vyplatenia:
+            workbook.properties.title=f"Podklady pre THS na vyplatenie autorských honorárov ku dňu {self.obdobie}" 
         else:
-            workbook.properties.title=f"Záznam o platbe autorských honorárov za obdobie {self.obdobie}"
+            workbook.properties.title=f"Záznam o platbe autorských honorárov ku dňu {self.obdobie}"
         workbook.properties.created = datetime.now()
         workbook.properties.revision = 1
         workbook.properties.modified = datetime.now()
@@ -265,7 +263,7 @@ class VyplatitAutorskeOdmeny():
 
         # vyplnit harok Na vyplatenie
         vyplatit.merge_cells('A5:H5')
-        vyplatit["A5"] = f"za obdobie '{self.obdobie}'"
+        vyplatit["A5"] = f"ku dňu '{self.obdobie}'"
         vyplatit["A5"].alignment = acenter
 
         vyplatit["A7"] = "Prevody spolu:"
@@ -330,7 +328,7 @@ class VyplatitAutorskeOdmeny():
         for i, autor in enumerate(self.suma_vyplatit):
             self.import_rs_webrs(autor)
             self.po_autoroch(autor)
-            self.kryci_list(autor, i)
+            self.kryci_list_riadok(autor, i)
             a,b,c,d,e,f = range(pos, pos+6)
             adata = OsobaAutor.objects.filter(rs_login=autor)[0]
             vyplatit[f"A{a}"] = "Komu:"
@@ -381,7 +379,7 @@ class VyplatitAutorskeOdmeny():
         self.krycilist[f"K{self.kpos}"] = f"=SUM(K{self.kstart}:K{self.kpos-1})"
         self.krycilist[f"K{self.kpos}"].font = self.fbold
 
-        #Všetky súbory, ktoré majú byť uložené do DB, musia mať záznam logu, ktorú končí na 'uložené do súboru {fpath}'
+        #Všetky súbory, ktoré majú byť uložené do DB, musia mať záznam logu, ktorý končí na 'uložené do súboru {fpath}'
         #if self.datum_vyplatenia and not self.negenerovat_subory:
         if self.datum_vyplatenia:
             fpath = os.path.join(csv_path,f"Vyplatene-{self.obdobie}.xlsx")
@@ -510,7 +508,7 @@ class VyplatitAutorskeOdmeny():
                 self.wpos = pos
 
     # zapíše údaje o platbe do hárku 'Krycí list'
-    def kryci_list(self, autor, ind):
+    def kryci_list_riadok(self, autor, ind):
         adata = OsobaAutor.objects.filter(rs_login=autor)[0]
         self.krycilist[f"A{self.kpos}"].value = self.meno_priezvisko(adata)
         self.krycilist[f"D{self.kpos}"].value = adata.rodne_cislo
@@ -540,7 +538,7 @@ class VyplatitAutorskeOdmeny():
         ftitle = Font(name="Arial", bold=True, size='14')
 
         ws.merge_cells(f'A{self.ppos}:H{self.ppos}')
-        ws[f'A{self.ppos}'] = f"Vyplatenie autorského honorára za obdobie {self.obdobie}"
+        ws[f'A{self.ppos}'] = f"Vyplatenie autorského honorára ku dňu {self.obdobie}"
         ws[f"A{self.ppos}"].alignment = Alignment(horizontal='center', vertical='center')
         ws.row_dimensions[self.ppos].height = 70
         ws[f"A{self.ppos}"].font = ftitle

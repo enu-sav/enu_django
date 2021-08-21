@@ -381,8 +381,8 @@ class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
         nazvy = [subor.file.name for subor in subory]
         try:
             dat_uhradenia = platba.datum_uhradenia.isoformat() if platba.datum_uhradenia else None
-            vao = VyplatitAutorskeOdmeny(nazvy)
-            vao.vyplatit_odmeny(platba.obdobie, dat_uhradenia)
+            vao = VyplatitAutorskeOdmeny(nazvy, platba.obdobie, dat_uhradenia)
+            vao.vyplatit_odmeny()
             logs = vao.get_logs()
             #status, msg, vytvorene_subory = VyplatitAutorskeOdmeny(platba)
             for log in logs:
