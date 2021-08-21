@@ -4,7 +4,7 @@ from glob import glob
 from datetime import date, datetime
 from django.conf import settings
 from django.contrib import messages
-from zmluvy.models import OsobaAutor, ZmluvaAutor, PlatbaAutorskaOdmena, PlatbaAutorskaSumar, SystemovySubor
+from zmluvy.models import OsobaAutor, ZmluvaAutor, PlatbaAutorskaOdmena, PlatbaAutorskaSumar, SystemovySubor, AnoNie
 from openpyxl import load_workbook
 from openpyxl.styles import Font, Color, colors, Alignment, PatternFill , numbers
 from openpyxl.utils import get_column_letter
@@ -138,13 +138,15 @@ class VyplatitAutorskeOdmeny():
         self.suma_preplatok={}   # strhne sa z preplatku
         for autor in self.data:
             # spanning relationship: zmluvna_strana->rs_login
-            print(autor)
             zdata = ZmluvaAutor.objects.filter(zmluvna_strana__rs_login=autor)
             adata = OsobaAutor.objects.filter(rs_login=autor)
             if not adata:
                 self.log(messages.ERROR, f"Autor {autor}: nemá záznam v databáze ")
                 continue
             adata=adata[0]
+            if adata.nevyplacat == AnoNie.ANO:
+                self.log(messages.INFO, f"Heslá autora {autor} nebudú vyplatené, lebo autor sa nevypláca.")
+                continue
             chyba_login = OveritUdajeAutora(adata)
             if chyba_login:
                 self.log(messages.ERROR, f"Heslá autora {autor} nebudú vyplatené, lebo údaje autora sú nekompletné (chýba {chyba_login}).")
