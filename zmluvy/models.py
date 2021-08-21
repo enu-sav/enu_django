@@ -25,7 +25,7 @@ class StavZmluvy(models.TextChoices):
     ODOSLANA_AUTOROVI = "odoslana_autorovi", "Odoslaná autorovi"
     VRATENA_OD_AUTORA = "vratena_od_autora", "Vrátená od autora"
     ZVEREJNENA_V_CRZ = "zverejnena_v_crz", "Platná / Zverejnená v CRZ" #Nemusí byť v CRZ, ak bola uzatvorená pred r. 2012
-    NEPLATNA = "neplatna", "Nelatná / Nebola verejnená v CRZ" #Nemusí byť v CRZ, ak bola uzatvorená pred r. 2012
+    NEPLATNA = "neplatna", "Neplatná / Nebola verejnená v CRZ"  #Zmluva nie je platná pokiaľ nebola v CRZ zverejnená do 30 dní od podpísania
 
 # Create your models here.     
 # Abstraktná trieda so všetkými spoločnými poľami, nepoužívaná samostatne
@@ -62,6 +62,9 @@ class FyzickaOsoba(PersonCommon):
     rodne_cislo = models.CharField("Rodné číslo", max_length=20, null=True, blank=True) 
     zdanit = models.CharField("Zdaniť",
             help_text = "Zvoľte 'Nie', ak autor podpísal dohodu o nezdaňovaní. V tom prípade treba vyplniť aj polia 'Dohoda podpísaná' a 'Dohoda o nezdaňovaní'.",
+            max_length=3, choices=AnoNie.choices, null=True, blank=True) 
+    nevyplacat = models.CharField("Nevyplácať",
+            help_text = "Zvoľte 'Áno', ak sa honorár nemá vyplácať (napr. ak autor zomrel a nie je jasné, komu honorár poslať). V poznámke uveďte konkrétny dôvod.",
             max_length=3, choices=AnoNie.choices, null=True, blank=True) 
     datum_dohoda_podpis = models.DateField('Dohoda podpísaná',
             help_text = "Zadajte dátum podpisu dohody o nezdaňovaní.",
