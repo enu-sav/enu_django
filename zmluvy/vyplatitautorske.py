@@ -471,6 +471,12 @@ class VyplatitAutorskeOdmeny():
         self.vypocet[f"L{ii+1}"] = f"=SUM(L2:L{ii})"
         for i, val in enumerate(vypocet_hlavicka):
             self.vypocet.cell(row=ii+1, column=i+1).font = self.fbold
+
+        if self.datum_vyplatenia:
+            self.vypocet[f"A{ii+3}"] = f"Výpočet k príkazu na úhradu autorských honorárov ku dňu {self.obdobie} (finálna verzia)"
+        else:
+            self.vypocet[f"A{ii+3}"] = f"Výpočet k príkazu na úhradu autorských honorárov ku dňu {self.obdobie} (predbežná verzia)"
+        
         return ii+1 #vratit riadok so suctami
 
     def odviest_dan(self, adata): 
