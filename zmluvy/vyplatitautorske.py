@@ -28,7 +28,14 @@ class VyplatitAutorskeOdmeny():
         if obdobie:
             self.obdobie = obdobie
         self.datum_vyplatenia = datum_vyplatenia # Ak None, nevygenerujú sa hárky ImportRS/WEBRS
-        self.kmax = 23 #max počet riadkov v krycom liste, inak sa pokazí formátovanie
+        self.kmax = 23 #max počet riadkov s údajmi o autoroch v krycom liste, inak sa pokazí formátovanie
+        self.kstart = 5 #prvý riadok záznamu o autoroch v hárku 'Krycí list', strana 1
+        self.klstart = 34 #prvý riadok krycieho listu
+        self.kpos = self.kstart #aktuálny riadok záznamu o autorovi v hárku 'Krycí list', strana 1
+        self.kstart2 = 35 #prvý riadok záznamu o autoroch v hárku 'Krycí list', strana 2
+        self.klstart2 = 66 #prvý riadok krycieho listu
+        self.s2start2 = 32 #prvý riadok druhej strany krycieho listu
+        self.kpos2 =self.kstart2 #aktuálny riadok záznamu o autorovi v hárku 'Krycí list', strana 2
         self.logs = []
 
     def log(self, status, msg):
@@ -206,7 +213,7 @@ class VyplatitAutorskeOdmeny():
 
         #Ak neboli načítané žiadne platné údaje
         if not self.suma_vyplatit:
-            self.log(messages.INFO, f"Neboli načítané žiadne platné dáta pre vyplácanie. Súbory na vyplácanie neboli vytvorené")
+            self.log(messages.INFO, f"Neboli načítané žiadne platné dáta pre vyplácanie. Súbory na vyplácanie neboli vytvorené.")
             return
 
         # styly buniek, https://openpyxl.readthedocs.io/en/default/styles.html
@@ -257,22 +264,16 @@ class VyplatitAutorskeOdmeny():
 
         #krycí list, zapísať základné údaje
         dtoday = date.today().strftime("%d.%m.%Y")
-        self.krycilist["A2"].value = self.krycilist["A2"].value.replace("xx-xxxx", self.obdobie)
-        self.krycilist["A34"].value = self.krycilist["A34"].value.replace("xx-xxxx", self.obdobie)
-        if self.datum_vyplatenia:
-            self.krycilist["A31"].value = self.krycilist["A31"].value.replace("xx.xx.xxxx", self.datum_vyplatenia)
-            self.krycilist["A35"].value = self.krycilist["A35"].value.replace("xx.xx.xxxx", self.datum_vyplatenia)
-        else:
-            self.krycilist["A31"].value = self.krycilist["A31"].value.replace("xx.xx.xxxx", "- - -")
-            self.krycilist["A35"].value = self.krycilist["A35"].value.replace("xx.xx.xxxx", "- - -")
-        self.kstart = 5 #poloha počiatočnej bunky v hárku 'Krycí list',, inkrementovaná po každom zázname
-        self.kpos = self.kstart
 
         sum_row = self.vyplnit_harok_vypocet()
 
         # vyplnit harok Na vyplatenie
-        vyplatit.merge_cells('A5:H5')
-        vyplatit["A5"] = f"ku dňu '{self.obdobie}'"
+        if self.datum_vyplatenia:
+            vyplatit["A4"].value = vyplatit["A4"].value.replace("(verzia)","(finálna verzia)")
+        else:
+            vyplatit["A4"].value = vyplatit["A4"].value.replace("(verzia)","(predbežná verzia)")
+        vyplatit.merge_cells('A5:G5')
+        vyplatit["A5"] = f"ku dňu {self.obdobie}"
         vyplatit["A5"].alignment = acenter
 
         vyplatit["A7"] = "Prevody spolu:"
@@ -335,6 +336,7 @@ class VyplatitAutorskeOdmeny():
         #vyplácaní autori
         pos += 6
         for i, autor in enumerate(self.suma_vyplatit):
+            print(autor)
             self.import_rs_webrs(autor)
             self.po_autoroch(autor)
             self.kryci_list_riadok(autor, i)
@@ -377,16 +379,7 @@ class VyplatitAutorskeOdmeny():
         vyplatit.print_area = f"A1:G{pos+7}"
 
         #suma v kryci_list
-        self.krycilist[f"B{self.kpos}"] = "Spolu"
-        self.krycilist[f"B{self.kpos}"].font = self.fbold
-        self.krycilist[f"H{self.kpos}"] = f"=SUM(H{self.kstart}:H{self.kpos-1})"
-        self.krycilist[f"H{self.kpos}"].font = self.fbold
-        self.krycilist[f"I{self.kpos}"] = f"=SUM(I{self.kstart}:I{self.kpos-1})"
-        self.krycilist[f"I{self.kpos}"].font = self.fbold
-        self.krycilist[f"J{self.kpos}"] = f"=SUM(J{self.kstart}:J{self.kpos-1})"
-        self.krycilist[f"J{self.kpos}"].font = self.fbold
-        self.krycilist[f"K{self.kpos}"] = f"=SUM(K{self.kstart}:K{self.kpos-1})"
-        self.krycilist[f"K{self.kpos}"].font = self.fbold
+        self.kryci_list_spolocne()
 
         #Všetky súbory, ktoré majú byť uložené do DB, musia mať záznam logu, ktorý končí na 'uložené do súboru {fpath}'
         #if self.datum_vyplatenia and not self.negenerovat_subory:
@@ -519,15 +512,91 @@ class VyplatitAutorskeOdmeny():
     # zapíše údaje o platbe do hárku 'Krycí list'
     def kryci_list_riadok(self, autor, ind):
         adata = OsobaAutor.objects.filter(rs_login=autor)[0]
-        self.krycilist[f"A{self.kpos}"].value = ind
-        self.krycilist[f"B{self.kpos}"].value = self.meno_priezvisko(adata)
-        self.krycilist[f"D{self.kpos}"].value = adata.rodne_cislo
-        self.krycilist[f"F{self.kpos}"].value = f"=Výpočet!B{ind+2}" 
-        self.krycilist[f"H{self.kpos}"].value = f"=Výpočet!G{ind+2}"    #brutto
-        self.krycilist[f"I{self.kpos}"].value = f"=Výpočet!K{ind+2}"    #daň
-        self.krycilist[f"J{self.kpos}"].value = f"=Výpočet!I{ind+2}"    #LitFond
-        self.krycilist[f"K{self.kpos}"].value = f"=Výpočet!L{ind+2}"    #netto
-        self.kpos += 1
+        # určiť, či ide o prvú alebo druhú stranu
+        if len(self.suma_vyplatit ) > self.kmax and ind >= self.kmax: 
+            if self.kpos2 == self.kstart2:  #1. riadok na druhej strane, jeden riadok vynechat an prenos
+                self.kpos2 +=1
+            actpos = self.kpos2
+            self.kpos2 += 1
+        else:
+            actpos = self.kpos
+            self.kpos += 1
+        self.krycilist[f"A{actpos}"].value = ind+1
+        self.krycilist[f"B{actpos}"].value = self.meno_priezvisko(adata)
+        self.krycilist[f"D{actpos}"].value = adata.rodne_cislo
+        self.krycilist[f"F{actpos}"].value = f"=Výpočet!B{ind+2}" 
+        self.krycilist[f"H{actpos}"].value = f"=Výpočet!G{ind+2}"    #brutto
+        self.krycilist[f"I{actpos}"].value = f"=Výpočet!K{ind+2}"    #daň
+        self.krycilist[f"J{actpos}"].value = f"=Výpočet!I{ind+2}"    #LitFond
+        self.krycilist[f"K{actpos}"].value = f"=Výpočet!L{ind+2}"    #netto
+
+    #krycí list, upraviť dátumy a súčtu platieb
+    def kryci_list_spolocne(self):
+        if len(self.suma_vyplatit ) > self.kmax:
+            top = self.kstart2 #prvý riadok záznamu o autoroch v hárku 'Krycí list', strana 2
+            kltop = self.klstart2 #prvý riadok krycieho listu, strana 2
+            if self.datum_vyplatenia:
+                self.krycilist["A2"].value =     self.krycilist["A2"].value.replace("(verzia)              ","(finálna verzia)")
+                self.krycilist[f"A33"].value = self.krycilist[f"A33"].value.replace("(verzia)              ","(finálna verzia)")
+            else:
+                self.krycilist["A2"].value =     self.krycilist["A2"].value.replace("(verzia)                   ","(predbežná verzia)")
+                self.krycilist[f"A33"].value = self.krycilist[f"A33"].value.replace("(verzia)                   ","(predbežná verzia)")
+            str1spolu = "Spolu za prvú stranu"
+            vyplatene = self.datum_vyplatenia if self.datum_vyplatenia else "ešte nevyplatené"
+            #riadok s podpisom
+            self.krycilist[f"A33"].value = self.krycilist[f"A33"].value.replace("xx-xxxx", self.obdobie)
+            self.krycilist[f"A66"].value = self.krycilist[f"A66"].value.replace("xx-xxxx", self.obdobie)
+            self.krycilist[f"A67"].value = self.krycilist[f"A67"].value.replace("xx.xx.xxxx", vyplatene)
+        else:
+            top = self.kstart #prvý riadok záznamu o autoroch v hárku 'Krycí list', strana 1
+            kltop = self.klstart #prvý riadok krycieho listu, strana 1
+            if self.datum_vyplatenia:
+                self.krycilist["A2"].value = self.krycilist["A2"].value.replace("(verzia)","(finálna verzia)")
+            else:
+                self.krycilist["A2"].value = self.krycilist["A2"].value.replace("(verzia)","(predbežná verzia)")
+            str1spolu = "Spolu"
+            vyplatene = self.datum_vyplatenia if self.datum_vyplatenia else "ešte nevyplatené"
+            self.krycilist[f"A34"].value = self.krycilist[f"A34"].value.replace("xx-xxxx", self.obdobie)
+            self.krycilist[f"A35"].value = self.krycilist[f"A35"].value.replace("xx.xx.xxxx", vyplatene)
+
+        self.krycilist["A2"].value = self.krycilist["A2"].value.replace("xx-xxxx", self.obdobie)
+
+        # spolu na prvej strane
+        self.krycilist[f"B{self.kpos}"] = str1spolu
+        self.krycilist[f"B{self.kpos}"].font = self.fbold
+        self.krycilist[f"H{self.kpos}"] = f"=SUM(H{self.kstart}:H{self.kpos-1})"
+        self.krycilist[f"H{self.kpos}"].font = self.fbold
+        self.krycilist[f"I{self.kpos}"] = f"=SUM(I{self.kstart}:I{self.kpos-1})"
+        self.krycilist[f"I{self.kpos}"].font = self.fbold
+        self.krycilist[f"J{self.kpos}"] = f"=SUM(J{self.kstart}:J{self.kpos-1})"
+        self.krycilist[f"J{self.kpos}"].font = self.fbold
+        self.krycilist[f"K{self.kpos}"] = f"=SUM(K{self.kstart}:K{self.kpos-1})"
+        self.krycilist[f"K{self.kpos}"].font = self.fbold
+
+        #na druhej strane
+        if len(self.suma_vyplatit ) > self.kmax:
+            self.krycilist[f"B{self.kstart2}"] = "Prenos z prvej strany"
+            self.krycilist[f"B{self.kstart2}"].font = self.fbold
+            self.krycilist[f"H{self.kstart2}"] = f"=H{self.kpos}"
+            self.krycilist[f"H{self.kstart2}"].font = self.fbold
+            self.krycilist[f"I{self.kstart2}"] = f"=I{self.kpos}"
+            self.krycilist[f"I{self.kstart2}"].font = self.fbold
+            self.krycilist[f"J{self.kstart2}"] = f"=J{self.kpos}"
+            self.krycilist[f"J{self.kstart2}"].font = self.fbold
+            self.krycilist[f"K{self.kstart2}"] = f"=K{self.kpos}"
+            self.krycilist[f"K{self.kstart2}"].font = self.fbold
+
+        # spolu na 2. strane
+            self.krycilist[f"B{self.kpos2}"] = "Spolu"
+            self.krycilist[f"B{self.kpos2}"].font = self.fbold
+            self.krycilist[f"H{self.kpos2}"] = f"=SUM(H{self.kstart2}:H{self.kpos2-1})"
+            self.krycilist[f"H{self.kpos2}"].font = self.fbold
+            self.krycilist[f"I{self.kpos2}"] = f"=SUM(I{self.kstart2}:I{self.kpos2-1})"
+            self.krycilist[f"I{self.kpos2}"].font = self.fbold
+            self.krycilist[f"J{self.kpos2}"] = f"=SUM(J{self.kstart2}:J{self.kpos2-1})"
+            self.krycilist[f"J{self.kpos2}"].font = self.fbold
+            self.krycilist[f"K{self.kpos2}"] = f"=SUM(K{self.kstart2}:K{self.kpos2-1})"
+            self.krycilist[f"K{self.kpos2}"].font = self.fbold
 
     # zapíše údaje o platbe do hárku Po autoroch
     def po_autoroch(self, autor):
