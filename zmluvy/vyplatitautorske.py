@@ -413,6 +413,7 @@ class VyplatitAutorskeOdmeny():
                 #msg = f"Údaje o vyplácaní na odoslanie THS boli uložené do súboru {fpath}"
                 #self.log(messages.WARNING, msg)
                 #self.db_logger.warning(msg)
+            workbook.remove_sheet(workbook["Po autoroch"])
             workbook.save(fpath)
             msg = f"Údaje o vyplácaní na odoslanie THS boli uložené do súboru {fpath}"
             self.log(messages.SUCCESS, msg)
