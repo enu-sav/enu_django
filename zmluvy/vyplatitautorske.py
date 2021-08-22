@@ -336,7 +336,6 @@ class VyplatitAutorskeOdmeny():
         #vyplácaní autori
         pos += 6
         for i, autor in enumerate(self.suma_vyplatit):
-            print(autor)
             self.import_rs_webrs(autor)
             self.po_autoroch(autor)
             self.kryci_list_riadok(autor, i)
