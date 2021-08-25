@@ -542,11 +542,11 @@ class VyplatitAutorskeOdmeny():
             top = self.kstart2 #prvý riadok záznamu o autoroch v hárku 'Krycí list', strana 2
             kltop = self.klstart2 #prvý riadok krycieho listu, strana 2
             if self.datum_vyplatenia:
-                self.krycilist["A2"].value =     self.krycilist["A2"].value.replace("(verzia)              ","(finálna verzia)")
-                self.krycilist[f"A33"].value = self.krycilist[f"A33"].value.replace("(verzia)              ","(finálna verzia)")
+                self.krycilist["A2"].value =     self.krycilist["A2"].value.replace("(verzia)                ","(finálna verzia)")
+                self.krycilist[f"A33"].value = self.krycilist[f"A33"].value.replace("(verzia)                ","(finálna verzia)")
             else:
-                self.krycilist["A2"].value =     self.krycilist["A2"].value.replace("(verzia)                   ","(predbežná verzia)")
-                self.krycilist[f"A33"].value = self.krycilist[f"A33"].value.replace("(verzia)                   ","(predbežná verzia)")
+                self.krycilist["A2"].value =     self.krycilist["A2"].value.replace("(verzia)                        ","(predbežná verzia)")
+                self.krycilist[f"A33"].value = self.krycilist[f"A33"].value.replace("(verzia)                        ","(predbežná verzia)")
             str1spolu = "Spolu za prvú stranu"
             vyplatene = self.datum_vyplatenia if self.datum_vyplatenia else "ešte nevyplatené"
             #riadok s podpisom
