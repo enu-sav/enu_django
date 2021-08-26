@@ -17,6 +17,7 @@ class AnoNie(models.TextChoices):
     ANO = 'ano', 'Áno'
     NIE = 'nie', 'Nie'
 
+#ak sa doplni stav pred 'PODPISANA_ENU', treba doplniť test vo funkcii vytvorit_subory_zmluvy
 class StavZmluvy(models.TextChoices):
     POZIADAVKA = "odoslana_poziadavka", "Odoslaná požiadavka na sekretariát"#Autorovi bol odoslaný dotazník na vyplnenie
     ODOSLANY_DOTAZNIK = "odoslany_dotaznik", "Odoslaný dotazník autorovi"#Autorovi bol odoslaný dotazník na vyplnenie

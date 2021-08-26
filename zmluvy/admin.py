@@ -206,7 +206,10 @@ class ZmluvaAutorAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportMo
 
     def vytvorit_subory_zmluvy(self, request, queryset):
         for zmluva  in queryset:
-            if not zmluva.stav_zmluvy or zmluva.stav_zmluvy == StavZmluvy.VYTVORENA:
+            if not zmluva.stav_zmluvy or zmluva.stav_zmluvy in (
+                            StavZmluvy.POZIADAVKA,  
+                            StavZmluvy.ODOSLANY_DOTAZNIK,  
+                            StavZmluvy.VYTVORENA):  
                 #vytvorene_subory: s cestou vzhľadom na MEDIA_ROOT 'AutorskeZmluvy/AdamAnton-1298/AdamAnton-1298.fodt'
                 status, msg, vytvorene_subory = VytvoritAutorskuZmluvu(zmluva)
                 if status != messages.ERROR:
