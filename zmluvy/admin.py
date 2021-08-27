@@ -12,6 +12,7 @@ from tempfile import TemporaryFile
 import logging
 
 # potrebné pre súčty, https://github.com/douwevandermeij/admin-totals
+# upravená šablóna admin_totals/change_list_results_totals.html
 from admin_totals.admin import ModelAdminTotals
 from django.contrib import admin
 from django.db.models import Sum, Avg
@@ -244,13 +245,6 @@ class PlatbaAutorskaOdmenaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin,ModelA
             ('odvod_LF', Sum),
             ('odvedena_dan', Sum),
             ('uhradena_suma', Sum),
-            #('honorar_webrs', lambda field: Coalesce(Sum(field), 0)), 
-            #('honorar_spolu', lambda field: Coalesce(Sum(field), 0)), 
-            #('vyplatene_spolu', lambda field: Coalesce(Sum(field), 0)), 
-            #('vyplatene_spolu', lambda field: Coalesce(Sum(field), 0)), 
-            #('odvod_LF', lambda field: Coalesce(Sum(field), 0)), 
-            #('odvedena_dan', lambda field: Coalesce(Sum(field), 0)), 
-            #('odvedena_dan', 100), 
             ]
 
     ordering = ('datum_uhradenia',)
