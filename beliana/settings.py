@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     'simple_history',
     'django_db_logger',
     'import_export',
+    'admin_totals',
 ]
 
 MIDDLEWARE = [

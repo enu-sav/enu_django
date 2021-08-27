@@ -11,6 +11,12 @@ import os, re
 from tempfile import TemporaryFile
 import logging
 
+# potrebné pre súčty, https://github.com/douwevandermeij/admin-totals
+from admin_totals.admin import ModelAdminTotals
+from django.contrib import admin
+from django.db.models import Sum, Avg
+from django.db.models.functions import Coalesce
+
 # Register your models here.
 # pripajanie suborov k objektu: krok 1, importovať XxxSubor
 from .models import OsobaAutor, ZmluvaAutor, PlatbaAutorskaOdmena, PlatbaAutorskaSumar, StavZmluvy, PlatbaAutorskaSumarSubor, AnoNie, SystemovySubor
@@ -230,9 +236,22 @@ class ZmluvaAutorAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportMo
     vytvorit_subory_zmluvy.allowed_permissions = ('change',)
 
 @admin.register(PlatbaAutorskaOdmena)
-class PlatbaAutorskaOdmenaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
+class PlatbaAutorskaOdmenaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin,ModelAdminTotals):
     # autor_link: pridá autora zmluvy do zoznamu, vďaka AdminChangeLinksMixin
     list_display = ('autor_link', 'obdobie', 'datum_uhradenia', 'zmluva', 'preplatok_pred', 'honorar', 'odvod_LF', 'odvedena_dan', 'uhradena_suma', 'preplatok_po')
+    list_totals = [
+            ('honorar', Sum),
+            ('odvod_LF', Sum),
+            ('odvedena_dan', Sum),
+            ('uhradena_suma', Sum),
+            #('honorar_webrs', lambda field: Coalesce(Sum(field), 0)), 
+            #('honorar_spolu', lambda field: Coalesce(Sum(field), 0)), 
+            #('vyplatene_spolu', lambda field: Coalesce(Sum(field), 0)), 
+            #('vyplatene_spolu', lambda field: Coalesce(Sum(field), 0)), 
+            #('odvod_LF', lambda field: Coalesce(Sum(field), 0)), 
+            #('odvedena_dan', lambda field: Coalesce(Sum(field), 0)), 
+            #('odvedena_dan', 100), 
+            ]
 
     ordering = ('datum_uhradenia',)
 
