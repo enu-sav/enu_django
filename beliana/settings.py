@@ -42,6 +42,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
 
 INSTALLED_APPS = [
     'zmluvy.apps.ZmluvyConfig',
+    'uctovnictvo.apps.UctovnictvoConfig',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
