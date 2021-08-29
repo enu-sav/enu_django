@@ -14,9 +14,7 @@ import logging
 # potrebné pre súčty, https://github.com/douwevandermeij/admin-totals
 # upravená šablóna admin_totals/change_list_results_totals.html
 from admin_totals.admin import ModelAdminTotals
-from django.contrib import admin
-from django.db.models import Sum, Avg
-from django.db.models.functions import Coalesce
+from django.db.models import Sum
 
 # Register your models here.
 # pripajanie suborov k objektu: krok 1, importovať XxxSubor
