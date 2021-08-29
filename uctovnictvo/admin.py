@@ -32,7 +32,7 @@ class EkonomickaKlasifikaciaAdmin(SimpleHistoryAdmin, ImportExportModelAdmin):
 
 @admin.register(Transakcia)
 class TransakciaAdmin(SimpleHistoryAdmin, ImportExportModelAdmin):
-    list_display = ("zdroj", "program", "zakazka", "ekoklas")
+    list_display = ("popis", "datum", "suma", "zdroj", "program", "zakazka", "ekoklas")
 
     # ^: v poli vyhľadávať len od začiatku
     search_fields = ["^zdroj__kod", "^program__kod", "^zakazka__kod", "^ekoklas__kod"]

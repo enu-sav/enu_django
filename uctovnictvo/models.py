@@ -71,9 +71,24 @@ class EkonomickaKlasifikacia(models.Model):
 # Create your models here.
 class Transakcia(models.Model):
     zdroj = models.ForeignKey(Zdroj, on_delete=models.PROTECT, related_name='transakcie')    
-    program = models.ForeignKey(Program, on_delete=models.PROTECT, related_name='transakcie')    
-    zakazka = models.ForeignKey(TypZakazky, on_delete=models.PROTECT, related_name='transakcie')    
+    program = models.ForeignKey(Program, 
+            on_delete=models.PROTECT, 
+            null=True, blank=True,
+            related_name='transakcie')    
+    zakazka = models.ForeignKey(TypZakazky, 
+            on_delete=models.PROTECT, 
+            null=True, blank=True,
+            related_name='transakcie')    
     ekoklas = models.ForeignKey(EkonomickaKlasifikacia, on_delete=models.PROTECT, related_name='transakcie')    
+    popis = models.CharField("Popis transakcie", 
+            help_text = "Zadajte stručný popis, napr. 'SPP fa 20', 'vratenie duplicitnej platby' a podobne",
+            max_length=100)
+    suma = models.DecimalField("Suma v EUR", 
+            help_text = "Zadajte príjmy ako kladné, výdavky ako záporné číslo",
+            max_digits=8, 
+            decimal_places=2, 
+            default=0)
+    datum = models.DateField('Dátum transakcie')
     class Meta:
         verbose_name = 'Transakcia'
         verbose_name_plural = 'Transakcie'
