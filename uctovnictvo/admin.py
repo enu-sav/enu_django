@@ -19,4 +19,5 @@ class EkonomickaKlasifikaciaAdmin(SimpleHistoryAdmin, ImportExportModelAdmin):
 class TransakciaAdmin(SimpleHistoryAdmin, ImportExportModelAdmin):
     list_display = ("zdroj", "program", "zakazka", "ekoklas")
     #search_fields = ("zdroj", "program", "zakazka", "ekoklas")
+    search_fields = ["^ekoklas__kod"]
     pass
