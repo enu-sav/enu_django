@@ -1,19 +1,8 @@
 from django.db import models
 
-#ak sa doplni stav pred 'PODPISANA_ENU', treba doplniť test vo funkcii vytvorit_subory_zmluvy
-class Zdroj(models.TextChoices):
-    Z111 = "z111", "111"    #štátny rozpočet
-    Z46 = "z46", "46"       #xxx
-    Z42 = "z42", "42"       #yyy
-
-class Program(models.TextChoices):
-    _087060J = "087060J", "087060J"
-    _0EK1102 = "0EK1102", "0EK1102"
-    _0EK1103 = "0EK1103", "0EK1103"
-
-#class Zakazka(models.TextChoices):
-    #BELIANA = "beliana", "Beliana"
-    #OSTATNE = "ostatne", "Ostatne"
+#záznam histórie
+#https://django-simple-history.readthedocs.io/en/latest/admin.html
+from simple_history.models import HistoricalRecords
 
 class Zdroj(models.Model):
     kod = models.CharField("Kód", 
@@ -89,6 +78,7 @@ class Transakcia(models.Model):
             decimal_places=2, 
             default=0)
     datum = models.DateField('Dátum transakcie')
+    history = HistoricalRecords()
     class Meta:
         verbose_name = 'Transakcia'
         verbose_name_plural = 'Transakcie'
