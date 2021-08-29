@@ -11,9 +11,48 @@ class Program(models.TextChoices):
     _0EK1102 = "0EK1102", "0EK1102"
     _0EK1103 = "0EK1103", "0EK1103"
 
-class Zakazka(models.TextChoices):
-    BELIANA = "beliana", "Beliana"
-    OSTATNE = "ostatne", "Ostatne"
+#class Zakazka(models.TextChoices):
+    #BELIANA = "beliana", "Beliana"
+    #OSTATNE = "ostatne", "Ostatne"
+
+class Zdroj(models.Model):
+    kod = models.CharField("Kód", 
+            help_text = "Zadajte kód zdroja - napr. 111, 46 alebo 42", 
+            max_length=20)
+    popis = models.CharField("Popis", 
+            help_text = "Popíšte zdroj",
+            max_length=100)
+    def __str__(self):
+        return self.kod
+    class Meta:
+        verbose_name = 'Zdroj'
+        verbose_name_plural = 'Zdroje'
+
+class Program(models.Model):
+    kod = models.CharField("Kód", 
+            help_text = "Zadajte kód programu - napr. 087060J, 0EK1102 alebo 0EK1103",
+            max_length=20)
+    popis = models.CharField("Popis", 
+            help_text = "Popíšte program",
+            max_length=100)
+    def __str__(self):
+        return self.kod
+    class Meta:
+        verbose_name = 'Program'
+        verbose_name_plural = 'Programy'
+
+class TypZakazky(models.Model):
+    kod = models.CharField("Kód", 
+            help_text = "Zadajte kód typu zákazky, napr. Beliana alebo Ostatné",
+            max_length=20)
+    popis = models.CharField("Popis", 
+            help_text = "Popíšte typ zákazky",
+            max_length=100)
+    def __str__(self):
+        return self.kod
+    class Meta:
+        verbose_name = 'Typ zákazky'
+        verbose_name_plural = 'Typy zákazky'
 
 class EkonomickaKlasifikacia(models.Model):
     kod = models.CharField("Kód", 
@@ -31,24 +70,9 @@ class EkonomickaKlasifikacia(models.Model):
 
 # Create your models here.
 class Transakcia(models.Model):
-    #zdroj = models.CharField("Zdroj", 
-            #help_text = "Zadajte zdroj - 111, 46 alebo 42", 
-            #max_length=10, null=True, blank=True)
-    zdroj = models.CharField("Zdroj", 
-            help_text = "Zadajte zdroj - 111, 46 alebo 42", 
-            max_length = 20,
-            choices = Zdroj.choices)
-    #program = models.CharField("Program", 
-            #help_text = "Zadajte program - 087060J, 0EK1102 alebo 0EK1103",
-            #max_length=10, null=True, blank=True)
-    program = models.CharField("Program", 
-            help_text = "Zadajte program - 087060J, 0EK1102 alebo 0EK1103",
-            max_length = 20,
-            choices = Program.choices)
-    zakazka = models.CharField("Zákazka", 
-            help_text = "Zadajte zákazku - Beliana alebo Ostatné",
-            max_length = 20,
-            choices = Zakazka.choices)
+    zdroj = models.ForeignKey(Zdroj, on_delete=models.PROTECT, related_name='transakcie')    
+    program = models.ForeignKey(Program, on_delete=models.PROTECT, related_name='transakcie')    
+    zakazka = models.ForeignKey(TypZakazky, on_delete=models.PROTECT, related_name='transakcie')    
     ekoklas = models.ForeignKey(EkonomickaKlasifikacia, on_delete=models.PROTECT, related_name='transakcie')    
     class Meta:
         verbose_name = 'Transakcia'
