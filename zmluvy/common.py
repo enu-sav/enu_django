@@ -215,7 +215,7 @@ def OveritUdajeAutora(autor):
     if not adata.adresa_stat: chyby = f"{chyby} štát,"
     if not adata.zdanit and adata.rezident == AnoNie.ANO: 
         chyby = f"{chyby} údaj o zdaňovaní,"
-    elif adata.zdanit == AnoNie.NIE:
+    elif adata.zdanit == AnoNie.NIE and adata.rezident == AnoNie.ANO:
         if not adata.datum_dohoda_podpis: chyby = f"{chyby} dátum podpisu dohody o nezdaňovaní,"
         if not adata.dohodasubor: chyby = f"{chyby} súbor s textom dohody o nezdaňovaní,"
     if not adata.rezident: chyby = f"{chyby} daňový rezident SR,"
