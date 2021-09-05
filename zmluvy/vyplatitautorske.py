@@ -467,7 +467,15 @@ class VyplatitAutorskeOdmeny():
         self.chyby.cell(row=1, column=3).alignment = alignment
 
         self.chyby.row_dimensions[1].height = 30
-        for nn, err in enumerate(self.error_list):
+        #vypísať chyby, každú len raz
+        unique_err = set()
+        nn = 0
+        for err in self.error_list:
+            err_str = ",".join(err)
+            if err_str in unique_err:
+                continue
+            else:
+                unique_err.add(err_str)
             self.chyby.cell(row=2+nn, column=1).value = err[0]
             self.chyby.cell(row=2+nn, column=1).alignment = alignment
             self.chyby.cell(row=2+nn, column=2).value = err[1]
@@ -475,6 +483,7 @@ class VyplatitAutorskeOdmeny():
             self.chyby.cell(row=2+nn, column=3).value = err[2]
             self.chyby.cell(row=2+nn, column=3).alignment = alignment
             self.chyby.row_dimensions[2+nn].height = 50
+            nn += 1
 
     # vyplnit harok vypocet
     def vyplnit_harok_vypocet(self):
