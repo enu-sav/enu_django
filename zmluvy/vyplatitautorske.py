@@ -36,6 +36,7 @@ class VyplatitAutorskeOdmeny():
         self.klstart2 = 66 #prvý riadok krycieho listu
         self.s2start2 = 32 #prvý riadok druhej strany krycieho listu
         self.kpos2 =self.kstart2 #aktuálny riadok záznamu o autorovi v hárku 'Krycí list', strana 2
+        self.error_list = [] #chyby na zápis do hárku Chyby.
         self.logs = []
 
     def log(self, status, msg):
@@ -75,11 +76,15 @@ class VyplatitAutorskeOdmeny():
                     login = row[hdr["Prihlásiť sa"]]
                     zmluva = row[hdr['Zmluva na vyplatenie']].strip()   # odstranit medzery na zaciatku a konci
                     if not zmluva:
-                        self.log(messages.ERROR, f"Chyba v hesle, chýba číslo zmluvy: {login}, {row[hdr['nazov']]}, {nid}, súbor {fn}).")
+                        msg = f"Chyba v hesle, chýba číslo zmluvy: {login}, {row[hdr['nazov']]}, {nid}, súbor {fn})."
+                        self.log(messages.ERROR, msg)
+                        self.error_list.append([login,"",msg])
                         continue
 
                     if not row[hdr["Dĺžka autorom odovzdaného textu"]]:
-                        self.log(messages.ERROR, f"Chyba v hesle, chýba počet znakov: {login} {row[hdr['nazov']]}, {nid}, súbor {fn}).")
+                        msg = f"Chyba v hesle, chýba počet znakov: {login} {row[hdr['nazov']]}, {nid}, súbor {fn})."
+                        self.log(messages.ERROR, msg)
+                        self.error_list.append([login,"",msg])
                         continue
                     #if not login in self.pocet_znakov: self.pocet_znakov[login] = {}
                     #if not zmluva in self.pocet_znakov[login]: self.pocet_znakov[login][zmluva] = {}
@@ -101,7 +106,9 @@ class VyplatitAutorskeOdmeny():
                             re.sub(r"<[^>]*>","",row[hdr['Dátum záznamu dĺžky']])
                             ])
                     else:
-                        self.log(messages.ERROR, f"Chyba zmluvy, autor nemá priradenú zmluvu {zmluva}: {login}, {row[hdr['nazov']]}, {nid}, súbor {fn}.")
+                        msg = f"Chyba zmluvy, autor nemá priradenú zmluvu {zmluva}: {login}, {row[hdr['nazov']]}, {nid}, súbor {fn}."
+                        self.log(messages.ERROR, msg)
+                        self.error_list.append([login,"",msg])
                     pass
 
     def meno_priezvisko(self, autor):
@@ -149,7 +156,6 @@ class VyplatitAutorskeOdmeny():
         #scitat pocty znakov a rozhodnut, ci sa bude vyplacat
         self.suma_vyplatit={}    # Vyplati sa
         self.suma_preplatok={}   # strhne sa z preplatku
-        error_list = [] #chyby na zápis do hárku Chyby
         for autor in self.data:
             # spanning relationship: zmluvna_strana->rs_login
             zdata = ZmluvaAutor.objects.filter(zmluvna_strana__rs_login=autor)
@@ -159,29 +165,29 @@ class VyplatitAutorskeOdmeny():
             if not adata:
                 msg = f"Autor {autor}: nemá záznam v databáze "
                 self.log(messages.ERROR, msg)
-                error_list.append([autor, zmluvy_autora, msg])
+                self.error_list.append([autor, zmluvy_autora, msg])
                 continue
             adata=adata[0]
             if adata.nevyplacat == AnoNie.ANO:
                 msg =  f"Heslá autora {autor} nebudú vyplatené, lebo autor sa nevypláca."
                 self.log(messages.INFO, msg)
-                error_list.append([autor, zmluvy_autora, msg])
+                self.error_list.append([autor, zmluvy_autora, msg])
                 continue
             chyba_login = OveritUdajeAutora(adata)
             if chyba_login:
                 msg =  f"Heslá autora {autor} nebudú vyplatené, lebo údaje autora sú nekompletné (chýba {chyba_login})."
                 self.log(messages.ERROR, msg)
-                error_list.append([autor, zmluvy_autora, msg])
+                self.error_list.append([autor, zmluvy_autora, msg])
                 continue
             if not valid_iban(adata.bankovy_kontakt):
                 msg= f"Heslá autora {autor} nebudú vyplatené, lebo IBAN autora je nesprávny."
                 self.log(messages.ERROR, msg)
-                error_list.append([autor, zmluvy_autora, msg])
+                self.error_list.append([autor, zmluvy_autora, msg])
                 continue
             if not valid_rodne_cislo(adata.rodne_cislo):
                 msg = f"Heslá autora {autor} nebudú vyplatené, lebo rodné číslo autora je nesprávne."
                 self.log(messages.ERROR, msg)
-                error_list.append([autor, zmluvy_autora, msg])
+                self.error_list.append([autor, zmluvy_autora, msg])
                 continue
 
             # pomocna struktura na vyplacanie
@@ -191,11 +197,11 @@ class VyplatitAutorskeOdmeny():
                 if zmluva.honorar_ah < 1:
                     msg = f"Zmluva {zmluva.cislo_zmluvy} autora {autor} nemá určený honorár/AH"
                     self.log(messages.ERROR, msg)
-                    error_list.append([autor, zmluvy_autora, msg])
+                    self.error_list.append([autor, zmluvy_autora, msg])
                 if not zmluva.datum_zverejnenia_CRZ:
                     msg = f"Zmluva {zmluva.cislo_zmluvy} autora {autor} nemá uvedený dátum platnosti / zverejnenia v CRZ"
                     self.log(messages.ERROR, msg)
-                    error_list.append([autor, zmluvy_autora, msg])
+                    self.error_list.append([autor, zmluvy_autora, msg])
             # vypocitat odmenu za vsetky hesla
             ahonorar = 0 #sucet odmien za jednotlive hesla na zaklade zmluv
             zmluvy_autora = set()
@@ -265,7 +271,7 @@ class VyplatitAutorskeOdmeny():
         self.poautoroch = workbook.create_sheet("Po autoroch")
         self.chyby = workbook.create_sheet("Chyby (nebude vyplatené)")
 
-        self.zapisat_chyby(error_list)
+        self.zapisat_chyby()
 
         self.ppos = 1   #poloha počiatočnej bunky v hárku poautoroch, inkrementovaná po každom zázname
         if self.datum_vyplatenia:
@@ -438,7 +444,7 @@ class VyplatitAutorskeOdmeny():
             self.log(messages.SUCCESS, msg)
             #self.db_logger.warning(msg)
 
-    def zapisat_chyby(self, error_list):
+    def zapisat_chyby(self):
         alignment = Alignment(wrapText=True, horizontal='left', vertical="center")
         self.chyby.cell(row=1, column=1).value = "Prihlasovacie meno autora"
         self.chyby.column_dimensions["A"].width = 25
@@ -456,7 +462,7 @@ class VyplatitAutorskeOdmeny():
         self.chyby.cell(row=1, column=3).alignment = alignment
 
         self.chyby.row_dimensions[1].height = 30
-        for nn, err in enumerate(error_list):
+        for nn, err in enumerate(self.error_list):
             self.chyby.cell(row=2+nn, column=1).value = err[0]
             self.chyby.cell(row=2+nn, column=1).alignment = alignment
             self.chyby.cell(row=2+nn, column=2).value = err[1]
