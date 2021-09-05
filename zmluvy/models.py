@@ -41,7 +41,7 @@ class PersonCommon(models.Model):
     koresp_adresa_institucia = models.CharField("Korešpondenčná adresa – institucia", max_length=200, null=True, blank=True)
     koresp_adresa_ulica = models.CharField("Korešpondenčná adresa – ulica a číslo domu", max_length=200, null=True, blank=True)
     koresp_adresa_mesto = models.CharField("Korešpondenčná adresa – PSČ a mesto", max_length=200, null=True, blank=True)
-    koresp_adresa_stat = models.CharField("Korešpondenčná adresa – štát", max_length=10, null=True, blank=True)
+    koresp_adresa_stat = models.CharField("Korešpondenčná adresa – štát", max_length=100, null=True, blank=True)
     datum_aktualizacie = models.DateField('Dátum aktualizácie', auto_now=True)
     class Meta:
         abstract = True
