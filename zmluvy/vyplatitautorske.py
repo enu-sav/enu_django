@@ -4,7 +4,7 @@ from glob import glob
 from datetime import date, datetime
 from django.conf import settings
 from django.contrib import messages
-from zmluvy.models import OsobaAutor, ZmluvaAutor, PlatbaAutorskaOdmena, PlatbaAutorskaSumar, SystemovySubor, AnoNie
+from zmluvy.models import OsobaAutor, ZmluvaAutor, PlatbaAutorskaOdmena, PlatbaAutorskaSumar, SystemovySubor, AnoNie, StavZmluvy
 from openpyxl import load_workbook
 from openpyxl.styles import Font, Color, colors, Alignment, PatternFill , numbers
 from openpyxl.utils import get_column_letter
@@ -74,8 +74,8 @@ class VyplatitAutorskeOdmeny():
                     duplitest.add(nid)
 
                     login = row[hdr["Prihlásiť sa"]]
-                    zmluva = row[hdr['Zmluva na vyplatenie']].strip()   # odstranit medzery na zaciatku a konci
-                    if not zmluva:
+                    cislo_zmluvy = row[hdr['Zmluva na vyplatenie']].strip()   # odstranit medzery na zaciatku a konci
+                    if not cislo_zmluvy:
                         msg = f"Chyba v hesle, chýba číslo zmluvy: {login}, {row[hdr['nazov']]}, {nid}, súbor {fn})."
                         self.log(messages.ERROR, msg)
                         self.error_list.append([login,"",msg])
@@ -94,19 +94,32 @@ class VyplatitAutorskeOdmeny():
                     if not rs_webrs in self.data[login]: self.data[login][rs_webrs] = {} 
 
                     #overiť, či autor má zadanú zmluvu, v prípade chyby vynechať
-                    zdata = ZmluvaAutor.objects.filter(zmluvna_strana__rs_login=login)
-                    zmluvy_autora = [zmluva.cislo_zmluvy for zmluva in zdata]
-                    if zmluva in zmluvy_autora:
-                        if not zmluva in self.data[login][rs_webrs]: self.data[login][rs_webrs][zmluva] = []
-                        self.data[login][rs_webrs][zmluva].append([
-                            int(row[hdr["Dĺžka autorom odovzdaného textu"]]),
-                            rs_webrs,
-                            f'=HYPERLINK("{nid}";"{row[hdr["nazov"]]}")',
-                            row[hdr['Zmluva na vyplatenie']],
-                            re.sub(r"<[^>]*>","",row[hdr['Dátum záznamu dĺžky']])
+                    query_set = ZmluvaAutor.objects.filter(zmluvna_strana__rs_login=login, cislo_zmluvy=cislo_zmluvy)
+                    if query_set:
+                        zmluva = query_set[0] 
+                        if zmluva.stav_zmluvy != StavZmluvy.ZVEREJNENA_V_CRZ:
+                            msg = f"Zmluva {zmluva.cislo_zmluvy} autora {login} nie je platná / zverejnená v CRZ"
+                            self.log(messages.ERROR, msg)
+                            self.error_list.append([login, "", msg])
+                        elif zmluva.honorar_ah < 1:
+                            msg = f"Zmluva {zmluva.cislo_zmluvy} autora {login} nemá určený honorár/AH"
+                            self.log(messages.ERROR, msg)
+                            self.error_list.append([login, "", msg])
+                        elif not zmluva.datum_zverejnenia_CRZ:
+                            msg = f"Zmluva {zmluva.cislo_zmluvy} autora {login} nemá uvedený dátum platnosti / zverejnenia v CRZ"
+                            self.log(messages.ERROR, msg)
+                            self.error_list.append([login, "", msg])
+                        else:   # vytvoriť záznam na vyplatenie
+                            if not cislo_zmluvy in self.data[login][rs_webrs]: self.data[login][rs_webrs][cislo_zmluvy] = []
+                            self.data[login][rs_webrs][cislo_zmluvy].append([
+                                int(row[hdr["Dĺžka autorom odovzdaného textu"]]),
+                                rs_webrs,
+                                f'=HYPERLINK("{nid}";"{row[hdr["nazov"]]}")',
+                                row[hdr['Zmluva na vyplatenie']],
+                                re.sub(r"<[^>]*>","",row[hdr['Dátum záznamu dĺžky']])
                             ])
                     else:
-                        msg = f"Chyba zmluvy, autor nemá priradenú zmluvu {zmluva}: {login}, {row[hdr['nazov']]}, {nid}, súbor {fn}."
+                        msg = f"Chyba zmluvy, autor nemá priradenú zmluvu {cislo_zmluvy}: {login}, {row[hdr['nazov']]}, {nid}, súbor {fn}."
                         self.log(messages.ERROR, msg)
                         self.error_list.append([login,"",msg])
                     pass
@@ -194,14 +207,6 @@ class VyplatitAutorskeOdmeny():
             zvyplatit = {}
             for zmluva in zdata:
                 zvyplatit[zmluva.cislo_zmluvy] = zmluva.honorar_ah
-                if zmluva.honorar_ah < 1:
-                    msg = f"Zmluva {zmluva.cislo_zmluvy} autora {autor} nemá určený honorár/AH"
-                    self.log(messages.ERROR, msg)
-                    self.error_list.append([autor, zmluvy_autora, msg])
-                if not zmluva.datum_zverejnenia_CRZ:
-                    msg = f"Zmluva {zmluva.cislo_zmluvy} autora {autor} nemá uvedený dátum platnosti / zverejnenia v CRZ"
-                    self.log(messages.ERROR, msg)
-                    self.error_list.append([autor, zmluvy_autora, msg])
             # vypocitat odmenu za vsetky hesla
             ahonorar = 0 #sucet odmien za jednotlive hesla na zaklade zmluv
             zmluvy_autora = set()
