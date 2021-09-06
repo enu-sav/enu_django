@@ -20,6 +20,7 @@ def valid_iban(iban):
         PL=28, PT=25, RO=24, SM=27, SA=24, RS=22, SK=24, SI=19,
         ES=24, SE=24, CH=21, TN=24, TR=26, AE=23, GB=22, VG=24 )
  
+    if not iban: return False
     # Ensure upper alphanumeric input.
     iban = iban.replace(' ','').replace('\t','')
     if not re.match(r'^[\dA-Z]+$', iban): 
@@ -44,6 +45,7 @@ def transliterate(text):
 # musí mať 9 alebo 10 znakov (bez lomky)
 # Ak má 10 znakov, musí byť deliteľné 11 bezo zvyšku
 def valid_rodne_cislo(rc):
+    if not rc: return False
     rc = rc.replace("/","")
     if len(rc) == 9:
         return True
