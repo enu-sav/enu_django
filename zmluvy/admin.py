@@ -402,9 +402,9 @@ class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
             logs = vao.get_logs()
             #status, msg, vytvorene_subory = VyplatitAutorskeOdmeny(platba)
             for log in logs:
-                fname = re.findall(r"uložené do súboru ({}.*)".format(settings.MEDIA_ROOT),log[1]) 
+                fname = re.findall(r"uložené do súboru ({}[^ ]*)".format(settings.MEDIA_ROOT),log[1]) 
                 if fname:
-                    fname = fname[0].replace(settings.MEDIA_ROOT,"")
+                    fname = fname[0].strip(".").replace(settings.MEDIA_ROOT,"")
                     if "THS" in fname:
                         platba.vyplatit_ths = fname
                     elif "Vyplatene" in fname:
