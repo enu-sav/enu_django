@@ -445,8 +445,12 @@ class VyplatitAutorskeOdmeny():
                 #self.db_logger.warning(msg)
             workbook.remove_sheet(workbook["Po autoroch"])
             workbook.save(fpath)
-            msg = f"Údaje o vyplácaní na odoslanie THS boli uložené do súboru {fpath}"
-            self.log(messages.SUCCESS, msg)
+            if self.pocet_chyb:
+                msg = f"Údaje o vyplácaní na odoslanie THS boli uložené do súboru {fpath}. V hárku Chyby sa nachádza {self.pocet_chyb} záznamov"
+                self.log(messages.ERROR, msg)
+            else:
+                msg = f"Údaje o vyplácaní na odoslanie THS boli uložené do súboru {fpath}"
+                self.log(messages.SUCCESS, msg)
             #self.db_logger.warning(msg)
 
     def zapisat_chyby(self):
@@ -484,6 +488,7 @@ class VyplatitAutorskeOdmeny():
             self.chyby.cell(row=2+nn, column=3).alignment = alignment
             self.chyby.row_dimensions[2+nn].height = 50
             nn += 1
+        self.pocet_chyb = len(unique_err)
 
     # vyplnit harok vypocet
     def vyplnit_harok_vypocet(self):
