@@ -473,7 +473,7 @@ class VyplatitAutorskeOdmeny():
         #vypísať chyby, každú len raz
         unique_err = set()
         nn = 0
-        for err in self.error_list:
+        for err in sorted(self.error_list):
             err_str = ",".join(err)
             if err_str in unique_err:
                 continue
