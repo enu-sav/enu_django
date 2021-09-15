@@ -257,9 +257,9 @@ class VyplatitAutorskeOdmeny():
         #upraviť vlastnosti dokumentu
         workbook.properties.creator = "DjangoBel, systém na správu autorských zmlúv Encyclopaedie Beliany"
         if self.datum_vyplatenia:
-            workbook.properties.title=f"Podklady pre THS na vyplatenie autorských honorárov ku dňu {self.obdobie}" 
+            workbook.properties.title=f"Podklady pre THS na vyplatenie autorských honorárov č. {self.obdobie}" 
         else:
-            workbook.properties.title=f"Záznam o platbe autorských honorárov ku dňu {self.obdobie}"
+            workbook.properties.title=f"Záznam o platbe autorských honorárov č. {self.obdobie}"
         workbook.properties.created = datetime.now()
         workbook.properties.revision = 1
         workbook.properties.modified = datetime.now()
@@ -317,7 +317,7 @@ class VyplatitAutorskeOdmeny():
         else:
             vyplatit["A4"].value = vyplatit["A4"].value.replace("(verzia)","(predbežná verzia)")
         vyplatit.merge_cells('A5:G5')
-        vyplatit["A5"] = f"ku dňu {self.obdobie}"
+        vyplatit["A5"] = f"identifikátor vyplácania {self.obdobie}"
         vyplatit["A5"].alignment = acenter
 
         vyplatit["A7"] = "Prevody spolu:"
@@ -557,9 +557,9 @@ class VyplatitAutorskeOdmeny():
             self.vypocet.cell(row=ii+1, column=i+1).font = self.fbold
 
         if self.datum_vyplatenia:
-            self.vypocet[f"A{ii+3}"] = f"Výpočet k príkazu na úhradu autorských honorárov ku dňu {self.obdobie} (finálna verzia)"
+            self.vypocet[f"A{ii+3}"] = f"Výpočet k príkazu na úhradu autorských honorárov č. {self.obdobie} (finálna verzia)"
         else:
-            self.vypocet[f"A{ii+3}"] = f"Výpočet k príkazu na úhradu autorských honorárov ku dňu {self.obdobie} (predbežná verzia)"
+            self.vypocet[f"A{ii+3}"] = f"Výpočet k príkazu na úhradu autorských honorárov č. {self.obdobie} (predbežná verzia)"
         
         return ii+1 #vratit riadok so suctami
 
@@ -707,7 +707,7 @@ class VyplatitAutorskeOdmeny():
         ftitle = Font(name="Arial", bold=True, size='14')
 
         ws.merge_cells(f'A{self.ppos}:H{self.ppos}')
-        ws[f'A{self.ppos}'] = f"Vyplatenie autorského honorára ku dňu {self.obdobie}"
+        ws[f'A{self.ppos}'] = f"Vyplatenie autorského honorára č. {self.obdobie}"
         ws[f"A{self.ppos}"].alignment = Alignment(horizontal='center', vertical='center')
         ws.row_dimensions[self.ppos].height = 70
         ws[f"A{self.ppos}"].font = ftitle
