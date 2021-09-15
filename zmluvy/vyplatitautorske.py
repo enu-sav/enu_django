@@ -27,10 +27,11 @@ class VyplatitAutorskeOdmeny():
         if obdobie:
             self.obdobie = obdobie
         self.datum_vyplatenia = datum_vyplatenia # Ak None, nevygenerujú sa hárky ImportRS/WEBRS
-        self.kmax = 23 #max počet riadkov s údajmi o autoroch v krycom liste, inak sa pokazí formátovanie
+        self.kmax = 23 #max počet riadkov s údajmi o autoroch v krycom liste 1
         self.kstart = 5 #prvý riadok záznamu o autoroch v hárku 'Krycí list', strana 1
         self.klstart = 34 #prvý riadok krycieho listu
         self.kpos = self.kstart #aktuálny riadok záznamu o autorovi v hárku 'Krycí list', strana 1
+        self.kmax2 = 46 #max počet riadkov s údajmi o autoroch sumárne na oboch krycích listoch. Viac sa nevypláca
         self.kstart2 = 35 #prvý riadok záznamu o autoroch v hárku 'Krycí list', strana 2
         self.klstart2 = 66 #prvý riadok krycieho listu
         self.s2start2 = 32 #prvý riadok druhej strany krycieho listu
@@ -264,10 +265,22 @@ class VyplatitAutorskeOdmeny():
         workbook.properties.modified = datetime.now()
         workbook.properties.lastPrinted = None
 
+        # ak autorov na vyplatenie je viac ako na dve strany krycieho listu, niekoho treba vyradiť
+        if len(self.suma_vyplatit) > self.kmax2: 
+            #Vyradiť platby s najnižšou sumou
+            #Zoznam platieb, zoradené vzostupne
+            vlist = sorted([[self.suma_vyplatit[_autor][0], _autor] for _autor in self.suma_vyplatit])
+            #Vyradiť
+            for vyradit in vlist[:len(self.suma_vyplatit) - self.kmax2]:
+                msg = f"Počet platieb prekračuje maximálny povolený počet platieb {self.kmax2}. Autor {vyradit[1]} preto nebude vyplatený (suma {vyradit[0]} Eur)"
+                self.log(messages.WARNING, msg)
+                self.error_list.append([vyradit[1],"",msg])
+                del self.suma_vyplatit[vyradit[1]]
+
         #Inicializácia hárkov
         vyplatit = workbook[workbook.sheetnames[0]]
         self.vypocet = workbook[workbook.sheetnames[1]]
-        if len(self.suma_vyplatit ) > self.kmax: #autorov na vyplatenie je viac ako na jednu stranu
+        if len(self.suma_vyplatit) > self.kmax: #autorov na vyplatenie je viac ako na jednu stranu
             self.krycilist = workbook["Krycí list 2"]
             workbook.remove_sheet(workbook["Krycí list"])
         else:
