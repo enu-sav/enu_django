@@ -499,6 +499,16 @@ class VyplatitAutorskeOdmeny():
             self.chyby.cell(row=2+nn, column=2).alignment = alignment
             self.chyby.cell(row=2+nn, column=3).value = err[2]
             self.chyby.cell(row=2+nn, column=3).alignment = alignment
+            if "Počet platieb" in err[2]:
+                self.chyby.cell(row=2+nn, column=3).font = Font(name="Calibri", color="AAAA00")
+            if "Chyba zmluvy" in err[2]:
+                self.chyby.cell(row=2+nn, column=3).font = Font(name="Calibri", color="DD00DD")
+            if "Chyba v hesle" in err[2]:
+                self.chyby.cell(row=2+nn, column=3).font = Font(name="Calibri", color="CC0000")
+            if "nie je platná" in err[2]:
+                self.chyby.cell(row=2+nn, column=3).font = Font(name="Calibri", color="00AAAA")
+            if "sa nevypláca" in err[2]:
+                self.chyby.cell(row=2+nn, column=3).font = Font(name="Calibri", color="0000CC")
             self.chyby.row_dimensions[2+nn].height = 50
             nn += 1
         self.pocet_chyb = len(unique_err)
