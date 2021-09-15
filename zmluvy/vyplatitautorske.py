@@ -196,7 +196,8 @@ class VyplatitAutorskeOdmeny():
                 #self.log(messages.ERROR, msg)
                 self.error_list.append([autor, zmluvy_autora, msg])
                 continue
-            if not valid_rodne_cislo(adata.rodne_cislo):
+            #Nerezident môže mať v poli rodne_cislo dátum narodenia
+            if self.je_rezident(adata) and not valid_rodne_cislo(adata.rodne_cislo):
                 msg = f"Heslá autora {autor} nebudú vyplatené, lebo rodné číslo autora je nesprávne."
                 #self.log(messages.ERROR, msg)
                 self.error_list.append([autor, zmluvy_autora, msg])
@@ -513,7 +514,7 @@ class VyplatitAutorskeOdmeny():
             self.vypocet[f"C{ii}"] = "ano" if self.zmluva_nezdanit(adata) else "nie"
             self.vypocet[f"C{ii}"].alignment = self.aright
             self.vypocet[f"C{ii}"].alignment = Alignment(wrapText=True, horizontal='center')
-            # Pole "rezident SR", použije sa na Vúpočet odvody LF a dane: 
+            # Pole "rezident SR", použije sa na Výpočet odvody LF a dane: 
             # odvod LF: zákov Zákon č. 13/1993 Z. z.  Zákon Národnej rady Slovenskej republiky o umeleckých fondoch
             # odvádzajú sa 2 %, ak je trvalé bydlisko v SR
             # odvádza sa aj v prípade dedičov (vtedy je to "preddavok", čo nás ale nezaujíma)
