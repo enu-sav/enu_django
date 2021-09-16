@@ -83,8 +83,11 @@ class TrvalaZmluvaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportM
 
 @admin.register(Faktura)
 class FakturaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
-    list_display = ["objednavka_zmluva", "suma"]
+    list_display = ["_objednavka_zmluva", "suma", "zdroj", "program", "zakazka", "ekoklas"]
     search_fields = ["suma"]
+    def _objednavka_zmluva(self, obj):
+        return obj.objednavka_zmluva
+    _objednavka_zmluva.short_description = "Prijatá faktúra k"
 
 @admin.register(Transakcia)
 class TransakciaAdmin(SimpleHistoryAdmin, ImportExportModelAdmin, AdminChangeLinksMixin, ModelAdminTotals):

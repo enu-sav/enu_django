@@ -148,7 +148,7 @@ class Faktura(models.Model):
         verbose_name = 'Prijatá faktúra'
         verbose_name_plural = 'Prijaté faktúry'
     def __str__(self):
-        return f"Zmluva {self.objednavka_zmluva} - {self.suma} €"
+        return f"Faktúra k {self.objednavka_zmluva} - {self.suma} €"
 
 # Create your models here.
 class Transakcia(models.Model):
