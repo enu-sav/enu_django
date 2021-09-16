@@ -12,7 +12,7 @@ class Zdroj(models.Model):
             help_text = "Popíšte zdroj",
             max_length=100)
     def __str__(self):
-        return self.kod
+        return f"{self.kod} - {self.popis}"
     class Meta:
         verbose_name = 'Zdroj'
         verbose_name_plural = 'Zdroje'
@@ -25,7 +25,7 @@ class Program(models.Model):
             help_text = "Popíšte program",
             max_length=100)
     def __str__(self):
-        return self.kod
+        return f"{self.kod} - {self.popis}"
     class Meta:
         verbose_name = 'Program'
         verbose_name_plural = 'Programy'
@@ -38,7 +38,7 @@ class TypZakazky(models.Model):
             help_text = "Popíšte typ zákazky",
             max_length=100)
     def __str__(self):
-        return self.kod
+        return f"{self.kod} - {self.popis}"
     class Meta:
         verbose_name = 'Typ zákazky'
         verbose_name_plural = 'Typy zákazky'
@@ -51,7 +51,7 @@ class EkonomickaKlasifikacia(models.Model):
             help_text = "Zadajte názov položky/podpoložky ekonomickej klasifikácie napr. 'Granty a transfery'",
             max_length=100)
     def __str__(self):
-        return self.kod
+        return f"{self.kod} - {self.nazov}"
     class Meta:
         verbose_name = 'Ekonomická klasifikácia'
         verbose_name_plural = 'Ekonomická klasifikácia'
@@ -67,7 +67,6 @@ class PersonCommon(models.Model):
     adresa_mesto = models.CharField("Adresa – PSČ a mesto", max_length=200, null=True, blank=True)
     adresa_stat = models.CharField("Adresa – štát", max_length=100, null=True, blank=True)
     datum_aktualizacie = models.DateField('Dátum aktualizácie', auto_now=True)
-    history = HistoricalRecords()
     class Meta:
         abstract = True
 
@@ -87,7 +86,7 @@ class ObjednavkaZmluva(models.Model):
         verbose_name = 'Objednávka / zmluva'
         verbose_name_plural = 'Objednávky / zmluvy'
     def __str__(self):
-        return self.cislo
+        return f"{self.cislo} - {self.dodavatel}"
 
 class Objednavka(ObjednavkaZmluva):
     objednane_polozky = models.TextField("Objednané položky", 
@@ -97,7 +96,7 @@ class Objednavka(ObjednavkaZmluva):
         verbose_name = 'Objednávka'
         verbose_name_plural = 'Objednávky'
     def __str__(self):
-        return f"Objednávka {self.cislo}"
+        return f"Objednávka {self.cislo} {dodavatel}"
 
 class TrvalaZmluva(ObjednavkaZmluva):
     class Meta:
@@ -116,9 +115,13 @@ class Transakcia(models.Model):
             related_name='transakcie')    
     zakazka = models.ForeignKey(TypZakazky, 
             on_delete=models.PROTECT, 
+            verbose_name = "Typ zákazky",
             null=True, blank=True,
             related_name='transakcie')    
-    ekoklas = models.ForeignKey(EkonomickaKlasifikacia, on_delete=models.PROTECT, related_name='transakcie')    
+    ekoklas = models.ForeignKey(EkonomickaKlasifikacia, 
+            on_delete=models.PROTECT, 
+            verbose_name = "Ekonomická klasifikácia",
+            related_name='transakcie')    
     popis = models.CharField("Popis transakcie", 
             help_text = "Zadajte stručný popis, napr. 'SPP fa 20', 'vratenie duplicitnej platby' a podobne",
             max_length=100)
@@ -127,7 +130,11 @@ class Transakcia(models.Model):
             max_digits=8, 
             decimal_places=2, 
             default=0)
-    objednavka_zmluva = models.ForeignKey(ObjednavkaZmluva, null=True, on_delete=models.PROTECT, related_name='transakcie')    
+    objednavka_zmluva = models.ForeignKey(ObjednavkaZmluva, 
+            null=True, 
+            verbose_name = "Objednávka / zmluva",
+            on_delete=models.PROTECT, 
+            related_name='transakcie')    
     datum = models.DateField('Dátum transakcie')
     history = HistoricalRecords()
     class Meta:
