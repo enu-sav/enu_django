@@ -40,7 +40,7 @@ class EkonomickaKlasifikaciaAdmin(SimpleHistoryAdmin, ImportExportModelAdmin):
 @admin.register(Transakcia)
 class TransakciaAdmin(SimpleHistoryAdmin, ImportExportModelAdmin, AdminChangeLinksMixin, ModelAdminTotals):
 #class TransakciaAdmin(SimpleHistoryAdmin, AdminChangeLinksMixin, ModelAdminTotals):
-    list_display = ("datum", "suma", "zdroj", "program", "zakazka", "ekoklas_link")
+    list_display = ("datum", "suma", "zdroj", "program", "zakazka", "ekoklas")
     list_totals = [
             ('suma', Sum),
             ]
@@ -51,7 +51,7 @@ class TransakciaAdmin(SimpleHistoryAdmin, ImportExportModelAdmin, AdminChangeLin
     search_fields = ["^zdroj__kod", "^program__kod", "^zakazka__kod", "^ekoklas__kod"]
 
     # umožnené prostredníctvom AdminChangeLinksMixin
-    change_links = [
+    _change_links = [
         ('ekoklas', {
             'admin_order_field': 'ekoklas__kod',  # Allow to sort members by `zmluvna_strana_link` column
         })
@@ -89,31 +89,19 @@ class ObjednavkaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportMod
     ]
 
 @admin.register(TrvalaZmluva)
-#class TrvalaZmluvaAdmin(admin.ModelAdmin):
-#class TrvalaZmluvaAdmin(SimpleHistoryAdmin,AdminChangeLinksMixin):
 class TrvalaZmluvaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
-    list_display = ["dodavatel_link"]
-    search_fields = ["^dodavatel"]
+    list_display = ["dodavatel", "cislo", "predmet"]
+    search_fields = ["dodavatel__nazov", "cislo", "predmet"]
 
     # zoraďovateľný odkaz na dodávateľa
     # umožnené prostredníctvom AdminChangeLinksMixin
-    change_links = [
+    _change_links = [
         ('dodavatel', {
             'admin_order_field': 'dodavatel', # Allow to sort members by the `dodavatel_link` column
         })
     ]
 
 @admin.register(Faktura)
-#class TrvalaZmluvaAdmin(admin.ModelAdmin):
-#class TrvalaZmluvaAdmin(SimpleHistoryAdmin,AdminChangeLinksMixin):
 class FakturaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
-    list_display = ("faktura_link", "suma")
-    search_fields = ["faktura"]
-
-    # zoraďovateľný odkaz na dodávateľa
-    # umožnené prostredníctvom AdminChangeLinksMixin
-    change_links = [
-        ('faktura', {
-            'admin_order_field': 'faktura', # Allow to sort members by the `dodavatel_link` column
-        })
-    ]
+    list_display = ["objednavka_zmluva", "suma"]
+    search_fields = ["suma"]

@@ -80,8 +80,14 @@ class Dodavatel(PersonCommon):
         return self.nazov
 
 class ObjednavkaZmluva(models.Model):
-    cislo = models.CharField("Číslo objednavky", max_length=50)
-    dodavatel = models.ForeignKey(Dodavatel, on_delete=models.PROTECT, related_name='objednavky')    
+    cislo = models.CharField("Číslo objednávky / zmluvy", max_length=50)
+    dodavatel = models.ForeignKey(Dodavatel, 
+            on_delete=models.PROTECT, 
+            verbose_name = "Dodávateľ",
+            related_name='objednavky')    
+    predmet = models.CharField("Predmet objednávky / zmluvy", 
+            help_text = "Zadajte stručný popis, napr. 'Kávovar Saeco' alebo 'Servisná podpora RS Beliana'",
+            max_length=100)
     class Meta:
         verbose_name = 'Objednávka / zmluva'
         verbose_name_plural = 'Objednávky / zmluvy'
@@ -96,14 +102,14 @@ class Objednavka(ObjednavkaZmluva):
         verbose_name = 'Objednávka'
         verbose_name_plural = 'Objednávky'
     def __str__(self):
-        return f"Objednávka {self.cislo} {dodavatel}"
+        return f"Objednávka {self.cislo} {self.dodavatel}"
 
 class TrvalaZmluva(ObjednavkaZmluva):
     class Meta:
         verbose_name = 'Trvalá zmluva'
         verbose_name_plural = 'Trvalé zmluvy'
     def __str__(self):
-        return f"Zmluva {self.cislo} {dodavatel}"
+        return f"Zmluva {self.cislo} {self.dodavatel}"
 
 class Faktura(models.Model):
     objednavka_zmluva = models.ForeignKey(ObjednavkaZmluva, 
@@ -111,17 +117,16 @@ class Faktura(models.Model):
             verbose_name = "Objednávka / zmluva",
             on_delete=models.PROTECT, 
             related_name='faktury')    
-    popis = models.CharField("Popis transakcie", 
-            help_text = "Zadajte stručný popis, napr. 'SPP fa 20', 'vratenie duplicitnej platby' a podobne",
-            max_length=100)
     suma = models.DecimalField("Suma v EUR", 
             help_text = "Zadajte príjmy ako kladné, výdavky ako záporné číslo",
             max_digits=8, 
             decimal_places=2, 
             default=0)
     class Meta:
-        verbose_name = 'Faktúra'
-        verbose_name_plural = 'Faktúry'
+        verbose_name = 'Prijatá faktúra'
+        verbose_name_plural = 'Prijaté faktúry'
+    def __str__(self):
+        return f"Zmluva {self.objednavka_zmluva} - {self.suma} €"
 
 # Create your models here.
 class Transakcia(models.Model):
