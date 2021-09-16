@@ -78,8 +78,7 @@ class Dodavatel(PersonCommon):
     nazov = models.CharField("Názov", max_length=200)
     s_danou = models.CharField("Fakturované s daňou", 
             max_length=3, 
-            help_text = "Uveďte 'Áno', ak dodávateľ fakturuje s DPH, inak uveďte 'NIE'",
-            #choices=AnoNie.choices, default=AnoNie.ANO)
+            help_text = "Uveďte 'Áno', ak dodávateľ fakturuje s DPH, inak uveďte 'Nie'",
             choices=AnoNie.choices)
     history = HistoricalRecords()
     class Meta:
@@ -121,6 +120,20 @@ class TrvalaZmluva(ObjednavkaZmluva):
         return f"Zmluva {self.cislo} {self.dodavatel}"
 
 class Faktura(models.Model):
+    zdroj = models.ForeignKey(Zdroj, 
+            on_delete=models.PROTECT, 
+            related_name='faktury')    
+    program = models.ForeignKey(Program, 
+            on_delete=models.PROTECT, 
+            related_name='faktury')    
+    zakazka = models.ForeignKey(TypZakazky, 
+            on_delete=models.PROTECT, 
+            verbose_name = "Typ zákazky",
+            related_name='faktury')    
+    ekoklas = models.ForeignKey(EkonomickaKlasifikacia, 
+            on_delete=models.PROTECT, 
+            verbose_name = "Ekonomická klasifikácia",
+            related_name='faktury')    
     objednavka_zmluva = models.ForeignKey(ObjednavkaZmluva, 
             null=True, 
             verbose_name = "Objednávka / zmluva",
@@ -139,20 +152,6 @@ class Faktura(models.Model):
 
 # Create your models here.
 class Transakcia(models.Model):
-    zdroj = models.ForeignKey(Zdroj, on_delete=models.PROTECT, related_name='transakcie')    
-    program = models.ForeignKey(Program, 
-            on_delete=models.PROTECT, 
-            null=True, blank=True,
-            related_name='transakcie')    
-    zakazka = models.ForeignKey(TypZakazky, 
-            on_delete=models.PROTECT, 
-            verbose_name = "Typ zákazky",
-            null=True, blank=True,
-            related_name='transakcie')    
-    ekoklas = models.ForeignKey(EkonomickaKlasifikacia, 
-            on_delete=models.PROTECT, 
-            verbose_name = "Ekonomická klasifikácia",
-            related_name='transakcie')    
     suma = models.DecimalField("Suma v EUR", 
             help_text = "Zadajte príjmy ako kladné, výdavky ako záporné číslo",
             max_digits=8, 

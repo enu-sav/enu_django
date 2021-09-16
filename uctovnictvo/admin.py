@@ -37,26 +37,6 @@ class EkonomickaKlasifikaciaAdmin(SimpleHistoryAdmin, ImportExportModelAdmin):
     list_display = ("kod", "nazov")
     search_fields = ("^kod", "nazov")
 
-@admin.register(Transakcia)
-class TransakciaAdmin(SimpleHistoryAdmin, ImportExportModelAdmin, AdminChangeLinksMixin, ModelAdminTotals):
-#class TransakciaAdmin(SimpleHistoryAdmin, AdminChangeLinksMixin, ModelAdminTotals):
-    list_display = ("datum", "suma", "zdroj", "program", "zakazka", "ekoklas")
-    list_totals = [
-            ('suma', Sum),
-            ]
-    totalsum_list = ('suma',)
-    unit_of_measure = '&euro;'
-
-    # ^: v poli vyhľadávať len od začiatku
-    search_fields = ["^zdroj__kod", "^program__kod", "^zakazka__kod", "^ekoklas__kod"]
-
-    # umožnené prostredníctvom AdminChangeLinksMixin
-    _change_links = [
-        ('ekoklas', {
-            'admin_order_field': 'ekoklas__kod',  # Allow to sort members by `zmluvna_strana_link` column
-        })
-    ]
-
 @admin.register(Dodavatel)
 class DodavatelAdmin(SimpleHistoryAdmin, ImportExportModelAdmin):
     list_display = ("nazov", "bankovy_kontakt", "adresa") 
@@ -105,3 +85,17 @@ class TrvalaZmluvaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportM
 class FakturaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
     list_display = ["objednavka_zmluva", "suma"]
     search_fields = ["suma"]
+
+@admin.register(Transakcia)
+class TransakciaAdmin(SimpleHistoryAdmin, ImportExportModelAdmin, AdminChangeLinksMixin, ModelAdminTotals):
+    pass
+#class TransakciaAdmin(SimpleHistoryAdmin, AdminChangeLinksMixin, ModelAdminTotals):
+    #list_display = ("datum", "suma", "zdroj", "program", "zakazka", "ekoklas")
+    #list_totals = [
+            #('suma', Sum),
+            #]
+    #totalsum_list = ('suma',)
+    #unit_of_measure = '&euro;'
+
+    # ^: v poli vyhľadávať len od začiatku
+    #search_fields = ["^zdroj__kod", "^program__kod", "^zakazka__kod", "^ekoklas__kod"]
