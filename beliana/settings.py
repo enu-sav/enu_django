@@ -53,6 +53,9 @@ INSTALLED_APPS = [
     'django_db_logger',
     'import_export',
     'admin_totals',
+    #'totalsum',
+    'totalsum',
+    
 ]
 
 MIDDLEWARE = [

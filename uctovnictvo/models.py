@@ -55,6 +55,56 @@ class EkonomickaKlasifikacia(models.Model):
     class Meta:
         verbose_name = 'Ekonomická klasifikácia'
         verbose_name_plural = 'Ekonomická klasifikácia'
+ 
+
+# Abstraktná trieda so všetkými spoločnými poľami, nepoužívaná samostatne
+class PersonCommon(models.Model):
+    # IBAN alebo aj kompletný popis s BIC a číslom účtu
+    bankovy_kontakt = models.CharField("Bankový kontakt", 
+            help_text = "Zadajte IBAN účtu autora.",
+            max_length=200, null=True, blank=True)
+    adresa_ulica = models.CharField("Adresa – ulica a číslo domu", max_length=200, null=True, blank=True)
+    adresa_mesto = models.CharField("Adresa – PSČ a mesto", max_length=200, null=True, blank=True)
+    adresa_stat = models.CharField("Adresa – štát", max_length=100, null=True, blank=True)
+    datum_aktualizacie = models.DateField('Dátum aktualizácie', auto_now=True)
+    history = HistoricalRecords()
+    class Meta:
+        abstract = True
+
+class Dodavatel(PersonCommon):
+    nazov = models.CharField("Názov", max_length=200)
+    history = HistoricalRecords()
+    class Meta:
+        verbose_name = 'Dodávateľ'
+        verbose_name_plural = 'Dodávatelia'
+    def __str__(self):
+        return self.nazov
+
+class ObjednavkaZmluva(models.Model):
+    cislo = models.CharField("Číslo objednavky", max_length=50)
+    dodavatel = models.ForeignKey(Dodavatel, on_delete=models.PROTECT, related_name='objednavky')    
+    class Meta:
+        verbose_name = 'Objednávka / zmluva'
+        verbose_name_plural = 'Objednávky / zmluvy'
+    def __str__(self):
+        return self.cislo
+
+class Objednavka(ObjednavkaZmluva):
+    objednane_polozky = models.TextField("Objednané položky", 
+            help_text = "Po riadkoch zadajte položky s poľami oddelenýmu bodkočiarkou: Názov položky; merná jednotka (ks, kg m, m2, m3,...); Množstvo; Cena za jednotku bez DPH",
+            max_length=5000, null=True, blank=True)
+    class Meta:
+        verbose_name = 'Objednávka'
+        verbose_name_plural = 'Objednávky'
+    def __str__(self):
+        return f"Objednávka {self.cislo}"
+
+class TrvalaZmluva(ObjednavkaZmluva):
+    class Meta:
+        verbose_name = 'Trvalá zmluva'
+        verbose_name_plural = 'Trvalé zmluvy'
+    def __str__(self):
+        return f"Zmluva {self.cislo} {dodavatel}"
 
 
 # Create your models here.
@@ -77,9 +127,9 @@ class Transakcia(models.Model):
             max_digits=8, 
             decimal_places=2, 
             default=0)
+    objednavka_zmluva = models.ForeignKey(ObjednavkaZmluva, null=True, on_delete=models.PROTECT, related_name='transakcie')    
     datum = models.DateField('Dátum transakcie')
     history = HistoricalRecords()
     class Meta:
         verbose_name = 'Transakcia'
         verbose_name_plural = 'Transakcie'
-    
