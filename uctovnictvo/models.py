@@ -4,6 +4,10 @@ from django.db import models
 #https://django-simple-history.readthedocs.io/en/latest/admin.html
 from simple_history.models import HistoricalRecords
 
+class AnoNie(models.TextChoices):
+    ANO = 'ano', 'Áno'
+    NIE = 'nie', 'Nie'
+
 class Zdroj(models.Model):
     kod = models.CharField("Kód", 
             help_text = "Zadajte kód zdroja - napr. 111, 46 alebo 42", 
@@ -72,6 +76,11 @@ class PersonCommon(models.Model):
 
 class Dodavatel(PersonCommon):
     nazov = models.CharField("Názov", max_length=200)
+    s_danou = models.CharField("Fakturované s daňou", 
+            max_length=3, 
+            help_text = "Uveďte 'Áno', ak dodávateľ fakturuje s DPH, inak uveďte 'NIE'",
+            #choices=AnoNie.choices, default=AnoNie.ANO)
+            choices=AnoNie.choices)
     history = HistoricalRecords()
     class Meta:
         verbose_name = 'Dodávateľ'
