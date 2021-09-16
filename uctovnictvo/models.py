@@ -105,6 +105,23 @@ class TrvalaZmluva(ObjednavkaZmluva):
     def __str__(self):
         return f"Zmluva {self.cislo} {dodavatel}"
 
+class Faktura(models.Model):
+    objednavka_zmluva = models.ForeignKey(ObjednavkaZmluva, 
+            null=True, 
+            verbose_name = "Objednávka / zmluva",
+            on_delete=models.PROTECT, 
+            related_name='faktury')    
+    popis = models.CharField("Popis transakcie", 
+            help_text = "Zadajte stručný popis, napr. 'SPP fa 20', 'vratenie duplicitnej platby' a podobne",
+            max_length=100)
+    suma = models.DecimalField("Suma v EUR", 
+            help_text = "Zadajte príjmy ako kladné, výdavky ako záporné číslo",
+            max_digits=8, 
+            decimal_places=2, 
+            default=0)
+    class Meta:
+        verbose_name = 'Faktúra'
+        verbose_name_plural = 'Faktúry'
 
 # Create your models here.
 class Transakcia(models.Model):
@@ -122,17 +139,14 @@ class Transakcia(models.Model):
             on_delete=models.PROTECT, 
             verbose_name = "Ekonomická klasifikácia",
             related_name='transakcie')    
-    popis = models.CharField("Popis transakcie", 
-            help_text = "Zadajte stručný popis, napr. 'SPP fa 20', 'vratenie duplicitnej platby' a podobne",
-            max_length=100)
     suma = models.DecimalField("Suma v EUR", 
             help_text = "Zadajte príjmy ako kladné, výdavky ako záporné číslo",
             max_digits=8, 
             decimal_places=2, 
             default=0)
-    objednavka_zmluva = models.ForeignKey(ObjednavkaZmluva, 
+    faktura = models.ForeignKey(Faktura, 
             null=True, 
-            verbose_name = "Objednávka / zmluva",
+            verbose_name = "Faktúra",
             on_delete=models.PROTECT, 
             related_name='transakcie')    
     datum = models.DateField('Dátum transakcie')

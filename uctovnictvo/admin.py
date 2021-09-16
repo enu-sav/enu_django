@@ -1,7 +1,7 @@
 from django.contrib import admin 
 from django import forms
 from ipdb import set_trace as trace
-from .models import EkonomickaKlasifikacia, Transakcia, TypZakazky, Zdroj, Program, Dodavatel, Objednavka, TrvalaZmluva
+from .models import EkonomickaKlasifikacia, Transakcia, TypZakazky, Zdroj, Program, Dodavatel, Objednavka, TrvalaZmluva, Faktura
 
 #zobrazenie histórie
 #https://django-simple-history.readthedocs.io/en/latest/admin.html
@@ -40,7 +40,7 @@ class EkonomickaKlasifikaciaAdmin(SimpleHistoryAdmin, ImportExportModelAdmin):
 @admin.register(Transakcia)
 class TransakciaAdmin(SimpleHistoryAdmin, ImportExportModelAdmin, AdminChangeLinksMixin, ModelAdminTotals):
 #class TransakciaAdmin(SimpleHistoryAdmin, AdminChangeLinksMixin, ModelAdminTotals):
-    list_display = ("popis", "datum", "suma", "zdroj", "program", "zakazka", "ekoklas_link")
+    list_display = ("datum", "suma", "zdroj", "program", "zakazka", "ekoklas_link")
     list_totals = [
             ('suma', Sum),
             ]
@@ -92,13 +92,28 @@ class ObjednavkaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportMod
 #class TrvalaZmluvaAdmin(admin.ModelAdmin):
 #class TrvalaZmluvaAdmin(SimpleHistoryAdmin,AdminChangeLinksMixin):
 class TrvalaZmluvaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
-    list_display = ("cislo", "dodavatel_link",)
-    search_fields = ["^dodavatel__nazov"]
+    list_display = ["dodavatel_link"]
+    search_fields = ["^dodavatel"]
 
     # zoraďovateľný odkaz na dodávateľa
     # umožnené prostredníctvom AdminChangeLinksMixin
     change_links = [
         ('dodavatel', {
-            'admin_order_field': 'dodavatel__nazov', # Allow to sort members by the `dodavatel_link` column
+            'admin_order_field': 'dodavatel', # Allow to sort members by the `dodavatel_link` column
+        })
+    ]
+
+@admin.register(Faktura)
+#class TrvalaZmluvaAdmin(admin.ModelAdmin):
+#class TrvalaZmluvaAdmin(SimpleHistoryAdmin,AdminChangeLinksMixin):
+class FakturaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
+    list_display = ("faktura_link", "suma")
+    search_fields = ["faktura"]
+
+    # zoraďovateľný odkaz na dodávateľa
+    # umožnené prostredníctvom AdminChangeLinksMixin
+    change_links = [
+        ('faktura', {
+            'admin_order_field': 'faktura', # Allow to sort members by the `dodavatel_link` column
         })
     ]
