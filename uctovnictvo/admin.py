@@ -1,7 +1,7 @@
 from django.contrib import admin 
 from django import forms
 from ipdb import set_trace as trace
-from .models import EkonomickaKlasifikacia, Transakcia, TypZakazky, Zdroj, Program, Dodavatel, Objednavka, TrvalaZmluva, Faktura
+from .models import EkonomickaKlasifikacia, Transakcia, TypZakazky, Zdroj, Program, Dodavatel, Objednavka, TrvalaZmluva, PrijataFaktura
 
 #zobrazenie histórie
 #https://django-simple-history.readthedocs.io/en/latest/admin.html
@@ -50,7 +50,7 @@ class DodavatelAdmin(SimpleHistoryAdmin, ImportExportModelAdmin):
 #class ObjednavkaAdmin(admin.ModelAdmin):
 #class ObjednavkaAdmin(SimpleHistoryAdmin,AdminChangeLinksMixin):
 class ObjednavkaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
-    list_display = ("cislo", "dodavatel_link",)
+    list_display = ("cislo", "predmet", "dodavatel_link",)
     #def formfield_for_dbfield(self, db_field, **kwargs):
         #formfield = super(ObjednavkaAdmin, self).formfield_for_dbfield(db_field, **kwargs)
         #if db_field.name == 'objednane_polozky':
@@ -58,7 +58,7 @@ class ObjednavkaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportMod
         #return formfield
 
     # ^: v poli vyhľadávať len od začiatku
-    search_fields = ["^dodavatel__nazov"]
+    search_fields = ["cislo", "predmet", "dodavatel__nazov"]
 
     # zoraďovateľný odkaz na dodávateľa
     # umožnené prostredníctvom AdminChangeLinksMixin
@@ -81,13 +81,17 @@ class TrvalaZmluvaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportM
         })
     ]
 
-@admin.register(Faktura)
+@admin.register(PrijataFaktura)
 class FakturaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
-    list_display = ["_objednavka_zmluva", "suma", "zdroj", "program", "zakazka", "ekoklas"]
+    list_display = ["_objednavka_zmluva", "suma", "zdroj", "program", "_zakazka", "ekoklas"]
     search_fields = ["suma"]
     def _objednavka_zmluva(self, obj):
         return obj.objednavka_zmluva
     _objednavka_zmluva.short_description = "Prijatá faktúra k"
+
+    def _zakazka(self, obj):
+        return obj.zakazka.kod
+    _zakazka.short_description = "Typ zákazky"
 
 @admin.register(Transakcia)
 class TransakciaAdmin(SimpleHistoryAdmin, ImportExportModelAdmin, AdminChangeLinksMixin, ModelAdminTotals):

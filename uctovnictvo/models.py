@@ -119,7 +119,10 @@ class TrvalaZmluva(ObjednavkaZmluva):
     def __str__(self):
         return f"Zmluva {self.cislo} {self.dodavatel}"
 
-class Faktura(models.Model):
+class PrijataFaktura(models.Model):
+    predmet = models.CharField("Predmet faktúry", 
+            help_text = "Zadajte stručný popis, napr. 'Dodávka a inštalácia dátoveho rozvádzača'",
+            max_length=100)
     zdroj = models.ForeignKey(Zdroj, 
             on_delete=models.PROTECT, 
             related_name='faktury')    
@@ -144,6 +147,11 @@ class Faktura(models.Model):
             max_digits=8, 
             decimal_places=2, 
             default=0)
+    cislo = models.CharField("Číslo faktúry", max_length=50)
+    dcislo = models.CharField("Dodávateľské číslo faktúry", max_length=50)
+    doslo_datum = models.DateField('Došlo dňa')
+    splatnost_datum = models.DateField('Dátum splatnosti')
+
     class Meta:
         verbose_name = 'Prijatá faktúra'
         verbose_name_plural = 'Prijaté faktúry'
@@ -157,9 +165,9 @@ class Transakcia(models.Model):
             max_digits=8, 
             decimal_places=2, 
             default=0)
-    faktura = models.ForeignKey(Faktura, 
+    faktura = models.ForeignKey(PrijataFaktura, 
             null=True, 
-            verbose_name = "Faktúra",
+            verbose_name = "Prijatá faktúra",
             on_delete=models.PROTECT, 
             related_name='transakcie')    
     datum = models.DateField('Dátum transakcie')
