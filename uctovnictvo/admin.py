@@ -1,7 +1,7 @@
 from django.contrib import admin 
 from django import forms
 from ipdb import set_trace as trace
-from .models import EkonomickaKlasifikacia, Transakcia, TypZakazky, Zdroj, Program, Dodavatel, Objednavka, TrvalaZmluva, PrijataFaktura
+from .models import EkonomickaKlasifikacia, Transakcia, TypZakazky, Zdroj, Program, Dodavatel, Objednavka, TrvalaZmluva, PrijataFaktura, SystemovySubor
 
 #zobrazenie histórie
 #https://django-simple-history.readthedocs.io/en/latest/admin.html
@@ -106,3 +106,15 @@ class TransakciaAdmin(SimpleHistoryAdmin, ImportExportModelAdmin, AdminChangeLin
 
     # ^: v poli vyhľadávať len od začiatku
     #search_fields = ["^zdroj__kod", "^program__kod", "^zakazka__kod", "^ekoklas__kod"]
+
+@admin.register(SystemovySubor)
+class SystemovySuborAdmin(admin.ModelAdmin):
+    list_display = ("subor_nazov", "subor_popis", "subor")
+    fields = ("subor_nazov", "subor_popis", "subor")
+    # názov sa nesmie meniť, podľa názvu sa v kóde súbor vyhľadáva
+    def get_readonly_fields(self, request, obj=None):
+        if obj:
+            return ["subor_nazov"]
+        else:
+            return []
+

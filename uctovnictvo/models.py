@@ -3,6 +3,7 @@ from django.db import models
 #záznam histórie
 #https://django-simple-history.readthedocs.io/en/latest/admin.html
 from simple_history.models import HistoricalRecords
+from uctovnictvo.storage import OverwriteStorage
 
 class AnoNie(models.TextChoices):
     ANO = 'ano', 'Áno'
@@ -184,3 +185,19 @@ class Transakcia(models.Model):
     class Meta:
         verbose_name = 'Transakcia'
         verbose_name_plural = 'Transakcie'
+
+def system_file_path(instance, filename):
+    return os.path.join(TMPLTS_DIR_NAME, filename)
+
+class SystemovySubor(models.Model):
+    subor_nazov =  models.CharField("Názov", max_length=100)
+    subor_popis = models.CharField("Popis/účel", max_length=100)
+    # opakované uploadovanie súboru vytvorí novú verziu
+    #subor = models.FileField("Súbor",upload_to=TMPLTS_DIR_NAME, null = True, blank = True)
+    # opakované uploadovanie súboru prepíše existujúci súbor (nevytvorí novú verziu)
+    subor = models.FileField(storage=OverwriteStorage(), upload_to=system_file_path, null = True, blank = True)
+    class Meta:
+        verbose_name = 'Systémový súbor'
+        verbose_name_plural = 'Systémové súbory'
+    def __str__(self):
+        return(self.subor_nazov)
