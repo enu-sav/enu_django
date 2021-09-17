@@ -8,6 +8,11 @@ class AnoNie(models.TextChoices):
     ANO = 'ano', 'Áno'
     NIE = 'nie', 'Nie'
 
+class Mena(models.TextChoices):
+    EUR = 'EUR'
+    CZK = 'CZK'
+    USD = 'USD'
+
 class Zdroj(models.Model):
     kod = models.CharField("Kód", 
             help_text = "Zadajte kód zdroja - napr. 111, 46 alebo 42", 
@@ -120,9 +125,27 @@ class TrvalaZmluva(ObjednavkaZmluva):
         return f"Zmluva {self.cislo} {self.dodavatel}"
 
 class PrijataFaktura(models.Model):
+    cislo = models.CharField("Číslo faktúry", max_length=50)
+    dcislo = models.CharField("Dodávateľské číslo faktúry", max_length=50)
+    doslo_datum = models.DateField('Došlo dňa')
+    splatnost_datum = models.DateField('Dátum splatnosti')
     predmet = models.CharField("Predmet faktúry", 
             help_text = "Zadajte stručný popis, napr. 'Dodávka a inštalácia dátoveho rozvádzača'",
             max_length=100)
+    suma = models.DecimalField("Suma v EUR", 
+            help_text = "Zadajte príjmy ako kladné, výdavky ako záporné číslo",
+            max_digits=8, 
+            decimal_places=2, 
+            default=0)
+    mena = models.CharField("Mena", 
+            max_length=3, 
+            default= Mena.EUR,
+            choices=Mena.choices)
+    objednavka_zmluva = models.ForeignKey(ObjednavkaZmluva, 
+            null=True, 
+            verbose_name = "Objednávka / zmluva",
+            on_delete=models.PROTECT, 
+            related_name='faktury')    
     zdroj = models.ForeignKey(Zdroj, 
             on_delete=models.PROTECT, 
             related_name='faktury')    
@@ -137,20 +160,6 @@ class PrijataFaktura(models.Model):
             on_delete=models.PROTECT, 
             verbose_name = "Ekonomická klasifikácia",
             related_name='faktury')    
-    objednavka_zmluva = models.ForeignKey(ObjednavkaZmluva, 
-            null=True, 
-            verbose_name = "Objednávka / zmluva",
-            on_delete=models.PROTECT, 
-            related_name='faktury')    
-    suma = models.DecimalField("Suma v EUR", 
-            help_text = "Zadajte príjmy ako kladné, výdavky ako záporné číslo",
-            max_digits=8, 
-            decimal_places=2, 
-            default=0)
-    cislo = models.CharField("Číslo faktúry", max_length=50)
-    dcislo = models.CharField("Dodávateľské číslo faktúry", max_length=50)
-    doslo_datum = models.DateField('Došlo dňa')
-    splatnost_datum = models.DateField('Dátum splatnosti')
 
     class Meta:
         verbose_name = 'Prijatá faktúra'
