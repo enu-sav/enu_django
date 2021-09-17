@@ -70,7 +70,7 @@ class ObjednavkaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportMod
 
 @admin.register(TrvalaZmluva)
 class TrvalaZmluvaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
-    list_display = ["dodavatel", "cislo", "predmet"]
+    list_display = ["dodavatel", "cislo", "predmet", "url_zmluvy_html"]
     search_fields = ["dodavatel__nazov", "cislo", "predmet"]
 
     # zoraďovateľný odkaz na dodávateľa
@@ -80,6 +80,15 @@ class TrvalaZmluvaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportM
             'admin_order_field': 'dodavatel', # Allow to sort members by the `dodavatel_link` column
         })
     ]
+    # formátovať pole url_zmluvy
+    def url_zmluvy_html(self, obj):
+        from django.utils.html import format_html
+        if obj.url_zmluvy:
+            return format_html(f'<a href="{obj.url_zmluvy}" target="_blank">pdf</a>')
+        else:
+            return None
+    url_zmluvy_html.short_description = "Zmluva v CRZ"
+
 
 @admin.register(PrijataFaktura)
 class FakturaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):

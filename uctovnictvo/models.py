@@ -119,6 +119,9 @@ class Objednavka(ObjednavkaZmluva):
         return f"Objednávka {self.cislo} {self.dodavatel}"
 
 class TrvalaZmluva(ObjednavkaZmluva):
+    url_zmluvy = models.URLField('URL zmluvy', 
+            help_text = "Zadajte URL pdf súboru zmluvy zo stránky CRZ.",
+            blank = True)
     class Meta:
         verbose_name = 'Trvalá zmluva'
         verbose_name_plural = 'Trvalé zmluvy'
