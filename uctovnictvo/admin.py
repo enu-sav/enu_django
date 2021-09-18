@@ -73,14 +73,6 @@ class TrvalaZmluvaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportM
 
     # zoraďovateľný odkaz na dodávateľa
     # umožnené prostredníctvom AdminChangeLinksMixin
-    _change_links = [
-        ('dodavatel', {
-            'admin_order_field': 'dodavatel', # Allow to sort members by the `dodavatel_link` column
-        })
-    ]
-
-    # zoraďovateľný odkaz na dodávateľa
-    # umožnené prostredníctvom AdminChangeLinksMixin
     change_links = [
         ('dodavatel', {
             'admin_order_field': 'dodavatel__nazov', # Allow to sort members by the `dodavatel_link` column
@@ -97,16 +89,18 @@ class TrvalaZmluvaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportM
     url_zmluvy_html.short_description = "Zmluva v CRZ"
 
 @admin.register(PrijataFaktura)
-class FakturaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
-    list_display = ["_objednavka_zmluva", "suma", "zdroj", "program", "_zakazka", "ekoklas"]
+class PrijataFakturaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
+    list_display = ["cislo", "objednavka_zmluva_link", "suma", "zdroj", "program", "zakazka", "ekoklas"]
     search_fields = ["suma"]
-    def _objednavka_zmluva(self, obj):
-        return obj.objednavka_zmluva
-    _objednavka_zmluva.short_description = "Prijatá faktúra k"
 
-    def _zakazka(self, obj):
-        return obj.zakazka.kod
-    _zakazka.short_description = "Typ zákazky"
+    # zoraďovateľný odkaz na dodávateľa
+    # umožnené prostredníctvom AdminChangeLinksMixin
+    # Vyžaduje, aby ObjednavkaZmluva zmluva bola PolymorphicModel
+    change_links = [
+        ('objednavka_zmluva', {
+            'admin_order_field': 'objednavka_zmluva__cislo', # Allow to sort members by the `xxx_link` column
+        })
+    ]
 
 @admin.register(Transakcia)
 class TransakciaAdmin(SimpleHistoryAdmin, ImportExportModelAdmin, AdminChangeLinksMixin, ModelAdminTotals):

@@ -4,6 +4,7 @@ from django.db import models
 #https://django-simple-history.readthedocs.io/en/latest/admin.html
 from simple_history.models import HistoricalRecords
 from uctovnictvo.storage import OverwriteStorage
+from polymorphic.models import PolymorphicModel
 
 class AnoNie(models.TextChoices):
     ANO = 'ano', 'Áno'
@@ -93,18 +94,20 @@ class Dodavatel(PersonCommon):
     def __str__(self):
         return self.nazov
 
-class ObjednavkaZmluva(models.Model):
+#Polymorphic umožní, aby Objednavka a PrijataFaktura mohli použiť ObjednavkaZmluva ako ForeignKey
+class ObjednavkaZmluva(PolymorphicModel):
     cislo = models.CharField("Číslo", max_length=50)
     dodavatel = models.ForeignKey(Dodavatel, 
             on_delete=models.PROTECT, 
             verbose_name = "Dodávateľ",
-            related_name='objednavky')    
+            related_name='%(class)s_requests_created')  #zabezpečí rozlíšenie modelov Objednavka a PrijataFaktura 
     predmet = models.CharField("Predmet", 
             help_text = "Zadajte stručný popis, napr. 'Kávovar Saeco' alebo 'Servisná podpora RS Beliana'",
             max_length=100)
     class Meta:
         verbose_name = 'Objednávka / zmluva'
         verbose_name_plural = 'Objednávky / zmluvy'
+        #abstract = True
     def __str__(self):
         return f"{self.cislo} - {self.dodavatel}"
 
