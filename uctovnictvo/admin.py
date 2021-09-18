@@ -47,10 +47,8 @@ class DodavatelAdmin(SimpleHistoryAdmin, ImportExportModelAdmin):
     adresa.short_description = "Adresa"
 
 @admin.register(Objednavka)
-#class ObjednavkaAdmin(admin.ModelAdmin):
-#class ObjednavkaAdmin(SimpleHistoryAdmin,AdminChangeLinksMixin):
 class ObjednavkaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
-    list_display = ("cislo", "predmet", "dodavatel_link",)
+    list_display = ("cislo", "dodavatel_link","predmet", )
     #def formfield_for_dbfield(self, db_field, **kwargs):
         #formfield = super(ObjednavkaAdmin, self).formfield_for_dbfield(db_field, **kwargs)
         #if db_field.name == 'objednane_polozky':
@@ -70,7 +68,7 @@ class ObjednavkaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportMod
 
 @admin.register(TrvalaZmluva)
 class TrvalaZmluvaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
-    list_display = ["dodavatel", "cislo", "predmet", "url_zmluvy_html"]
+    list_display = ["cislo", "dodavatel_link", "predmet", "datum_zverejnenia_CRZ", "url_zmluvy_html"]
     search_fields = ["dodavatel__nazov", "cislo", "predmet"]
 
     # zoraďovateľný odkaz na dodávateľa
@@ -80,6 +78,15 @@ class TrvalaZmluvaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportM
             'admin_order_field': 'dodavatel', # Allow to sort members by the `dodavatel_link` column
         })
     ]
+
+    # zoraďovateľný odkaz na dodávateľa
+    # umožnené prostredníctvom AdminChangeLinksMixin
+    change_links = [
+        ('dodavatel', {
+            'admin_order_field': 'dodavatel__nazov', # Allow to sort members by the `dodavatel_link` column
+        })
+    ]
+
     # formátovať pole url_zmluvy
     def url_zmluvy_html(self, obj):
         from django.utils.html import format_html
@@ -88,7 +95,6 @@ class TrvalaZmluvaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportM
         else:
             return None
     url_zmluvy_html.short_description = "Zmluva v CRZ"
-
 
 @admin.register(PrijataFaktura)
 class FakturaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):

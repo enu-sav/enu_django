@@ -94,12 +94,12 @@ class Dodavatel(PersonCommon):
         return self.nazov
 
 class ObjednavkaZmluva(models.Model):
-    cislo = models.CharField("Číslo objednávky / zmluvy", max_length=50)
+    cislo = models.CharField("Číslo", max_length=50)
     dodavatel = models.ForeignKey(Dodavatel, 
             on_delete=models.PROTECT, 
             verbose_name = "Dodávateľ",
             related_name='objednavky')    
-    predmet = models.CharField("Predmet objednávky / zmluvy", 
+    predmet = models.CharField("Predmet", 
             help_text = "Zadajte stručný popis, napr. 'Kávovar Saeco' alebo 'Servisná podpora RS Beliana'",
             max_length=100)
     class Meta:
@@ -122,6 +122,9 @@ class TrvalaZmluva(ObjednavkaZmluva):
     url_zmluvy = models.URLField('URL zmluvy', 
             help_text = "Zadajte URL pdf súboru zmluvy zo stránky CRZ.",
             blank = True)
+    datum_zverejnenia_CRZ = models.DateField('Platná od', 
+            help_text = "Zadajte dátum účinnosti zmluvy (dátum zverejnenia v CRZ + 1 deň).",
+            blank=True, null=True)
     class Meta:
         verbose_name = 'Trvalá zmluva'
         verbose_name_plural = 'Trvalé zmluvy'
