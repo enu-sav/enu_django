@@ -86,6 +86,7 @@ class Dodavatel(PersonCommon):
     s_danou = models.CharField("Fakturované s daňou", 
             max_length=3, 
             help_text = "Uveďte 'Áno', ak dodávateľ fakturuje s DPH, inak uveďte 'Nie'",
+            null = True,
             choices=AnoNie.choices)
     history = HistoricalRecords()
     class Meta:
