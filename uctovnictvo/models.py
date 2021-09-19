@@ -120,7 +120,7 @@ class Objednavka(ObjednavkaZmluva):
         verbose_name = 'Objednávka'
         verbose_name_plural = 'Objednávky'
     def __str__(self):
-        return f"Objednávka {self.cislo} {self.dodavatel}"
+        return f"{self.dodavatel}, objednávka, {self.cislo}"
 
 class Zmluva(ObjednavkaZmluva):
     url_zmluvy = models.URLField('URL zmluvy', 
@@ -138,7 +138,7 @@ class Zmluva(ObjednavkaZmluva):
         verbose_name = 'Zmluva'
         verbose_name_plural = 'Zmluvy'
     def __str__(self):
-        return f"Zmluva {self.cislo} {self.dodavatel}"
+        return f"{self.dodavatel}, zmluva, {self.cislo}"
 
 class PrijataFaktura(models.Model):
     cislo = models.CharField("Číslo faktúry", max_length=50)
@@ -147,6 +147,8 @@ class PrijataFaktura(models.Model):
             null=True,
             max_length=50)
     doslo_datum = models.DateField('Došlo dňa',
+            blank=True, null=True)
+    dane_na_uhradu = models.DateField('Dané na úhradu dňa',
             blank=True, null=True)
     splatnost_datum = models.DateField('Dátum splatnosti',
             blank=True, null=True)

@@ -90,7 +90,7 @@ class ZmluvaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAd
 
 @admin.register(PrijataFaktura)
 class PrijataFakturaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
-    list_display = ["cislo", "objednavka_zmluva_link", "suma", "zdroj", "program", "zakazka", "ekoklas"]
+    list_display = ["cislo", "objednavka_zmluva_link", "suma", "dane_na_uhradu", "zdroj", "program", "zakazka", "ekoklas"]
     search_fields = ["suma"]
 
     # zoraďovateľný odkaz na dodávateľa
