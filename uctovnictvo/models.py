@@ -129,6 +129,11 @@ class Zmluva(ObjednavkaZmluva):
     datum_zverejnenia_CRZ = models.DateField('Platná od', 
             help_text = "Zadajte dátum účinnosti zmluvy (dátum zverejnenia v CRZ + 1 deň).",
             blank=True, null=True)
+    trvala_zmluva = models.CharField("Trvalá zmluva", 
+            max_length=3, 
+            help_text = "Uveďte 'Áno', ak ide o trvalú zmluvu (očakáva sa viacero faktúr), inak uveďte 'Nie' (ako napr. zmluvy s LITA)",
+            default = AnoNie.ANO,
+            choices=AnoNie.choices)
     class Meta:
         verbose_name = 'Zmluva'
         verbose_name_plural = 'Zmluvy'
