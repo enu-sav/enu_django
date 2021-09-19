@@ -1,7 +1,7 @@
 from django.contrib import admin 
 from django import forms
 from ipdb import set_trace as trace
-from .models import EkonomickaKlasifikacia, Transakcia, TypZakazky, Zdroj, Program, Dodavatel, Objednavka, TrvalaZmluva, PrijataFaktura, SystemovySubor
+from .models import EkonomickaKlasifikacia, Transakcia, TypZakazky, Zdroj, Program, Dodavatel, Objednavka, Zmluva, PrijataFaktura, SystemovySubor
 
 #zobrazenie histórie
 #https://django-simple-history.readthedocs.io/en/latest/admin.html
@@ -66,8 +66,8 @@ class ObjednavkaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportMod
         })
     ]
 
-@admin.register(TrvalaZmluva)
-class TrvalaZmluvaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
+@admin.register(Zmluva)
+class ZmluvaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
     list_display = ["cislo", "dodavatel_link", "predmet", "datum_zverejnenia_CRZ", "url_zmluvy_html"]
     search_fields = ["dodavatel__nazov", "cislo", "predmet"]
 

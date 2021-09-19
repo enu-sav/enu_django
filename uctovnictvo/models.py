@@ -122,7 +122,7 @@ class Objednavka(ObjednavkaZmluva):
     def __str__(self):
         return f"Objednávka {self.cislo} {self.dodavatel}"
 
-class TrvalaZmluva(ObjednavkaZmluva):
+class Zmluva(ObjednavkaZmluva):
     url_zmluvy = models.URLField('URL zmluvy', 
             help_text = "Zadajte URL pdf súboru zmluvy zo stránky CRZ.",
             blank = True)
@@ -130,8 +130,8 @@ class TrvalaZmluva(ObjednavkaZmluva):
             help_text = "Zadajte dátum účinnosti zmluvy (dátum zverejnenia v CRZ + 1 deň).",
             blank=True, null=True)
     class Meta:
-        verbose_name = 'Trvalá zmluva'
-        verbose_name_plural = 'Trvalé zmluvy'
+        verbose_name = 'Zmluva'
+        verbose_name_plural = 'Zmluvy'
     def __str__(self):
         return f"Zmluva {self.cislo} {self.dodavatel}"
 
