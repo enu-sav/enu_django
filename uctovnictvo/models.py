@@ -142,9 +142,14 @@ class Zmluva(ObjednavkaZmluva):
 
 class PrijataFaktura(models.Model):
     cislo = models.CharField("Číslo faktúry", max_length=50)
-    dcislo = models.CharField("Dodávateľské číslo faktúry", max_length=50)
-    doslo_datum = models.DateField('Došlo dňa')
-    splatnost_datum = models.DateField('Dátum splatnosti')
+    dcislo = models.CharField("Dodávateľské číslo faktúry", 
+            blank=True, 
+            null=True,
+            max_length=50)
+    doslo_datum = models.DateField('Došlo dňa',
+            blank=True, null=True)
+    splatnost_datum = models.DateField('Dátum splatnosti',
+            blank=True, null=True)
     predmet = models.CharField("Predmet faktúry", 
             help_text = "Zadajte stručný popis, napr. 'Dodávka a inštalácia dátoveho rozvádzača'",
             max_length=100)
