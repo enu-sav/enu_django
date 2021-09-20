@@ -105,6 +105,7 @@ class ObjednavkaZmluva(PolymorphicModel):
     predmet = models.CharField("Predmet", 
             help_text = "Zadajte stručný popis, napr. 'Kávovar Saeco' alebo 'Servisná podpora RS Beliana'",
             max_length=100)
+    history = HistoricalRecords()
     class Meta:
         verbose_name = 'Objednávka / zmluva'
         verbose_name_plural = 'Objednávky / zmluvy'
@@ -116,6 +117,7 @@ class Objednavka(ObjednavkaZmluva):
     objednane_polozky = models.TextField("Objednané položky", 
             help_text = "Po riadkoch zadajte položky s poľami oddelenýmu bodkočiarkou: Názov položky; merná jednotka (ks, kg m, m2, m3,...); Množstvo; Cena za jednotku bez DPH",
             max_length=5000, null=True, blank=True)
+    history = HistoricalRecords()
     class Meta:
         verbose_name = 'Objednávka'
         verbose_name_plural = 'Objednávky'
@@ -134,6 +136,7 @@ class Zmluva(ObjednavkaZmluva):
             help_text = "Uveďte 'Áno', ak ide o trvalú zmluvu (očakáva sa viacero faktúr), inak uveďte 'Nie' (ako napr. zmluvy s LITA)",
             default = AnoNie.ANO,
             choices=AnoNie.choices)
+    history = HistoricalRecords()
     class Meta:
         verbose_name = 'Zmluva'
         verbose_name_plural = 'Zmluvy'
@@ -183,6 +186,7 @@ class PrijataFaktura(models.Model):
             on_delete=models.PROTECT, 
             verbose_name = "Ekonomická klasifikácia",
             related_name='faktury')    
+    history = HistoricalRecords()
 
     class Meta:
         verbose_name = 'Prijatá faktúra'
@@ -218,6 +222,7 @@ class SystemovySubor(models.Model):
     #subor = models.FileField("Súbor",upload_to=TMPLTS_DIR_NAME, null = True, blank = True)
     # opakované uploadovanie súboru prepíše existujúci súbor (nevytvorí novú verziu)
     subor = models.FileField(storage=OverwriteStorage(), upload_to=system_file_path, null = True, blank = True)
+    history = HistoricalRecords()
     class Meta:
         verbose_name = 'Systémový súbor'
         verbose_name_plural = 'Systémové súbory'
