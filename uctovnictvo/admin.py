@@ -40,7 +40,7 @@ class EkonomickaKlasifikaciaAdmin(SimpleHistoryAdmin, ImportExportModelAdmin):
 
 @admin.register(Dodavatel)
 class DodavatelAdmin(SimpleHistoryAdmin, ImportExportModelAdmin):
-    list_display = ("nazov", "bankovy_kontakt", "adresa") 
+    list_display = ("nazov", "s_danou", "bankovy_kontakt", "adresa") 
     search_fields = ("nazov",)
     def adresa(self, obj):
         if obj.adresa_mesto:
@@ -69,7 +69,7 @@ class ObjednavkaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportMod
 
 @admin.register(Rozhodnutie)
 class RozhodnutieAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
-    list_display = ("cislo", "predmet", "dodavatel_link", )
+    list_display = ("cislo", "predmet", "dodavatel_link", "poznamka" )
 
     # ^: v poli vyhľadávať len od začiatku
     search_fields = ["cislo", "dodavatel__nazov"]
@@ -114,9 +114,10 @@ class PrijataFakturaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExpor
     # Vyžaduje, aby ObjednavkaZmluva zmluva bola PolymorphicModel
     change_links = [
         ('objednavka_zmluva', {
+            'label': "Objednávka, zmluva, rozhodnutie",
             'admin_order_field': 'objednavka_zmluva__cislo', # Allow to sort members by the `xxx_link` column
         })
-    ]
+    ] 
 
 @admin.register(Transakcia)
 class TransakciaAdmin(SimpleHistoryAdmin, ImportExportModelAdmin, AdminChangeLinksMixin, ModelAdminTotals):

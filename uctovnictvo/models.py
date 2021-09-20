@@ -97,14 +97,17 @@ class Dodavatel(PersonCommon):
 
 #Polymorphic umožní, aby Objednavka a PrijataFaktura mohli použiť ObjednavkaZmluva ako ForeignKey
 class ObjednavkaZmluva(PolymorphicModel):
-    cislo = models.CharField("Číslo", max_length=50)
-    dodavatel = models.ForeignKey(Dodavatel, 
+    cislo = models.CharField("Číslo", 
+            help_text = "Zadajte číslo objednávky / zmluvy / rozhodnutia. Na jednoduché rozlíšenie viacerých zmlúv toho istého dodávateľa možno v zátvorke uviesť krátku doplnkovú informáciu, napr. '2/2018 (dodávka plynu)'",
+            max_length=50)
+    dodavatel = models.ForeignKey(Dodavatel,
             on_delete=models.PROTECT, 
             verbose_name = "Dodávateľ",
             related_name='%(class)s_requests_created')  #zabezpečí rozlíšenie modelov Objednavka a PrijataFaktura 
     predmet = models.CharField("Predmet", 
             help_text = "Zadajte stručný popis, napr. 'Kávovar Saeco' alebo 'Servisná podpora RS Beliana'",
             max_length=100)
+    poznamka = models.CharField("Poznámka", max_length=200, blank=True)
     history = HistoricalRecords()
     class Meta:
         verbose_name = 'Objednávka / zmluva'
@@ -194,6 +197,7 @@ class PrijataFaktura(models.Model):
             on_delete=models.PROTECT, 
             verbose_name = "Ekonomická klasifikácia",
             related_name='faktury')
+    poznamka = models.CharField("Poznámka", max_length=200, blank=True)
     history = HistoricalRecords()
 
     class Meta:
