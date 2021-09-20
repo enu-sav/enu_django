@@ -124,6 +124,14 @@ class Objednavka(ObjednavkaZmluva):
     def __str__(self):
         return f"{self.dodavatel}, objednávka, {self.cislo}"
 
+class Rozhodnutie(ObjednavkaZmluva):
+    history = HistoricalRecords()
+    class Meta:
+        verbose_name = 'Rozhodnutie'
+        verbose_name_plural = 'Rozhodnutia'
+    def __str__(self):
+        return f"{self.dodavatel}, rozhodnutie, {self.cislo}"
+
 class Zmluva(ObjednavkaZmluva):
     url_zmluvy = models.URLField('URL zmluvy', 
             help_text = "Zadajte URL pdf súboru zmluvy zo stránky CRZ.",
@@ -185,14 +193,14 @@ class PrijataFaktura(models.Model):
     ekoklas = models.ForeignKey(EkonomickaKlasifikacia, 
             on_delete=models.PROTECT, 
             verbose_name = "Ekonomická klasifikácia",
-            related_name='faktury')    
+            related_name='faktury')
     history = HistoricalRecords()
 
     class Meta:
         verbose_name = 'Prijatá faktúra'
         verbose_name_plural = 'Prijaté faktúry'
     def __str__(self):
-        return f"Faktúra k {self.objednavka_zmluva} - {self.suma} €"
+        return f'Faktúra k "{self.objednavka_zmluva}" : {self.suma} €'
 
 # Create your models here.
 class Transakcia(models.Model):

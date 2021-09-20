@@ -1,7 +1,8 @@
 from django.contrib import admin 
 from django import forms
 from ipdb import set_trace as trace
-from .models import EkonomickaKlasifikacia, Transakcia, TypZakazky, Zdroj, Program, Dodavatel, Objednavka, Zmluva, PrijataFaktura, SystemovySubor
+from .models import EkonomickaKlasifikacia, Transakcia, TypZakazky, Zdroj, Program, Dodavatel, Objednavka
+from .models import Zmluva, PrijataFaktura, SystemovySubor, Rozhodnutie
 
 #zobrazenie histórie
 #https://django-simple-history.readthedocs.io/en/latest/admin.html
@@ -57,6 +58,21 @@ class ObjednavkaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportMod
 
     # ^: v poli vyhľadávať len od začiatku
     search_fields = ["cislo", "predmet", "dodavatel__nazov"]
+
+    # zoraďovateľný odkaz na dodávateľa
+    # umožnené prostredníctvom AdminChangeLinksMixin
+    change_links = [
+        ('dodavatel', {
+            'admin_order_field': 'dodavatel__nazov', # Allow to sort members by the `dodavatel_link` column
+        })
+    ]
+
+@admin.register(Rozhodnutie)
+class RozhodnutieAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
+    list_display = ("cislo", "predmet", "dodavatel_link", )
+
+    # ^: v poli vyhľadávať len od začiatku
+    search_fields = ["cislo", "dodavatel__nazov"]
 
     # zoraďovateľný odkaz na dodávateľa
     # umožnené prostredníctvom AdminChangeLinksMixin
