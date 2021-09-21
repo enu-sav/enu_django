@@ -1,7 +1,7 @@
 from django.contrib import admin 
 from django import forms
 from ipdb import set_trace as trace
-from .models import EkonomickaKlasifikacia, Transakcia, TypZakazky, Zdroj, Program, Dodavatel, Objednavka
+from .models import EkonomickaKlasifikacia, TypZakazky, Zdroj, Program, Dodavatel, Objednavka
 from .models import Zmluva, PrijataFaktura, SystemovySubor, Rozhodnutie
 
 #zobrazenie histórie
@@ -125,20 +125,6 @@ class PrijataFakturaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminT
     list_totals = [
         ('suma', Sum),
     ]
-
-@admin.register(Transakcia)
-class TransakciaAdmin(SimpleHistoryAdmin, ImportExportModelAdmin, AdminChangeLinksMixin, ModelAdminTotals):
-    pass
-#class TransakciaAdmin(SimpleHistoryAdmin, AdminChangeLinksMixin, ModelAdminTotals):
-    #list_display = ("datum", "suma", "zdroj", "program", "zakazka", "ekoklas")
-    #list_totals = [
-            #('suma', Sum),
-            #]
-    #totalsum_list = ('suma',)
-    #unit_of_measure = '&euro;'
-
-    # ^: v poli vyhľadávať len od začiatku
-    #search_fields = ["^zdroj__kod", "^program__kod", "^zakazka__kod", "^ekoklas__kod"]
 
 @admin.register(SystemovySubor)
 class SystemovySuborAdmin(admin.ModelAdmin):

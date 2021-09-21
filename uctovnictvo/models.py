@@ -206,24 +206,6 @@ class PrijataFaktura(models.Model):
     def __str__(self):
         return f'Faktúra k "{self.objednavka_zmluva}" : {self.suma} €'
 
-# Create your models here.
-class Transakcia(models.Model):
-    suma = models.DecimalField("Suma v EUR", 
-            help_text = "Zadajte príjmy ako kladné, výdavky ako záporné číslo",
-            max_digits=8, 
-            decimal_places=2, 
-            default=0)
-    faktura = models.ForeignKey(PrijataFaktura, 
-            null=True, 
-            verbose_name = "Prijatá faktúra",
-            on_delete=models.PROTECT, 
-            related_name='transakcie')    
-    datum = models.DateField('Dátum transakcie')
-    history = HistoricalRecords()
-    class Meta:
-        verbose_name = 'Transakcia'
-        verbose_name_plural = 'Transakcie'
-
 def system_file_path(instance, filename):
     return os.path.join(TMPLTS_DIR_NAME, filename)
 
