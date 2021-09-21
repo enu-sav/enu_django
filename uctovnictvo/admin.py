@@ -1,7 +1,7 @@
 from django.contrib import admin 
 from django import forms
 from ipdb import set_trace as trace
-from .models import EkonomickaKlasifikacia, TypZakazky, Zdroj, Program, Dodavatel, Objednavka
+from .models import EkonomickaKlasifikacia, TypZakazky, Zdroj, Program, Dodavatel, Objednavka, AutorskyHonorar
 from .models import Zmluva, PrijataFaktura, SystemovySubor, Rozhodnutie
 
 #zobrazenie histórie
@@ -124,6 +124,16 @@ class PrijataFakturaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminT
     ] 
     list_totals = [
         ('suma', Sum),
+    ]
+
+@admin.register(AutorskyHonorar)
+class AutorskyHonorarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
+    list_display = ["cislo", "suma", "suma_lf", "suma_dan", "zdroj", "program", "zakazka", "ekoklas"]
+
+    list_totals = [
+        ('suma', Sum),
+        ('suma_lf', Sum),
+        ('suma_dan', Sum),
     ]
 
 @admin.register(SystemovySubor)

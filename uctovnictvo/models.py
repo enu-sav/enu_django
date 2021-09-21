@@ -206,6 +206,52 @@ class PrijataFaktura(models.Model):
     def __str__(self):
         return f'Faktúra k "{self.objednavka_zmluva}" : {self.suma} €'
 
+class AutorskyHonorar(models.Model):
+    cislo = models.CharField("Číslo platby", max_length=50)
+    doslo_datum = models.DateField('Vyplatené dňa',
+            blank=True, null=True)
+    suma = models.DecimalField("Vyplatená suma", 
+            help_text = "Zadajte honorár vyplatený autorom ako záporné číslo (stĺpec'Vyplatené spolu' z tabuľky Zmluvy / Vyplácanie aut. honorárov)",
+            max_digits=8, 
+            decimal_places=2, 
+            default=0)
+    suma_lf = models.DecimalField("Odvedená suma Literárnemu fondu",
+            help_text = "Zadajte sumu odvevenú Literárnemu fondu ako záporné číslo (stĺpec'Odvod LF' z tabuľky Zmluvy / Vyplácanie aut. honorárov)",
+            max_digits=8, 
+            decimal_places=2, 
+            default=0)
+    suma_dan = models.DecimalField("Odvedená daň",
+            help_text = "Zadajte daň odvevenú Finančnej správe záporné číslo (stĺpec 'Odvedená daň' z tabuľky Zmluvy / Vyplácanie aut. honorárov)",
+            max_digits=8, 
+            decimal_places=2, 
+            default=0)
+    zdroj = models.ForeignKey(Zdroj, 
+            on_delete=models.PROTECT, 
+            default = 1,    #111
+            related_name='autorskyhonorar')    
+    program = models.ForeignKey(Program, 
+            on_delete=models.PROTECT, 
+            default = 1,    #Ostatné
+            related_name='autorskyhonorar')    
+    zakazka = models.ForeignKey(TypZakazky, 
+            on_delete=models.PROTECT, 
+            verbose_name = "Typ zákazky",
+            default = 1,    #Beliana
+            related_name='autorskyhonorar')    
+    ekoklas = models.ForeignKey(EkonomickaKlasifikacia, 
+            on_delete=models.PROTECT, 
+            verbose_name = "Ekonomická klasifikácia",
+            default = 58,    # 633018	Licencie
+            related_name='autorskyhonorar')
+    poznamka = models.CharField("Poznámka", max_length=200, blank=True)
+    history = HistoricalRecords()
+
+    class Meta:
+        verbose_name = 'Autorský honorár'
+        verbose_name_plural = 'Autorské honoráre'
+    def __str__(self):
+        return f'Autorské honotáre {self.cislo}'
+
 def system_file_path(instance, filename):
     return os.path.join(TMPLTS_DIR_NAME, filename)
 
