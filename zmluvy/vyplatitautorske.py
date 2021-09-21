@@ -50,7 +50,7 @@ class VyplatitAutorskeOdmeny():
 
     def hlavicka_test(self, fname, row):
         # povinné stĺpce v csv súbore:
-        povinne = ["Nid", "Prihlásiť sa", "Zmluva na vyplatenie", "Vyplatenie odmeny", "Dĺžka autorom odovzdaného textu", "Dátum záznamu dĺžky", "Dátum vyplatenia"]
+        povinne = ["Nid", "Prihlásiť sa", "Zmluva na vyplatenie", "Vyplatenie odmeny", "Dĺžka autorom odovzdaného textu", "Dátum záznamu dĺžky", "Dátum vyplatenia", "Lexikálna skupina"]
         for item in povinne:
             if not item in row:
                 raise Exception(f"Súbor {fname} musí obsahovať stĺpec '{item}'")
@@ -93,12 +93,13 @@ class VyplatitAutorskeOdmeny():
                     if not login in self.data: self.data[login] = {} 
                     if not rs_webrs in self.data[login]: self.data[login][rs_webrs] = {} 
 
+                    #údaje po heslách uložiť do self.data
                     #overiť, či autor má zadanú zmluvu, v prípade chyby vynechať
                     query_set = ZmluvaAutor.objects.filter(zmluvna_strana__rs_login=login, cislo_zmluvy=cislo_zmluvy)
                     if query_set:
                         zmluva = query_set[0] 
                         if zmluva.stav_zmluvy != StavZmluvy.ZVEREJNENA_V_CRZ:
-                            msg = f"Zmluva {zmluva.cislo_zmluvy} autora {login} nie je platná / zverejnená v CRZ"
+                            msg = f"Zmluva {zmluva.cislo_zmluvy} autora {login} ({row[hdr['Lexikálna skupina']]}) nie je platná / zverejnená v CRZ"
                             #self.log(messages.ERROR, msg)
                             self.error_list.append([login, "", msg])
                         elif zmluva.honorar_ah < 1:
@@ -116,7 +117,8 @@ class VyplatitAutorskeOdmeny():
                                 rs_webrs,
                                 f'=HYPERLINK("{nid}";"{row[hdr["nazov"]]}")',
                                 row[hdr['Zmluva na vyplatenie']],
-                                re.sub(r"<[^>]*>","",row[hdr['Dátum záznamu dĺžky']])
+                                re.sub(r"<[^>]*>","",row[hdr['Dátum záznamu dĺžky']]),
+                                row[hdr["Lexikálna skupina"]]
                             ])
                     else:
                         msg = f"Chyba zmluvy, autor nemá priradenú zmluvu {cislo_zmluvy}: {login}, {row[hdr['nazov']]}, {nid}, súbor {fn}."
@@ -170,36 +172,44 @@ class VyplatitAutorskeOdmeny():
         self.suma_vyplatit={}    # Vyplati sa
         self.suma_preplatok={}   # strhne sa z preplatku
         for autor in self.data:
+            # určiť zodpovedného redaktora (RS) alebo lex. skupinu (WEBRS}
+            redaktor = set() 
+            for rs in self.data[autor]: # rs alebo webrs
+                for zmluva in self.data[autor][rs]:
+                    #LS je 5 prvok
+                    redaktor.add(self.data[autor][rs][zmluva][0][5])
+                    pass
+            redaktor = f" ({','.join(redaktor)})" if redaktor else ""
             # spanning relationship: zmluvna_strana->rs_login
             zdata = ZmluvaAutor.objects.filter(zmluvna_strana__rs_login=autor)
             zmluvy_autora = ", ".join([z.cislo_zmluvy for z in zdata])
             adata = OsobaAutor.objects.filter(rs_login=autor)
             
             if not adata:
-                msg = f"Autor {autor}: nemá záznam v databáze "
+                msg = f"Autor {autor}{redaktor}: nemá záznam v databáze "
                 #self.log(messages.ERROR, msg)
                 self.error_list.append([autor, zmluvy_autora, msg])
                 continue
             adata=adata[0]
             if adata.nevyplacat == AnoNie.ANO:
-                msg =  f"Heslá autora {autor} nebudú vyplatené, lebo autor sa nevypláca."
+                msg =  f"Heslá autora {autor}{redaktor} nebudú vyplatené, lebo autor sa nevypláca."
                 #self.log(messages.INFO, msg)
                 self.error_list.append([autor, zmluvy_autora, msg])
                 continue
             chyba_login = OveritUdajeAutora(adata)
             if chyba_login:
-                msg =  f"Heslá autora {autor} nebudú vyplatené, lebo údaje autora sú nekompletné (chýba {chyba_login})."
+                msg =  f"Heslá autora {autor}{redaktor} nebudú vyplatené, lebo údaje autora sú nekompletné (chýba {chyba_login})."
                 #self.log(messages.ERROR, msg)
                 self.error_list.append([autor, zmluvy_autora, msg])
                 continue
             if not valid_iban(adata.bankovy_kontakt):
-                msg= f"Heslá autora {autor} nebudú vyplatené, lebo IBAN autora je nesprávny."
+                msg= f"Heslá autora {autor}{redaktor} nebudú vyplatené, lebo IBAN autora je nesprávny."
                 #self.log(messages.ERROR, msg)
                 self.error_list.append([autor, zmluvy_autora, msg])
                 continue
             #Nerezident môže mať v poli rodne_cislo dátum narodenia
             if self.je_rezident(adata) and not valid_rodne_cislo(adata.rodne_cislo):
-                msg = f"Heslá autora {autor} nebudú vyplatené, lebo rodné číslo autora je nesprávne."
+                msg = f"Heslá autora {autor}{redaktor} nebudú vyplatené, lebo rodné číslo autora je nesprávne."
                 #self.log(messages.ERROR, msg)
                 self.error_list.append([autor, zmluvy_autora, msg])
                 continue
