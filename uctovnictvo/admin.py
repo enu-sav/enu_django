@@ -10,7 +10,7 @@ from simple_history.admin import SimpleHistoryAdmin
 
 from import_export.admin import ImportExportModelAdmin
 
-from totalsum.admin import TotalsumAdmin
+#from totalsum.admin import TotalsumAdmin
 
 # potrebné pre súčty, https://github.com/douwevandermeij/admin-totals
 # upravená šablóna admin_totals/change_list_results_totals.html
@@ -105,7 +105,11 @@ class ZmluvaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAd
     url_zmluvy_html.short_description = "Zmluva v CRZ"
 
 @admin.register(PrijataFaktura)
-class PrijataFakturaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
+#medzi  ModelAdminTotals a ImportExportModelAdmin je konflikt
+#zobrazia sa Import Export tlačidlá, ale nie súčty
+#class PrijataFakturaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin, ModelAdminTotals):
+#zobrazia sa súčty, ale nie Import Export tlačidlá
+class PrijataFakturaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals, ImportExportModelAdmin):
     list_display = ["cislo", "objednavka_zmluva_link", "suma", "dane_na_uhradu", "zdroj", "program", "zakazka", "ekoklas"]
     search_fields = ["objednavka_zmluva__dodavatel__nazov", "^zdroj__kod", "^program__kod", "^zakazka__kod", "^ekoklas__kod" ]
 
@@ -118,6 +122,9 @@ class PrijataFakturaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExpor
             'admin_order_field': 'objednavka_zmluva__cislo', # Allow to sort members by the `xxx_link` column
         })
     ] 
+    list_totals = [
+        ('suma', Sum),
+    ]
 
 @admin.register(Transakcia)
 class TransakciaAdmin(SimpleHistoryAdmin, ImportExportModelAdmin, AdminChangeLinksMixin, ModelAdminTotals):
