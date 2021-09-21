@@ -153,8 +153,28 @@ class Zmluva(ObjednavkaZmluva):
         verbose_name_plural = 'Zmluvy'
     def __str__(self):
         return f"{self.dodavatel}, zmluva, {self.cislo}"
+ 
+class Klasifikacia(models.Model):
+    zdroj = models.ForeignKey(Zdroj,
+            on_delete=models.PROTECT,
+            related_name='%(class)s_klasifikacia')  # (class)s zabezpečí rozlíšenie modelov v poli objednavka_zmluva triedy PrijataFaktura
+                                                    # s za zatvorkou je povinne
+    program = models.ForeignKey(Program,
+            on_delete=models.PROTECT,
+            related_name='%(class)s_klasifikacia')
+    zakazka = models.ForeignKey(TypZakazky,
+            on_delete=models.PROTECT,
+            verbose_name = "Typ zákazky",
+            related_name='%(class)s_klasifikacia')
+    ekoklas = models.ForeignKey(EkonomickaKlasifikacia,
+            on_delete=models.PROTECT,
+            verbose_name = "Ekonomická klasifikácia",
+            related_name='%(class)s_klasifikacia')
+    poznamka = models.CharField("Poznámka", max_length=200, blank=True)
+    class Meta:
+        abstract = True
 
-class PrijataFaktura(models.Model):
+class PrijataFaktura(Klasifikacia):
     cislo = models.CharField("Číslo faktúry", max_length=50)
     dcislo = models.CharField("Dodávateľské číslo faktúry", 
             blank=True, 
@@ -183,21 +203,6 @@ class PrijataFaktura(models.Model):
             verbose_name = "Objednávka / zmluva",
             on_delete=models.PROTECT, 
             related_name='faktury')    
-    zdroj = models.ForeignKey(Zdroj, 
-            on_delete=models.PROTECT, 
-            related_name='faktury')    
-    program = models.ForeignKey(Program, 
-            on_delete=models.PROTECT, 
-            related_name='faktury')    
-    zakazka = models.ForeignKey(TypZakazky, 
-            on_delete=models.PROTECT, 
-            verbose_name = "Typ zákazky",
-            related_name='faktury')    
-    ekoklas = models.ForeignKey(EkonomickaKlasifikacia, 
-            on_delete=models.PROTECT, 
-            verbose_name = "Ekonomická klasifikácia",
-            related_name='faktury')
-    poznamka = models.CharField("Poznámka", max_length=200, blank=True)
     history = HistoricalRecords()
 
     class Meta:
@@ -206,7 +211,14 @@ class PrijataFaktura(models.Model):
     def __str__(self):
         return f'Faktúra k "{self.objednavka_zmluva}" : {self.suma} €'
 
-class AutorskyHonorar(models.Model):
+class AutorskyHonorar(Klasifikacia):
+    def __init__(self, *args, **kwargs):
+        self._meta.get_field('zdroj').default = 1       #111
+        self._meta.get_field('program').default = 1     #Ostatné
+        self._meta.get_field('zakazka').default = 1     #Beliana
+        self._meta.get_field('ekoklas').default = 58    #633018	Licencie
+        super(Klasifikacia, self).__init__(*args, **kwargs)
+
     cislo = models.CharField("Číslo platby", max_length=50)
     doslo_datum = models.DateField('Vyplatené dňa',
             blank=True, null=True)
@@ -225,25 +237,6 @@ class AutorskyHonorar(models.Model):
             max_digits=8, 
             decimal_places=2, 
             default=0)
-    zdroj = models.ForeignKey(Zdroj, 
-            on_delete=models.PROTECT, 
-            default = 1,    #111
-            related_name='autorskyhonorar')    
-    program = models.ForeignKey(Program, 
-            on_delete=models.PROTECT, 
-            default = 1,    #Ostatné
-            related_name='autorskyhonorar')    
-    zakazka = models.ForeignKey(TypZakazky, 
-            on_delete=models.PROTECT, 
-            verbose_name = "Typ zákazky",
-            default = 1,    #Beliana
-            related_name='autorskyhonorar')    
-    ekoklas = models.ForeignKey(EkonomickaKlasifikacia, 
-            on_delete=models.PROTECT, 
-            verbose_name = "Ekonomická klasifikácia",
-            default = 58,    # 633018	Licencie
-            related_name='autorskyhonorar')
-    poznamka = models.CharField("Poznámka", max_length=200, blank=True)
     history = HistoricalRecords()
 
     class Meta:
