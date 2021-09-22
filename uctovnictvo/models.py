@@ -6,6 +6,9 @@ from simple_history.models import HistoricalRecords
 from uctovnictvo.storage import OverwriteStorage
 from polymorphic.models import PolymorphicModel
 
+from beliana.settings import TMPLTS_DIR_NAME
+import os
+
 class AnoNie(models.TextChoices):
     ANO = 'ano', 'Áno'
     NIE = 'nie', 'Nie'
