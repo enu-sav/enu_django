@@ -113,7 +113,7 @@ class ZmluvaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAd
 #class PrijataFakturaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
 #zobrazia sa súčty, ale nie Import Export tlačidlá
 class PrijataFakturaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
-    list_display = ["cislo", "objednavka_zmluva_link", "suma", "dane_na_uhradu", "zdroj", "program", "zakazka", "ekoklas"]
+    list_display = ["cislo", "objednavka_zmluva_link", "suma", "platobny_prikaz", "dane_na_uhradu", "zdroj", "program", "zakazka", "ekoklas"]
     search_fields = ["objednavka_zmluva__dodavatel__nazov", "^zdroj__kod", "^program__kod", "^zakazka__kod", "^ekoklas__kod" ]
 
     # zoraďovateľný odkaz na dodávateľa
