@@ -1,11 +1,13 @@
 # rozne utilitky
 
-import os
+import os, locale
 from ipdb import set_trace as trace
 from django.conf import settings
 from django.contrib import messages
 from .models import SystemovySubor, PrijataFaktura, AnoNie
 
+def locale_format(d):
+    return locale.format('%%0.%df' % (-d.as_tuple().exponent), d, grouping=True)
 
 def VytvoritPlatobyPrikaz(faktura):
     #úvodné testy
@@ -31,7 +33,13 @@ def VytvoritPlatobyPrikaz(faktura):
     
     # vložiť údaje
     #
-
+    text = text.replace(f"{lt}nasa_faktura_cislo{gt}", faktura.cislo)
+    locale.setlocale(locale.LC_ALL, 'sk_SK.UTF-8')
+    text = text.replace(f"{lt}DM{gt}", locale_format(faktura.suma))
+    text = text.replace(f"{lt}dodavatel{gt}", faktura.objednavka_zmluva.dodavatel.nazov)
+    text = text.replace(f"{lt}adresa1{gt}", faktura.objednavka_zmluva.dodavatel.adresa_ulica)
+    text = text.replace(f"{lt}adresa2{gt}", faktura.objednavka_zmluva.dodavatel.adresa_mesto)
+    text = text.replace(f"{lt}adresa3{gt}", faktura.objednavka_zmluva.dodavatel.adresa_stat)
     #ulozit
     #Create directory admin.rs_login if necessary
     nazov = faktura.objednavka_zmluva.dodavatel.nazov
