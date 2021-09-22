@@ -20,6 +20,7 @@ def valid_iban(iban):
         PL=28, PT=25, RO=24, SM=27, SA=24, RS=22, SK=24, SI=19,
         ES=24, SE=24, CH=21, TN=24, TR=26, AE=23, GB=22, VG=24 )
  
+    if not iban: return False
     # Ensure upper alphanumeric input.
     iban = iban.replace(' ','').replace('\t','')
     if not re.match(r'^[\dA-Z]+$', iban): 
@@ -44,6 +45,7 @@ def transliterate(text):
 # musí mať 9 alebo 10 znakov (bez lomky)
 # Ak má 10 znakov, musí byť deliteľné 11 bezo zvyšku
 def valid_rodne_cislo(rc):
+    if not rc: return False
     rc = rc.replace("/","")
     if len(rc) == 9:
         return True
@@ -90,7 +92,7 @@ def VytvoritAutorskuZmluvu(zmluva):
     lt="&lt;"
     gt="&gt;"
     autor = zmluva.zmluvna_strana
-    chyba_login = OveritUdajeAutora(autor)
+    chyba_login = OveritUdajeAutora(autor, testovat_zdanovanie=False)
     if chyba_login:
         return messages.ERROR, f"Chyba pri vytváraní súborov zmluvy, údaje autora {autor.rs_login} sú nekompletné (chýba {chyba_login}).", None
     if not valid_iban(autor.bankovy_kontakt):
@@ -195,7 +197,7 @@ def VyplatitAutorskeOdmeny(platba):
     os.path.join(settings.RLTS_DIR_NAME, platba.obdobie)
     pass
 
-def OveritUdajeAutora(autor):
+def OveritUdajeAutora(autor, testovat_zdanovanie = True):
     #argument moze byt OsobaAutor alebo str
     if isinstance(autor, OsobaAutor):
         adata = autor
@@ -213,11 +215,12 @@ def OveritUdajeAutora(autor):
     # ulica sa netestuje, môže byť nezadaná
     #if not adata.adresa_ulica: chyby = f"{chyby} ulica,"
     if not adata.adresa_stat: chyby = f"{chyby} štát,"
-    if not adata.zdanit and adata.rezident == AnoNie.ANO: 
-        chyby = f"{chyby} údaj o zdaňovaní,"
-    elif adata.zdanit == AnoNie.NIE:
-        if not adata.datum_dohoda_podpis: chyby = f"{chyby} dátum podpisu dohody o nezdaňovaní,"
-        if not adata.dohodasubor: chyby = f"{chyby} súbor s textom dohody o nezdaňovaní,"
-    if not adata.rezident: chyby = f"{chyby} daňový rezident SR,"
     if not adata.odbor: chyby = f"{chyby} odbor"
+    if testovat_zdanovanie:
+        if not adata.zdanit and adata.rezident == AnoNie.ANO: 
+            chyby = f"{chyby} údaj o zdaňovaní,"
+        elif adata.zdanit == AnoNie.NIE and adata.rezident == AnoNie.ANO:
+            if not adata.datum_dohoda_podpis: chyby = f"{chyby} dátum podpisu dohody o nezdaňovaní,"
+            if not adata.dohodasubor: chyby = f"{chyby} súbor s textom dohody o nezdaňovaní,"
+        if not adata.rezident: chyby = f"{chyby} daňový rezident SR,"
     return chyby.strip(" ").strip(",")

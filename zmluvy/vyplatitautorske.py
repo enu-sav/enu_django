@@ -4,7 +4,7 @@ from glob import glob
 from datetime import date, datetime
 from django.conf import settings
 from django.contrib import messages
-from zmluvy.models import OsobaAutor, ZmluvaAutor, PlatbaAutorskaOdmena, PlatbaAutorskaSumar, SystemovySubor, AnoNie
+from zmluvy.models import OsobaAutor, ZmluvaAutor, PlatbaAutorskaOdmena, PlatbaAutorskaSumar, SystemovySubor, AnoNie, StavZmluvy
 from openpyxl import load_workbook
 from openpyxl.styles import Font, Color, colors, Alignment, PatternFill , numbers
 from openpyxl.utils import get_column_letter
@@ -21,21 +21,22 @@ class VyplatitAutorskeOdmeny():
     ucetEnÚ = "SK36 8180 0000 0070 0061 8734 - Beliana"
     ucetLitFond  = "SK47 0200 0000 0012 2545 9853" 
     ucetFin = "SK61 8180 5002 6780 2710 3305"
-    WARNING, ERROR, SUCCESS = (1,2,3)
 
     def __init__(self, csv_subory=None, obdobie=None, datum_vyplatenia=None): 
         self.csv_subory = csv_subory
         if obdobie:
             self.obdobie = obdobie
         self.datum_vyplatenia = datum_vyplatenia # Ak None, nevygenerujú sa hárky ImportRS/WEBRS
-        self.kmax = 23 #max počet riadkov s údajmi o autoroch v krycom liste, inak sa pokazí formátovanie
+        self.kmax = 23 #max počet riadkov s údajmi o autoroch v krycom liste 1
         self.kstart = 5 #prvý riadok záznamu o autoroch v hárku 'Krycí list', strana 1
         self.klstart = 34 #prvý riadok krycieho listu
         self.kpos = self.kstart #aktuálny riadok záznamu o autorovi v hárku 'Krycí list', strana 1
+        self.kmax2 = 46 #max počet riadkov s údajmi o autoroch sumárne na oboch krycích listoch. Viac sa nevypláca
         self.kstart2 = 35 #prvý riadok záznamu o autoroch v hárku 'Krycí list', strana 2
         self.klstart2 = 66 #prvý riadok krycieho listu
         self.s2start2 = 32 #prvý riadok druhej strany krycieho listu
         self.kpos2 =self.kstart2 #aktuálny riadok záznamu o autorovi v hárku 'Krycí list', strana 2
+        self.error_list = [] #chyby na zápis do hárku Chyby.
         self.logs = []
 
     def log(self, status, msg):
@@ -49,7 +50,7 @@ class VyplatitAutorskeOdmeny():
 
     def hlavicka_test(self, fname, row):
         # povinné stĺpce v csv súbore:
-        povinne = ["Nid", "Prihlásiť sa", "Zmluva na vyplatenie", "Vyplatenie odmeny", "Dĺžka autorom odovzdaného textu", "Dátum záznamu dĺžky", "Dátum vyplatenia"]
+        povinne = ["Nid", "Prihlásiť sa", "Zmluva na vyplatenie", "Vyplatenie odmeny", "Dĺžka autorom odovzdaného textu", "Dátum záznamu dĺžky", "Dátum vyplatenia", "Lexikálna skupina"]
         for item in povinne:
             if not item in row:
                 raise Exception(f"Súbor {fname} musí obsahovať stĺpec '{item}'")
@@ -73,13 +74,17 @@ class VyplatitAutorskeOdmeny():
                     duplitest.add(nid)
 
                     login = row[hdr["Prihlásiť sa"]]
-                    zmluva = row[hdr['Zmluva na vyplatenie']].strip()   # odstranit medzery na zaciatku a konci
-                    if not zmluva:
-                        self.log(messages.ERROR, f"Chyba v hesle, chýba číslo zmluvy: {login}, {row[hdr['nazov']]}, {nid}, súbor {fn}).")
+                    cislo_zmluvy = row[hdr['Zmluva na vyplatenie']].strip()   # odstranit medzery na zaciatku a konci
+                    if not cislo_zmluvy:
+                        msg = f"Chyba v hesle, chýba číslo zmluvy: {login}, {row[hdr['nazov']]}, {nid}, súbor {fn})."
+                        #self.log(messages.ERROR, msg)
+                        self.error_list.append([login,"",msg])
                         continue
 
                     if not row[hdr["Dĺžka autorom odovzdaného textu"]]:
-                        self.log(messages.ERROR, f"Chyba v hesle, chýba počet znakov: {login} {row[hdr['nazov']]}, {nid}, súbor {fn}).")
+                        msg = f"Chyba v hesle, chýba počet znakov: {login} {row[hdr['nazov']]}, {nid}, súbor {fn})."
+                        #self.log(messages.ERROR, msg)
+                        self.error_list.append([login,"",msg])
                         continue
                     #if not login in self.pocet_znakov: self.pocet_znakov[login] = {}
                     #if not zmluva in self.pocet_znakov[login]: self.pocet_znakov[login][zmluva] = {}
@@ -88,20 +93,37 @@ class VyplatitAutorskeOdmeny():
                     if not login in self.data: self.data[login] = {} 
                     if not rs_webrs in self.data[login]: self.data[login][rs_webrs] = {} 
 
+                    #údaje po heslách uložiť do self.data
                     #overiť, či autor má zadanú zmluvu, v prípade chyby vynechať
-                    zdata = ZmluvaAutor.objects.filter(zmluvna_strana__rs_login=login)
-                    zmluvy_autora = [zmluva.cislo_zmluvy for zmluva in zdata]
-                    if zmluva in zmluvy_autora:
-                        if not zmluva in self.data[login][rs_webrs]: self.data[login][rs_webrs][zmluva] = []
-                        self.data[login][rs_webrs][zmluva].append([
-                            int(row[hdr["Dĺžka autorom odovzdaného textu"]]),
-                            rs_webrs,
-                            f'=HYPERLINK("{nid}";"{row[hdr["nazov"]]}")',
-                            row[hdr['Zmluva na vyplatenie']],
-                            re.sub(r"<[^>]*>","",row[hdr['Dátum záznamu dĺžky']])
+                    query_set = ZmluvaAutor.objects.filter(zmluvna_strana__rs_login=login, cislo_zmluvy=cislo_zmluvy)
+                    if query_set:
+                        zmluva = query_set[0] 
+                        if zmluva.stav_zmluvy != StavZmluvy.ZVEREJNENA_V_CRZ:
+                            msg = f"Zmluva {zmluva.cislo_zmluvy} autora {login} ({row[hdr['Lexikálna skupina']]}) nie je platná / zverejnená v CRZ"
+                            #self.log(messages.ERROR, msg)
+                            self.error_list.append([login, "", msg])
+                        elif zmluva.honorar_ah < 1:
+                            msg = f"Zmluva {zmluva.cislo_zmluvy} autora {login} nemá určený honorár/AH"
+                            #self.log(messages.ERROR, msg)
+                            self.error_list.append([login, "", msg])
+                        elif not zmluva.datum_zverejnenia_CRZ:
+                            msg = f"Zmluva {zmluva.cislo_zmluvy} autora {login} nemá uvedený dátum platnosti / zverejnenia v CRZ"
+                            #self.log(messages.ERROR, msg)
+                            self.error_list.append([login, "", msg])
+                        else:   # vytvoriť záznam na vyplatenie
+                            if not cislo_zmluvy in self.data[login][rs_webrs]: self.data[login][rs_webrs][cislo_zmluvy] = []
+                            self.data[login][rs_webrs][cislo_zmluvy].append([
+                                int(row[hdr["Dĺžka autorom odovzdaného textu"]]),
+                                rs_webrs,
+                                f'=HYPERLINK("{nid}";"{row[hdr["nazov"]]}")',
+                                row[hdr['Zmluva na vyplatenie']],
+                                re.sub(r"<[^>]*>","",row[hdr['Dátum záznamu dĺžky']]),
+                                row[hdr["Lexikálna skupina"]]
                             ])
                     else:
-                        self.log(messages.ERROR, f"Chyba zmluvy, autor nemá priradenú zmluvu {zmluva}: {login}, {row[hdr['nazov']]}, {nid}, súbor {fn}.")
+                        msg = f"Chyba zmluvy, autor nemá priradenú zmluvu {cislo_zmluvy}: {login}, {row[hdr['nazov']]}, {nid}, súbor {fn}."
+                        #self.log(messages.ERROR, msg)
+                        self.error_list.append([login,"",msg])
                     pass
 
     def meno_priezvisko(self, autor):
@@ -150,35 +172,52 @@ class VyplatitAutorskeOdmeny():
         self.suma_vyplatit={}    # Vyplati sa
         self.suma_preplatok={}   # strhne sa z preplatku
         for autor in self.data:
+            # určiť zodpovedného redaktora (RS) alebo lex. skupinu (WEBRS}
+            redaktor = set() 
+            for rs in self.data[autor]: # rs alebo webrs
+                for zmluva in self.data[autor][rs]:
+                    #LS je 5 prvok
+                    redaktor.add(self.data[autor][rs][zmluva][0][5])
+                    pass
+            redaktor = f" ({','.join(redaktor)})" if redaktor else ""
             # spanning relationship: zmluvna_strana->rs_login
             zdata = ZmluvaAutor.objects.filter(zmluvna_strana__rs_login=autor)
+            zmluvy_autora = ", ".join([z.cislo_zmluvy for z in zdata])
             adata = OsobaAutor.objects.filter(rs_login=autor)
+            
             if not adata:
-                self.log(messages.ERROR, f"Autor {autor}: nemá záznam v databáze ")
+                msg = f"Autor {autor}{redaktor}: nemá záznam v databáze "
+                #self.log(messages.ERROR, msg)
+                self.error_list.append([autor, zmluvy_autora, msg])
                 continue
             adata=adata[0]
             if adata.nevyplacat == AnoNie.ANO:
-                self.log(messages.INFO, f"Heslá autora {autor} nebudú vyplatené, lebo autor sa nevypláca.")
+                msg =  f"Heslá autora {autor}{redaktor} nebudú vyplatené, lebo autor sa nevypláca."
+                #self.log(messages.INFO, msg)
+                self.error_list.append([autor, zmluvy_autora, msg])
                 continue
             chyba_login = OveritUdajeAutora(adata)
             if chyba_login:
-                self.log(messages.ERROR, f"Heslá autora {autor} nebudú vyplatené, lebo údaje autora sú nekompletné (chýba {chyba_login}).")
+                msg =  f"Heslá autora {autor}{redaktor} nebudú vyplatené, lebo údaje autora sú nekompletné (chýba {chyba_login})."
+                #self.log(messages.ERROR, msg)
+                self.error_list.append([autor, zmluvy_autora, msg])
                 continue
             if not valid_iban(adata.bankovy_kontakt):
-                self.log(messages.ERROR, f"Heslá autora {autor} nebudú vyplatené, lebo IBAN autora je nesprávny.")
+                msg= f"Heslá autora {autor}{redaktor} nebudú vyplatené, lebo IBAN autora je nesprávny."
+                #self.log(messages.ERROR, msg)
+                self.error_list.append([autor, zmluvy_autora, msg])
                 continue
-            if not valid_rodne_cislo(adata.rodne_cislo):
-                self.log(messages.ERROR, f"Heslá autora {autor} nebudú vyplatené, lebo rodné číslo autora je nesprávne.")
+            #Nerezident môže mať v poli rodne_cislo dátum narodenia
+            if self.je_rezident(adata) and not valid_rodne_cislo(adata.rodne_cislo):
+                msg = f"Heslá autora {autor}{redaktor} nebudú vyplatené, lebo rodné číslo autora je nesprávne."
+                #self.log(messages.ERROR, msg)
+                self.error_list.append([autor, zmluvy_autora, msg])
                 continue
 
             # pomocna struktura na vyplacanie
             zvyplatit = {}
             for zmluva in zdata:
                 zvyplatit[zmluva.cislo_zmluvy] = zmluva.honorar_ah
-                if zmluva.honorar_ah < 1:
-                    self.log(messages.ERROR, f"Zmluva {zmluva.cislo_zmluvy} autora {autor} nemá určený honorár/AH")
-                if not zmluva.datum_zverejnenia_CRZ:
-                    self.log(self.ERROR, f"Zmluva {zmluva.cislo_zmluvy} autora {autor} nemá uvedený dátum platnosti / zverejnenia v CRZ")
             # vypocitat odmenu za vsetky hesla
             ahonorar = 0 #sucet odmien za jednotlive hesla na zaklade zmluv
             zmluvy_autora = set()
@@ -228,24 +267,39 @@ class VyplatitAutorskeOdmeny():
         #upraviť vlastnosti dokumentu
         workbook.properties.creator = "DjangoBel, systém na správu autorských zmlúv Encyclopaedie Beliany"
         if self.datum_vyplatenia:
-            workbook.properties.title=f"Podklady pre THS na vyplatenie autorských honorárov ku dňu {self.obdobie}" 
+            workbook.properties.title=f"Podklady pre THS na vyplatenie autorských honorárov č. {self.obdobie}" 
         else:
-            workbook.properties.title=f"Záznam o platbe autorských honorárov ku dňu {self.obdobie}"
+            workbook.properties.title=f"Záznam o platbe autorských honorárov č. {self.obdobie}"
         workbook.properties.created = datetime.now()
         workbook.properties.revision = 1
         workbook.properties.modified = datetime.now()
         workbook.properties.lastPrinted = None
 
+        # ak autorov na vyplatenie je viac ako na dve strany krycieho listu, niekoho treba vyradiť
+        if len(self.suma_vyplatit) > self.kmax2: 
+            #Vyradiť platby s najnižšou sumou
+            #Zoznam platieb, zoradené vzostupne
+            vlist = sorted([[self.suma_vyplatit[_autor][0], _autor] for _autor in self.suma_vyplatit])
+            #Vyradiť
+            for vyradit in vlist[:len(self.suma_vyplatit) - self.kmax2]:
+                msg = f"Počet platieb prekračuje maximálny povolený počet platieb {self.kmax2}. Autor {vyradit[1]} preto nebude vyplatený (suma {vyradit[0]} Eur)"
+                self.log(messages.WARNING, msg)
+                self.error_list.append([vyradit[1],"",msg])
+                del self.suma_vyplatit[vyradit[1]]
+
         #Inicializácia hárkov
         vyplatit = workbook[workbook.sheetnames[0]]
         self.vypocet = workbook[workbook.sheetnames[1]]
-        if len(self.suma_vyplatit ) > self.kmax: #autorov na vyplatenie je viac ako na jednu stranu
+        if len(self.suma_vyplatit) > self.kmax: #autorov na vyplatenie je viac ako na jednu stranu
             self.krycilist = workbook["Krycí list 2"]
             workbook.remove_sheet(workbook["Krycí list"])
         else:
             self.krycilist = workbook["Krycí list"]
             workbook.remove_sheet(workbook["Krycí list 2"])
         self.poautoroch = workbook.create_sheet("Po autoroch")
+        self.chyby = workbook.create_sheet("Chyby (nebude vyplatené)")
+
+        self.zapisat_chyby()
 
         self.ppos = 1   #poloha počiatočnej bunky v hárku poautoroch, inkrementovaná po každom zázname
         if self.datum_vyplatenia:
@@ -273,7 +327,7 @@ class VyplatitAutorskeOdmeny():
         else:
             vyplatit["A4"].value = vyplatit["A4"].value.replace("(verzia)","(predbežná verzia)")
         vyplatit.merge_cells('A5:G5')
-        vyplatit["A5"] = f"ku dňu {self.obdobie}"
+        vyplatit["A5"] = f"identifikátor vyplácania {self.obdobie}"
         vyplatit["A5"].alignment = acenter
 
         vyplatit["A7"] = "Prevody spolu:"
@@ -414,9 +468,60 @@ class VyplatitAutorskeOdmeny():
                 #self.db_logger.warning(msg)
             workbook.remove_sheet(workbook["Po autoroch"])
             workbook.save(fpath)
-            msg = f"Údaje o vyplácaní na odoslanie THS boli uložené do súboru {fpath}"
-            self.log(messages.SUCCESS, msg)
+            if self.pocet_chyb:
+                msg = f"Údaje o vyplácaní na odoslanie THS boli uložené do súboru {fpath}. V hárku Chyby sa nachádza {self.pocet_chyb} záznamov"
+                self.log(messages.ERROR, msg)
+            else:
+                msg = f"Údaje o vyplácaní na odoslanie THS boli uložené do súboru {fpath}"
+                self.log(messages.SUCCESS, msg)
             #self.db_logger.warning(msg)
+
+    def zapisat_chyby(self):
+        alignment = Alignment(wrapText=True, horizontal='left', vertical="center")
+        self.chyby.cell(row=1, column=1).value = "Prihlasovacie meno autora"
+        self.chyby.column_dimensions["A"].width = 25
+        self.chyby.cell(row=1, column=1).font = self.fbold
+        self.chyby.cell(row=1, column=1).alignment = alignment
+
+        self.chyby.cell(row=1, column=2).value = "Zmluvy autora"
+        self.chyby.column_dimensions["B"].width = 15
+        self.chyby.cell(row=1, column=2).font = self.fbold
+        self.chyby.cell(row=1, column=2).alignment = alignment
+
+        self.chyby.cell(row=1, column=3).value = "Popis chyby"
+        self.chyby.column_dimensions["C"].width = 45
+        self.chyby.cell(row=1, column=3).font = self.fbold
+        self.chyby.cell(row=1, column=3).alignment = alignment
+
+        self.chyby.row_dimensions[1].height = 30
+        #vypísať chyby, každú len raz
+        unique_err = set()
+        nn = 0
+        for err in sorted(self.error_list):
+            err_str = ",".join(err)
+            if err_str in unique_err:
+                continue
+            else:
+                unique_err.add(err_str)
+            self.chyby.cell(row=2+nn, column=1).value = err[0]
+            self.chyby.cell(row=2+nn, column=1).alignment = alignment
+            self.chyby.cell(row=2+nn, column=2).value = err[1]
+            self.chyby.cell(row=2+nn, column=2).alignment = alignment
+            self.chyby.cell(row=2+nn, column=3).value = err[2]
+            self.chyby.cell(row=2+nn, column=3).alignment = alignment
+            if "Počet platieb" in err[2]:
+                self.chyby.cell(row=2+nn, column=3).font = Font(name="Calibri", color="AAAA00")
+            if "Chyba zmluvy" in err[2]:
+                self.chyby.cell(row=2+nn, column=3).font = Font(name="Calibri", color="DD00DD")
+            if "Chyba v hesle" in err[2]:
+                self.chyby.cell(row=2+nn, column=3).font = Font(name="Calibri", color="CC0000")
+            if "nie je platná" in err[2]:
+                self.chyby.cell(row=2+nn, column=3).font = Font(name="Calibri", color="00AAAA")
+            if "sa nevypláca" in err[2]:
+                self.chyby.cell(row=2+nn, column=3).font = Font(name="Calibri", color="0000CC")
+            self.chyby.row_dimensions[2+nn].height = 50
+            nn += 1
+        self.pocet_chyb = len(unique_err)
 
     # vyplnit harok vypocet
     def vyplnit_harok_vypocet(self):
@@ -442,7 +547,7 @@ class VyplatitAutorskeOdmeny():
             self.vypocet[f"C{ii}"] = "ano" if self.zmluva_nezdanit(adata) else "nie"
             self.vypocet[f"C{ii}"].alignment = self.aright
             self.vypocet[f"C{ii}"].alignment = Alignment(wrapText=True, horizontal='center')
-            # Pole "rezident SR", použije sa na Vúpočet odvody LF a dane: 
+            # Pole "rezident SR", použije sa na Výpočet odvody LF a dane: 
             # odvod LF: zákov Zákon č. 13/1993 Z. z.  Zákon Národnej rady Slovenskej republiky o umeleckých fondoch
             # odvádzajú sa 2 %, ak je trvalé bydlisko v SR
             # odvádza sa aj v prípade dedičov (vtedy je to "preddavok", čo nás ale nezaujíma)
@@ -472,9 +577,9 @@ class VyplatitAutorskeOdmeny():
             self.vypocet.cell(row=ii+1, column=i+1).font = self.fbold
 
         if self.datum_vyplatenia:
-            self.vypocet[f"A{ii+3}"] = f"Výpočet k príkazu na úhradu autorských honorárov ku dňu {self.obdobie} (finálna verzia)"
+            self.vypocet[f"A{ii+3}"] = f"Výpočet k príkazu na úhradu autorských honorárov č. {self.obdobie} (finálna verzia)"
         else:
-            self.vypocet[f"A{ii+3}"] = f"Výpočet k príkazu na úhradu autorských honorárov ku dňu {self.obdobie} (predbežná verzia)"
+            self.vypocet[f"A{ii+3}"] = f"Výpočet k príkazu na úhradu autorských honorárov č. {self.obdobie} (predbežná verzia)"
         
         return ii+1 #vratit riadok so suctami
 
@@ -622,7 +727,7 @@ class VyplatitAutorskeOdmeny():
         ftitle = Font(name="Arial", bold=True, size='14')
 
         ws.merge_cells(f'A{self.ppos}:H{self.ppos}')
-        ws[f'A{self.ppos}'] = f"Vyplatenie autorského honorára ku dňu {self.obdobie}"
+        ws[f'A{self.ppos}'] = f"Vyplatenie autorského honorára č. {self.obdobie}"
         ws[f"A{self.ppos}"].alignment = Alignment(horizontal='center', vertical='center')
         ws.row_dimensions[self.ppos].height = 70
         ws[f"A{self.ppos}"].font = ftitle
