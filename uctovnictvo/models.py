@@ -177,6 +177,13 @@ class Klasifikacia(models.Model):
     class Meta:
         abstract = True
 
+#https://stackoverflow.com/questions/55543232/how-to-upload-multiple-files-from-the-django-admin
+#Vykoná sa len pri vkladaní suborov cez GUI. Pri programovom vytváraní treba cestu nastaviť
+def platobny_prikaz_upload_location(instance, filename):
+    trace()
+    pass
+    return filename
+
 class PrijataFaktura(Klasifikacia):
     cislo = models.CharField("Číslo faktúry", max_length=50)
     dcislo = models.CharField("Dodávateľské číslo faktúry", 
@@ -206,6 +213,10 @@ class PrijataFaktura(Klasifikacia):
             verbose_name = "Objednávka / zmluva",
             on_delete=models.PROTECT, 
             related_name='faktury')    
+    platobny_prikaz = models.FileField("Platobný príkaz pre THS-ku",
+            help_text = "Súbor s platobným príkazom a krycím listom pre THS-ku. Generuje sa akciou 'Vytvoriť platobný príkaz a krycí list príkaz pre THS'",
+            upload_to=platobny_prikaz_upload_location, 
+            null = True, blank = True)
     history = HistoricalRecords()
 
     class Meta:

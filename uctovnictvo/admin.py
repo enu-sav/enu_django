@@ -1,8 +1,11 @@
 from django.contrib import admin 
 from django import forms
+from django.utils import timezone
+from django.contrib import messages
 from ipdb import set_trace as trace
 from .models import EkonomickaKlasifikacia, TypZakazky, Zdroj, Program, Dodavatel, Objednavka, AutorskyHonorar
 from .models import Zmluva, PrijataFaktura, SystemovySubor, Rozhodnutie
+from .common import VytvoritPlatobyPrikaz
 
 #zobrazenie histórie
 #https://django-simple-history.readthedocs.io/en/latest/admin.html
@@ -125,6 +128,24 @@ class PrijataFakturaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminT
     list_totals = [
         ('suma', Sum),
     ]
+    actions = ['vytvorit_platobny_prikaz']
+
+    #obj is None during the object creation, but set to the object being edited during an edit
+    def get_readonly_fields(self, request, obj=None):
+        return ["platobny_prikaz"]
+
+    def vytvorit_platobny_prikaz(self, request, queryset):
+        for faktura in queryset:
+            status, msg, vytvoreny_subor = VytvoritPlatobyPrikaz(faktura)
+            if status != messages.ERROR:
+                faktura.dane_na_uhradu = timezone.now()
+                faktura.platobny_prikaz = vytvoreny_subor
+                faktura.save()
+            self.message_user(request, msg, status)
+
+    vytvorit_platobny_prikaz.short_description = "Vytvoriť platobný príkaz a krycí list pre THS"
+    #Oprávnenie na použitie akcie, viazané na 'change'
+    vytvorit_platobny_prikaz.allowed_permissions = ('change',)
 
 @admin.register(AutorskyHonorar)
 class AutorskyHonorarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):

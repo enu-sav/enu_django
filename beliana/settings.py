@@ -173,10 +173,15 @@ LOGGING = {
     }
 }
 
+# Právo na použitie modulu import_export
+# Importovanie je možné pre OsobaAutor
+IMPORT_EXPORT_IMPORT_PERMISSION_CODE='add'
+IMPORT_EXPORT_EXPORT_PERMISSION_CODE='add'
+
 # Beliana specific settings
 DATA_DIR = os.environ['DATA_DIR']
-TEMPLATES_DIR = os.environ['TEMPLATES_DIR']
-ROYALTIES_DIR = os.environ['ROYALTIES_DIR']
+#TEMPLATES_DIR = os.environ['TEMPLATES_DIR']
+#ROYALTIES_DIR = os.environ['ROYALTIES_DIR']
 CONTRACTS_DIR_NAME = os.environ['CONTRACTS_DIR_NAME']
 RLTS_DIR_NAME = os.environ['RLTS_DIR_NAME']
 TMPLTS_DIR_NAME = os.environ["TMPLTS_DIR_NAME"]
@@ -184,13 +189,12 @@ AUTHORS_CONTRACT_TEMPLATE = os.environ['AUTHORS_CONTRACT_TEMPLATE']
 TAX_AGMT_DIR_NAME = os.environ["TAX_AGMT_DIR_NAME"]
 
 # potrebné kvôli generovaniu zmlúv
-#MEDIA_ROOT = os.path.join(DATA_DIR, 'subory')
 MEDIA_ROOT = os.environ['MEDIA_ROOT']
+#URL MEDIA_ROOT bude 127.0.0.1:8000/subory/...
 MEDIA_URL = '/subory/'
 CONTRACTS_DIR = os.path.join(MEDIA_ROOT,CONTRACTS_DIR_NAME)
 RLTS_DIR = os.path.join(MEDIA_ROOT,RLTS_DIR_NAME)
 
-# Právo na použitie modulu import_export
-# Importovanie je možné pre OsobaAutor
-IMPORT_EXPORT_IMPORT_PERMISSION_CODE='add'
-IMPORT_EXPORT_EXPORT_PERMISSION_CODE='add'
+# App Uctovnictvo
+# pripojí sa za MEDIA_ROOT
+PLATOBNE_PRIKAZY_DIR="PlatobnePrikazy"
