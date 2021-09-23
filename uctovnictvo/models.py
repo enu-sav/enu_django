@@ -8,6 +8,7 @@ from polymorphic.models import PolymorphicModel
 
 from beliana.settings import TMPLTS_DIR_NAME
 import os
+from datetime import datetime
 
 class AnoNie(models.TextChoices):
     ANO = 'ano', 'Áno'
@@ -121,8 +122,12 @@ class ObjednavkaZmluva(PolymorphicModel):
 
 class Objednavka(ObjednavkaZmluva):
     objednane_polozky = models.TextField("Objednané položky", 
-            help_text = "Po riadkoch zadajte položky s poľami oddelenýmu bodkočiarkou: Názov položky; merná jednotka (ks, kg m, m2, m3,...); Množstvo; Cena za jednotku bez DPH",
+            help_text = "Po riadkoch zadajte položky s poľami oddelenými bodkočiarkou: Názov položky; merná jednotka (ks, kg, l, m, m2, m3,...); Množstvo; Cena za jednotku bez DPH",
             max_length=5000, null=True, blank=True)
+    datum_vytvorenia = models.DateField('Dátum vytvorenia',
+            help_text = "Zadajte dátum vytvorenia objednávky",
+            default=datetime.now,
+            blank=True, null=True)
     history = HistoricalRecords()
     class Meta:
         verbose_name = 'Objednávka'
