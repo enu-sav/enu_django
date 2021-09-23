@@ -52,7 +52,7 @@ class DodavatelAdmin(SimpleHistoryAdmin, ImportExportModelAdmin):
 
 @admin.register(Objednavka)
 class ObjednavkaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
-    list_display = ("cislo", "dodavatel_link","predmet", )
+    list_display = ("cislo", "datum_vytvorenia", "dodavatel_link","predmet", )
     #def formfield_for_dbfield(self, db_field, **kwargs):
         #formfield = super(ObjednavkaAdmin, self).formfield_for_dbfield(db_field, **kwargs)
         #if db_field.name == 'objednane_polozky':
