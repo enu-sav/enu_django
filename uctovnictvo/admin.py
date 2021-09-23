@@ -3,8 +3,8 @@ from django import forms
 from django.utils import timezone
 from django.contrib import messages
 from ipdb import set_trace as trace
-from .models import EkonomickaKlasifikacia, TypZakazky, Zdroj, Program, Dodavatel, Objednavka, AutorskyHonorar
-from .models import Zmluva, PrijataFaktura, SystemovySubor, Rozhodnutie
+from .models import EkonomickaKlasifikacia, TypZakazky, Zdroj, Program, Dodavatel, ObjednavkaZmluva, AutorskyHonorar
+from .models import Objednavka, Zmluva, PrijataFaktura, SystemovySubor, Rozhodnutie
 from .common import VytvoritPlatobyPrikaz
 
 #zobrazenie histórie
@@ -12,6 +12,7 @@ from .common import VytvoritPlatobyPrikaz
 from simple_history.admin import SimpleHistoryAdmin
 
 from import_export.admin import ImportExportModelAdmin
+from import_export import resources
 
 #from totalsum.admin import TotalsumAdmin
 
@@ -49,6 +50,15 @@ class DodavatelAdmin(SimpleHistoryAdmin, ImportExportModelAdmin):
         if obj.adresa_mesto:
             return f"{obj.adresa_ulica} {obj.adresa_mesto}, {obj.adresa_stat}".strip()
     adresa.short_description = "Adresa"
+
+class ObjednavkaZmluvaResource(resources.ModelResource):
+    class Meta:
+        model = ObjednavkaZmluva
+        import_id_fields = ('cislo',)
+        fields = ('cislo', 'dodavatel', 'predmet', 'poznamka')
+
+class ObjednavkaZmluvaAdmin(ImportExportModelAdmin):
+    resource_class = ObjednavkaZmluvaResource
 
 @admin.register(Objednavka)
 class ObjednavkaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
@@ -110,9 +120,9 @@ class ZmluvaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAd
 @admin.register(PrijataFaktura)
 #medzi  ModelAdminTotals a ImportExportModelAdmin je konflikt
 #zobrazia sa Import Export tlačidlá, ale nie súčty
-#class PrijataFakturaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
+class PrijataFakturaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
 #zobrazia sa súčty, ale nie Import Export tlačidlá
-class PrijataFakturaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
+#class PrijataFakturaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
     list_display = ["cislo", "objednavka_zmluva_link", "suma", "platobny_prikaz", "dane_na_uhradu", "zdroj", "program", "zakazka", "ekoklas"]
     search_fields = ["objednavka_zmluva__dodavatel__nazov", "^zdroj__kod", "^program__kod", "^zakazka__kod", "^ekoklas__kod" ]
 
@@ -148,8 +158,8 @@ class PrijataFakturaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminT
     vytvorit_platobny_prikaz.allowed_permissions = ('change',)
 
 @admin.register(AutorskyHonorar)
-class AutorskyHonorarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
-#class AutorskyHonorarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
+#class AutorskyHonorarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
+class AutorskyHonorarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
     list_display = ["cislo", "suma", "suma_lf", "suma_dan", "zdroj", "program", "zakazka", "ekoklas"]
 
     list_totals = [
