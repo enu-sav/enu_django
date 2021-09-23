@@ -173,6 +173,11 @@ LOGGING = {
     }
 }
 
+#Predvolené zobrazenie dátumu v admin
+from django.conf.locale.sk import formats as sk_formats
+sk_formats.DATE_FORMAT = "d.m.Y"
+
+
 # Právo na použitie modulu import_export
 # Importovanie je možné pre OsobaAutor
 IMPORT_EXPORT_IMPORT_PERMISSION_CODE='add'
