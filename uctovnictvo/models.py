@@ -149,6 +149,7 @@ class Rozhodnutie(ObjednavkaZmluva):
 class Zmluva(ObjednavkaZmluva):
     url_zmluvy = models.URLField('URL zmluvy', 
             help_text = "Zadajte URL pdf súboru zmluvy zo stránky CRZ.",
+            null=True,
             blank = True)
     datum_zverejnenia_CRZ = models.DateField('Platná od', 
             help_text = "Zadajte dátum účinnosti zmluvy (dátum zverejnenia v CRZ + 1 deň).",
