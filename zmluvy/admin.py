@@ -113,7 +113,9 @@ class OsobaAutorAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportMod
     def get_readonly_fields(self, request, obj=None):
         if obj:
             if obj.zdanit == AnoNie.ANO:
-                return ["rs_uid", "rs_login","datum_dohoda_oznamenie", "datum_dohoda_podpis", "dohodasubor"]
+                #ak su polia dohoda readonly, tak nemozeme zmenit stav zdanit==ANO nas zdanit==Nie
+                #return ["rs_uid", "rs_login","datum_dohoda_podpis", "datum_dohoda_oznamenie", "dohodasubor"]
+                return ["rs_uid", "rs_login"]
             else:
                 return ["rs_uid", "rs_login"]
         else:
