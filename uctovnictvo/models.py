@@ -111,7 +111,10 @@ class ObjednavkaZmluva(PolymorphicModel):
     predmet = models.CharField("Predmet", 
             help_text = "Zadajte stručný popis, napr. 'Kávovar Saeco' alebo 'Servisná podpora RS Beliana'",
             max_length=100)
-    poznamka = models.CharField("Poznámka", max_length=200, blank=True)
+    poznamka = models.CharField("Poznámka", 
+            max_length=200, 
+            null=True,
+            blank=True)
     history = HistoricalRecords()
     class Meta:
         verbose_name = 'Objednávka / zmluva'
