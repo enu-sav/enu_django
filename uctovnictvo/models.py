@@ -256,13 +256,6 @@ class PrijataFaktura(Klasifikacia):
         return f'Faktúra k "{self.objednavka_zmluva}" : {self.suma} €'
 
 class AutorskyHonorar(Klasifikacia):
-    def __init__(self, *args, **kwargs):
-        self._meta.get_field('zdroj').default = 1       #111
-        self._meta.get_field('program').default = 1     #Ostatné
-        self._meta.get_field('zakazka').default = 1     #Beliana
-        self._meta.get_field('ekoklas').default = 58    #633018	Licencie
-        super(Klasifikacia, self).__init__(*args, **kwargs)
-
     cislo = models.CharField("Číslo platby", max_length=50)
     doslo_datum = models.DateField('Vyplatené dňa',
             blank=True, null=True)

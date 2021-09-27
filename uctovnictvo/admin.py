@@ -8,7 +8,7 @@ from ipdb import set_trace as trace
 from .models import EkonomickaKlasifikacia, TypZakazky, Zdroj, Program, Dodavatel, ObjednavkaZmluva, AutorskyHonorar
 from .models import Objednavka, Zmluva, PrijataFaktura, SystemovySubor, Rozhodnutie
 from .common import VytvoritPlatobyPrikaz
-from .forms import PrijataFakturaForm
+from .forms import PrijataFakturaForm, AutorskeZmluvyForm
 
 #zobrazenie histórie
 #https://django-simple-history.readthedocs.io/en/latest/admin.html
@@ -190,8 +190,10 @@ class PrijataFakturaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExpor
         super(PrijataFakturaAdmin, self).save_model(request, obj, form, change)
 
 @admin.register(AutorskyHonorar)
+
 #class AutorskyHonorarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
 class AutorskyHonorarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
+    form = AutorskeZmluvyForm
     list_display = ["cislo", "suma", "suma_lf", "suma_dan", "zdroj", "program", "zakazka", "ekoklas"]
 
     list_totals = [
