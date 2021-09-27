@@ -1,4 +1,5 @@
 from django.db import models
+from django.core.exceptions import ValidationError
 
 #záznam histórie
 #https://django-simple-history.readthedocs.io/en/latest/admin.html
@@ -236,7 +237,7 @@ class PrijataFaktura(Klasifikacia):
         verbose_name_plural = 'Prijaté faktúry'
     def __str__(self):
         return f'Faktúra k "{self.objednavka_zmluva}" : {self.suma} €'
-
+        
 class AutorskyHonorar(Klasifikacia):
     def __init__(self, *args, **kwargs):
         self._meta.get_field('zdroj').default = 1       #111
@@ -264,6 +265,11 @@ class AutorskyHonorar(Klasifikacia):
             decimal_places=2, 
             default=0)
     history = HistoricalRecords()
+
+    # test platnosti dát
+    def clean(self): 
+        if self.suma >= 0 or self.suma_lf > 0 or self.suma_dan > 0:
+            raise ValidationError("Položky 'Vyplatená suma' a 'Odvedená daň' musia byť záporné, položka 'Odvedená suma Literárnemu fondu' musí byť záporná alebo rovná 0")
 
     class Meta:
         verbose_name = 'Autorský honorár'
