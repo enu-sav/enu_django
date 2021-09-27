@@ -47,7 +47,6 @@ def VytvoritPlatobyPrikaz(faktura):
     text = text.replace(f"{lt}CM{gt}", "")
     text = text.replace(f"{lt}predmet_faktury{gt}", faktura.predmet)
 
-    trace()
     if type(faktura.objednavka_zmluva) == Objednavka:
         text = text.replace(f"{lt}obj_zmluva{gt}", "objednávka")
         text = text.replace(f"{lt}oz_cislo{gt}", faktura.objednavka_zmluva.objednavka.cislo)
