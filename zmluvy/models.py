@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime
 from django.db import models
 from django.utils import timezone
 from django.contrib import messages
@@ -6,7 +6,7 @@ from ipdb import set_trace as trace
 from zmluvy.storage import OverwriteStorage
 
 from beliana.settings import CONTRACTS_DIR_NAME, RLTS_DIR_NAME, TMPLTS_DIR_NAME, TAX_AGMT_DIR_NAME
-import os
+import os,re
 
 
 #záznam histórie
@@ -145,6 +145,21 @@ def contract_path(instance, filename):
     return os.path.join(CONTRACTS_DIR_NAME, filename)
 
 class ZmluvaAutor(Zmluva):
+    oznacenie = "A"    #v čísle faktúry, A-2021-123
+    @classmethod
+    # určiť číslo novej objednávky
+    def nasledujuce_cislo(_):   # parameter treba, aby sa metóda mohla volať ako ZmluvaAutor.nasledujuce_cislo()
+        # zoznam objednávok s číslom "FaO2021-123" zoradený vzostupne
+        ozn_rok = f"{ZmluvaAutor.oznacenie}-{datetime.now().year}-"
+        itemlist = ZmluvaAutor.objects.filter(cislo_zmluvy__istartswith=ozn_rok).order_by("cislo_zmluvy")
+        if itemlist:
+            latest = itemlist.last().cislo_zmluvy
+            nove_cislo = int(re.findall(f"{ozn_rok}([0-9]+)",latest)[0]) + 1
+            return "%s%03d"%(ozn_rok, nove_cislo)
+        else:
+            #sme v novom roku
+            return f"{ozn_rok}001"
+    # Polia
     # v OsobaAutor je pristup k zmluve cez 'zmluvaautor'
     #models.PROTECT: Prevent deletion of the referenced object
     #related_name: v admin.py umožní zobrazit zmluvy autora v zozname autorov cez pole zmluvy_link 
@@ -221,7 +236,7 @@ class PlatbaAutorskaSumar(models.Model):
     platba_zaznamenana = models.CharField("Platba zaznanenaná v DB", max_length=3, choices=AnoNie.choices, default=AnoNie.NIE)
     obdobie = models.CharField("Identifikátor vyplácania",
             help_text = "Ako identifikátor vyplácania sa použije dátum jeho vytvorenia",
-            max_length=20, default = datetime.datetime.now().strftime('%Y-%m-%d')
+            max_length=20, default = datetime.now().strftime('%Y-%m-%d')
             )
     vyplatit_ths = models.FileField("Súbor pre THS-ku",upload_to=platba_autorska_sumar_upload_location, null = True, blank = True)
     vyplatene = models.FileField("Vyplatené",upload_to=platba_autorska_sumar_upload_location, null = True, blank = True)

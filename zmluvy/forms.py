@@ -20,7 +20,11 @@ class OsobaAutorForm(forms.ModelForm):
 
 # Pridať dodatočné pole popis_zmeny, použije sa ako change_reason v SimpleHistoryAdmin
 class ZmluvaAutorForm(forms.ModelForm):
-    #popis_zmeny = forms.CharField()
+    #inicializácia polí
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.initial['cislo_zmluvy'] = ZmluvaAutor.nasledujuce_cislo()
+
     popis_zmeny = forms.CharField(widget=forms.TextInput(attrs={'size':80}))
     def save(self, commit=True):
         popis_zmeny = self.cleaned_data.get('popis_zmeny', None)
@@ -33,6 +37,7 @@ class ZmluvaAutorForm(forms.ModelForm):
     class Meta:
         model = ZmluvaAutor
         fields = "__all__"
+
 
 # Pridať dodatočné pole popis_zmeny, použije sa ako change_reason v SimpleHistoryAdmin
 class PlatbaAutorskaSumarForm(forms.ModelForm):
