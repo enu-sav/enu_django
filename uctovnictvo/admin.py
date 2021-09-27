@@ -157,6 +157,12 @@ class PrijataFakturaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExpor
     #Oprávnenie na použitie akcie, viazané na 'change'
     vytvorit_platobny_prikaz.allowed_permissions = ('change',)
 
+    def save_model(self, request, obj, form, change):
+        if 'suma' in form.changed_data:
+            if obj.suma > 0:
+                messages.add_message(request, messages.WARNING, "Do poľa 'suma' sa obvykle vkladajú výdavky (záporná suma), vložili ste však kladnú hodnotu sumy. Ak ide o omyl, hodnotu opravte.") 
+        super(PrijataFakturaAdmin, self).save_model(request, obj, form, change)
+
 @admin.register(AutorskyHonorar)
 #class AutorskyHonorarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
 class AutorskyHonorarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
