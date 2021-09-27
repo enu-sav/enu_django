@@ -22,6 +22,8 @@ from .models import OsobaAutor, ZmluvaAutor, PlatbaAutorskaOdmena, PlatbaAutorsk
 from .common import VytvoritAutorskuZmluvu, VyplatitAutorskeOdmeny
 from .vyplatitautorske import VyplatitAutorskeOdmeny
 
+from .forms import OsobaAutorForm, ZmluvaAutorForm, PlatbaAutorskaSumarForm
+
 #umožniť zobrazenie autora v zozname zmlúv
 #https://pypi.org/project/django-admin-relation-links/
 from django_admin_relation_links import AdminChangeLinksMixin
@@ -31,22 +33,6 @@ from django_admin_relation_links import AdminChangeLinksMixin
 from simple_history.admin import SimpleHistoryAdmin
 
 from import_export.admin import ImportExportModelAdmin
-
-# Pridať dodatočné pole popis_zmeny, použije sa ako change_reason v SimpleHistoryAdmin
-class OsobaAutorForm(forms.ModelForm):
-    #popis_zmeny = forms.CharField()
-    popis_zmeny = forms.CharField(widget=forms.TextInput(attrs={'size':80}))
-    def save(self, commit=True):
-        popis_zmeny = self.cleaned_data.get('popis_zmeny', None)
-        # Get the form instance so I can write to its fields
-        instance = super(OsobaAutorForm, self).save(commit=commit)
-        # this writes the processed data to the description field
-        instance._change_reason = popis_zmeny
-        return super(OsobaAutorForm, self).save(commit=commit)
-
-    class Meta:
-        model = OsobaAutor
-        fields = "__all__"
 
 @admin.register(OsobaAutor)
 #class OsobaAutorAdmin(AdminChangeLinksMixin, admin.ModelAdmin):
@@ -139,22 +125,6 @@ class OsobaAutorAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportMod
     koresp_adresa.short_description = "Korešp. adresa"
 
 #admin.site.register(OsobaAutor, OsobaAutorAdmin)
-
-# Pridať dodatočné pole popis_zmeny, použije sa ako change_reason v SimpleHistoryAdmin
-class ZmluvaAutorForm(forms.ModelForm):
-    #popis_zmeny = forms.CharField()
-    popis_zmeny = forms.CharField(widget=forms.TextInput(attrs={'size':80}))
-    def save(self, commit=True):
-        popis_zmeny = self.cleaned_data.get('popis_zmeny', None)
-        # Get the form instance so I can write to its fields
-        instance = super(ZmluvaAutorForm, self).save(commit=commit)
-        # this writes the processed data to the description field
-        instance._change_reason = popis_zmeny
-        return super(ZmluvaAutorForm, self).save(commit=commit)
-
-    class Meta:
-        model = ZmluvaAutor
-        fields = "__all__"
 
 @admin.register(ZmluvaAutor)
 class ZmluvaAutorAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
@@ -276,22 +246,6 @@ class PlatbaAutorskaOdmenaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin,ModelA
 # musí byť pred krokom 3
 class PlatbaAutorskaSumarSuborAdmin(admin.StackedInline):
     model = PlatbaAutorskaSumarSubor
-
-# Pridať dodatočné pole popis_zmeny, použije sa ako change_reason v SimpleHistoryAdmin
-class PlatbaAutorskaSumarForm(forms.ModelForm):
-    #popis_zmeny = forms.CharField()
-    popis_zmeny = forms.CharField(widget=forms.TextInput(attrs={'size':80}))
-    def save(self, commit=True):
-        popis_zmeny = self.cleaned_data.get('popis_zmeny', None)
-        # Get the form instance so I can write to its fields
-        instance = super(PlatbaAutorskaSumarForm, self).save(commit=commit)
-        # this writes the processed data to the description field
-        instance._change_reason = popis_zmeny
-        return super(PlatbaAutorskaSumarForm, self).save(commit=commit)
-
-    class Meta:
-        model = PlatbaAutorskaSumar
-        fields = "__all__"
 
 @admin.register(PlatbaAutorskaSumar)
 class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
