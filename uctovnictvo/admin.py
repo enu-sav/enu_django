@@ -2,6 +2,8 @@ from django.contrib import admin
 from django import forms
 from django.utils import timezone
 from django.contrib import messages
+import re
+from datetime import datetime
 from ipdb import set_trace as trace
 from .models import EkonomickaKlasifikacia, TypZakazky, Zdroj, Program, Dodavatel, ObjednavkaZmluva, AutorskyHonorar
 from .models import Objednavka, Zmluva, PrijataFaktura, SystemovySubor, Rozhodnutie
@@ -138,7 +140,7 @@ class PrijataFakturaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExpor
     list_totals = [
         ('suma', Sum),
     ]
-    actions = ['vytvorit_platobny_prikaz']
+    actions = ['vytvorit_platobny_prikaz', 'duplikovat_zaznam']
 
     #obj is None during the object creation, but set to the object being edited during an edit
     def get_readonly_fields(self, request, obj=None):
@@ -156,6 +158,28 @@ class PrijataFakturaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExpor
     vytvorit_platobny_prikaz.short_description = "Vytvoriť platobný príkaz a krycí list pre THS"
     #Oprávnenie na použitie akcie, viazané na 'change'
     vytvorit_platobny_prikaz.allowed_permissions = ('change',)
+
+    def duplikovat_zaznam(self, request, queryset):
+        if len(queryset) != 1:
+            self.message_user(request, f"Vybrať možno len jednu faktúru", messages.ERROR)
+            return
+        stara = queryset[0]
+        nc = stara.nasledujuce_cislo()
+        nova_faktura = PrijataFaktura.objects.create(
+                cislo = nc,
+                program = stara.program,
+                ekoklas = stara.ekoklas,
+                zakazka = stara.zakazka,
+                zdroj = stara.zdroj,
+                predmet = stara.predmet,
+                objednavka_zmluva = stara.objednavka_zmluva
+            )
+        nova_faktura.save()
+        self.message_user(request, f"Vytvorená bola nová faktúra dodávateľa {nova_faktura.objednavka_zmluva.dodavatel.nazov} číslo {nc}.", messages.SUCCESS)
+
+    duplikovat_zaznam.short_description = "Duplikovať faktúru"
+    #Oprávnenie na použitie akcie, viazané na 'change'
+    duplikovat_zaznam.allowed_permissions = ('change',)
 
     def save_model(self, request, obj, form, change):
         if 'suma' in form.changed_data:
