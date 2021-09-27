@@ -198,8 +198,23 @@ def platobny_prikaz_upload_location(instance, filename):
 
 class PrijataFaktura(Klasifikacia):
     oznacenie = "Fa"    #v čísle faktúry, Fa-2021-123
+    @classmethod
+    # určiť číslo novej faktúry
+    def nasledujuce_cislo(_):   # parameter treba, aby sa metóda mohla volať ako PrijataFaktura.nasledujuce_cislo()
+        # zoznam faktúr s číslom "Fa-2021-123" zoradený vzostupne
+        ozn_rok = f"{PrijataFaktura.oznacenie}-{datetime.now().year}-"
+        itemlist = PrijataFaktura.objects.filter(cislo__istartswith=ozn_rok).order_by("cislo")
+        if itemlist:
+            latest = itemlist.last().cislo
+            nove_cislo = int(re.findall(f"{ozn_rok}([0-9]+)",latest)[0]) + 1
+            return f"{ozn_rok}{nove_cislo}"
+        else:
+            #sme v novom roku
+            return f"{ozn_rok}001"
+ 
+    # Polia
     cislo = models.CharField("Číslo faktúry", 
-            help_text = f"Zadajte číslo novej faktúry v tvare {oznacenie}-2021-123 alebo v prípade trvalej platby uveďte 'trvalá platba'. Predvolené číslo je určené na základe čísla najnovšej faktúry",
+            help_text = f"Zadajte číslo novej faktúry v tvare {oznacenie}-RRRR-NNN alebo v prípade trvalej platby uveďte 'trvalá platba'. Predvolené číslo je určené na základe čísiel existujúcich faktúr",
             max_length=50)
     dcislo = models.CharField("Dodávateľské číslo faktúry", 
             blank=True, 
@@ -240,19 +255,6 @@ class PrijataFaktura(Klasifikacia):
     def __str__(self):
         return f'Faktúra k "{self.objednavka_zmluva}" : {self.suma} €'
 
-    # určiť číslo novej faktúry
-    def nasledujuce_cislo(self):
-        # zoznam faktúr s číslom "Fa-2021-123" zoradený vzostupne
-        ozn_rok = f"{self.oznacenie}-{datetime.now().year}-"
-        itemlist = PrijataFaktura.objects.filter(cislo__istartswith=ozn_rok).order_by("cislo")
-        if itemlist:
-            latest = itemlist.last().cislo
-            nove_cislo = int(re.findall(f"{ozn_rok}([0-9]+)",latest)[0]) + 1
-            return f"{ozn_rok}{nove_cislo}"
-        else:
-            #sme v novom roku
-            return f"{ozn_rok}001"
-        
 class AutorskyHonorar(Klasifikacia):
     def __init__(self, *args, **kwargs):
         self._meta.get_field('zdroj').default = 1       #111

@@ -8,6 +8,7 @@ from ipdb import set_trace as trace
 from .models import EkonomickaKlasifikacia, TypZakazky, Zdroj, Program, Dodavatel, ObjednavkaZmluva, AutorskyHonorar
 from .models import Objednavka, Zmluva, PrijataFaktura, SystemovySubor, Rozhodnutie
 from .common import VytvoritPlatobyPrikaz
+from .forms import PrijataFakturaForm
 
 #zobrazenie histórie
 #https://django-simple-history.readthedocs.io/en/latest/admin.html
@@ -123,6 +124,7 @@ class ZmluvaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAd
 #medzi  ModelAdminTotals a ImportExportModelAdmin je konflikt
 #zobrazia sa Import Export tlačidlá, ale nie súčty
 class PrijataFakturaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
+    form = PrijataFakturaForm
 #zobrazia sa súčty, ale nie Import Export tlačidlá
 #class PrijataFakturaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
     list_display = ["cislo", "objednavka_zmluva_link", "suma", "platobny_prikaz", "dane_na_uhradu", "zdroj", "program", "zakazka", "ekoklas"]
@@ -164,7 +166,7 @@ class PrijataFakturaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExpor
             self.message_user(request, f"Vybrať možno len jednu faktúru", messages.ERROR)
             return
         stara = queryset[0]
-        nc = stara.nasledujuce_cislo()
+        nc = PrijataFaktura.nasledujuce_cislo()
         nova_faktura = PrijataFaktura.objects.create(
                 cislo = nc,
                 program = stara.program,
