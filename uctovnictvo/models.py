@@ -193,8 +193,6 @@ class Klasifikacia(models.Model):
 #https://stackoverflow.com/questions/55543232/how-to-upload-multiple-files-from-the-django-admin
 #Vykoná sa len pri vkladaní suborov cez GUI. Pri programovom vytváraní treba cestu nastaviť
 def platobny_prikaz_upload_location(instance, filename):
-    trace()
-    pass
     return filename
 
 class PrijataFaktura(Klasifikacia):
