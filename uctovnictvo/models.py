@@ -136,7 +136,7 @@ class Objednavka(ObjednavkaZmluva):
         if itemlist:
             latest = itemlist.last().cislo
             nove_cislo = int(re.findall(f"{ozn_rok}([0-9]+)",latest)[0]) + 1
-            return f"{ozn_rok}{nove_cislo}"
+            return "%s%03d"%(ozn_rok, nove_cislo)
         else:
             #sme v novom roku
             return f"{ozn_rok}001"
@@ -222,7 +222,7 @@ class PrijataFaktura(Klasifikacia):
         if itemlist:
             latest = itemlist.last().cislo
             nove_cislo = int(re.findall(f"{ozn_rok}([0-9]+)",latest)[0]) + 1
-            return f"{ozn_rok}{nove_cislo}"
+            return "%s%03d"%(ozn_rok, nove_cislo)
         else:
             #sme v novom roku
             return f"{ozn_rok}001"
