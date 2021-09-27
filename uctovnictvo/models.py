@@ -126,6 +126,21 @@ class ObjednavkaZmluva(PolymorphicModel):
         return f"{self.cislo} - {self.dodavatel}"
 
 class Objednavka(ObjednavkaZmluva):
+    oznacenie = "O"    #v čísle faktúry, Fa-2021-123
+    @classmethod
+    # určiť číslo novej objednávky
+    def nasledujuce_cislo(_):   # parameter treba, aby sa metóda mohla volať ako Objednavka.nasledujuce_cislo()
+        # zoznam objednávok s číslom "FaO2021-123" zoradený vzostupne
+        ozn_rok = f"{Objednavka.oznacenie}-{datetime.now().year}-"
+        itemlist = Objednavka.objects.filter(cislo__istartswith=ozn_rok).order_by("cislo")
+        if itemlist:
+            latest = itemlist.last().cislo
+            nove_cislo = int(re.findall(f"{ozn_rok}([0-9]+)",latest)[0]) + 1
+            return f"{ozn_rok}{nove_cislo}"
+        else:
+            #sme v novom roku
+            return f"{ozn_rok}001"
+    # Polia
     objednane_polozky = models.TextField("Objednané položky", 
             help_text = "Po riadkoch zadajte položky s poľami oddelenými bodkočiarkou: Názov položky; merná jednotka (ks, kg, l, m, m2, m3,...); Množstvo; Cena za jednotku bez DPH",
             max_length=5000, null=True, blank=True)

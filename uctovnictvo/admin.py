@@ -8,7 +8,7 @@ from ipdb import set_trace as trace
 from .models import EkonomickaKlasifikacia, TypZakazky, Zdroj, Program, Dodavatel, ObjednavkaZmluva, AutorskyHonorar
 from .models import Objednavka, Zmluva, PrijataFaktura, SystemovySubor, Rozhodnutie
 from .common import VytvoritPlatobyPrikaz
-from .forms import PrijataFakturaForm, AutorskeZmluvyForm
+from .forms import PrijataFakturaForm, AutorskeZmluvyForm, ObjednavkaForm
 
 #zobrazenie histórie
 #https://django-simple-history.readthedocs.io/en/latest/admin.html
@@ -65,6 +65,7 @@ class ObjednavkaZmluvaAdmin(ImportExportModelAdmin):
 
 @admin.register(Objednavka)
 class ObjednavkaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
+    form = ObjednavkaForm
     list_display = ("cislo", "datum_vytvorenia", "dodavatel_link","predmet", )
     #def formfield_for_dbfield(self, db_field, **kwargs):
         #formfield = super(ObjednavkaAdmin, self).formfield_for_dbfield(db_field, **kwargs)
