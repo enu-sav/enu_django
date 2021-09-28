@@ -1,4 +1,5 @@
 from django.db import models
+from django.core.exceptions import ValidationError
 
 #záznam histórie
 #https://django-simple-history.readthedocs.io/en/latest/admin.html
@@ -7,8 +8,9 @@ from uctovnictvo.storage import OverwriteStorage
 from polymorphic.models import PolymorphicModel
 
 from beliana.settings import TMPLTS_DIR_NAME
-import os
+import os,re
 from datetime import datetime
+from ipdb import set_trace as trace
 
 class AnoNie(models.TextChoices):
     ANO = 'ano', 'Áno'
@@ -102,7 +104,7 @@ class Dodavatel(PersonCommon):
 #Polymorphic umožní, aby Objednavka a PrijataFaktura mohli použiť ObjednavkaZmluva ako ForeignKey
 class ObjednavkaZmluva(PolymorphicModel):
     cislo = models.CharField("Číslo", 
-            help_text = "Zadajte číslo objednávky / zmluvy / rozhodnutia. Na jednoduché rozlíšenie viacerých zmlúv toho istého dodávateľa možno v zátvorke uviesť krátku doplnkovú informáciu, napr. '2/2018 (dodávka plynu)'",
+            #help_text: definovaný vo forms
             max_length=50)
     dodavatel = models.ForeignKey(Dodavatel,
             on_delete=models.PROTECT, 
@@ -124,6 +126,21 @@ class ObjednavkaZmluva(PolymorphicModel):
         return f"{self.cislo} - {self.dodavatel}"
 
 class Objednavka(ObjednavkaZmluva):
+    oznacenie = "O"    #v čísle faktúry, Fa-2021-123
+    @classmethod
+    # určiť číslo novej objednávky
+    def nasledujuce_cislo(_):   # parameter treba, aby sa metóda mohla volať ako Objednavka.nasledujuce_cislo()
+        # zoznam objednávok s číslom "FaO2021-123" zoradený vzostupne
+        ozn_rok = f"{Objednavka.oznacenie}-{datetime.now().year}-"
+        itemlist = Objednavka.objects.filter(cislo__istartswith=ozn_rok).order_by("cislo")
+        if itemlist:
+            latest = itemlist.last().cislo
+            nove_cislo = int(re.findall(f"{ozn_rok}([0-9]+)",latest)[0]) + 1
+            return "%s%03d"%(ozn_rok, nove_cislo)
+        else:
+            #sme v novom roku
+            return f"{ozn_rok}001"
+    # Polia
     objednane_polozky = models.TextField("Objednané položky", 
             help_text = "Po riadkoch zadajte položky s poľami oddelenými bodkočiarkou: Názov položky; merná jednotka (ks, kg, l, m, m2, m3,...); Množstvo; Cena za jednotku bez DPH",
             max_length=5000, null=True, blank=True)
@@ -192,12 +209,28 @@ class Klasifikacia(models.Model):
 #https://stackoverflow.com/questions/55543232/how-to-upload-multiple-files-from-the-django-admin
 #Vykoná sa len pri vkladaní suborov cez GUI. Pri programovom vytváraní treba cestu nastaviť
 def platobny_prikaz_upload_location(instance, filename):
-    trace()
-    pass
     return filename
 
 class PrijataFaktura(Klasifikacia):
-    cislo = models.CharField("Číslo faktúry", max_length=50)
+    oznacenie = "Fa"    #v čísle faktúry, Fa-2021-123
+    @classmethod
+    # určiť číslo novej faktúry
+    def nasledujuce_cislo(_):   # parameter treba, aby sa metóda mohla volať ako PrijataFaktura.nasledujuce_cislo()
+        # zoznam faktúr s číslom "Fa-2021-123" zoradený vzostupne
+        ozn_rok = f"{PrijataFaktura.oznacenie}-{datetime.now().year}-"
+        itemlist = PrijataFaktura.objects.filter(cislo__istartswith=ozn_rok).order_by("cislo")
+        if itemlist:
+            latest = itemlist.last().cislo
+            nove_cislo = int(re.findall(f"{ozn_rok}([0-9]+)",latest)[0]) + 1
+            return "%s%03d"%(ozn_rok, nove_cislo)
+        else:
+            #sme v novom roku
+            return f"{ozn_rok}001"
+ 
+    # Polia
+    cislo = models.CharField("Číslo faktúry", 
+            #help_text: definovaný vo forms
+            max_length=50)
     dcislo = models.CharField("Dodávateľské číslo faktúry", 
             blank=True, 
             null=True,
@@ -238,13 +271,6 @@ class PrijataFaktura(Klasifikacia):
         return f'Faktúra k "{self.objednavka_zmluva}" : {self.suma} €'
 
 class AutorskyHonorar(Klasifikacia):
-    def __init__(self, *args, **kwargs):
-        self._meta.get_field('zdroj').default = 1       #111
-        self._meta.get_field('program').default = 1     #Ostatné
-        self._meta.get_field('zakazka').default = 1     #Beliana
-        self._meta.get_field('ekoklas').default = 58    #633018	Licencie
-        super(Klasifikacia, self).__init__(*args, **kwargs)
-
     cislo = models.CharField("Číslo platby", max_length=50)
     doslo_datum = models.DateField('Vyplatené dňa',
             blank=True, null=True)
@@ -264,6 +290,11 @@ class AutorskyHonorar(Klasifikacia):
             decimal_places=2, 
             default=0)
     history = HistoricalRecords()
+
+    # test platnosti dát
+    def clean(self): 
+        if self.suma >= 0 or self.suma_lf > 0 or self.suma_dan > 0:
+            raise ValidationError("Položky 'Vyplatená suma' a 'Odvedená daň' musia byť záporné, položka 'Odvedená suma Literárnemu fondu' musí byť záporná alebo rovná 0")
 
     class Meta:
         verbose_name = 'Autorský honorár'

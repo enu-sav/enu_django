@@ -2,10 +2,13 @@ from django.contrib import admin
 from django import forms
 from django.utils import timezone
 from django.contrib import messages
+import re
+from datetime import datetime
 from ipdb import set_trace as trace
 from .models import EkonomickaKlasifikacia, TypZakazky, Zdroj, Program, Dodavatel, ObjednavkaZmluva, AutorskyHonorar
 from .models import Objednavka, Zmluva, PrijataFaktura, SystemovySubor, Rozhodnutie
-from .common import VytvoritPlatobyPrikaz
+from .common import VytvoritPlatobnyPrikaz
+from .forms import PrijataFakturaForm, AutorskeZmluvyForm, ObjednavkaForm, ZmluvaForm
 
 #zobrazenie histórie
 #https://django-simple-history.readthedocs.io/en/latest/admin.html
@@ -62,6 +65,7 @@ class ObjednavkaZmluvaAdmin(ImportExportModelAdmin):
 
 @admin.register(Objednavka)
 class ObjednavkaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
+    form = ObjednavkaForm
     list_display = ("cislo", "datum_vytvorenia", "dodavatel_link","predmet", )
     #def formfield_for_dbfield(self, db_field, **kwargs):
         #formfield = super(ObjednavkaAdmin, self).formfield_for_dbfield(db_field, **kwargs)
@@ -80,6 +84,10 @@ class ObjednavkaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportMod
         })
     ]
 
+    #obj is None during the object creation, but set to the object being edited during an edit
+    def get_readonly_fields(self, request, obj=None):
+        return ["cislo"] if obj else []
+
 @admin.register(Rozhodnutie)
 class RozhodnutieAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
     list_display = ("cislo", "predmet", "dodavatel_link", "poznamka" )
@@ -97,6 +105,7 @@ class RozhodnutieAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportMo
 
 @admin.register(Zmluva)
 class ZmluvaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
+    form = ZmluvaForm
     list_display = ["cislo", "dodavatel_link", "predmet", "datum_zverejnenia_CRZ", "url_zmluvy_html"]
     search_fields = ["dodavatel__nazov", "cislo", "predmet"]
 
@@ -121,6 +130,7 @@ class ZmluvaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAd
 #medzi  ModelAdminTotals a ImportExportModelAdmin je konflikt
 #zobrazia sa Import Export tlačidlá, ale nie súčty
 class PrijataFakturaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
+    form = PrijataFakturaForm
 #zobrazia sa súčty, ale nie Import Export tlačidlá
 #class PrijataFakturaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
     list_display = ["cislo", "objednavka_zmluva_link", "suma", "platobny_prikaz", "dane_na_uhradu", "zdroj", "program", "zakazka", "ekoklas"]
@@ -138,15 +148,16 @@ class PrijataFakturaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExpor
     list_totals = [
         ('suma', Sum),
     ]
-    actions = ['vytvorit_platobny_prikaz']
+    actions = ['vytvorit_platobny_prikaz', 'duplikovat_zaznam']
 
     #obj is None during the object creation, but set to the object being edited during an edit
+    #"platobny_prikaz" je generovaný, preto je vźdy readonly
     def get_readonly_fields(self, request, obj=None):
         return ["platobny_prikaz"]
 
     def vytvorit_platobny_prikaz(self, request, queryset):
         for faktura in queryset:
-            status, msg, vytvoreny_subor = VytvoritPlatobyPrikaz(faktura)
+            status, msg, vytvoreny_subor = VytvoritPlatobnyPrikaz(faktura)
             if status != messages.ERROR:
                 faktura.dane_na_uhradu = timezone.now()
                 faktura.platobny_prikaz = vytvoreny_subor
@@ -157,9 +168,39 @@ class PrijataFakturaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExpor
     #Oprávnenie na použitie akcie, viazané na 'change'
     vytvorit_platobny_prikaz.allowed_permissions = ('change',)
 
+    def duplikovat_zaznam(self, request, queryset):
+        if len(queryset) != 1:
+            self.message_user(request, f"Vybrať možno len jednu faktúru", messages.ERROR)
+            return
+        stara = queryset[0]
+        nc = PrijataFaktura.nasledujuce_cislo()
+        nova_faktura = PrijataFaktura.objects.create(
+                cislo = nc,
+                program = stara.program,
+                ekoklas = stara.ekoklas,
+                zakazka = stara.zakazka,
+                zdroj = stara.zdroj,
+                predmet = stara.predmet,
+                objednavka_zmluva = stara.objednavka_zmluva
+            )
+        nova_faktura.save()
+        self.message_user(request, f"Vytvorená bola nová faktúra dodávateľa {nova_faktura.objednavka_zmluva.dodavatel.nazov} číslo {nc}.", messages.SUCCESS)
+
+    duplikovat_zaznam.short_description = "Duplikovať faktúru"
+    #Oprávnenie na použitie akcie, viazané na 'change'
+    duplikovat_zaznam.allowed_permissions = ('change',)
+
+    def save_model(self, request, obj, form, change):
+        if 'suma' in form.changed_data:
+            if obj.suma > 0:
+                messages.add_message(request, messages.WARNING, "Do poľa 'suma' sa obvykle vkladajú výdavky (záporná suma), vložili ste však kladnú hodnotu sumy. Ak ide o omyl, hodnotu opravte.") 
+        super(PrijataFakturaAdmin, self).save_model(request, obj, form, change)
+
 @admin.register(AutorskyHonorar)
+
 #class AutorskyHonorarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
 class AutorskyHonorarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
+    form = AutorskeZmluvyForm
     list_display = ["cislo", "suma", "suma_lf", "suma_dan", "zdroj", "program", "zakazka", "ekoklas"]
 
     list_totals = [
