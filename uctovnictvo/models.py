@@ -104,7 +104,7 @@ class Dodavatel(PersonCommon):
 #Polymorphic umožní, aby Objednavka a PrijataFaktura mohli použiť ObjednavkaZmluva ako ForeignKey
 class ObjednavkaZmluva(PolymorphicModel):
     cislo = models.CharField("Číslo", 
-            help_text = "Zadajte číslo objednávky / zmluvy / rozhodnutia. Na jednoduché rozlíšenie viacerých zmlúv toho istého dodávateľa možno v zátvorke uviesť krátku doplnkovú informáciu, napr. '2/2018 (dodávka plynu)'",
+            #help_text: definovaný vo forms
             max_length=50)
     dodavatel = models.ForeignKey(Dodavatel,
             on_delete=models.PROTECT, 
@@ -229,7 +229,7 @@ class PrijataFaktura(Klasifikacia):
  
     # Polia
     cislo = models.CharField("Číslo faktúry", 
-            help_text = f"Zadajte číslo novej faktúry v tvare {oznacenie}-RRRR-NNN alebo v prípade trvalej platby uveďte 'trvalá platba'. Predvolené číslo je určené na základe čísiel existujúcich faktúr",
+            #help_text: definovaný vo forms
             max_length=50)
     dcislo = models.CharField("Dodávateľské číslo faktúry", 
             blank=True, 

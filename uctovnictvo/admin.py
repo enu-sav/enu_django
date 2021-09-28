@@ -7,7 +7,7 @@ from datetime import datetime
 from ipdb import set_trace as trace
 from .models import EkonomickaKlasifikacia, TypZakazky, Zdroj, Program, Dodavatel, ObjednavkaZmluva, AutorskyHonorar
 from .models import Objednavka, Zmluva, PrijataFaktura, SystemovySubor, Rozhodnutie
-from .common import VytvoritPlatobyPrikaz
+from .common import VytvoritPlatobnyPrikaz
 from .forms import PrijataFakturaForm, AutorskeZmluvyForm, ObjednavkaForm
 
 #zobrazenie histórie
@@ -151,7 +151,7 @@ class PrijataFakturaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExpor
 
     def vytvorit_platobny_prikaz(self, request, queryset):
         for faktura in queryset:
-            status, msg, vytvoreny_subor = VytvoritPlatobyPrikaz(faktura)
+            status, msg, vytvoreny_subor = VytvoritPlatobnyPrikaz(faktura)
             if status != messages.ERROR:
                 faktura.dane_na_uhradu = timezone.now()
                 faktura.platobny_prikaz = vytvoreny_subor

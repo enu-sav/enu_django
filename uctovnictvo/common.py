@@ -10,7 +10,7 @@ from .models import SystemovySubor, PrijataFaktura, AnoNie, Objednavka, PrijataF
 def locale_format(d):
     return locale.format('%%0.%df' % (-d.as_tuple().exponent), d, grouping=True)
 
-def VytvoritPlatobyPrikaz(faktura):
+def VytvoritPlatobnyPrikaz(faktura):
     #úvodné testy
     if not os.path.isdir(settings.PLATOBNE_PRIKAZY_DIR):
         os.makedirs(settings.PLATOBNE_PRIKAZY_DIR)
