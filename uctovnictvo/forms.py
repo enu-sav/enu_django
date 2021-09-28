@@ -20,7 +20,7 @@ class ZmluvaForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         polecislo = "cislo"
         # Ak je pole readonly, tak sa nenachádza vo fields. Preto testujeme fields aj initial
-        if not polecislo in self.initial:
+        if polecislo in self.fields and not polecislo in self.initial:
             self.fields[polecislo].help_text = "Zadajte číslo zmluvy (naše číslo alebo číslo dodávateľa). Na jednoduché rozlíšenie viacerých zmlúv toho istého dodávateľa možno v zátvorke uviesť krátku doplnkovú informáciu, napr. '2/2018 (dodávka plynu)'"
 
 class PrijataFakturaForm(forms.ModelForm):
@@ -29,10 +29,13 @@ class PrijataFakturaForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         polecislo = "cislo"
         # Ak je pole readonly, tak sa nenachádza vo fields. Preto testujeme fields aj initial
-        if not polecislo in self.initial:
-            nasledujuce = PrijataFaktura.nasledujuce_cislo()
-            self.fields[polecislo].help_text = f"Zadajte číslo novej faktúry v tvare {PrijataFaktura.oznacenie}-RRRR-NNN alebo v prípade trvalej platby uveďte 'trvalá platba'. Predvolené číslo '{nasledujuce} bolo určené na základe čísiel existujúcich faktúr ako nasledujúce v poradí.",
-            self.initial[polecislo] = nasledujuce
+        if polecislo in self.fields:
+            if not polecislo in self.initial:
+                nasledujuce = PrijataFaktura.nasledujuce_cislo()
+                self.fields[polecislo].help_text = f"Zadajte číslo novej faktúry v tvare {PrijataFaktura.oznacenie}-RRRR-NNN alebo v prípade trvalej platby uveďte 'trvalá platba'. Predvolené číslo '{nasledujuce} bolo určené na základe čísiel existujúcich faktúr ako nasledujúce v poradí."
+                self.initial[polecislo] = nasledujuce
+            else:
+                self.fields[polecislo].help_text = f"Číslo faktúry v tvare {PrijataFaktura.oznacenie}-RRRR-NNN. V prípade trvalej platby uveďte 'trvalá platba'."
 
 class AutorskeZmluvyForm(forms.ModelForm):
     #inicializácia polí
