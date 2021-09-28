@@ -15,7 +15,7 @@ else
 fi
 
 ./backup.sh
-#git pull
+git pull
 if [[ ! $(git pull) ]]; then  
     echo "git command failed, aborting script"
     exit 1
