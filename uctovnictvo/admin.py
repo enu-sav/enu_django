@@ -8,7 +8,7 @@ from ipdb import set_trace as trace
 from .models import EkonomickaKlasifikacia, TypZakazky, Zdroj, Program, Dodavatel, ObjednavkaZmluva, AutorskyHonorar
 from .models import Objednavka, Zmluva, PrijataFaktura, SystemovySubor, Rozhodnutie
 from .common import VytvoritPlatobnyPrikaz
-from .forms import PrijataFakturaForm, AutorskeZmluvyForm, ObjednavkaForm
+from .forms import PrijataFakturaForm, AutorskeZmluvyForm, ObjednavkaForm, ZmluvaForm
 
 #zobrazenie histórie
 #https://django-simple-history.readthedocs.io/en/latest/admin.html
@@ -101,6 +101,7 @@ class RozhodnutieAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportMo
 
 @admin.register(Zmluva)
 class ZmluvaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
+    form = ZmluvaForm
     list_display = ["cislo", "dodavatel_link", "predmet", "datum_zverejnenia_CRZ", "url_zmluvy_html"]
     search_fields = ["dodavatel__nazov", "cislo", "predmet"]
 

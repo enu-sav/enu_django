@@ -12,6 +12,13 @@ class ObjednavkaForm(forms.ModelForm):
             self.fields['cislo'].help_text = f"Zadajte číslo novej objednávky v tvare {Objednavka.oznacenie}-RRRR-NNN. Predvolené číslo '{nasledujuce} bolo určené na základe čísel existujúcich objednávok ako nasledujúce v poradí."
             self.initial['cislo'] = nasledujuce
 
+class ZmluvaForm(forms.ModelForm):
+    #inicializácia polí
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not 'cislo' in self.initial:
+            self.fields['cislo'].help_text = "Zadajte číslo zmluvy (naše číslo alebo číslo dodávateľa). Na jednoduché rozlíšenie viacerých zmlúv toho istého dodávateľa možno v zátvorke uviesť krátku doplnkovú informáciu, napr. '2/2018 (dodávka plynu)'"
+
 class PrijataFakturaForm(forms.ModelForm):
     #inicializácia polí
     def __init__(self, *args, **kwargs):
