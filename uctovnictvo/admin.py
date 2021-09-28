@@ -84,6 +84,10 @@ class ObjednavkaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportMod
         })
     ]
 
+    #obj is None during the object creation, but set to the object being edited during an edit
+    def get_readonly_fields(self, request, obj=None):
+        return ["cislo"] if obj else []
+
 @admin.register(Rozhodnutie)
 class RozhodnutieAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
     list_display = ("cislo", "predmet", "dodavatel_link", "poznamka" )
@@ -147,6 +151,7 @@ class PrijataFakturaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExpor
     actions = ['vytvorit_platobny_prikaz', 'duplikovat_zaznam']
 
     #obj is None during the object creation, but set to the object being edited during an edit
+    #"platobny_prikaz" je generovaný, preto je vźdy readonly
     def get_readonly_fields(self, request, obj=None):
         return ["platobny_prikaz"]
 
