@@ -23,7 +23,8 @@ class ZmluvaAutorForm(forms.ModelForm):
     #inicializácia polí
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.initial['cislo_zmluvy'] = ZmluvaAutor.nasledujuce_cislo()
+        if not 'cislo_zmluvy' in self.initial:
+            self.initial['cislo_zmluvy'] = ZmluvaAutor.nasledujuce_cislo()
 
     popis_zmeny = forms.CharField(widget=forms.TextInput(attrs={'size':80}))
     def save(self, commit=True):
