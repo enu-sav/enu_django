@@ -1,5 +1,6 @@
 
 from django import forms
+from ipdb import set_trace as trace
 from .models import OsobaAutor, ZmluvaAutor, PlatbaAutorskaSumar
 
 # Pridať dodatočné pole popis_zmeny, použije sa ako change_reason v SimpleHistoryAdmin
@@ -23,8 +24,12 @@ class ZmluvaAutorForm(forms.ModelForm):
     #inicializácia polí
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if not 'cislo_zmluvy' in self.initial:
-            self.initial['cislo_zmluvy'] = ZmluvaAutor.nasledujuce_cislo()
+        # Ak zmluva existuje 'cislo_zmluvy' je nastavené ako readonly v admin.py. Vtedy nie je v self.fields
+        # Preto testujeme self.fields a nie self.initial (to nestačí)
+        if 'cislo_zmluvy' in self.fields:
+            nasledujuce = ZmluvaAutor.nasledujuce_cislo()
+            self.fields['cislo_zmluvy'].help_text = f"Zadajte číslo novej autorskej zmluvy v tvare {ZmluvaAutor.oznacenie}-RRRR-NNN. Predvolené číslo '{nasledujuce} bolo určené na základe čísel existujúcich zmlúv ako nasledujúce v poradí."
+            self.initial['cislo_zmluvy'] = nasledujuce
 
     popis_zmeny = forms.CharField(widget=forms.TextInput(attrs={'size':80}))
     def save(self, commit=True):
