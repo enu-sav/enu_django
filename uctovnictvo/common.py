@@ -5,7 +5,7 @@ from ipdb import set_trace as trace
 from django.conf import settings
 from django.contrib import messages
 from django.utils import timezone
-from .models import SystemovySubor, PrijataFaktura, AnoNie, Objednavka, PrijataFaktura, Rozhodnutie
+from .models import SystemovySubor, PrijataFaktura, AnoNie, Objednavka, PrijataFaktura, Rozhodnutie, Zmluva
 
 def locale_format(d):
     return locale.format('%%0.%df' % (-d.as_tuple().exponent), d, grouping=True)
@@ -55,7 +55,7 @@ def VytvoritPlatobnyPrikaz(faktura):
         text = text.replace(f"{lt}oz_cislo{gt}", faktura.objednavka_zmluva.objednavka.cislo)
         text = text.replace(f"{lt}zo_dna{gt}", faktura.objednavka_zmluva.objednavka.datum_vytvorenia.strftime("%d. %m. %Y"))
         pass
-    elif type(faktura.objednavka_zmluva) == PrijataFaktura:
+    elif type(faktura.objednavka_zmluva) == Zmluva:
         text = text.replace(f"{lt}obj_zmluva{gt}", "zmluva")
         text = text.replace(f"{lt}oz_cislo{gt}", faktura.objednavka_zmluva.zmluva.cislo)
         text = text.replace(f"{lt}zo_dna{gt}", faktura.objednavka_zmluva.zmluva.datum_zverejnenia_CRZ.strftime("%d. %m. %Y"))
