@@ -6,9 +6,9 @@ import re
 from datetime import datetime
 from ipdb import set_trace as trace
 from .models import EkonomickaKlasifikacia, TypZakazky, Zdroj, Program, Dodavatel, ObjednavkaZmluva, AutorskyHonorar
-from .models import Objednavka, Zmluva, PrijataFaktura, SystemovySubor, Rozhodnutie
+from .models import Objednavka, Zmluva, PrijataFaktura, SystemovySubor, Rozhodnutie, PrispevokNaStravne
 from .common import VytvoritPlatobnyPrikaz
-from .forms import PrijataFakturaForm, AutorskeZmluvyForm, ObjednavkaForm, ZmluvaForm
+from .forms import PrijataFakturaForm, AutorskeZmluvyForm, ObjednavkaForm, ZmluvaForm, PrispevokNaStravneForm
 
 #zobrazenie histórie
 #https://django-simple-history.readthedocs.io/en/latest/admin.html
@@ -128,11 +128,10 @@ class ZmluvaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAd
 
 @admin.register(PrijataFaktura)
 #medzi  ModelAdminTotals a ImportExportModelAdmin je konflikt
-#zobrazia sa Import Export tlačidlá, ale nie súčty
-class PrijataFakturaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
+#zobrazia sa Import Export tlačidlá alebo súčty
+#class PrijataFakturaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
+class PrijataFakturaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
     form = PrijataFakturaForm
-#zobrazia sa súčty, ale nie Import Export tlačidlá
-#class PrijataFakturaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
     list_display = ["cislo", "objednavka_zmluva_link", "suma", "platobny_prikaz", "dane_na_uhradu", "zdroj", "program", "zakazka", "ekoklas"]
     search_fields = ["objednavka_zmluva__dodavatel__nazov", "^zdroj__kod", "^program__kod", "^zakazka__kod", "^ekoklas__kod" ]
 
@@ -198,16 +197,35 @@ class PrijataFakturaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExpor
 
 @admin.register(AutorskyHonorar)
 
-#class AutorskyHonorarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
-class AutorskyHonorarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
+#class AutorskyHonorarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
+class AutorskyHonorarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
     form = AutorskeZmluvyForm
-    list_display = ["cislo", "suma", "suma_lf", "suma_dan", "zdroj", "program", "zakazka", "ekoklas"]
+    list_display = ["cislo", "suma", "suma_lf", "suma_dan"]
+    # určiť poradie poli v editovacom formulári
+    fields = ["cislo", "suma", "suma_lf", "suma_dan", "zdroj", "program", "zakazka", "ekoklas"]
 
     list_totals = [
         ('suma', Sum),
         ('suma_lf', Sum),
         ('suma_dan', Sum),
     ]
+
+@admin.register(PrispevokNaStravne)
+class PrispevokNaStravneAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
+    form = PrispevokNaStravneForm
+    list_display = ["cislo", "suma_zamestnavatel", "suma_socfond"]
+    # určiť poradie poli v editovacom formulári
+    fields = ["cislo", "suma_zamestnavatel", "suma_socfond", "zdroj", "program", "zakazka", "ekoklas" ]
+
+    list_totals = [
+        ('suma_zamestnavatel', Sum),
+        ('suma_socfond', Sum),
+    ]
+    def get_readonly_fields(self, request, obj=None):
+        if obj:
+            return [ "program", "ekoklas", "zakazka", "zdroj"]
+        else:
+            return []
 
 @admin.register(SystemovySubor)
 class SystemovySuborAdmin(admin.ModelAdmin):

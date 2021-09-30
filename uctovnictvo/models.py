@@ -302,6 +302,47 @@ class AutorskyHonorar(Klasifikacia):
     def __str__(self):
         return f'Autorské honotáre {self.cislo}'
 
+class PrispevokNaStravne(Klasifikacia):
+    oznacenie = "PS"    #v čísle faktúry, FS-2021-123
+    @classmethod
+    # určiť číslo
+    def nasledujuce_cislo(_):   # parameter treba, aby sa metóda mohla volať ako PrispevokNaStravne.nasledujuce_cislo()
+        # zoznam faktúr s číslom "PS-2021-123" zoradený vzostupne
+        ozn_rok = f"{PrispevokNaStravne.oznacenie}-{datetime.now().year}-"
+        itemlist = PrispevokNaStravne.objects.filter(cislo__istartswith=ozn_rok).order_by("cislo")
+        if itemlist:
+            latest = itemlist.last().cislo
+            nove_cislo = int(re.findall(f"{ozn_rok}([0-9]+)",latest)[0]) + 1
+            return "%s%03d"%(ozn_rok, nove_cislo)
+        else:
+            #sme v novom roku
+            return f"{ozn_rok}001"
+
+    cislo = models.CharField("Číslo príspevku (za mesiac)", max_length=50)
+    suma_zamestnavatel = models.DecimalField("Príspevok zamesnávateľa", 
+            help_text = "Zadajte celkový príspevok zamestnávateľa (Ek. klas. 642014) ako zápornú hodnotu",
+            max_digits=8, 
+            decimal_places=2, 
+            default=0)
+    # Položka suma_socfond nemá Ek. klasifikáciu, soc. fond nie sú peniaze EnÚ
+    suma_socfond = models.DecimalField("Príspevok zo soc. fondu", 
+            help_text = "Zadajte celkový príspevok zo sociálneho fondu ako zápornú hodnotu1",
+            max_digits=8, 
+            decimal_places=2, 
+            default=0)
+    history = HistoricalRecords()
+
+    # test platnosti dát
+    def clean(self): 
+        if self.suma_zamestnavatel >= 0 or self.suma_socfond > 0:
+            raise ValidationError("Položky 'Príspevok zamestnávateľa' a 'Príspevok zo soc. fondu' musia byť záporné.")
+
+    class Meta:
+        verbose_name = 'Príspevok na stravné'
+        verbose_name_plural = 'Príspevky na stravné'
+    def __str__(self):
+        return f'Príspevok na stravné {self.cislo}'
+
 def system_file_path(instance, filename):
     return os.path.join(TMPLTS_DIR_NAME, filename)
 
