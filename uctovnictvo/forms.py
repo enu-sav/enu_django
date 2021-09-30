@@ -1,7 +1,7 @@
 
 from django import forms
 from ipdb import set_trace as trace
-from .models import PrijataFaktura, Objednavka
+from .models import PrijataFaktura, Objednavka, PrispevokNaStravne
 
 class ObjednavkaForm(forms.ModelForm):
     #inicializácia polí
@@ -36,6 +36,24 @@ class PrijataFakturaForm(forms.ModelForm):
                 self.initial[polecislo] = nasledujuce
             else:
                 self.fields[polecislo].help_text = f"Číslo faktúry v tvare {PrijataFaktura.oznacenie}-RRRR-NNN. V prípade trvalej platby uveďte 'trvalá platba'."
+
+class PrispevokNaStravneForm(forms.ModelForm):
+    #inicializácia polí
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.initial['zdroj'] = 1       #111
+        self.initial['program'] = 1     #Ostatné
+        self.initial['zakazka'] = 2     #11010001 spol. zák.	Činnosti z prostriedkov SAV - rozpočet 111
+        self.initial['ekoklas'] = 108   #642014 Transfery jednotlivcom
+        polecislo = "cislo"
+        # Ak je pole readonly, tak sa nenachádza vo fields. Preto testujeme fields aj initial
+        if polecislo in self.fields:
+            if not polecislo in self.initial:
+                nasledujuce = PrispevokNaStravne.nasledujuce_cislo()
+                self.fields[polecislo].help_text = f"Zadajte číslo novej faktúry v tvare {PrispevokNaStravne.oznacenie}-RRRR-NNN. Predvolené číslo '{nasledujuce} bolo určené na základe čísiel existujúcich faktúr ako nasledujúce v poradí."
+                self.initial[polecislo] = nasledujuce
+            else:
+                self.fields[polecislo].help_text = f"Číslo faktúry v tvare {PrispevokNaStravne.oznacenie}-RRRR-NNN."
 
 class AutorskeZmluvyForm(forms.ModelForm):
     #inicializácia polí

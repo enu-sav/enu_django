@@ -6,9 +6,9 @@ import re
 from datetime import datetime
 from ipdb import set_trace as trace
 from .models import EkonomickaKlasifikacia, TypZakazky, Zdroj, Program, Dodavatel, ObjednavkaZmluva, AutorskyHonorar
-from .models import Objednavka, Zmluva, PrijataFaktura, SystemovySubor, Rozhodnutie
+from .models import Objednavka, Zmluva, PrijataFaktura, SystemovySubor, Rozhodnutie, PrispevokNaStravne
 from .common import VytvoritPlatobnyPrikaz
-from .forms import PrijataFakturaForm, AutorskeZmluvyForm, ObjednavkaForm, ZmluvaForm
+from .forms import PrijataFakturaForm, AutorskeZmluvyForm, ObjednavkaForm, ZmluvaForm, PrispevokNaStravneForm
 
 #zobrazenie histórie
 #https://django-simple-history.readthedocs.io/en/latest/admin.html
@@ -208,6 +208,22 @@ class AutorskyHonorarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExpo
         ('suma_lf', Sum),
         ('suma_dan', Sum),
     ]
+
+@admin.register(PrispevokNaStravne)
+class PrispevokNaStravneAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
+    form = PrispevokNaStravneForm
+    list_display = ["cislo", "suma_zamestnavatel", "suma_socfond"]
+    fields = ["cislo", "suma_zamestnavatel", "suma_socfond", "zdroj", "program", "zakazka", "ekoklas" ]
+
+    list_totals = [
+        ('suma_zamestnavatel', Sum),
+        ('suma_socfond', Sum),
+    ]
+    def get_readonly_fields(self, request, obj=None):
+        if obj:
+            return [ "program", "ekoklas", "zakazka", "zdroj"]
+        else:
+            return []
 
 @admin.register(SystemovySubor)
 class SystemovySuborAdmin(admin.ModelAdmin):
