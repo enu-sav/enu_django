@@ -200,7 +200,9 @@ class PrijataFakturaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminT
 #class AutorskyHonorarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
 class AutorskyHonorarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
     form = AutorskeZmluvyForm
-    list_display = ["cislo", "suma", "suma_lf", "suma_dan", "zdroj", "program", "zakazka", "ekoklas"]
+    list_display = ["cislo", "suma", "suma_lf", "suma_dan"]
+    # určiť poradie poli v editovacom formulári
+    fields = ["cislo", "suma", "suma_lf", "suma_dan", "zdroj", "program", "zakazka", "ekoklas"]
 
     list_totals = [
         ('suma', Sum),
@@ -212,6 +214,7 @@ class AutorskyHonorarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdmin
 class PrispevokNaStravneAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
     form = PrispevokNaStravneForm
     list_display = ["cislo", "suma_zamestnavatel", "suma_socfond"]
+    # určiť poradie poli v editovacom formulári
     fields = ["cislo", "suma_zamestnavatel", "suma_socfond", "zdroj", "program", "zakazka", "ekoklas" ]
 
     list_totals = [
