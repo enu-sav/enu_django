@@ -2,6 +2,20 @@
 from django import forms
 from ipdb import set_trace as trace
 from .models import PrijataFaktura, Objednavka, PrispevokNaStravne
+from datetime import datetime
+
+# Pre triedu classname určí číslo nasledujúceho záznamu v pvare X-2021-NNN
+def nasledujuce_cislo(classname):
+        # zoznam faktúr s číslom "PS-2021-123" zoradený vzostupne
+        ozn_rok = f"{classname.oznacenie}-{datetime.now().year}-"
+        itemlist = classname.objects.filter(cislo__istartswith=ozn_rok).order_by("cislo")
+        if itemlist:
+            latest = itemlist.last().cislo
+            nove_cislo = int(re.findall(f"{ozn_rok}([0-9]+)",latest)[0]) + 1
+            return "%s%03d"%(ozn_rok, nove_cislo)
+        else:
+            #sme v novom roku
+            return f"{ozn_rok}001"
 
 class ObjednavkaForm(forms.ModelForm):
     #inicializácia polí
