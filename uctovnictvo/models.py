@@ -78,7 +78,7 @@ class EkonomickaKlasifikacia(models.Model):
 class PersonCommon(models.Model):
     # IBAN alebo aj kompletný popis s BIC a číslom účtu
     bankovy_kontakt = models.CharField("Bankový kontakt", 
-            help_text = "Zadajte IBAN účtu autora.",
+            help_text = "Zadajte IBAN bankového účtu.",
             max_length=200, null=True, blank=True)
     adresa_ulica = models.CharField("Adresa – ulica a číslo domu", max_length=200, null=True, blank=True)
     adresa_mesto = models.CharField("Adresa – PSČ a mesto", max_length=200, null=True, blank=True)
@@ -359,3 +359,67 @@ class SystemovySubor(models.Model):
         verbose_name_plural = 'Systémové súbory'
     def __str__(self):
         return(self.subor_nazov)
+
+
+# fyzická osoba, najmä dohodári
+class FyzickaOsoba(PersonCommon):
+    email = models.EmailField("Email", max_length=200, null=True, blank=True)
+    titul_pred_menom = models.CharField("Titul pred menom", max_length=100, null=True, blank=True) #optional
+    meno = models.CharField("Meno", max_length=200)
+    priezvisko = models.CharField("Priezvisko", max_length=200)
+    titul_za_menom = models.CharField("Titul za menom", max_length=100, null=True, blank=True)     #optional
+    rodne_cislo = models.CharField("Rodné číslo", max_length=20, null=True, blank=True) 
+    poznamka = models.CharField("Poznámka", max_length=200, blank=True)
+
+    class Meta:
+        abstract = True
+    def __str__(self):
+        return self.rs_login
+
+class Dohodar(FyzickaOsoba):
+    class Meta:
+        verbose_name = "Dohodár"
+        verbose_name_plural = "Dohodári"
+    def __str__(self):
+        return f"{self.priezvisko}, {self.meno}"
+
+#Polymorphic umožní, aby DoVP a PrijataFaktura mohli použiť ObjednavkaZmluva ako ForeignKey
+class Dohoda(PolymorphicModel, Klasifikacia):
+    cislo = models.CharField("Číslo", 
+            #help_text: definovaný vo forms
+            null=True,
+            blank=True,
+            max_length=50)
+    zmluvna_strana = models.ForeignKey(Dohodar,
+            on_delete=models.PROTECT, 
+            verbose_name = "Zmluvná strana",
+            related_name='%(class)s_dohoda')  #zabezpečí rozlíšenie modelov DoVP a DoPC
+    predmet = models.CharField("Predmet", 
+            help_text = "Zadajte stručný popis práce",
+            max_length=100)
+    poznamka = models.CharField("Poznámka", 
+            max_length=200, 
+            null=True,
+            blank=True)
+    class Meta:
+        verbose_name = "Dohoda"
+        verbose_name_plural = "Dohody"
+        abstract = True
+
+class DoVP(Dohoda):
+    oznacenie = "DoVP"
+    history = HistoricalRecords()
+    class Meta:
+        verbose_name = 'Dohoda o vykonaní práce'
+        verbose_name_plural = 'Dohody o vykonaní práce'
+    def __str__(self):
+        return f"{self.zmluvna_strana}, DoVP, {self.cislo}"
+
+class DoPC(Dohoda):
+    oznacenie = "DoPC"
+    history = HistoricalRecords()
+    class Meta:
+        verbose_name = 'Dohoda o pracovnej činnosti'
+        verbose_name_plural = 'Dohody o pracovnej činnosti'
+    def __str__(self):
+        return f"{self.zmluvna_strana}, DoPC, {self.cislo}"

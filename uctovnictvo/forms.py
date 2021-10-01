@@ -1,8 +1,9 @@
 
 from django import forms
 from ipdb import set_trace as trace
-from .models import PrijataFaktura, Objednavka, PrispevokNaStravne
+from .models import PrijataFaktura, Objednavka, PrispevokNaStravne, DoPC, DoVP
 from datetime import datetime
+import re
 
 # Pre triedu classname určí číslo nasledujúceho záznamu v pvare X-2021-NNN
 def nasledujuce_cislo(classname):
@@ -14,7 +15,7 @@ def nasledujuce_cislo(classname):
             nove_cislo = int(re.findall(f"{ozn_rok}([0-9]+)",latest)[0]) + 1
             return "%s%03d"%(ozn_rok, nove_cislo)
         else:
-            #sme v novom roku
+            #sme v novom roku alebo trieda este nema instanciu
             return f"{ozn_rok}001"
 
 class ObjednavkaForm(forms.ModelForm):
@@ -77,3 +78,21 @@ class AutorskeZmluvyForm(forms.ModelForm):
         self.initial['program'] = 1     #Ostatné
         self.initial['zakazka'] = 1     #Beliana
         self.initial['ekoklas'] = 58    #633018	Licencie
+
+class DoPCForm(forms.ModelForm):
+    #inicializácia polí
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.initial['zdroj'] = 1       #111
+        self.initial['program'] = 1     #Ostatné
+        self.initial['zakazka'] = 1     #Beliana
+        self.initial['ekoklas'] = 58    #633018	Licencie
+        polecislo = "cislo"
+        # Ak je pole readonly, tak sa nenachádza vo fields. Preto testujeme fields aj initial
+        if polecislo in self.fields:
+            if not polecislo in self.initial:
+                nasledujuce = nasledujuce_cislo(DoPC)
+                self.fields[polecislo].help_text = f"Zadajte číslo novej DoPČ v tvare {DoPC.oznacenie}-RRRR-NNN. Predvolené číslo '{nasledujuce} bolo určené na základe čísiel existujúcich DoPČ ako nasledujúce v poradí."
+                self.initial[polecislo] = nasledujuce
+            else:
+                self.fields[polecislo].help_text = f"Číslo faktúry v tvare {DoPC.oznacenie}-RRRR-NNN."

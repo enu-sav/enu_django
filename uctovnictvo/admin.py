@@ -7,8 +7,10 @@ from datetime import datetime
 from ipdb import set_trace as trace
 from .models import EkonomickaKlasifikacia, TypZakazky, Zdroj, Program, Dodavatel, ObjednavkaZmluva, AutorskyHonorar
 from .models import Objednavka, Zmluva, PrijataFaktura, SystemovySubor, Rozhodnutie, PrispevokNaStravne
+from .models import Dohoda, DoVP, DoPC, Dohodar
 from .common import VytvoritPlatobnyPrikaz
 from .forms import PrijataFakturaForm, AutorskeZmluvyForm, ObjednavkaForm, ZmluvaForm, PrispevokNaStravneForm
+from .forms import DoPCForm
 
 #zobrazenie histórie
 #https://django-simple-history.readthedocs.io/en/latest/admin.html
@@ -238,3 +240,41 @@ class SystemovySuborAdmin(admin.ModelAdmin):
         else:
             return []
 
+
+@admin.register(Dohodar)
+class DohodarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
+    list_display = ("priezvisko", "meno", "email", "rodne_cislo" )
+
+    # ^: v poli vyhľadávať len od začiatku
+    search_fields = ["priezvisko", "meno"]
+
+@admin.register(DoVP)
+class DoVPAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
+    list_display = ("cislo", "predmet", "zmluvna_strana_link", "poznamka" )
+
+    # ^: v poli vyhľadávať len od začiatku
+    search_fields = ["cislo", "zmluvna_strana__nazov"]
+
+    # zoraďovateľný odkaz na dodávateľa
+    # umožnené prostredníctvom AdminChangeLinksMixin
+    change_links = [
+        ('zmluvna_strana', {
+            'admin_order_field': 'zmluvna_strana__nazov', # Allow to sort members by the `zmluvna_strana_link` column
+        })
+    ]
+
+@admin.register(DoPC)
+class DoPCAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
+    form = DoPCForm
+    list_display = ("cislo", "predmet", "zmluvna_strana_link", "poznamka" )
+
+    # ^: v poli vyhľadávať len od začiatku
+    search_fields = ["cislo", "zmluvna_strana__nazov"]
+
+    # zoraďovateľný odkaz na dodávateľa
+    # umožnené prostredníctvom AdminChangeLinksMixin
+    change_links = [
+        ('zmluvna_strana', {
+            'admin_order_field': 'zmluvna_strana__nazov', # Allow to sort members by the `zmluvna_strana_link` column
+        })
+    ]
