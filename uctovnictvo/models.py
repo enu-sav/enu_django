@@ -21,6 +21,11 @@ class Mena(models.TextChoices):
     CZK = 'CZK'
     USD = 'USD'
 
+class Poistovne(models.TextChoices):
+    EUR = 'VšZP'
+    CZK = 'Dôvera'
+    USD = 'Union'
+
 class Zdroj(models.Model):
     kod = models.CharField("Kód", 
             help_text = "Zadajte kód zdroja - napr. 111, 46 alebo 42", 
