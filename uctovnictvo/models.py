@@ -26,6 +26,13 @@ class Poistovne(models.TextChoices):
     CZK = 'Dôvera'
     USD = 'Union'
 
+class TypDochodku(models.TextChoices):
+    STAROBNY = 'starobny', "starobný"
+    INVALIDNY = 'invalidny', "invalidný"
+    INVAL_VYSL = 'invalidny_vysl', "invalidný výsluhový"
+    VYSLUHOVY = "vysluhovy",  "výsluhový po dovŕšení dôchodkového veku"
+    PREDCASNY = "predcasny", "predčasný (poberateľovi zanikne nárok na výplatu predčasného dôchodku)"
+
 class Zdroj(models.Model):
     kod = models.CharField("Kód", 
             help_text = "Zadajte kód zdroja - napr. 111, 46 alebo 42", 
