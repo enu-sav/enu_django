@@ -44,7 +44,7 @@ class Zdroj(models.Model):
         return f"{self.kod} - {self.popis}"
     class Meta:
         verbose_name = 'Zdroj'
-        verbose_name_plural = 'Zdroje'
+        verbose_name_plural = 'Klasifikácia - Zdroje'
 
 class Program(models.Model):
     kod = models.CharField("Kód", 
@@ -57,7 +57,7 @@ class Program(models.Model):
         return f"{self.kod} - {self.popis}"
     class Meta:
         verbose_name = 'Program'
-        verbose_name_plural = 'Programy'
+        verbose_name_plural = 'Klasifikácia - Programy'
 
 class TypZakazky(models.Model):
     kod = models.CharField("Kód", 
@@ -70,7 +70,7 @@ class TypZakazky(models.Model):
         return f"{self.kod} - {self.popis}"
     class Meta:
         verbose_name = 'Typ zákazky'
-        verbose_name_plural = 'Typy zákazky'
+        verbose_name_plural = 'Klasifikácia - Typy zákazky'
 
 class EkonomickaKlasifikacia(models.Model):
     kod = models.CharField("Kód", 
@@ -83,7 +83,7 @@ class EkonomickaKlasifikacia(models.Model):
         return f"{self.kod} - {self.nazov}"
     class Meta:
         verbose_name = 'Ekonomická klasifikácia'
-        verbose_name_plural = 'Ekonomická klasifikácia'
+        verbose_name_plural = 'Klasifikácia - Ekonomická klasifikácia'
  
 
 # Abstraktná trieda so všetkými spoločnými poľami, nepoužívaná samostatne
@@ -109,7 +109,7 @@ class Dodavatel(PersonCommon):
     history = HistoricalRecords()
     class Meta:
         verbose_name = 'Dodávateľ'
-        verbose_name_plural = 'Dodávatelia'
+        verbose_name_plural = 'Faktúry - Dodávatelia'
     def __str__(self):
         return self.nazov
 
@@ -150,7 +150,7 @@ class Objednavka(ObjednavkaZmluva):
     history = HistoricalRecords()
     class Meta:
         verbose_name = 'Objednávka'
-        verbose_name_plural = 'Objednávky'
+        verbose_name_plural = 'Faktúry - Objednávky'
     def __str__(self):
         return f"{self.dodavatel}, objednávka, {self.cislo}"
 
@@ -158,7 +158,7 @@ class Rozhodnutie(ObjednavkaZmluva):
     history = HistoricalRecords()
     class Meta:
         verbose_name = 'Rozhodnutie'
-        verbose_name_plural = 'Rozhodnutia'
+        verbose_name_plural = 'Faktúry - Rozhodnutia'
     def __str__(self):
         return f"{self.dodavatel}, rozhodnutie, {self.cislo}"
 
@@ -178,7 +178,7 @@ class Zmluva(ObjednavkaZmluva):
     history = HistoricalRecords()
     class Meta:
         verbose_name = 'Zmluva'
-        verbose_name_plural = 'Zmluvy'
+        verbose_name_plural = 'Faktúry - Zmluvy'
     def __str__(self):
         return f"{self.dodavatel}, zmluva, {self.cislo}"
  
@@ -251,7 +251,7 @@ class PrijataFaktura(Klasifikacia):
 
     class Meta:
         verbose_name = 'Prijatá faktúra'
-        verbose_name_plural = 'Prijaté faktúry'
+        verbose_name_plural = 'Faktúry - Prijaté faktúry'
     def __str__(self):
         return f'Faktúra k "{self.objednavka_zmluva}" : {self.suma} €'
 
@@ -374,7 +374,7 @@ class Dohodar(FyzickaOsoba):
             raise ValidationError("V prípade poberateľa dôchodku je potrebné určiť typ dôchodku")
     class Meta:
         verbose_name = "Dohodár"
-        verbose_name_plural = "Dohodári"
+        verbose_name_plural = "Dohody - Dohodári"
     def __str__(self):
         return f"{self.priezvisko}, {self.meno}"
 
@@ -406,7 +406,7 @@ class DoVP(Dohoda):
     history = HistoricalRecords()
     class Meta:
         verbose_name = 'Dohoda o vykonaní práce'
-        verbose_name_plural = 'Dohody o vykonaní práce'
+        verbose_name_plural = 'Dohody - Dohody o vykonaní práce'
     def __str__(self):
         return f"{self.zmluvna_strana}, DoVP, {self.cislo}"
 
@@ -415,6 +415,6 @@ class DoPC(Dohoda):
     history = HistoricalRecords()
     class Meta:
         verbose_name = 'Dohoda o pracovnej činnosti'
-        verbose_name_plural = 'Dohody o pracovnej činnosti'
+        verbose_name_plural = 'Dohody - Dohody o pracovnej činnosti'
     def __str__(self):
         return f"{self.zmluvna_strana}, DoPC, {self.cislo}"
