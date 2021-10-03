@@ -152,6 +152,15 @@ def VytvoritAutorskuZmluvu(zmluva):
     sablona = sablona.replace(f"{lt}email{gt}", autor.email)
     sablona_crz = sablona_crz.replace(f"{lt}email{gt}", "–")
 
+    #Skryť sprievodný list a dohodu v CRZ verzii
+    sablona_crz = sablona_crz.replace(
+            'text:name="OblastSprievodnyList"', 
+            'text:name="OblastSprievodnyList" text:display="none">')
+    sablona_crz = sablona_crz.replace(
+            'text:name="OblastDohoda"', 
+            'text:name="OblastDohoda" text:display="none">')
+
+
     if autor.posobisko:
         sablona = sablona.replace(f"{lt}posobisko{gt}", autor.posobisko)
     else:
