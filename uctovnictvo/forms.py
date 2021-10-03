@@ -25,7 +25,7 @@ class ObjednavkaForm(forms.ModelForm):
         polecislo = "cislo"
         # Ak je pole readonly, tak sa nenachádza vo fields. Preto testujeme fields aj initial
         if polecislo in self.fields and not polecislo in self.initial:
-            nasledujuce = Objednavka.nasledujuce_cislo()
+            nasledujuce = nasledujuce_cislo(Objednavka)
             self.fields[polecislo].help_text = f"Zadajte číslo novej objednávky v tvare {Objednavka.oznacenie}-RRRR-NNN. Predvolené číslo '{nasledujuce} bolo určené na základe čísel existujúcich objednávok ako nasledujúce v poradí."
             self.initial[polecislo] = nasledujuce
 
@@ -46,7 +46,7 @@ class PrijataFakturaForm(forms.ModelForm):
         # Ak je pole readonly, tak sa nenachádza vo fields. Preto testujeme fields aj initial
         if polecislo in self.fields:
             if not polecislo in self.initial:
-                nasledujuce = PrijataFaktura.nasledujuce_cislo()
+                nasledujuce = nasledujuce_cislo(PrijataFaktura)
                 self.fields[polecislo].help_text = f"Zadajte číslo novej faktúry v tvare {PrijataFaktura.oznacenie}-RRRR-NNN alebo v prípade trvalej platby uveďte 'trvalá platba'. Predvolené číslo '{nasledujuce} bolo určené na základe čísiel existujúcich faktúr ako nasledujúce v poradí."
                 self.initial[polecislo] = nasledujuce
             else:
@@ -64,7 +64,7 @@ class PrispevokNaStravneForm(forms.ModelForm):
         # Ak je pole readonly, tak sa nenachádza vo fields. Preto testujeme fields aj initial
         if polecislo in self.fields:
             if not polecislo in self.initial:
-                nasledujuce = PrispevokNaStravne.nasledujuce_cislo()
+                nasledujuce = nasledujuce_cislo(PrispevokNaStravne)
                 self.fields[polecislo].help_text = f"Zadajte číslo novej faktúry v tvare {PrispevokNaStravne.oznacenie}-RRRR-NNN. Predvolené číslo '{nasledujuce} bolo určené na základe čísiel existujúcich faktúr ako nasledujúce v poradí."
                 self.initial[polecislo] = nasledujuce
             else:

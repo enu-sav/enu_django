@@ -139,19 +139,6 @@ class ObjednavkaZmluva(PolymorphicModel):
 
 class Objednavka(ObjednavkaZmluva):
     oznacenie = "O"    #v čísle faktúry, Fa-2021-123
-    @classmethod
-    # určiť číslo novej objednávky
-    def nasledujuce_cislo(_):   # parameter treba, aby sa metóda mohla volať ako Objednavka.nasledujuce_cislo()
-        # zoznam objednávok s číslom "FaO2021-123" zoradený vzostupne
-        ozn_rok = f"{Objednavka.oznacenie}-{datetime.now().year}-"
-        itemlist = Objednavka.objects.filter(cislo__istartswith=ozn_rok).order_by("cislo")
-        if itemlist:
-            latest = itemlist.last().cislo
-            nove_cislo = int(re.findall(f"{ozn_rok}([0-9]+)",latest)[0]) + 1
-            return "%s%03d"%(ozn_rok, nove_cislo)
-        else:
-            #sme v novom roku
-            return f"{ozn_rok}001"
     # Polia
     objednane_polozky = models.TextField("Objednané položky", 
             help_text = "Po riadkoch zadajte položky s poľami oddelenými bodkočiarkou: Názov položky; merná jednotka (ks, kg, l, m, m2, m3,...); Množstvo; Cena za jednotku bez DPH",
@@ -225,20 +212,6 @@ def platobny_prikaz_upload_location(instance, filename):
 
 class PrijataFaktura(Klasifikacia):
     oznacenie = "Fa"    #v čísle faktúry, Fa-2021-123
-    @classmethod
-    # určiť číslo novej faktúry
-    def nasledujuce_cislo(_):   # parameter treba, aby sa metóda mohla volať ako PrijataFaktura.nasledujuce_cislo()
-        # zoznam faktúr s číslom "Fa-2021-123" zoradený vzostupne
-        ozn_rok = f"{PrijataFaktura.oznacenie}-{datetime.now().year}-"
-        itemlist = PrijataFaktura.objects.filter(cislo__istartswith=ozn_rok).order_by("cislo")
-        if itemlist:
-            latest = itemlist.last().cislo
-            nove_cislo = int(re.findall(f"{ozn_rok}([0-9]+)",latest)[0]) + 1
-            return "%s%03d"%(ozn_rok, nove_cislo)
-        else:
-            #sme v novom roku
-            return f"{ozn_rok}001"
- 
     # Polia
     cislo = models.CharField("Číslo faktúry", 
             #help_text: definovaný vo forms
@@ -316,20 +289,6 @@ class AutorskyHonorar(Klasifikacia):
 
 class PrispevokNaStravne(Klasifikacia):
     oznacenie = "PS"    #v čísle faktúry, FS-2021-123
-    @classmethod
-    # určiť číslo
-    def nasledujuce_cislo(_):   # parameter treba, aby sa metóda mohla volať ako PrispevokNaStravne.nasledujuce_cislo()
-        # zoznam faktúr s číslom "PS-2021-123" zoradený vzostupne
-        ozn_rok = f"{PrispevokNaStravne.oznacenie}-{datetime.now().year}-"
-        itemlist = PrispevokNaStravne.objects.filter(cislo__istartswith=ozn_rok).order_by("cislo")
-        if itemlist:
-            latest = itemlist.last().cislo
-            nove_cislo = int(re.findall(f"{ozn_rok}([0-9]+)",latest)[0]) + 1
-            return "%s%03d"%(ozn_rok, nove_cislo)
-        else:
-            #sme v novom roku
-            return f"{ozn_rok}001"
-
     cislo = models.CharField("Číslo príspevku (za mesiac)", max_length=50)
     suma_zamestnavatel = models.DecimalField("Príspevok zamesnávateľa", 
             help_text = "Zadajte celkový príspevok zamestnávateľa (Ek. klas. 642014) ako zápornú hodnotu",
@@ -412,7 +371,7 @@ class Dohodar(FyzickaOsoba):
     # test platnosti dát
     def clean(self): 
         if self.poberatel_doch == AnoNie.ANO and not self.typ_doch:
-            raise ValidationError("V prípade poberateľa dôchodku je potrebné zadať typ dôchodku")
+            raise ValidationError("V prípade poberateľa dôchodku je potrebné určiť typ dôchodku")
     class Meta:
         verbose_name = "Dohodár"
         verbose_name_plural = "Dohodári"
