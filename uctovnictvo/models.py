@@ -442,6 +442,16 @@ class DoPC(Dohoda):
     class Meta:
         verbose_name = 'Dohoda o pracovnej činnosti'
         verbose_name_plural = 'Dohody - Dohody o pracovnej činnosti'
+    # test platnosti dát
+    def clean(self): 
+        poc_dni = np.busday_count(
+                self.datum_od,
+                self.datum_do+datetime.timedelta(days=1),   #vrátane posledného dňa
+                weekmask=[1,1,1,1,1,0,0])
+        pocet_hodin = poc_dni * self.hod_tyzden/5
+        if pocet_hodin > 350:
+            raise ValidationError(f"Celkový počet {pocet_hodin} hodín za určené obdobie presahuje maximálny povolený počet 350. Znížte počet hodín za týždeň alebo skráťte obdobie.")
+
     def save(self, *args, **kwargs):
         if self.odmena_hod and self.hod_tyzden:
             poc_dni = np.busday_count(
