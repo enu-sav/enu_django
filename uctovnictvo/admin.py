@@ -7,10 +7,10 @@ from datetime import datetime
 from ipdb import set_trace as trace
 from .models import EkonomickaKlasifikacia, TypZakazky, Zdroj, Program, Dodavatel, ObjednavkaZmluva, AutorskyHonorar
 from .models import Objednavka, Zmluva, PrijataFaktura, SystemovySubor, Rozhodnutie, PrispevokNaStravne
-from .models import Dohoda, DoVP, DoPC, Dohodar
+from .models import Dohoda, DoVP, DoPC, Dohodar, VyplacanieDohod
 from .common import VytvoritPlatobnyPrikaz
 from .forms import PrijataFakturaForm, AutorskeZmluvyForm, ObjednavkaForm, ZmluvaForm, PrispevokNaStravneForm
-from .forms import DoPCForm
+from .forms import DoPCForm, DoVPForm
 
 #zobrazenie histórie
 #https://django-simple-history.readthedocs.io/en/latest/admin.html
@@ -255,8 +255,10 @@ class DohodarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelA
         super(PrijataFakturaAdmin, self).save_model(request, obj, form, change)
 
 @admin.register(DoVP)
-class DoVPAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
-    list_display = ("cislo", "predmet", "zmluvna_strana_link", "poznamka" )
+class DoVPAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
+    form = DoVPForm
+    fields = ["cislo", "zmluvna_strana", "predmet", "datum_od", "datum_do", "odmena_celkom", "poznamka","zdroj", "program", "zakazka", "ekoklas" ]
+    list_display = ("cislo", "zmluvna_strana_link", "predmet", "odmena_celkom", "datum_od", "datum_do", "poznamka" )
 
     # ^: v poli vyhľadávať len od začiatku
     search_fields = ["cislo", "zmluvna_strana__nazov"]
@@ -267,12 +269,16 @@ class DoVPAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
         ('zmluvna_strana', {
             'admin_order_field': 'zmluvna_strana__nazov', # Allow to sort members by the `zmluvna_strana_link` column
         })
+    ]
+    list_totals = [
+        ('odmena_celkom', Sum),
     ]
 
 @admin.register(DoPC)
-class DoPCAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
+class DoPCAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
     form = DoPCForm
-    list_display = ("cislo", "predmet", "zmluvna_strana_link", "poznamka" )
+    fields = ["cislo", "zmluvna_strana", "predmet", "datum_od", "datum_do", "odmena_hod", "hod_tyzden", "odmena_celkom", "poznamka","zdroj", "program", "zakazka", "ekoklas" ]
+    list_display = ("cislo", "zmluvna_strana_link", "predmet", "odmena_celkom", "odmena_hod", "hod_tyzden", "datum_od", "datum_do", "poznamka" )
 
     # ^: v poli vyhľadávať len od začiatku
     search_fields = ["cislo", "zmluvna_strana__nazov"]
@@ -284,3 +290,15 @@ class DoPCAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
             'admin_order_field': 'zmluvna_strana__nazov', # Allow to sort members by the `zmluvna_strana_link` column
         })
     ]
+    list_totals = [
+        ('odmena_celkom', Sum),
+    ]
+
+@admin.register(VyplacanieDohod)
+class DoPCAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
+    list_display = ["dohoda", "vyplatena_odmena", "datum_vyplatenia"]
+    search_fields = ["dohoda__cislo", "dohoda__zmluvna_strana__priezvisko"]
+    list_totals = [
+        ('vyplatena_odmena', Sum),
+    ]
+

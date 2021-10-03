@@ -8,8 +8,8 @@ from uctovnictvo.storage import OverwriteStorage
 from polymorphic.models import PolymorphicModel
 
 from beliana.settings import TMPLTS_DIR_NAME
-import os,re
-from datetime import datetime
+import os,re, datetime
+import numpy as np
 from ipdb import set_trace as trace
 
 class AnoNie(models.TextChoices):
@@ -145,7 +145,7 @@ class Objednavka(ObjednavkaZmluva):
             max_length=5000, null=True, blank=True)
     datum_vytvorenia = models.DateField('Dátum vytvorenia',
             help_text = "Zadajte dátum vytvorenia objednávky",
-            default=datetime.now,
+            default=datetime.datetime.now,
             blank=True, null=True)
     history = HistoricalRecords()
     class Meta:
@@ -382,39 +382,94 @@ class Dohodar(FyzickaOsoba):
 class Dohoda(PolymorphicModel, Klasifikacia):
     cislo = models.CharField("Číslo", 
             #help_text: definovaný vo forms
-            null=True,
-            blank=True,
             max_length=50)
     zmluvna_strana = models.ForeignKey(Dohodar,
             on_delete=models.PROTECT, 
             verbose_name = "Zmluvná strana",
             related_name='%(class)s_dohoda')  #zabezpečí rozlíšenie modelov DoVP a DoPC
-    predmet = models.CharField("Predmet", 
-            help_text = "Zadajte stručný popis práce",
-            max_length=100)
-    poznamka = models.CharField("Poznámka", 
-            max_length=200, 
-            null=True,
-            blank=True)
+    predmet = models.TextField("Pracovná činnosť", 
+            help_text = "Zadajte stručný popis práce (max. 250 znakov, 3 riadky)",
+            max_length=250,
+            blank=True, null=True)
+    datum_od = models.DateField('Dátum od',
+            help_text = "Zadajte dátum začiatku platnosti dohody",
+            blank=True, null=True)
+    datum_do = models.DateField('Dátum do',
+            help_text = "Zadajte dátum konca platnosti dohody",
+            blank=True, null=True)
     class Meta:
         verbose_name = "Dohoda"
         verbose_name_plural = "Dohody"
-        abstract = True
+        #abstract = True
 
 class DoVP(Dohoda):
     oznacenie = "DoVP"
+    odmena_celkom = models.DecimalField("Celková suma v EUR", 
+            help_text = "Zadajte celkovú odmenu za vykonanú prácu. Bude vyplatená po odovzdaní práce a výkazu",
+            max_digits=8, 
+            decimal_places=2, 
+            default=0)
+    hod_celkom = models.DecimalField("Predpokl. počet hodín",
+            help_text = "Uveďte predpokladaný celkový počet odpracovaných hodín",
+            max_digits=8, 
+            decimal_places=1, 
+            default=0)
     history = HistoricalRecords()
     class Meta:
         verbose_name = 'Dohoda o vykonaní práce'
         verbose_name_plural = 'Dohody - Dohody o vykonaní práce'
     def __str__(self):
-        return f"{self.zmluvna_strana}, DoVP, {self.cislo}"
+        return f"{self.cislo}; {self.zmluvna_strana}"
 
 class DoPC(Dohoda):
     oznacenie = "DoPC"
+    odmena_hod = models.DecimalField("Odmena / hod",
+            help_text = "Odmena za 1 hodinu práce. Vyplňte len ak ide o novú dohodu. Ak vkladáte údaje za už ukončenú dohodu, ponechajte hodnotu 0.",
+            max_digits=8,
+            decimal_places=2, 
+            default=0)
+    hod_tyzden = models.DecimalField("Hodín za týždeň",
+            help_text = "Dohodnutý počet odpracovaných hodín za týždeň. Vyplňte len ak ide o novú dohodu. Ak vkladáte údaje za už ukončenú dohodu, ponechajte hodnotu 0.",
+            max_digits=8, 
+            decimal_places=1, 
+            default=0)
+    odmena_celkom = models.DecimalField("Celková odmena v EUR", 
+            help_text = "Vyplňte, len ak vkladáte údaje za už ukončenú dohodu. Inak bude hodnota tohoto poľa vypočítaná z hodnoty ostatných polí.",
+            max_digits=8, 
+            decimal_places=2, 
+            default=0)
     history = HistoricalRecords()
     class Meta:
         verbose_name = 'Dohoda o pracovnej činnosti'
         verbose_name_plural = 'Dohody - Dohody o pracovnej činnosti'
+    def save(self, *args, **kwargs):
+        if self.odmena_hod and self.hod_tyzden:
+            poc_dni = np.busday_count(
+                    self.datum_od,
+                    self.datum_do+datetime.timedelta(days=1),   #vrátane posledného dňa
+                    weekmask=[1,1,1,1,1,0,0])
+            self.odmena_celkom = self.odmena_hod * poc_dni * self.hod_tyzden/5
+        super(DoPC, self).save(*args, **kwargs)
     def __str__(self):
-        return f"{self.zmluvna_strana}, DoPC, {self.cislo}"
+        return f"{self.cislo}; {self.zmluvna_strana}"
+
+class VyplacanieDohod(models.Model):
+    dohoda = models.ForeignKey(Dohoda, 
+            null=True, 
+            verbose_name = "Dohoda",
+            on_delete=models.PROTECT, 
+            related_name='vyplacanie')    
+    vyplatena_odmena = models.DecimalField("Vyplatená odmena v EUR", 
+            help_text = "Uveďte vyplatenú sumu",
+            max_digits=8, 
+            decimal_places=2, 
+            default=0)
+    datum_vyplatenia = models.DateField('Dátum vyplatenia dohody',
+            help_text = "Zadajte dátum vyplatenia dohody",
+            default=datetime.datetime.now,
+            blank=True, null=True)
+    history = HistoricalRecords()
+    class Meta:
+        verbose_name = 'Vyplatenie dohody'
+        verbose_name_plural = 'Dohody - Vyplácanie dohôd'
+
