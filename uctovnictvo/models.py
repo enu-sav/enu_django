@@ -21,10 +21,10 @@ class Mena(models.TextChoices):
     CZK = 'CZK'
     USD = 'USD'
 
-class Poistovne(models.TextChoices):
-    EUR = 'VšZP'
-    CZK = 'Dôvera'
-    USD = 'Union'
+class Poistovna(models.TextChoices):
+    VSZP = 'VsZP', 'VšZP'
+    DOVERA = "Dovera", 'Dôvera'
+    UNION = "Union", 'Union'
 
 class TypDochodku(models.TextChoices):
     STAROBNY = 'starobny', "starobný"
@@ -389,6 +389,30 @@ class FyzickaOsoba(PersonCommon):
         return self.rs_login
 
 class Dohodar(FyzickaOsoba):
+    datum_nar = models.DateField('Dátum narodenia', blank=True, null=True)
+    rod_priezvisko = models.CharField("Rodné priezvisko", max_length=100, null=True, blank=True)
+    miesto_nar = models.CharField("Miesto narodenia", max_length=100, null=True, blank=True)
+    #stav = models.CharField("Stav", max_length=100, null=True, blank=True)
+    poberatel_doch = models.CharField("Poberateľ dôchodku", 
+            max_length=10, 
+            null=True, 
+            blank=True,
+            choices=AnoNie.choices)
+    typ_doch = models.CharField("Typ dôchodku", 
+            max_length=100, 
+            null=True, 
+            blank=True,
+            choices=TypDochodku.choices)
+    poistovna = models.CharField("Zdravotná poisťovňa",
+            max_length=20, 
+            null=True, 
+            blank=True,
+            choices=Poistovna.choices)
+    cop = models.CharField("Číslo OP", max_length=20, null=True, blank=True)
+    # test platnosti dát
+    def clean(self): 
+        if self.poberatel_doch == AnoNie.ANO and not self.typ_doch:
+            raise ValidationError("V prípade poberateľa dôchodku je potrebné zadať typ dôchodku")
     class Meta:
         verbose_name = "Dohodár"
         verbose_name_plural = "Dohodári"

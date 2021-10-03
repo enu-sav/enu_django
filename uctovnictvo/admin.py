@@ -240,13 +240,19 @@ class SystemovySuborAdmin(admin.ModelAdmin):
         else:
             return []
 
-
 @admin.register(Dohodar)
-class DohodarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
-    list_display = ("priezvisko", "meno", "email", "rodne_cislo" )
-
+class DohodarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
+    list_display = ("priezvisko", "meno", "rod_priezvisko", "email", "rodne_cislo", "datum_nar", "miesto_nar", "adresa", "poberatel_doch", "typ_doch", "poistovna", "cop")
     # ^: v poli vyhľadávať len od začiatku
     search_fields = ["priezvisko", "meno"]
+    def adresa(self, obj):
+        if obj.adresa_mesto:
+            return f"{obj.adresa_ulica} {obj.adresa_mesto}, {obj.adresa_stat}".strip()
+    def save_model(self, request, obj, form, change):
+        if 'poberatel_doch' in form.changed_data:
+            if obj.poberatel_doch == AnoNie.ANO and not obj.typ_doch:
+                messages.add_message(request, messages.WARNING, "sumy. Ak ide o omyl, hodnotu opravte.") 
+        super(PrijataFakturaAdmin, self).save_model(request, obj, form, change)
 
 @admin.register(DoVP)
 class DoVPAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
