@@ -8,7 +8,7 @@ from ipdb import set_trace as trace
 from .models import EkonomickaKlasifikacia, TypZakazky, Zdroj, Program, Dodavatel, ObjednavkaZmluva, AutorskyHonorar
 from .models import Objednavka, Zmluva, PrijataFaktura, SystemovySubor, Rozhodnutie, PrispevokNaStravne
 from .models import Dohoda, DoVP, DoPC, Dohodar, VyplacanieDohod
-from .common import VytvoritPlatobnyPrikaz, VytvoritSuborDohody
+from .common import VytvoritPlatobnyPrikaz, VytvoritSuborDohody, VytvoritSuborObjednavky
 from .forms import PrijataFakturaForm, AutorskeZmluvyForm, ObjednavkaForm, ZmluvaForm, PrispevokNaStravneForm
 from .forms import DoPCForm, DoVPForm, nasledujuce_cislo
 
@@ -77,6 +77,7 @@ class ObjednavkaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportMod
 
     # ^: v poli vyhľadávať len od začiatku
     search_fields = ["cislo", "predmet", "dodavatel__nazov"]
+    actions = ['vytvorit_subor_objednavky']
 
     # zoraďovateľný odkaz na dodávateľa
     # umožnené prostredníctvom AdminChangeLinksMixin
@@ -89,6 +90,22 @@ class ObjednavkaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportMod
     #obj is None during the object creation, but set to the object being edited during an edit
     def get_readonly_fields(self, request, obj=None):
         return ["cislo"] if obj else []
+
+    def vytvorit_subor_objednavky(self, request, queryset):
+        if len(queryset) != 1:
+            self.message_user(request, f"Vybrať možno len jednu objednavku", messages.ERROR)
+            return
+        objednavka = queryset[0]
+        status, msg, vytvoreny_subor = VytvoritSuborObjednavky(objednavka)
+        if status != messages.ERROR:
+            objednavka.subor_objednavky = vytvoreny_subor
+            objednavka.save()
+            pass
+        self.message_user(request, msg, status)
+
+    vytvorit_subor_objednavky.short_description = "Vytvoriť súbor objednavky"
+    #Oprávnenie na použitie akcie, viazané na 'change'
+    vytvorit_subor_objednavky.allowed_permissions = ('change',)
 
 @admin.register(Rozhodnutie)
 class RozhodnutieAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):

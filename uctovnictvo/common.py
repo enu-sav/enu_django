@@ -7,6 +7,10 @@ from django.contrib import messages
 from django.utils import timezone
 from .models import SystemovySubor, PrijataFaktura, AnoNie, Objednavka, PrijataFaktura, Rozhodnutie, Zmluva
 
+from openpyxl import load_workbook
+from openpyxl.styles import Font, Color, colors, Alignment, PatternFill , numbers
+from openpyxl.utils import get_column_letter
+
 def locale_format(d):
     return locale.format('%%0.%df' % (-d.as_tuple().exponent), d, grouping=True)
 
@@ -111,8 +115,55 @@ def VytvoritSuborDohody(dohoda):
 
     #ulozit
     #Create directory admin.rs_login if necessary
-    nazov = f"{dohoda.cislo}-{dohoda.zmluvna_strana.priezvisko}.fodt"
+    nazov = f"{objednavka.cislo}-{objednavka.dodavatel.nazov}.fodt"
     opath = os.path.join(settings.DOHODY_DIR,nazov)
     with open(os.path.join(settings.MEDIA_ROOT,opath), "w") as f:
         f.write(text)
     return messages.SUCCESS, f"Súbor dohody {dohoda.cislo} bol úspešne vytvorený ({opath}).", opath
+
+def VytvoritSuborObjednavky(objednavka):
+    #úvodné testy
+    objednavky_dir_path  = os.path.join(settings.MEDIA_ROOT,settings.OBJEDNAVKY_DIR)
+    if not os.path.isdir(objednavky_dir_path):
+        os.makedirs(objednavky_dir_path)
+    
+    #Načítať súbor šablóny
+    nazov_objektu = "Šablóna objednávky"  #Presne takto musí byť objekt pomenovaný
+    sablona = SystemovySubor.objects.filter(subor_nazov = nazov_objektu)
+    if not sablona:
+        return messages.ERROR, f"V systéme nie je definovaný súbor '{nazov_objektu}'.", None
+    nazov_suboru = sablona[0].subor.file.name 
+    workbook = load_workbook(filename=nazov_suboru)
+    dnesny_datum = timezone.now().strftime("%d. %m. %Y")
+
+    obj = workbook["Objednávka"]
+    obj["A3"].value = obj["A3"].value.replace("[[cislo]]",objednavka.cislo)
+    #dodávateľ
+    obj["E6"].value = objednavka.dodavatel.nazov
+    obj["E7"].value = objednavka.dodavatel.adresa_ulica
+    obj["E8"].value = objednavka.dodavatel.adresa_mesto
+    obj["E9"].value = objednavka.dodavatel.adresa_stat
+
+    #položky
+    riadok = 14 #prvy riadok tabulky
+    for rr, polozka in enumerate(objednavka.objednane_polozky.split("\n")):
+        prvky = polozka.split(";")
+        if len(prvky) == 1:  #zlúčiť bunky
+            obj.merge_cells(f'B{riadok+rr}:G{riadok+rr}')
+            obj[f"B{riadok+rr}"].value = prvky[0]
+        else:
+            for cc, prvok in enumerate(prvky[:4]):
+                obj.cell(row=riadok+rr, column=2+cc).value = prvok
+
+    obj["A33"].value = obj["A33"].value.replace("[[datum]]", dnesny_datum)
+  
+    kl = workbook["Finančná kontrola"]
+    kl["A1"].value = kl["A1"].value.replace("[[cislo]]", objednavka.cislo)
+    kl["A1"].value = kl["A1"].value.replace("[[datum]]", dnesny_datum)
+
+    #ulozit
+    #Create directory admin.rs_login if necessary
+    nazov = f'{objednavka.cislo}-{objednavka.dodavatel.nazov.replace(" ","").replace(".","").replace(",","-")}".xlsx'
+    opath = os.path.join(settings.OBJEDNAVKY_DIR,nazov)
+    workbook.save(os.path.join(settings.MEDIA_ROOT,opath))
+    return messages.SUCCESS, f"Súbor objednávky {objednavka.cislo} bol úspešne vytvorený ({opath}).", opath

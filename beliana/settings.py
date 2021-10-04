@@ -201,3 +201,4 @@ RLTS_DIR = os.path.join(MEDIA_ROOT,RLTS_DIR_NAME)
 # pripojí sa za MEDIA_ROOT
 PLATOBNE_PRIKAZY_DIR="PlatobnePrikazy"
 DOHODY_DIR="Dohody"
+OBJEDNAVKY_DIR="Objednavky"

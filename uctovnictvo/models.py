@@ -137,6 +137,8 @@ class ObjednavkaZmluva(PolymorphicModel):
     def __str__(self):
         return f"{self.cislo} - {self.dodavatel}"
 
+def objednavka_upload_location(instance, filename):
+    return filename
 class Objednavka(ObjednavkaZmluva):
     oznacenie = "O"    #v čísle faktúry, Fa-2021-123
     # Polia
@@ -147,6 +149,15 @@ class Objednavka(ObjednavkaZmluva):
             help_text = "Zadajte dátum vytvorenia objednávky",
             default=datetime.datetime.now,
             blank=True, null=True)
+    subor_objednavky = models.FileField("Súbor objednávky",
+            help_text = "Súbor s objednávkou a krycím listom. Generuje sa akciou 'Vytvoriť objednávku'",
+            upload_to=objednavka_upload_location,
+            null = True, blank = True)
+    termin_dodania = models.CharField("Termím dodania", 
+            max_length=30, 
+            help_text = "Určite termín dodania (dátum alebo slovné určenie, napr. 'ihneď')",
+            null=True,
+            blank=True)
     history = HistoricalRecords()
     class Meta:
         verbose_name = 'Objednávka'
@@ -404,7 +415,7 @@ class Dohoda(PolymorphicModel, Klasifikacia):
         verbose_name_plural = "Dohody"
         #abstract = True
     subor_dohody = models.FileField("Súbor dohody",
-            help_text = "Súbor s textom dohody",
+            help_text = "Súbor s textom dohody. Generuje sa akciou 'Vytvoriť subor dohody'",
             upload_to=dohoda_upload_location, 
             null = True, blank = True)
 
