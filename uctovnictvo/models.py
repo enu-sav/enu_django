@@ -378,6 +378,8 @@ class Dohodar(FyzickaOsoba):
     def __str__(self):
         return f"{self.priezvisko}, {self.meno}"
 
+def dohoda_upload_location(instance, filename):
+    return filename
 #Polymorphic umožní, aby DoVP a PrijataFaktura mohli použiť ObjednavkaZmluva ako ForeignKey
 class Dohoda(PolymorphicModel, Klasifikacia):
     cislo = models.CharField("Číslo", 
@@ -401,6 +403,10 @@ class Dohoda(PolymorphicModel, Klasifikacia):
         verbose_name = "Dohoda"
         verbose_name_plural = "Dohody"
         #abstract = True
+    subor_dohody = models.FileField("Súbor dohody",
+            help_text = "Súbor s textom dohody",
+            upload_to=dohoda_upload_location, 
+            null = True, blank = True)
 
 class DoVP(Dohoda):
     oznacenie = "DoVP"

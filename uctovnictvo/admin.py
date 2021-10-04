@@ -8,7 +8,7 @@ from ipdb import set_trace as trace
 from .models import EkonomickaKlasifikacia, TypZakazky, Zdroj, Program, Dodavatel, ObjednavkaZmluva, AutorskyHonorar
 from .models import Objednavka, Zmluva, PrijataFaktura, SystemovySubor, Rozhodnutie, PrispevokNaStravne
 from .models import Dohoda, DoVP, DoPC, Dohodar, VyplacanieDohod
-from .common import VytvoritPlatobnyPrikaz
+from .common import VytvoritPlatobnyPrikaz, VytvoritSuborDohody
 from .forms import PrijataFakturaForm, AutorskeZmluvyForm, ObjednavkaForm, ZmluvaForm, PrispevokNaStravneForm
 from .forms import DoPCForm, DoVPForm, nasledujuce_cislo
 
@@ -277,8 +277,8 @@ class DoVPAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
 @admin.register(DoPC)
 class DoPCAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
     form = DoPCForm
-    fields = ["cislo", "zmluvna_strana", "predmet", "datum_od", "datum_do", "odmena_hod", "hod_tyzden", "odmena_celkom", "poznamka","zdroj", "program", "zakazka", "ekoklas" ]
-    list_display = ("cislo", "zmluvna_strana_link", "predmet", "odmena_celkom", "odmena_hod", "hod_tyzden", "datum_od", "datum_do", "poznamka" )
+    fields = ["cislo", "zmluvna_strana", "predmet", "subor_dohody", "datum_od", "datum_do", "odmena_hod", "hod_tyzden", "odmena_celkom", "poznamka","zdroj", "program", "zakazka", "ekoklas" ]
+    list_display = ("cislo", "zmluvna_strana_link", "predmet", "subor_dohody", "odmena_celkom", "odmena_hod", "hod_tyzden", "datum_od", "datum_do", "poznamka" )
 
     # ^: v poli vyhľadávať len od začiatku
     search_fields = ["cislo", "zmluvna_strana__nazov"]
@@ -293,6 +293,23 @@ class DoPCAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
     list_totals = [
         ('odmena_celkom', Sum),
     ]
+    actions = ['vytvorit_subor_dohody']
+
+    def vytvorit_subor_dohody(self, request, queryset):
+        if len(queryset) != 1:
+            self.message_user(request, f"Vybrať možno len jednu dohodu", messages.ERROR)
+            return
+        dohoda = queryset[0]
+        status, msg, vytvoreny_subor = VytvoritSuborDohody(dohoda)
+        if status != messages.ERROR:
+            dohoda.subor_dohody = vytvoreny_subor
+            dohoda.save()
+            pass
+        self.message_user(request, msg, status)
+
+    vytvorit_subor_dohody.short_description = "Vytvoriť súbor dohody"
+    #Oprávnenie na použitie akcie, viazané na 'change'
+    vytvorit_subor_dohody.allowed_permissions = ('change',)
 
 @admin.register(VyplacanieDohod)
 class DoPCAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
