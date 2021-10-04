@@ -10,7 +10,7 @@ from .models import Objednavka, Zmluva, PrijataFaktura, SystemovySubor, Rozhodnu
 from .models import Dohoda, DoVP, DoPC, Dohodar, VyplacanieDohod
 from .common import VytvoritPlatobnyPrikaz
 from .forms import PrijataFakturaForm, AutorskeZmluvyForm, ObjednavkaForm, ZmluvaForm, PrispevokNaStravneForm
-from .forms import DoPCForm, DoVPForm
+from .forms import DoPCForm, DoVPForm, nasledujuce_cislo
 
 #zobrazenie histórie
 #https://django-simple-history.readthedocs.io/en/latest/admin.html
@@ -174,7 +174,7 @@ class PrijataFakturaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminT
             self.message_user(request, f"Vybrať možno len jednu faktúru", messages.ERROR)
             return
         stara = queryset[0]
-        nc = PrijataFaktura.nasledujuce_cislo()
+        nc = nasledujuce_cislo(PrijataFaktura)
         nova_faktura = PrijataFaktura.objects.create(
                 cislo = nc,
                 program = stara.program,
