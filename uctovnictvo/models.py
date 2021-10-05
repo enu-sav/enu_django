@@ -143,7 +143,7 @@ class Objednavka(ObjednavkaZmluva):
     oznacenie = "O"    #v čísle faktúry, Fa-2021-123
     # Polia
     objednane_polozky = models.TextField("Objednané položky", 
-            help_text = "Po riadkoch zadajte položky s poľami oddelenými bodkočiarkou: Názov položky; merná jednotka (ks, kg, l, m, m2, m3,...); Množstvo; Cena za jednotku bez DPH",
+            help_text = "Po riadkoch zadajte položky s poľami oddelenými bodkočiarkou ( v poradí: názov položky; merná jednotka - ks, kg, l, m, m2, m3; množstvo; cena za jednotku bez DPH) alebo len ako jednoduchý text bez bodkočiarok (napr. 'Objednávanme tovar podľa priloženej ponuky')",
             max_length=5000, null=True, blank=True)
     datum_vytvorenia = models.DateField('Dátum vytvorenia',
             help_text = "Zadajte dátum vytvorenia objednávky",

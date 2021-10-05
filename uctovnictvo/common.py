@@ -122,6 +122,7 @@ def VytvoritSuborDohody(dohoda):
     return messages.SUCCESS, f"Súbor dohody {dohoda.cislo} bol úspešne vytvorený ({opath}).", opath
 
 def VytvoritSuborObjednavky(objednavka):
+    DPH = 1.2
     #úvodné testy
     objednavky_dir_path  = os.path.join(settings.MEDIA_ROOT,settings.OBJEDNAVKY_DIR)
     if not os.path.isdir(objednavky_dir_path):
@@ -139,23 +140,53 @@ def VytvoritSuborObjednavky(objednavka):
     obj = workbook["Objednávka"]
     obj["A3"].value = obj["A3"].value.replace("[[cislo]]",objednavka.cislo)
     #dodávateľ
-    obj["E6"].value = objednavka.dodavatel.nazov
-    obj["E7"].value = objednavka.dodavatel.adresa_ulica
-    obj["E8"].value = objednavka.dodavatel.adresa_mesto
-    obj["E9"].value = objednavka.dodavatel.adresa_stat
+    obj["D6"].value = objednavka.dodavatel.nazov
+    obj["D7"].value = objednavka.dodavatel.adresa_ulica
+    obj["D8"].value = objednavka.dodavatel.adresa_mesto
+    obj["D9"].value = objednavka.dodavatel.adresa_stat
 
     #položky
-    riadok = 14 #prvy riadok tabulky
+    prvy_riadok = 15 #prvy riadok tabulky
+    pocet_riadkov = 15
+    add_sum = True  # či s má do posledného riadka vložiť súčet
     for rr, polozka in enumerate(objednavka.objednane_polozky.split("\n")):
+        riadok = prvy_riadok+rr
         prvky = polozka.split(";")
         if len(prvky) == 1:  #zlúčiť bunky
-            obj.merge_cells(f'B{riadok+rr}:G{riadok+rr}')
-            obj[f"B{riadok+rr}"].value = prvky[0]
+            obj.merge_cells(f'B{riadok}:F{riadok}')
+            obj[f"B{riadok}"].value = prvky[0]
+            add_sum = False
         else:
-            for cc, prvok in enumerate(prvky[:4]):
-                obj.cell(row=riadok+rr, column=2+cc).value = prvok
+            obj.cell(row=riadok, column=2+0).value = prvky[0]
+            obj.cell(row=riadok, column=2+1).value = prvky[1]
+            val2 = float(prvky[2].strip().replace(",","."))
+            obj.cell(row=riadok, column=2+2).value = val2
+            obj.cell(row=riadok, column=2+2).number_format= "0.00"
+            val3 = float(prvky[3].strip().replace(",","."))
+            obj.cell(row=riadok, column=2+3).value = val3
+            obj.cell(row=riadok, column=2+4).number_format= "0.00"
+            #nefunguje, ktovie prečo
+            #
+            if objednavka.dodavatel.s_danou==AnoNie.ANO:
+                #obj[f'G{riadok}'] = f'=IF(ISBLANK(D{riadok});" ";D{riadok}*E{riadok})'
+                obj[f'G{riadok}'] = val2*val3*DPH
+            else:
+                obj[f'F{riadok}'] = val2*val3
+            obj.cell(row=riadok, column=2+5).number_format= "0.00"
+            add_sum = True
 
-    obj["A33"].value = obj["A33"].value.replace("[[datum]]", dnesny_datum)
+        if add_sum: 
+            if objednavka.dodavatel.s_danou==AnoNie.ANO:
+                obj[f'G{prvy_riadok+pocet_riadkov}'] = f"=SUM(G{prvy_riadok}:G{prvy_riadok+pocet_riadkov-1})"
+            else:
+                obj[f'F{prvy_riadok+pocet_riadkov}'] = f"=SUM(F{prvy_riadok}:F{prvy_riadok+pocet_riadkov-1})"
+
+
+    if objednavka.termin_dodania:
+        obj["A32"].value = obj["A32"].value.replace("[[termin_dodania]]", objednavka.termin_dodania)
+    else:
+        obj["A32"].value = obj["A32"].value.replace("[[termin_dodania]]", "")
+    obj["A34"].value = obj["A34"].value.replace("[[datum]]", dnesny_datum)
   
     kl = workbook["Finančná kontrola"]
     kl["A1"].value = kl["A1"].value.replace("[[cislo]]", objednavka.cislo)
