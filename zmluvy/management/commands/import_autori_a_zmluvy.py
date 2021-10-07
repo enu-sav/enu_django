@@ -29,8 +29,8 @@ class Command(BaseCommand):
         return ind,data
 
     def transliterate(self,text):
-        ii= "'’,()[] ?,–_/.-aáäbcčdďeéěfghiíjklľĺmnňoóôöpqrŕřsštťuüúůvwxyýzžAÁÄBCČDĎEÉFGHIÍJKLĽĹMNŇOÓÔPQRŔŘSŠTŤUÜÚŮVWXYÝZŽ0123456789"
-        oo= "---------------aaabccddeeefghiijklllmnnoooopqrrrssttuuuuvwxyyzzAAABCCDDEEFGHIIJKLLLMNNOOOPQRRRSSTTUUUUVWXYYZZ0123456789"
+        ii= "'’,()[] ?,–_/.-aáäbcčdďeéěfghiíjklľĺmnňoóôöőpqrŕřsštťuüúůvwxyýzžAÁÄBCČDĎEÉFGHIÍJKLĽĹMNŇOÓÔPQRŔŘSŠTŤUÜÚŮVWXYÝZŽ0123456789"
+        oo= "---------------aaabccddeeefghiijklllmnnooooopqrrrssttuuuuvwxyyzzAAABCCDDEEFGHIIJKLLLMNNOOOPQRRRSSTTUUUUVWXYYZZ0123456789"
         t=""
         for i,c in enumerate(text.strip(" ")):
             t += oo[ii.find(c)]
@@ -47,8 +47,11 @@ class Command(BaseCommand):
             if autor[hdr["IBAN"]] and not valid_iban(autor[hdr["IBAN"]]):
                 self.stdout.write(self.style.ERROR(f"chybný IBAN: {login} {autor[hdr['číslo zmluvy']]} {autor[hdr['IBAN']]}"))
             o_query_set = OsobaAutor.objects.filter(rs_login=login)
-            if o_query_set:
-                oo = o_query_set[0]
+            if not o_query_set:
+                oo = OsobaAutor(
+                        rs_login = login,
+                    )
+                oo._change_reason = f'import_autori_a_zmluvy.py: vytvorený nový autor {login} (súbor {path})'
                 if autor[hdr["Titul pred"]]: oo.titul_pred_menom = autor[hdr["Titul pred"]]
                 oo.meno = autor[hdr["Meno"]]
                 oo.priezvisko = autor[hdr["Priezvisko"]]
@@ -79,17 +82,13 @@ class Command(BaseCommand):
                     oo.zdanit = AnoNie.NIE
                 else:
                     oo.zdanit = AnoNie.ANO
-                if autor[hdr["Preplatok"]]:
-                    oo.preplatok = autor[hdr["Preplatok"]].replace(",",".")
-                if autor[hdr["Url zmluvy"]]:
-                    oo.url_zmluvy = autor[hdr["Url zmluvy"]]
                 oo._change_reason = f'import_autori_a_zmluvy.py: načítané údaje autora (súbor {path})'
                 oo.save()
 
                 # pridať zmluvu
                 if autor[hdr["číslo zmluvy"]]:
                     o_query_set = ZmluvaAutor.objects.filter(zmluvna_strana=oo)
-                    self.stdout.write(self.style.SUCCESS(f"OK: {login}, zmluva {autor[hdr['číslo zmluvy']]}"))
+                    #self.stdout.write(self.style.SUCCESS(f"OK: {login}, zmluva {autor[hdr['číslo zmluvy']]}"))
                     # zistiť, či už zmluvu máme
                     zm = None
                     for zz in o_query_set:
@@ -111,15 +110,15 @@ class Command(BaseCommand):
                             zm.datum_zverejnenia_CRZ = datetime.strptime(autor[hdr["Dátum CRZ"]],"%d.%m.%Y")
                         zm.url_zmluvy = autor[hdr["Url zmluvy"]]
                         zm.stav_zmluvy = StavZmluvy.ZVEREJNENA_V_CRZ
+                    else:
+                        zm.stav_zmluvy = StavZmluvy.NEPLATNA
                     datum_pridania = timezone.now()
                     zm.datum_aktualizacie = timezone.now()
                     zm._change_reason = f'import_autori_a_zmluvy.py: vytvorená nová zmluva {zm.cislo_zmluvy} (súbor {path})'
                     update_change_reason(oo, f'import_autori_a_zmluvy.py: pridaná zmluva {zm.cislo_zmluvy} (súbor {path})')
                     zm.save()
                     pass
-                else:
-                    self.stdout.write(self.style.WARNING(f"OK: {login}"))
-            else:
-                self.stdout.write(self.style.ERROR(f"Nenájdené medzi autormi: {login}"))
+                self.stdout.write(self.style.WARNING(f"OK:, {login}, {autor}"))
+                pass
         self.db_logger = logging.getLogger('db')
         self.db_logger.info(f"import_autori_a_zmluvy.py: importovanie údajov o autoroch a ich zmluvách zo súboru {path}, celkový počet: {len(data)}.  ")
