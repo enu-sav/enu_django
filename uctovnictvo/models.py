@@ -6,6 +6,7 @@ from django.core.exceptions import ValidationError
 from simple_history.models import HistoricalRecords
 from uctovnictvo.storage import OverwriteStorage
 from polymorphic.models import PolymorphicModel
+from django.utils.safestring import mark_safe
 
 from beliana.settings import TMPLTS_DIR_NAME
 import os,re, datetime
@@ -143,7 +144,12 @@ class Objednavka(ObjednavkaZmluva):
     oznacenie = "O"    #v čísle faktúry, Fa-2021-123
     # Polia
     objednane_polozky = models.TextField("Objednané položky", 
-            help_text = "Po riadkoch zadajte položky s poľami oddelenými bodkočiarkou (v poradí: názov položky; merná jednotka - ks, kg, l, m, m2, m3; množstvo; cena za jednotku bez DPH) alebo len ako jednoduchý text bez bodkočiarok (napr. 'Objednávanme tovar podľa priloženej ponuky')",
+            help_text = mark_safe("<p>Po riadkoch zadajte objednávané položky:</p>\
+                <ol>\
+                <li>možnosť: so 4 poľami oddelenými bodkočiarkou v poradí: <b>názov položky</b>; <b>merná jednotka</b> - ks, kg, l, m, m2, m3; <b>množstvo</b>; <b>cena za jednotku bez DPH</b>, napr. <em>Euroobal A4;bal;10;7,50</em>. <br />Cena za jednotlivé položky a celková suma sa dopočíta. Pri výpočte sa berie do úvahy, či dodávateľ účtuje alebo neúčtuje cenu s DPH. </li>\
+                <li>možnosť: ako jednoduchý text bez bodkočiarok, napr. <em>Objednávanme tovar podľa priloženej ponuky.</em></li>\
+                </ol>"),
+
             max_length=5000, null=True, blank=True)
     datum_vytvorenia = models.DateField('Dátum vytvorenia',
             help_text = "Zadajte dátum vytvorenia objednávky",

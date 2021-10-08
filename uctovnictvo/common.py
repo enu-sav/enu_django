@@ -135,7 +135,6 @@ def VytvoritSuborObjednavky(objednavka):
         return messages.ERROR, f"V systéme nie je definovaný súbor '{nazov_objektu}'.", None
     nazov_suboru = sablona[0].subor.file.name 
     workbook = load_workbook(filename=nazov_suboru)
-    dnesny_datum = timezone.now().strftime("%d. %m. %Y")
 
     obj = workbook["Objednávka"]
     obj["A3"].value = obj["A3"].value.replace("[[cislo]]",objednavka.cislo)
@@ -156,7 +155,7 @@ def VytvoritSuborObjednavky(objednavka):
             obj.merge_cells(f'B{riadok}:F{riadok}')
             obj[f"B{riadok}"].value = prvky[0]
             add_sum = False
-        else:
+        elif len(prvky) == 4:
             obj.cell(row=riadok, column=2+0).value = prvky[0]
             obj.cell(row=riadok, column=2+1).value = prvky[1]
             val2 = float(prvky[2].strip().replace(",","."))
@@ -174,6 +173,8 @@ def VytvoritSuborObjednavky(objednavka):
                 obj[f'F{riadok}'] = val2*val3
             obj.cell(row=riadok, column=2+5).number_format= "0.00"
             add_sum = True
+        else:
+            return messages.ERROR, f"Riadok {rr+1} zoznamu položiek má nesprávny počet polí (počet poĺí {len(prvky)}, počet bodkočiarok {len(prvky) -1}). Text upravte tak, aby mal práve 4 polia (3 bodkočiarky) alebo všetky bodkočiarky odstráňte. Všetky riadky musia byť členené na polia rovnako.", None
 
         if add_sum: 
             if objednavka.dodavatel.s_danou==AnoNie.ANO:
@@ -186,15 +187,15 @@ def VytvoritSuborObjednavky(objednavka):
         obj["A32"].value = obj["A32"].value.replace("[[termin_dodania]]", objednavka.termin_dodania)
     else:
         obj["A32"].value = obj["A32"].value.replace("[[termin_dodania]]", "")
-    obj["A34"].value = obj["A34"].value.replace("[[datum]]", dnesny_datum)
+    obj["A34"].value = obj["A34"].value.replace("[[datum]]", objednavka.datum_vytvorenia.strftime("%d. %m. %Y"))
   
     kl = workbook["Finančná kontrola"]
     kl["A1"].value = kl["A1"].value.replace("[[cislo]]", objednavka.cislo)
-    kl["A1"].value = kl["A1"].value.replace("[[datum]]", dnesny_datum)
+    kl["A1"].value = kl["A1"].value.replace("[[datum]]", objednavka.datum_vytvorenia.strftime("%d. %m. %Y"))
 
     #ulozit
     #Create directory admin.rs_login if necessary
-    nazov = f'{objednavka.cislo}-{objednavka.dodavatel.nazov.replace(" ","").replace(".","").replace(",","-")}".xlsx'
+    nazov = f'{objednavka.cislo}-{objednavka.dodavatel.nazov.replace(" ","").replace(".","").replace(",","-")}.xlsx'
     opath = os.path.join(settings.OBJEDNAVKY_DIR,nazov)
     workbook.save(os.path.join(settings.MEDIA_ROOT,opath))
     return messages.SUCCESS, f"Súbor objednávky {objednavka.cislo} bol úspešne vytvorený ({opath}).", opath
