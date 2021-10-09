@@ -436,6 +436,10 @@ class DoVP(Dohoda):
             max_digits=8, 
             decimal_places=1, 
             default=0)
+    pomocnik = models.CharField("Pomoc rod. príslušníkov", 
+            help_text = "Uveďte zoznam rod. príslušníkov, ktorí budú pomáhať pri vykonávaní činnosti, alebo nechajte prázdne. Pre každého uveďte meno a priezvisko.",
+            null = True, blank = True,
+            max_length=100)
     history = HistoricalRecords()
     # test platnosti dát
     def clean(self): 
