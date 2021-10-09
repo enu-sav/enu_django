@@ -444,6 +444,25 @@ class DoVP(Dohoda):
     def __str__(self):
         return f"{self.cislo}; {self.zmluvna_strana}"
 
+class DoBPS(Dohoda):
+    oznacenie = "DoBPS"
+    odmena_celkom = models.DecimalField("Celková suma v EUR", 
+            help_text = "Zadajte celkovú odmenu za vykonanú prácu. Bude vyplatená po odovzdaní práce a výkazu",
+            max_digits=8, 
+            decimal_places=2, 
+            default=0)
+    hod_celkom = models.DecimalField("Predpokl. počet hodín",
+            help_text = "Uveďte predpokladaný celkový počet odpracovaných hodín",
+            max_digits=8, 
+            decimal_places=1, 
+            default=0)
+    history = HistoricalRecords()
+    class Meta:
+        verbose_name = 'Dohoda o bigádnickej práci študentov'
+        verbose_name_plural = 'Dohody - Dohody o bigádnickej práci študentov'
+    def __str__(self):
+        return f"{self.cislo}; {self.zmluvna_strana}"
+
 class DoPC(Dohoda):
     oznacenie = "DoPC"
     odmena_hod = models.DecimalField("Odmena / hod",

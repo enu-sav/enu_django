@@ -6,6 +6,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.utils import timezone
 from .models import SystemovySubor, PrijataFaktura, AnoNie, Objednavka, PrijataFaktura, Rozhodnutie, Zmluva
+from .models import DoVP, DoPC
 
 from openpyxl import load_workbook
 from openpyxl.styles import Font, Color, colors, Alignment, PatternFill , numbers
@@ -88,6 +89,25 @@ def VytvoritPlatobnyPrikaz(faktura):
         f.write(text)
     return messages.SUCCESS, f"Súbor platobného príkazu faktúry {faktura.cislo} bol úspešne vytvorený ({opath}).", opath
 
+
+# skryt sekciu v dokumente dohody
+# sname: sekcia, ktorá sa má zachovať 
+def dohoda_skryt_sekcie(text, sname):
+    #Sekcie v dokumente, ktoré možno skryť 
+    sekcie = [
+        'text:name="DoBPS_podmienky"',
+        'text:name="DoVP_vyplata"',
+        'text:name="DoPC_vyplata"',
+        'text:name="DoBPS_vyplata"',
+        'text:name="DoPC_DoBPS_paska"',
+        'text:name="DoPC_DoVP_vyhlasenie"',
+        'text:name="DoBPS_vyhlasenie"'
+    ]
+    for sekcia in sekcie:
+       if not sname in sekcia:
+        text = text.replace(sekcia, f'{sekcia} text:display="none"')
+    return text
+
 def VytvoritSuborDohody(dohoda):
     #úvodné testy
     dohody_dir_path  = os.path.join(settings.MEDIA_ROOT,settings.DOHODY_DIR)
@@ -111,11 +131,51 @@ def VytvoritSuborDohody(dohoda):
     except:
         return messages.ERROR, f"Chyba pri vytváraní súboru platobného príkazu faktúry: chyba pri čítaní šablóny '{nazov_suboru}'", None
     
-    # vložiť údaje
-
-    #ulozit
     #Create directory admin.rs_login if necessary
-    nazov = f"{objednavka.cislo}-{objednavka.dodavatel.nazov}.fodt"
+    trace()
+    # vložiť spoločné údaje
+    text.replace("[[cislo]]", dohoda.cislo)
+    text.replace("[[meno_priezvisko]]", "asdf")
+    text.replace("[[rod_priezvisko]]", "asdf")
+    text.replace("[[adresa]]", "asdf")
+    text.replace("[[d_narodenia]]", "asdf")
+    text.replace("[[m_narodenia]]", "asdf")
+    text.replace("[[cop]]", "asdf")
+    text.replace("[[rc]]", "asdf")
+    text.replace("[[stav]]", "asdf")
+    text.replace("[[st_prislusnost]]", "asdf")
+    text.replace("[[zdrav_poistovna]]", "asdf")
+    text.replace("[[dochodok]]", "asdf")
+    text.replace("[[dohodnuta_cinnost]]", dohoda.predmet)
+    text.replace("[[datum od]]", dohoda.datum_od.strftime("%d. %m. %Y"))
+    text.replace("[[datum_do]]", dohoda.datum_do.strftime("%d. %m. %Y"))
+    text.replace("[[rozsah_prace_cas]]", "asdf")
+    text.replace("[[preberajuca_osoba]]", "asdf")
+    text.replace("[[osobne_pomoc]]", "asdf")
+    text.replace("[[pomocnik]]", "asdf")
+    text.replace("[[IBAN]]", "asdf")
+    text.replace("[[vyplatny_termin]]", "asdf")
+    text.replace("[[email]]", "asdf")
+
+    #trace()
+    # vložiť údaje DoVP
+    if type(dohoda) == DoVP:
+        text.replace("[[typ_dohody]]", "o vykonaní práce")
+        text.replace("[[zakony]]", "asdf")
+        text.replace("[[odmena]]", "asdf")
+        text = dohoda_skryt_sekcie(text, "DoVP")
+    # vložiť údaje DoPC
+    elif type(dohoda) == DoPC:
+        text.replace("[[typ_dohody]]", "o pracovnej činnosti")
+        text.replace("[[zakony]]", "§223 - §225 a §228a")
+        text.replace("[[odmena]]", "asdf")
+        text = dohoda_skryt_sekcie(text, "DoPC")
+    # vložiť údaje DoBPS
+    #elif type(dohoda) == DoBPS:
+        #text.replace("[[typ_dohody]]", "o brigádnickej práci študentov")
+        #text.replace("[[odmena]]", "asdf")
+        #text.replace("[[zakony]]", "asdf")
+    nazov = f"{dohoda.cislo}-{dohoda.zmluvna_strana.priezvisko}.fodt"
     opath = os.path.join(settings.DOHODY_DIR,nazov)
     with open(os.path.join(settings.MEDIA_ROOT,opath), "w") as f:
         f.write(text)
