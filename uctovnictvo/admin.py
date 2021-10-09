@@ -265,11 +265,6 @@ class DohodarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelA
     def adresa(self, obj):
         if obj.adresa_mesto:
             return f"{obj.adresa_ulica} {obj.adresa_mesto}, {obj.adresa_stat}".strip()
-    def save_model(self, request, obj, form, change):
-        if 'poberatel_doch' in form.changed_data:
-            if obj.poberatel_doch == AnoNie.ANO and not obj.typ_doch:
-                messages.add_message(request, messages.WARNING, "sumy. Ak ide o omyl, hodnotu opravte.") 
-        super(PrijataFakturaAdmin, self).save_model(request, obj, form, change)
 
 @admin.register(DoVP)
 class DoVPAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
@@ -350,8 +345,8 @@ class DoBPSAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
 @admin.register(DoPC)
 class DoPCAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
     form = DoPCForm
-    fields = ["cislo", "zmluvna_strana", "predmet", "subor_dohody", "datum_od", "datum_do", "odmena_hod", "hod_tyzden", "odmena_celkom", "poznamka","zdroj", "program", "zakazka", "ekoklas" ]
-    list_display = ("cislo", "zmluvna_strana_link", "predmet", "subor_dohody", "odmena_celkom", "odmena_hod", "hod_tyzden", "datum_od", "datum_do", "poznamka" )
+    fields = ["cislo", "zmluvna_strana", "predmet", "subor_dohody", "datum_od", "datum_do", "odmena_mesacne", "hod_mesacne", "poznamka","zdroj", "program", "zakazka", "ekoklas" ]
+    list_display = ("cislo", "zmluvna_strana_link", "predmet", "subor_dohody", "odmena_mesacne", "hod_mesacne", "datum_od", "datum_do", "poznamka" )
 
     # ^: v poli vyhľadávať len od začiatku
     search_fields = ["cislo", "zmluvna_strana__nazov"]
@@ -364,7 +359,7 @@ class DoPCAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
         })
     ]
     list_totals = [
-        ('odmena_celkom', Sum),
+        ('odmena_mesacne', Sum),
     ]
     actions = ['vytvorit_subor_dohody']
 

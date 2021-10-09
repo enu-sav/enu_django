@@ -92,10 +92,10 @@ class PersonCommon(models.Model):
     # IBAN alebo aj kompletný popis s BIC a číslom účtu
     bankovy_kontakt = models.CharField("Bankový kontakt", 
             help_text = "Zadajte IBAN bankového účtu.",
-            max_length=200, null=True, blank=True)
+            max_length=200, null=True)
     adresa_ulica = models.CharField("Adresa – ulica a číslo domu", max_length=200, null=True, blank=True)
-    adresa_mesto = models.CharField("Adresa – PSČ a mesto", max_length=200, null=True, blank=True)
-    adresa_stat = models.CharField("Adresa – štát", max_length=100, null=True, blank=True)
+    adresa_mesto = models.CharField("Adresa – PSČ a mesto", max_length=200, null=True)
+    adresa_stat = models.CharField("Adresa – štát", max_length=100, null=True)
     datum_aktualizacie = models.DateField('Dátum aktualizácie', auto_now=True)
     class Meta:
         abstract = True
@@ -351,12 +351,12 @@ class SystemovySubor(models.Model):
 
 # fyzická osoba, najmä dohodári
 class FyzickaOsoba(PersonCommon):
-    email = models.EmailField("Email", max_length=200, null=True, blank=True)
+    email = models.EmailField("Email", max_length=200, null=True)
     titul_pred_menom = models.CharField("Titul pred menom", max_length=100, null=True, blank=True) #optional
     meno = models.CharField("Meno", max_length=200)
     priezvisko = models.CharField("Priezvisko", max_length=200)
     titul_za_menom = models.CharField("Titul za menom", max_length=100, null=True, blank=True)     #optional
-    rodne_cislo = models.CharField("Rodné číslo", max_length=20, null=True, blank=True) 
+    rodne_cislo = models.CharField("Rodné číslo", max_length=20, null=True)
     poznamka = models.CharField("Poznámka", max_length=200, blank=True)
 
     class Meta:
@@ -365,14 +365,14 @@ class FyzickaOsoba(PersonCommon):
         return self.rs_login
 
 class Dohodar(FyzickaOsoba):
-    datum_nar = models.DateField('Dátum narodenia', blank=True, null=True)
-    rod_priezvisko = models.CharField("Rodné priezvisko", max_length=100, null=True, blank=True)
-    miesto_nar = models.CharField("Miesto narodenia", max_length=100, null=True, blank=True)
+    datum_nar = models.DateField('Dátum narodenia', null=True)
+    rod_priezvisko = models.CharField("Rodné priezvisko", max_length=100, blank=True, null=True)
+    miesto_nar = models.CharField("Miesto narodenia", max_length=100, null=True)
+    st_prislusnost = models.CharField("Štátna príslušnosť", max_length=100, null=True)
     #stav = models.CharField("Stav", max_length=100, null=True, blank=True)
     poberatel_doch = models.CharField("Poberateľ dôchodku", 
             max_length=10, 
             null=True, 
-            blank=True,
             choices=AnoNie.choices)
     typ_doch = models.CharField("Typ dôchodku", 
             max_length=100, 
@@ -382,9 +382,8 @@ class Dohodar(FyzickaOsoba):
     poistovna = models.CharField("Zdravotná poisťovňa",
             max_length=20, 
             null=True, 
-            blank=True,
             choices=Poistovna.choices)
-    cop = models.CharField("Číslo OP", max_length=20, null=True, blank=True)
+    cop = models.CharField("Číslo OP", max_length=20, null=True)
     # test platnosti dát
     def clean(self): 
         if self.poberatel_doch == AnoNie.ANO and not self.typ_doch:
@@ -409,13 +408,13 @@ class Dohoda(PolymorphicModel, Klasifikacia):
     predmet = models.TextField("Pracovná činnosť", 
             help_text = "Zadajte stručný popis práce (max. 250 znakov, 3 riadky)",
             max_length=250,
-            blank=True, null=True)
+            null=True)
     datum_od = models.DateField('Dátum od',
             help_text = "Zadajte dátum začiatku platnosti dohody",
-            blank=True, null=True)
+            null=True)
     datum_do = models.DateField('Dátum do',
             help_text = "Zadajte dátum konca platnosti dohody",
-            blank=True, null=True)
+            null=True)
     class Meta:
         verbose_name = "Dohoda"
         verbose_name_plural = "Dohody"
@@ -433,11 +432,16 @@ class DoVP(Dohoda):
             decimal_places=2, 
             default=0)
     hod_celkom = models.DecimalField("Predpokl. počet hodín",
-            help_text = "Uveďte predpokladaný celkový počet odpracovaných hodín",
+            help_text = "Uveďte predpokladaný celkový počet odpracovaných hodín, najviac 350.",
             max_digits=8, 
             decimal_places=1, 
             default=0)
     history = HistoricalRecords()
+    # test platnosti dát
+    def clean(self): 
+        if self.hod_celkom > 350:
+            raise ValidationError(f"Celkový počet {pocet_hodin} hodín maximálny zákonom povolený povolený počet 350.")
+
     class Meta:
         verbose_name = 'Dohoda o vykonaní práce'
         verbose_name_plural = 'Dohody - Dohody o vykonaní práce'
@@ -465,20 +469,15 @@ class DoBPS(Dohoda):
 
 class DoPC(Dohoda):
     oznacenie = "DoPC"
-    odmena_hod = models.DecimalField("Odmena / hod",
-            help_text = "Odmena za 1 hodinu práce. Vyplňte len ak ide o novú dohodu. Ak vkladáte údaje za už ukončenú dohodu, ponechajte hodnotu 0.",
+    odmena_mesacne = models.DecimalField("Odmena mesačne",
+            help_text = "Dohodnutá mesačná odmena",
             max_digits=8,
             decimal_places=2, 
             default=0)
-    hod_tyzden = models.DecimalField("Hodín za týždeň",
-            help_text = "Dohodnutý počet odpracovaných hodín za týždeň. Vyplňte len ak ide o novú dohodu. Ak vkladáte údaje za už ukončenú dohodu, ponechajte hodnotu 0.",
+    hod_mesacne = models.DecimalField("Hodín za mesiac",
+            help_text = "Dohodnutý počet odpracovaných hodín za mesiac, najviac 40",
             max_digits=8, 
             decimal_places=1, 
-            default=0)
-    odmena_celkom = models.DecimalField("Celková odmena v EUR", 
-            help_text = "Vyplňte, len ak vkladáte údaje za už ukončenú dohodu. Inak bude hodnota tohoto poľa vypočítaná z hodnoty ostatných polí.",
-            max_digits=8, 
-            decimal_places=2, 
             default=0)
     history = HistoricalRecords()
     class Meta:
@@ -486,22 +485,8 @@ class DoPC(Dohoda):
         verbose_name_plural = 'Dohody - Dohody o pracovnej činnosti'
     # test platnosti dát
     def clean(self): 
-        poc_dni = np.busday_count(
-                self.datum_od,
-                self.datum_do+datetime.timedelta(days=1),   #vrátane posledného dňa
-                weekmask=[1,1,1,1,1,0,0])
-        pocet_hodin = poc_dni * self.hod_tyzden/5
-        if pocet_hodin > 350:
-            raise ValidationError(f"Celkový počet {pocet_hodin} hodín za určené obdobie presahuje maximálny povolený počet 350. Znížte počet hodín za týždeň alebo skráťte obdobie.")
-
-    def save(self, *args, **kwargs):
-        if self.odmena_hod and self.hod_tyzden:
-            poc_dni = np.busday_count(
-                    self.datum_od,
-                    self.datum_do+datetime.timedelta(days=1),   #vrátane posledného dňa
-                    weekmask=[1,1,1,1,1,0,0])
-            self.odmena_celkom = self.odmena_hod * poc_dni * self.hod_tyzden/5
-        super(DoPC, self).save(*args, **kwargs)
+        if self.hod_mesacne > 40:
+            raise ValidationError(f"Počet hodín mesačne {pocet_hodin} presahuje maximálny zákonom povolený počet 40.")
     def __str__(self):
         return f"{self.cislo}; {self.zmluvna_strana}"
 

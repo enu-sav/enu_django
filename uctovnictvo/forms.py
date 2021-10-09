@@ -1,7 +1,7 @@
 
 from django import forms
 from ipdb import set_trace as trace
-from .models import PrijataFaktura, Objednavka, PrispevokNaStravne, DoPC, DoVP
+from .models import PrijataFaktura, Objednavka, PrispevokNaStravne, DoPC, DoVP, DoBPS
 from datetime import datetime
 import re
 
@@ -86,7 +86,7 @@ class DoPCForm(forms.ModelForm):
         self.initial['zdroj'] = 1       #111
         self.initial['program'] = 1     #Ostatné
         self.initial['zakazka'] = 1     #Beliana
-        self.initial['ekoklas'] = 58    #633018	Licencie
+        self.initial['ekoklas'] = 97    #637027 - Odmeny zamestnancov mimopracovného pomeru
         polecislo = "cislo"
         # Ak je pole readonly, tak sa nenachádza vo fields. Preto testujeme fields aj initial
         if polecislo in self.fields:
@@ -104,7 +104,7 @@ class DoVPForm(forms.ModelForm):
         self.initial['zdroj'] = 1       #111
         self.initial['program'] = 1     #Ostatné
         self.initial['zakazka'] = 1     #Beliana
-        self.initial['ekoklas'] = 58    #633018	Licencie
+        self.initial['ekoklas'] = 97    #637027 - Odmeny zamestnancov mimopracovného pomeru
         polecislo = "cislo"
         # Ak je pole readonly, tak sa nenachádza vo fields. Preto testujeme fields aj initial
         if polecislo in self.fields:
@@ -114,3 +114,21 @@ class DoVPForm(forms.ModelForm):
                 self.initial[polecislo] = nasledujuce
             else:
                 self.fields[polecislo].help_text = f"Číslo faktúry v tvare {DoVP.oznacenie}-RRRR-NNN."
+
+class DoBPSForm(forms.ModelForm):
+    #inicializácia polí
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.initial['zdroj'] = 1       #111
+        self.initial['program'] = 1     #Ostatné
+        self.initial['zakazka'] = 1     #Beliana
+        self.initial['ekoklas'] = 97    #637027 - Odmeny zamestnancov mimopracovného pomeru
+        polecislo = "cislo"
+        # Ak je pole readonly, tak sa nenachádza vo fields. Preto testujeme fields aj initial
+        if polecislo in self.fields:
+            if not polecislo in self.initial:
+                nasledujuce = nasledujuce_cislo(DoBPS)
+                self.fields[polecislo].help_text = f"Zadajte číslo novej DoBPS v tvare {DoBPS.oznacenie}-RRRR-NNN. Predvolené číslo '{nasledujuce} bolo určené na základe čísiel existujúcich DoBPS ako nasledujúce v poradí."
+                self.initial[polecislo] = nasledujuce
+            else:
+                self.fields[polecislo].help_text = f"Číslo faktúry v tvare {DoBPS.oznacenie}-RRRR-NNN."
