@@ -13,6 +13,7 @@ import os,re, datetime
 import numpy as np
 from ipdb import set_trace as trace
 
+#acces label: AnoNie('ano').label
 class AnoNie(models.TextChoices):
     ANO = 'ano', 'Áno'
     NIE = 'nie', 'Nie'
@@ -369,7 +370,7 @@ class Dohodar(FyzickaOsoba):
     rod_priezvisko = models.CharField("Rodné priezvisko", max_length=100, blank=True, null=True)
     miesto_nar = models.CharField("Miesto narodenia", max_length=100, null=True)
     st_prislusnost = models.CharField("Štátna príslušnosť", max_length=100, null=True)
-    #stav = models.CharField("Stav", max_length=100, null=True, blank=True)
+    stav = models.CharField("Stav", max_length=100, null=True)
     poberatel_doch = models.CharField("Poberateľ dôchodku", 
             max_length=10, 
             null=True, 
@@ -379,6 +380,10 @@ class Dohodar(FyzickaOsoba):
             null=True, 
             blank=True,
             choices=TypDochodku.choices)
+    datum_doch = models.DateField('Dôchodca od',
+            help_text = "Zadajte dátum vzniku dôchodku",
+            blank=True,
+            null=True)
     poistovna = models.CharField("Zdravotná poisťovňa",
             max_length=20, 
             null=True, 
@@ -387,7 +392,9 @@ class Dohodar(FyzickaOsoba):
     # test platnosti dát
     def clean(self): 
         if self.poberatel_doch == AnoNie.ANO and not self.typ_doch:
-            raise ValidationError("V prípade poberateľa dôchodku je potrebné určiť typ dôchodku")
+            raise ValidationError("V prípade poberateľa dôchodku je potrebné zadať typ dôchodku")
+        if self.poberatel_doch == AnoNie.ANO and not self.datum_doch:
+            raise ValidationError("V prípade poberateľa dôchodku je potrebné zadať dátum vzniku dôchodku")
     class Meta:
         verbose_name = "Dohodár"
         verbose_name_plural = "Dohody - Dohodári"
@@ -443,6 +450,9 @@ class DoVP(Dohoda):
     history = HistoricalRecords()
     # test platnosti dát
     def clean(self): 
+        num_days = (self.datum_do - self.datum_od).days
+        if num_days > 366:
+            raise ValidationError(f"Doba platnosti dohody presahuje maximálnu povolenú dobu 12 mesiacov.")
         if self.hod_celkom > 350:
             raise ValidationError(f"Celkový počet {pocet_hodin} hodín maximálny zákonom povolený povolený počet 350.")
 
@@ -459,8 +469,8 @@ class DoBPS(Dohoda):
             max_digits=8, 
             decimal_places=2, 
             default=0)
-    hod_celkom = models.DecimalField("Predpokl. počet hodín",
-            help_text = "Uveďte predpokladaný celkový počet odpracovaných hodín",
+    hod_mesacne = models.DecimalField("Predpokl. počet hodín mesačne",
+            help_text = "Uveďte predpokladaný priemerný počet odpracovaných hodín. Počet nesmie v priemere prekračovať 80 hodín mesačne",
             max_digits=8, 
             decimal_places=1, 
             default=0)
@@ -473,7 +483,7 @@ class DoBPS(Dohoda):
 
 class DoPC(Dohoda):
     oznacenie = "DoPC"
-    odmena_mesacne = models.DecimalField("Odmena mesačne",
+    odmena_mesacne = models.DecimalField("Odmena za mesiac",
             help_text = "Dohodnutá mesačná odmena",
             max_digits=8,
             decimal_places=2, 
@@ -490,7 +500,7 @@ class DoPC(Dohoda):
     # test platnosti dát
     def clean(self): 
         if self.hod_mesacne > 40:
-            raise ValidationError(f"Počet hodín mesačne {pocet_hodin} presahuje maximálny zákonom povolený počet 40.")
+            raise ValidationError(f"Počet hodín mesačne {hod_mesacne} presahuje maximálny zákonom povolený počet 40.")
     def __str__(self):
         return f"{self.cislo}; {self.zmluvna_strana}"
 

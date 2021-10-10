@@ -259,7 +259,7 @@ class SystemovySuborAdmin(admin.ModelAdmin):
 
 @admin.register(Dohodar)
 class DohodarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
-    list_display = ("priezvisko", "meno", "rod_priezvisko", "email", "rodne_cislo", "datum_nar", "miesto_nar", "adresa", "poberatel_doch", "typ_doch", "poistovna", "cop")
+    list_display = ("priezvisko", "meno", "rod_priezvisko", "email", "rodne_cislo", "datum_nar", "miesto_nar", "adresa", "poberatel_doch", "typ_doch", "poistovna", "cop", "stav")
     # ^: v poli vyhľadávať len od začiatku
     search_fields = ["priezvisko", "meno"]
     def adresa(self, obj):
