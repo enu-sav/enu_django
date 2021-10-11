@@ -384,6 +384,14 @@ class Dohodar(FyzickaOsoba):
             help_text = "Zadajte dátum vzniku dôchodku",
             blank=True,
             null=True)
+    ztp = models.CharField("ZŤP",
+            help_text = "Uveďte, či osoba je 'ZŤP'",
+            max_length=10, 
+            choices=AnoNie.choices)
+    datum_ztp = models.DateField('ZŤP od',
+            help_text = "Ak je osoba 'ZŤP, zadajte dátum vzniku ZŤP",
+            blank=True,
+            null=True)
     poistovna = models.CharField("Zdravotná poisťovňa",
             max_length=20, 
             null=True, 
@@ -395,6 +403,8 @@ class Dohodar(FyzickaOsoba):
             raise ValidationError("V prípade poberateľa dôchodku je potrebné zadať typ dôchodku")
         if self.poberatel_doch == AnoNie.ANO and not self.datum_doch:
             raise ValidationError("V prípade poberateľa dôchodku je potrebné zadať dátum vzniku dôchodku")
+        if self.ztp == AnoNie.ANO and not self.datum_ztp:
+            raise ValidationError("V prípade ZŤP osoby je potrebné zadať dátum vzniku ZŤP")
     class Meta:
         verbose_name = "Dohodár"
         verbose_name_plural = "Dohody - Dohodári"

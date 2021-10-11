@@ -151,6 +151,8 @@ def OveritUdajeDohodara(dohodar):
     if dohodar.poberatel_doch == AnoNie.ANO:
         if not dohodar.typ_doch: chyby = f"{chyby} typ dôchodku," 
         if not dohodar.datum_doch: chyby = f"{chyby} dátum vzniku dôchodku," 
+    if dohodar.ztp == AnoNie.ANO:
+        if not dohodar.datum_ztp: chyby = f"{chyby} dátum vzniku ZŤP," 
     return chyby.strip(" ").strip(",")
 
 
@@ -201,6 +203,11 @@ def VytvoritSuborDohody(dohoda):
                 f"{AnoNie(dohodar.poberatel_doch).label}, {TypDochodku(dohodar.typ_doch).label}, dátum vzniku: {dohodar.datum_doch.strftime('%d. %m. %Y')}")
     else:
         text = text.replace("[[dochodok]]", AnoNie(dohodar.poberatel_doch).label)
+    if dohodar.ztp == AnoNie.ANO:
+        text = text.replace( "[[ztp]]", 
+                f"{AnoNie(dohodar.poberatel_doch).label}, od {dohodar.datum_ztp.strftime('%d. %m. %Y')}")
+    else:
+        text = text.replace("[[ztp]]", AnoNie(dohodar.poberatel_doch).label)
 
     text = text.replace("[[dohodnuta_cinnost]]", dohoda.predmet)
     text = text.replace("[[cislo]]", dohoda.cislo)
