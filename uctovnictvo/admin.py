@@ -319,8 +319,8 @@ class DoVPAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
 @admin.register(DoBPS)
 class DoBPSAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
     form = DoBPSForm
-    fields = ["cislo", "zmluvna_strana", "predmet", "subor_dohody", "datum_od", "datum_do", "odmena_celkom", "poznamka","zdroj", "program", "zakazka", "ekoklas" ]
-    list_display = ("cislo", "zmluvna_strana_link", "predmet", "subor_dohody", "odmena_celkom", "datum_od", "datum_do", "poznamka" )
+    fields = ["cislo", "zmluvna_strana", "predmet", "subor_dohody", "datum_od", "datum_do", "datum_ukoncenia", "odmena_celkom", "poznamka","zdroj", "program", "zakazka", "ekoklas" ]
+    list_display = ("cislo", "zmluvna_strana_link", "predmet", "subor_dohody", "odmena_celkom", "datum_od", "datum_do", "datum_ukoncenia", "poznamka" )
 
     # ^: v poli vyhľadávať len od začiatku
     search_fields = ["cislo", "zmluvna_strana__nazov"]
@@ -357,8 +357,8 @@ class DoBPSAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
 @admin.register(DoPC)
 class DoPCAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
     form = DoPCForm
-    fields = ["cislo", "zmluvna_strana", "predmet", "subor_dohody", "datum_od", "datum_do", "odmena_mesacne", "hod_mesacne", "poznamka","zdroj", "program", "zakazka", "ekoklas" ]
-    list_display = ("cislo", "zmluvna_strana_link", "predmet", "subor_dohody", "odmena_mesacne", "hod_mesacne", "datum_od", "datum_do", "poznamka" )
+    fields = ["cislo", "zmluvna_strana", "predmet", "subor_dohody", "datum_od", "datum_do", "datum_ukoncenia", "odmena_mesacne", "hod_mesacne", "poznamka","zdroj", "program", "zakazka", "ekoklas" ]
+    list_display = ("cislo", "zmluvna_strana_link", "predmet", "subor_dohody", "odmena_mesacne", "hod_mesacne", "datum_od", "datum_do", "datum_ukoncenia", "poznamka" )
 
     # ^: v poli vyhľadávať len od začiatku
     search_fields = ["cislo", "zmluvna_strana__nazov"]
