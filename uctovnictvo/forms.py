@@ -18,6 +18,16 @@ def nasledujuce_cislo(classname):
             #sme v novom roku alebo trieda este nema instanciu
             return f"{ozn_rok}001"
 
+class PopisZmeny(forms.ModelForm):
+    popis_zmeny = forms.CharField(widget=forms.TextInput(attrs={'size':80}))
+    def save(self, commit=True):
+        popis_zmeny = self.cleaned_data.get('popis_zmeny', None)
+        # Get the form instance so I can write to its fields
+        instance = super(PopisZmeny, self).save(commit=commit)
+        # this writes the processed data to the description field
+        instance._change_reason = popis_zmeny
+        return super(PopisZmeny, self).save(commit=commit)
+
 class ObjednavkaForm(forms.ModelForm):
     #inicializácia polí
     def __init__(self, *args, **kwargs):
@@ -133,7 +143,7 @@ class DoBPSForm(forms.ModelForm):
             else:
                 self.fields[polecislo].help_text = f"Číslo faktúry v tvare {DoBPS.oznacenie}-RRRR-NNN."
 
-class PlatovyVymerForm(forms.ModelForm):
+class PlatovyVymerForm(PopisZmeny):
     #inicializácia polí
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -141,3 +151,6 @@ class PlatovyVymerForm(forms.ModelForm):
         self.initial['program'] = 1     #Ostatné
         self.initial['zakazka'] = 2     #11010001 spol. zák.
         self.initial['ekoklas'] = 18    #611 - Tarifný plat, osobný plat, základný plat, funkčný plat, hodnostný plat, plat, vrátane ich náhrad
+    class Meta:
+        model = PlatovyVymer
+        fields = "__all__"
