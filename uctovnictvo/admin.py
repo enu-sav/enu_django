@@ -31,6 +31,16 @@ from django.db.models import Sum
 #https://pypi.org/project/django-admin-relation-links/
 from django_admin_relation_links import AdminChangeLinksMixin
 
+# Ak sa má v histórii zobraziť zoznam zmien, príslušná admin trieda musí dediť od ZobraziZmeny
+class ZobrazitZmeny():
+    # v histórii zobraziť zoznam zmenených polí
+    history_list_display = ['changed_fields']
+    def changed_fields(self, obj):
+        if obj.prev_record:
+            delta = obj.diff_against(obj.prev_record)
+            return ", ".join(delta.changed_fields)
+        return None
+
 @admin.register(Zdroj)
 class ZdojAdmin(SimpleHistoryAdmin, ImportExportModelAdmin):
     list_display = ("kod", "popis")
@@ -400,9 +410,8 @@ class VyplacanieDohodAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdmin
         ('vyplatena_odmena', Sum),
     ]
 
-
 @admin.register(PlatovyVymer)
-class PlatovyVymerAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
+class PlatovyVymerAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin):
     form = PlatovyVymerForm
     fields = ["cislo_zamestnanca", "zamestnanec", "datum_od", "datum_do", "tarifny_plat", "osobny_priplatok", "funkcny_priplatok", "platova_trieda", "platovy_stupen", "prax","popis_zmeny", "zdroj", "program", "zakazka", "ekoklas" ]
     list_display = ["mp","cislo_zamestnanca", "zamestnanec_link", "datum_od", "datum_do", "tarifny_plat", "osobny_priplatok", "funkcny_priplatok",  "platova_trieda", "platovy_stupen", "prax"]
