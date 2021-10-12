@@ -404,7 +404,7 @@ class VyplacanieDohodAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdmin
 @admin.register(PlatovyVymer)
 class PlatovyVymerAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
     form = PlatovyVymerForm
-    fields = ["cislo_zamestnanca", "zamestnanec", "datum_od", "datum_do", "tarifny_plat", "osobny_priplatok", "funkcny_priplatok", "platova_trieda", "platovy_stupen", "prax","zdroj", "program", "zakazka", "ekoklas" ]
+    fields = ["cislo_zamestnanca", "zamestnanec", "datum_od", "datum_do", "tarifny_plat", "osobny_priplatok", "funkcny_priplatok", "platova_trieda", "platovy_stupen", "prax","popis_zmeny", "zdroj", "program", "zakazka", "ekoklas" ]
     list_display = ["mp","cislo_zamestnanca", "zamestnanec_link", "datum_od", "datum_do", "tarifny_plat", "osobny_priplatok", "funkcny_priplatok",  "platova_trieda", "platovy_stupen", "prax"]
 
     # ^: v poli vyhľadávať len od začiatku
@@ -418,6 +418,7 @@ class PlatovyVymerAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
             'admin_order_field': 'zamestnanec__meno', # Allow to sort members by the column
         })
     ]
+
     def mp(self, obj):
         if obj.zamestnanec:
             od = obj.datum_od.strftime('%d. %m. %Y') if obj.datum_od else '--'
@@ -428,10 +429,12 @@ class PlatovyVymerAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
         if obj.datum_do:    # ukončený prac. pomer, aktualizovať prax
             obj.prax += (obj.datum_do - obj.datum_od).days + 1 
         else:               #vytvorený nový výmer
-            # nájsť najnovší starý výmer s nevyplneným poľom datum_od
-            query_set = PlatovyVymer.objects.filter(cislo_zamestnanca=obj.cislo_zamestnanca).exclude(datum_od__isnull=True)
-            if query_set:
-                stary = query_set[0]
+            # nájsť najnovší starý výmer s nevyplneným poľom datum_do
+            query_set = PlatovyVymer.objects.filter(cislo_zamestnanca=obj.cislo_zamestnanca).filter(datum_do__isnull=True)
+            #Vylúčiť aktuálny objekt
+            qset = [q for q in query_set if q != obj] 
+            if qset:
+                stary = qset[0]
                 # ukonciť platnosť starého nastavením datum_do
                 stary.datum_do = obj.datum_od-timedelta(1)
                 # aktualizácia praxe v stary, hodnotu použiť aj v aktuálnom
