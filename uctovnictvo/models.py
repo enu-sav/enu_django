@@ -539,6 +539,10 @@ class DoBPS(Dohoda):
             max_digits=8, 
             decimal_places=1, 
             default=0)
+    datum_ukoncenia = models.DateField('Dátum ukončenia',
+            help_text = "Zadajte dátum predčasného ukončenia platnosti dohody",
+            blank = True,
+            null=True)
     history = HistoricalRecords()
     class Meta:
         verbose_name = 'Dohoda o bigádnickej práci študentov'
@@ -558,6 +562,10 @@ class DoPC(Dohoda):
             max_digits=8, 
             decimal_places=1, 
             default=0)
+    datum_ukoncenia = models.DateField('Dátum ukončenia',
+            help_text = "Zadajte dátum predčasného ukončenia platnosti dohody",
+            blank = True,
+            null=True)
     history = HistoricalRecords()
     class Meta:
         verbose_name = 'Dohoda o pracovnej činnosti'
