@@ -3,13 +3,14 @@ from django import forms
 from django.utils import timezone
 from django.contrib import messages
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 from ipdb import set_trace as trace
 from .models import EkonomickaKlasifikacia, TypZakazky, Zdroj, Program, Dodavatel, ObjednavkaZmluva, AutorskyHonorar
 from .models import Objednavka, Zmluva, PrijataFaktura, SystemovySubor, Rozhodnutie, PrispevokNaStravne
-from .models import Dohoda, DoVP, DoPC, DoBPS, Dohodar, VyplacanieDohod, AnoNie
+from .models import Dohoda, DoVP, DoPC, DoBPS, ZamestnanecDohodar, VyplacanieDohod, AnoNie, PlatovyVymer
 from .common import VytvoritPlatobnyPrikaz, VytvoritSuborDohody, VytvoritSuborObjednavky
 from .forms import PrijataFakturaForm, AutorskeZmluvyForm, ObjednavkaForm, ZmluvaForm, PrispevokNaStravneForm
+from .forms import PlatovyVymerForm
 from .forms import DoPCForm, DoVPForm, DoBPSForm, nasledujuce_cislo
 
 #zobrazenie histórie
@@ -257,8 +258,8 @@ class SystemovySuborAdmin(admin.ModelAdmin):
         else:
             return []
 
-@admin.register(Dohodar)
-class DohodarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
+@admin.register(ZamestnanecDohodar)
+class ZamestnanecDohodar(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
     list_display = ("priezvisko", "meno", "rod_priezvisko", "email", "rodne_cislo", "datum_nar", "miesto_nar", "adresa", "_dochodok", "_ztp","poistovna", "cop", "stav")
     # ^: v poli vyhľadávať len od začiatku
     search_fields = ["priezvisko", "meno"]
@@ -285,13 +286,13 @@ class DoVPAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
     list_display = ("cislo", "zmluvna_strana_link", "predmet", "subor_dohody", "odmena_celkom", "hod_celkom", "datum_od", "datum_do", "poznamka" )
 
     # ^: v poli vyhľadávať len od začiatku
-    search_fields = ["cislo", "zmluvna_strana__nazov"]
+    search_fields = ["cislo", "zmluvna_strana__priezvisko"]
 
     # zoraďovateľný odkaz na dodávateľa
     # umožnené prostredníctvom AdminChangeLinksMixin
     change_links = [
         ('zmluvna_strana', {
-            'admin_order_field': 'zmluvna_strana__nazov', # Allow to sort members by the `zmluvna_strana_link` column
+            'admin_order_field': 'zmluvna_strana__priezvisko', # Allow to sort members by the column
         })
     ]
     list_totals = [
@@ -323,13 +324,13 @@ class DoBPSAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
     list_display = ("cislo", "zmluvna_strana_link", "predmet", "subor_dohody", "odmena_celkom", "datum_od", "datum_do", "poznamka" )
 
     # ^: v poli vyhľadávať len od začiatku
-    search_fields = ["cislo", "zmluvna_strana__nazov"]
+    search_fields = ["cislo", "zmluvna_strana__priezvisko"]
 
     # zoraďovateľný odkaz na dodávateľa
     # umožnené prostredníctvom AdminChangeLinksMixin
     change_links = [
         ('zmluvna_strana', {
-            'admin_order_field': 'zmluvna_strana__nazov', # Allow to sort members by the `zmluvna_strana_link` column
+            'admin_order_field': 'zmluvna_strana__priezvisko', # Allow to sort members by the column
         })
     ]
     list_totals = [
@@ -361,13 +362,13 @@ class DoPCAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
     list_display = ("cislo", "zmluvna_strana_link", "predmet", "subor_dohody", "odmena_mesacne", "hod_mesacne", "datum_od", "datum_do", "poznamka" )
 
     # ^: v poli vyhľadávať len od začiatku
-    search_fields = ["cislo", "zmluvna_strana__nazov"]
+    search_fields = ["cislo", "zmluvna_strana__priezvisko"]
 
     # zoraďovateľný odkaz na dodávateľa
     # umožnené prostredníctvom AdminChangeLinksMixin
     change_links = [
         ('zmluvna_strana', {
-            'admin_order_field': 'zmluvna_strana__nazov', # Allow to sort members by the `zmluvna_strana_link` column
+            'admin_order_field': 'zmluvna_strana__priezvisko', # Allow to sort members by the column
         })
     ]
     list_totals = [
@@ -399,3 +400,69 @@ class VyplacanieDohodAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdmin
         ('vyplatena_odmena', Sum),
     ]
 
+
+@admin.register(PlatovyVymer)
+class PlatovyVymerAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
+    form = PlatovyVymerForm
+    fields = ["cislo_zamestnanca", "zamestnanec", "datum_od", "datum_do", "tarifny_plat", "osobny_priplatok", "funkcny_priplatok", "platova_trieda", "platovy_stupen", "prax","zdroj", "program", "zakazka", "ekoklas" ]
+    list_display = ["mp","cislo_zamestnanca", "zamestnanec_link", "datum_od", "datum_do", "tarifny_plat", "osobny_priplatok", "funkcny_priplatok",  "platova_trieda", "platovy_stupen", "prax"]
+
+    # ^: v poli vyhľadávať len od začiatku
+    search_fields = ["zamestnanec__meno"]
+    actions = ['duplikovat_zaznam']
+
+    # zoraďovateľný odkaz na dodávateľa
+    # umožnené prostredníctvom AdminChangeLinksMixin
+    change_links = [
+        ('zamestnanec', {
+            'admin_order_field': 'zamestnanec__meno', # Allow to sort members by the column
+        })
+    ]
+    def mp(self, obj):
+        if obj.zamestnanec:
+            od = obj.datum_od.strftime('%d. %m. %Y') if obj.datum_od else '--'
+            return f"{obj.zamestnanec.priezvisko}, {obj.zamestnanec.meno}".strip()
+    mp.short_description = "Výmer pre"
+    #ukončí platnosť starého výmeru a aktualizuje prax
+    def save_model(self, request, obj, form, change):
+        if obj.datum_do:    # ukončený prac. pomer, aktualizovať prax
+            obj.prax += (obj.datum_do - obj.datum_od).days + 1 
+        else:               #vytvorený nový výmer
+            # nájsť najnovší starý výmer s nevyplneným poľom datum_od
+            query_set = PlatovyVymer.objects.filter(cislo_zamestnanca=obj.cislo_zamestnanca).exclude(datum_od__isnull=True)
+            if query_set:
+                stary = query_set[0]
+                # ukonciť platnosť starého nastavením datum_do
+                stary.datum_do = obj.datum_od-timedelta(1)
+                # aktualizácia praxe v stary, hodnotu použiť aj v aktuálnom
+                stary.prax += (obj.datum_od - stary.datum_od).days 
+                obj.prax = stary.prax
+                stary.save()
+                pass
+        super(PlatovyVymerAdmin, self).save_model(request, obj, form, change)
+
+    def duplikovat_zaznam(self, request, queryset):
+        if len(queryset) != 1:
+            self.message_user(request, f"Vybrať možno len jeden výmer", messages.ERROR)
+            return
+        star = queryset[0]
+        novy = PlatovyVymer.objects.create(
+                cislo_zamestnanca = star.cislo_zamestnanca,
+                zamestnanec = star.zamestnanec,
+                tarifny_plat = star.tarifny_plat,
+                osobny_priplatok = star.osobny_priplatok,
+                funkcny_priplatok = star.funkcny_priplatok,
+                platova_trieda = star.platova_trieda,
+                platovy_stupen = star.platovy_stupen,
+                uvazok = star.uvazok,
+                program = star.program,
+                ekoklas = star.ekoklas,
+                zakazka = star.zakazka,
+                zdroj = star.zdroj
+            )
+        novy.save()
+        self.message_user(request, f"Vytvorený bol nový platobný výmer pre {star.zamestnanec}.", messages.SUCCESS)
+
+    duplikovat_zaznam.short_description = "Duplikovať platobný výmer"
+    #Oprávnenie na použitie akcie, viazané na 'change'
+    duplikovat_zaznam.allowed_permissions = ('change',)

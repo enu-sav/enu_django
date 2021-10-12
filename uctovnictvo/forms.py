@@ -1,7 +1,7 @@
 
 from django import forms
 from ipdb import set_trace as trace
-from .models import PrijataFaktura, Objednavka, PrispevokNaStravne, DoPC, DoVP, DoBPS
+from .models import PrijataFaktura, Objednavka, PrispevokNaStravne, DoPC, DoVP, DoBPS, PlatovyVymer
 from datetime import datetime
 import re
 
@@ -132,3 +132,12 @@ class DoBPSForm(forms.ModelForm):
                 self.initial[polecislo] = nasledujuce
             else:
                 self.fields[polecislo].help_text = f"Číslo faktúry v tvare {DoBPS.oznacenie}-RRRR-NNN."
+
+class PlatovyVymerForm(forms.ModelForm):
+    #inicializácia polí
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.initial['zdroj'] = 1       #111
+        self.initial['program'] = 1     #Ostatné
+        self.initial['zakazka'] = 2     #11010001 spol. zák.
+        self.initial['ekoklas'] = 18    #611 - Tarifný plat, osobný plat, základný plat, funkčný plat, hodnostný plat, plat, vrátane ich náhrad

@@ -365,7 +365,7 @@ class FyzickaOsoba(PersonCommon):
     def __str__(self):
         return self.rs_login
 
-class Dohodar(FyzickaOsoba):
+class ZamestnanecDohodar(FyzickaOsoba):
     datum_nar = models.DateField('Dátum narodenia', null=True)
     rod_priezvisko = models.CharField("Rodné priezvisko", max_length=100, blank=True, null=True)
     miesto_nar = models.CharField("Miesto narodenia", max_length=100, null=True)
@@ -406,10 +406,60 @@ class Dohodar(FyzickaOsoba):
         if self.ztp == AnoNie.ANO and not self.datum_ztp:
             raise ValidationError("V prípade ZŤP osoby je potrebné zadať dátum vzniku ZŤP")
     class Meta:
-        verbose_name = "Dohodár"
-        verbose_name_plural = "Dohody - Dohodári"
+        verbose_name = "Zamestnanec / dohodár"
+        verbose_name_plural = "Zamestnanci / dohodári"
     def __str__(self):
         return f"{self.priezvisko}, {self.meno}"
+
+#Polymorphic umožní, aby DoVP a PrijataFaktura mohli použiť ObjednavkaZmluva ako ForeignKey
+class PlatovyVymer(PolymorphicModel, Klasifikacia):
+    cislo_zamestnanca = models.CharField("Číslo zamestnanca", 
+            null = True,
+            max_length=50)
+    zamestnanec = models.ForeignKey(ZamestnanecDohodar,
+            on_delete=models.PROTECT, 
+            verbose_name = "Zamestnanec",
+            related_name='%(class)s_zamestnanec')  #zabezpečí rozlíšenie modelov, keby dačo
+    datum_od = models.DateField('Dátum od',
+            help_text = "Zadajte dátum začiatku platnosti výmeru",
+            null=True)
+    datum_do = models.DateField('Dátum do',
+            help_text = "Nechajte prázdne alebo zadajte dátum ukončenia prac. pomeru. Ak sa pre zamestnanca vytvorí nový výmer, toto pole sa vyplní automaticky, čím sa platnosť tohoto výmeru ukončí",
+            blank=True,
+            null=True)
+    tarifny_plat = models.DecimalField("Tarifný plat", 
+            help_text = "Tarifný plat podľa prílohy č. 5 zákona",
+            max_digits=8, 
+            decimal_places=2, 
+            default=0)
+    osobny_priplatok = models.DecimalField("Osobný príplatok", 
+            help_text = "Osobný príplatok podľa § 10 zákona",
+            max_digits=8, 
+            decimal_places=2, 
+            default=0)
+    funkcny_priplatok = models.DecimalField("Funkčný príplatok", 
+            max_digits=8, 
+            decimal_places=2, 
+            default=0)
+    platova_trieda = models.IntegerField("Platová trieda",
+            null=True)
+    platovy_stupen = models.IntegerField("Platový stupeň",
+            null=True)
+    uvazok = models.DecimalField("Úväzok (hod/týždeň)", 
+            help_text = "Zadajte pracovný úväzok týždenne (najviac 37,5 hod)",
+            max_digits=8, 
+            decimal_places=2, 
+            default=0)
+    prax = models.IntegerField("Prax (dni)",
+            help_text = "Pri vytváraní prvého výmeru pre zamestnanca vložte počet dní započítanej odbornej praxe, inak nechajte prázdne. Po ukončení platnosti výmeru (ukončenie prac pomeru alebo vytvorenie nového výmeru) sa do poľa automaticky vloží hodnota ku dňu jeho ukončenia.",
+            blank=True,
+            null=True)
+    class Meta:
+        verbose_name = "Platový výmer"
+        verbose_name_plural = "Platové výmery"
+    def __str__(self):
+        od = self.datum_od.strftime('%d. %m. %Y') if self.datum_od else '--'
+        return f"{self.zamestnanec.priezvisko}, {od}"
 
 def dohoda_upload_location(instance, filename):
     return filename
@@ -418,7 +468,7 @@ class Dohoda(PolymorphicModel, Klasifikacia):
     cislo = models.CharField("Číslo", 
             #help_text: definovaný vo forms
             max_length=50)
-    zmluvna_strana = models.ForeignKey(Dohodar,
+    zmluvna_strana = models.ForeignKey(ZamestnanecDohodar,
             on_delete=models.PROTECT, 
             verbose_name = "Zmluvná strana",
             related_name='%(class)s_dohoda')  #zabezpečí rozlíšenie modelov DoVP a DoPC
