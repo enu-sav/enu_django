@@ -101,7 +101,7 @@ class PersonCommon(models.Model):
     adresa_ulica = models.CharField("Adresa – ulica a číslo domu", max_length=200, null=True, blank=True)
     adresa_mesto = models.CharField("Adresa – PSČ a mesto", max_length=200, null=True)
     adresa_stat = models.CharField("Adresa – štát", max_length=100, null=True)
-    datum_aktualizacie = models.DateField('Dátum aktualizácie', auto_now=True)
+    datum_aktualizacie = models.DateField('Dátum aktualizácie', null=True,auto_now=True)
     class Meta:
         abstract = True
 
