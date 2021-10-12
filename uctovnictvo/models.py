@@ -42,6 +42,7 @@ class Zdroj(models.Model):
     popis = models.CharField("Popis", 
             help_text = "Popíšte zdroj",
             max_length=100)
+    history = HistoricalRecords()
     def __str__(self):
         return f"{self.kod} - {self.popis}"
     class Meta:
@@ -55,6 +56,7 @@ class Program(models.Model):
     popis = models.CharField("Popis", 
             help_text = "Popíšte program",
             max_length=100)
+    history = HistoricalRecords()
     def __str__(self):
         return f"{self.kod} - {self.popis}"
     class Meta:
@@ -68,6 +70,7 @@ class TypZakazky(models.Model):
     popis = models.CharField("Popis", 
             help_text = "Popíšte typ zákazky",
             max_length=100)
+    history = HistoricalRecords()
     def __str__(self):
         return f"{self.kod} - {self.popis}"
     class Meta:
@@ -81,6 +84,7 @@ class EkonomickaKlasifikacia(models.Model):
     nazov = models.CharField("Názov", 
             help_text = "Zadajte názov položky/podpoložky ekonomickej klasifikácie napr. 'Granty a transfery'",
             max_length=100)
+    history = HistoricalRecords()
     def __str__(self):
         return f"{self.kod} - {self.nazov}"
     class Meta:
@@ -396,6 +400,7 @@ class ZamestnanecDohodar(FyzickaOsoba):
             null=True, 
             choices=Poistovna.choices)
     cop = models.CharField("Číslo OP", max_length=20, null=True)
+    history = HistoricalRecords()
     # test platnosti dát
     def clean(self): 
         if self.poberatel_doch == AnoNie.ANO and not self.typ_doch:
@@ -453,6 +458,7 @@ class PlatovyVymer(PolymorphicModel, Klasifikacia):
             help_text = "Pri vytváraní prvého výmeru pre zamestnanca vložte počet dní započítanej odbornej praxe, inak nechajte prázdne. Po ukončení platnosti výmeru (ukončenie prac pomeru alebo vytvorenie nového výmeru) sa do poľa automaticky vloží hodnota ku dňu jeho ukončenia.",
             blank=True,
             null=True)
+    history = HistoricalRecords()
     class Meta:
         verbose_name = "Platový výmer"
         verbose_name_plural = "Platové výmery"
