@@ -509,6 +509,10 @@ class DoVP(Dohoda):
             max_digits=8, 
             decimal_places=1, 
             default=0)
+    id_tsh = models.CharField("Číslo pridadené TSH",
+            help_text = "Uveďte číslo, pod ktorým dohody vedie TSH",
+            null = True, blank = True,
+            max_length=100)
     pomocnik = models.CharField("Pomoc rod. príslušníkov", 
             help_text = "Uveďte zoznam rod. príslušníkov, ktorí budú pomáhať pri vykonávaní činnosti, alebo nechajte prázdne. Pre každého uveďte meno a priezvisko.",
             null = True, blank = True,
