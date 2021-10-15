@@ -42,24 +42,24 @@ class ZobrazitZmeny():
         return None
 
 @admin.register(Zdroj)
-class ZdojAdmin(SimpleHistoryAdmin, ImportExportModelAdmin):
+class ZdojAdmin(ZobrazitZmeny, SimpleHistoryAdmin, ImportExportModelAdmin):
     list_display = ("kod", "popis")
 
 @admin.register(Program)
-class ProgramAdmin(SimpleHistoryAdmin, ImportExportModelAdmin):
+class ProgramAdmin(ZobrazitZmeny, SimpleHistoryAdmin, ImportExportModelAdmin):
     list_display = ("kod", "popis")
 
 @admin.register(TypZakazky)
-class TypZakazkyAdmin(SimpleHistoryAdmin, ImportExportModelAdmin):
+class TypZakazkyAdmin(ZobrazitZmeny, SimpleHistoryAdmin, ImportExportModelAdmin):
     list_display = ("kod", "popis")
 
 @admin.register(EkonomickaKlasifikacia)
-class EkonomickaKlasifikaciaAdmin(SimpleHistoryAdmin, ImportExportModelAdmin):
+class EkonomickaKlasifikaciaAdmin(ZobrazitZmeny, SimpleHistoryAdmin, ImportExportModelAdmin):
     list_display = ("kod", "nazov")
     search_fields = ("^kod", "nazov")
 
 @admin.register(Dodavatel)
-class DodavatelAdmin(SimpleHistoryAdmin, ImportExportModelAdmin):
+class DodavatelAdmin(ZobrazitZmeny, SimpleHistoryAdmin, ImportExportModelAdmin):
     list_display = ("nazov", "s_danou", "bankovy_kontakt", "adresa") 
     search_fields = ("nazov",)
     def adresa(self, obj):
@@ -73,11 +73,11 @@ class ObjednavkaZmluvaResource(resources.ModelResource):
         import_id_fields = ('cislo',)
         fields = ('cislo', 'dodavatel', 'predmet', 'poznamka')
 
-class ObjednavkaZmluvaAdmin(ImportExportModelAdmin):
+class ObjednavkaZmluvaAdmin(ZobrazitZmeny, ImportExportModelAdmin):
     resource_class = ObjednavkaZmluvaResource
 
 @admin.register(Objednavka)
-class ObjednavkaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
+class ObjednavkaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
     form = ObjednavkaForm
     list_display = ("cislo", "subor_objednavky", "datum_vytvorenia", "dodavatel_link","predmet")
     #def formfield_for_dbfield(self, db_field, **kwargs):
@@ -119,7 +119,7 @@ class ObjednavkaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportMod
     vytvorit_subor_objednavky.allowed_permissions = ('change',)
 
 @admin.register(Rozhodnutie)
-class RozhodnutieAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
+class RozhodnutieAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
     list_display = ("cislo", "predmet", "dodavatel_link", "poznamka" )
 
     # ^: v poli vyhľadávať len od začiatku
@@ -134,7 +134,7 @@ class RozhodnutieAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportMo
     ]
 
 @admin.register(Zmluva)
-class ZmluvaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
+class ZmluvaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
     form = ZmluvaForm
     list_display = ["cislo", "dodavatel_link", "predmet", "datum_zverejnenia_CRZ", "url_zmluvy_html"]
     search_fields = ["dodavatel__nazov", "cislo", "predmet"]
@@ -159,8 +159,8 @@ class ZmluvaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAd
 @admin.register(PrijataFaktura)
 #medzi  ModelAdminTotals a ImportExportModelAdmin je konflikt
 #zobrazia sa Import Export tlačidlá alebo súčty
-#class PrijataFakturaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
-class PrijataFakturaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
+#class PrijataFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
+class PrijataFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
     form = PrijataFakturaForm
     list_display = ["cislo", "objednavka_zmluva_link", "suma", "platobny_prikaz", "dane_na_uhradu", "zdroj", "program", "zakazka", "ekoklas"]
     search_fields = ["objednavka_zmluva__dodavatel__nazov", "^zdroj__kod", "^program__kod", "^zakazka__kod", "^ekoklas__kod" ]
@@ -227,8 +227,8 @@ class PrijataFakturaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminT
 
 @admin.register(AutorskyHonorar)
 
-#class AutorskyHonorarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
-class AutorskyHonorarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
+#class AutorskyHonorarAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
+class AutorskyHonorarAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
     form = AutorskeZmluvyForm
     list_display = ["cislo", "suma", "suma_lf", "suma_dan"]
     # určiť poradie poli v editovacom formulári
@@ -241,7 +241,7 @@ class AutorskyHonorarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdmin
     ]
 
 @admin.register(PrispevokNaStravne)
-class PrispevokNaStravneAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
+class PrispevokNaStravneAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
     form = PrispevokNaStravneForm
     list_display = ["cislo", "suma_zamestnavatel", "suma_socfond"]
     # určiť poradie poli v editovacom formulári
@@ -258,7 +258,7 @@ class PrispevokNaStravneAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAd
             return []
 
 @admin.register(SystemovySubor)
-class SystemovySuborAdmin(admin.ModelAdmin):
+class SystemovySuborAdmin(ZobrazitZmeny, admin.ModelAdmin):
     list_display = ("subor_nazov", "subor_popis", "subor")
     fields = ("subor_nazov", "subor_popis", "subor")
     # názov sa nesmie meniť, podľa názvu sa v kóde súbor vyhľadáva
@@ -290,7 +290,7 @@ class ZamestnanecDohodar(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExport
     _ztp.short_description = "ZŤP"
 
 @admin.register(DoVP)
-class DoVPAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
+class DoVPAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
     form = DoVPForm
     fields = ["cislo", "zmluvna_strana", "predmet", "id_tsh", "datum_od", "datum_do", "odmena_celkom", "hod_celkom", "pomocnik", "subor_dohody", "poznamka","zdroj", "program", "zakazka", "ekoklas" ]
     list_display = ("cislo","id_tsh",  "zmluvna_strana_link", "predmet", "subor_dohody", "odmena_celkom", "hod_celkom", "datum_od", "datum_do", "poznamka" )
@@ -328,7 +328,7 @@ class DoVPAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
     vytvorit_subor_dohody.allowed_permissions = ('change',)
 
 @admin.register(DoBPS)
-class DoBPSAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
+class DoBPSAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
     form = DoBPSForm
     fields = ["cislo", "zmluvna_strana", "predmet", "subor_dohody", "datum_od", "datum_do", "datum_ukoncenia", "odmena_celkom", "poznamka","zdroj", "program", "zakazka", "ekoklas" ]
     list_display = ("cislo", "zmluvna_strana_link", "predmet", "subor_dohody", "odmena_celkom", "datum_od", "datum_do", "datum_ukoncenia", "poznamka" )
@@ -366,7 +366,7 @@ class DoBPSAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
     vytvorit_subor_dohody.allowed_permissions = ('change',)
 
 @admin.register(DoPC)
-class DoPCAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
+class DoPCAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
     form = DoPCForm
     fields = ["cislo", "zmluvna_strana", "predmet", "subor_dohody", "datum_od", "datum_do", "datum_ukoncenia", "odmena_mesacne", "hod_mesacne", "poznamka","zdroj", "program", "zakazka", "ekoklas" ]
     list_display = ("cislo", "zmluvna_strana_link", "predmet", "subor_dohody", "odmena_mesacne", "hod_mesacne", "datum_od", "datum_do", "datum_ukoncenia", "poznamka" )
@@ -403,7 +403,7 @@ class DoPCAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
     vytvorit_subor_dohody.allowed_permissions = ('change',)
 
 @admin.register(VyplacanieDohod)
-class VyplacanieDohodAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
+class VyplacanieDohodAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
     list_display = ["dohoda", "vyplatena_odmena", "datum_vyplatenia"]
     search_fields = ["dohoda__cislo", "dohoda__zmluvna_strana__priezvisko"]
     list_totals = [
