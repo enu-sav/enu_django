@@ -268,7 +268,7 @@ def system_file_path(instance, filename):
 
 class SystemovySubor(models.Model):
     subor_nazov =  models.CharField("Názov", max_length=100)
-    subor_popis = models.CharField("Popis/účel", max_length=100)
+    subor_popis = models.TextField("Popis/účel", max_length=250)
     # opakované uploadovanie súboru vytvorí novú verziu
     #subor = models.FileField("Súbor",upload_to=TMPLTS_DIR_NAME, null = True, blank = True)
     # opakované uploadovanie súboru prepíše existujúci súbor (nevytvorí novú verziu)
