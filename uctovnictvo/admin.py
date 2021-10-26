@@ -42,7 +42,7 @@ class ZobrazitZmeny():
         return None
 
 @admin.register(Zdroj)
-class ZdojAdmin(ZobrazitZmeny, SimpleHistoryAdmin, ImportExportModelAdmin):
+class ZdrojAdmin(ZobrazitZmeny, SimpleHistoryAdmin, ImportExportModelAdmin):
     list_display = ("kod", "popis")
 
 @admin.register(Program)
