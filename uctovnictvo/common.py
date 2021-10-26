@@ -12,6 +12,15 @@ from openpyxl import load_workbook
 from openpyxl.styles import Font, Color, colors, Alignment, PatternFill , numbers
 from openpyxl.utils import get_column_letter
 
+import datetime, calendar
+
+def leapdays(datefrom, dateto):
+    yearfrom = datefrom.year
+    if datefrom >= datetime.date(yearfrom, 3, 1): yearfrom += 1
+    yearto = dateto.year
+    if dateto >= datetime.date(yearto, 3, 1): yearto += 1
+    return calendar.leapdays(yearfrom, yearto)
+
 def locale_format(d):
     return locale.format('%%0.%df' % (-d.as_tuple().exponent), d, grouping=True)
 
