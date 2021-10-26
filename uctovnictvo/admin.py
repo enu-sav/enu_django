@@ -4,11 +4,12 @@ from django.utils import timezone
 from django.contrib import messages
 import re
 from datetime import datetime, timedelta
+from dateutil.relativedelta import relativedelta
 from ipdb import set_trace as trace
 from .models import EkonomickaKlasifikacia, TypZakazky, Zdroj, Program, Dodavatel, ObjednavkaZmluva, AutorskyHonorar
 from .models import Objednavka, Zmluva, PrijataFaktura, SystemovySubor, Rozhodnutie, PrispevokNaStravne
 from .models import Dohoda, DoVP, DoPC, DoBPS, ZamestnanecDohodar, VyplacanieDohod, AnoNie, PlatovyVymer
-from .common import VytvoritPlatobnyPrikaz, VytvoritSuborDohody, VytvoritSuborObjednavky
+from .common import VytvoritPlatobnyPrikaz, VytvoritSuborDohody, VytvoritSuborObjednavky, leapdays
 from .forms import PrijataFakturaForm, AutorskeZmluvyForm, ObjednavkaForm, ZmluvaForm, PrispevokNaStravneForm
 from .forms import PlatovyVymerForm
 from .forms import DoPCForm, DoVPForm, DoBPSForm, nasledujuce_cislo
@@ -413,8 +414,8 @@ class VyplacanieDohodAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAd
 @admin.register(PlatovyVymer)
 class PlatovyVymerAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin):
     form = PlatovyVymerForm
-    fields = ["cislo_zamestnanca", "zamestnanec", "datum_od", "datum_do", "tarifny_plat", "osobny_priplatok", "funkcny_priplatok", "platova_trieda", "platovy_stupen", "prax","popis_zmeny", "zdroj", "program", "zakazka", "ekoklas" ]
-    list_display = ["mp","cislo_zamestnanca", "zamestnanec_link", "datum_od", "datum_do", "tarifny_plat", "osobny_priplatok", "funkcny_priplatok",  "platova_trieda", "platovy_stupen", "prax"]
+    fields = ["cislo_zamestnanca", "zamestnanec", "suborvymer", "datum_od", "datum_do", "tarifny_plat", "osobny_priplatok", "funkcny_priplatok", "platova_trieda", "platovy_stupen", "praxroky", "praxdni", "popis_zmeny", "zdroj", "program", "zakazka", "ekoklas" ]
+    list_display = ["mp","cislo_zamestnanca", "zamestnanec_link", "datum_od", "datum_do", "tarifny_plat", "osobny_priplatok", "funkcny_priplatok",  "platova_trieda", "platovy_stupen", "praxroky", "praxdni"]
 
     # ^: v poli vyhľadávať len od začiatku
     search_fields = ["zamestnanec__meno"]
@@ -436,7 +437,11 @@ class PlatovyVymerAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
     #ukončí platnosť starého výmeru a aktualizuje prax
     def save_model(self, request, obj, form, change):
         if obj.datum_do:    # ukončený prac. pomer, aktualizovať prax
-            obj.prax += (obj.datum_do - obj.datum_od).days + 1 
+            # rok praxe sa ráta ako 365 dní, t. j. po odpracovaní 10 rokov sa roky praxe zvýšia o 10 a dni sa nezmenia
+            dnipraxe = 365*obj.praxroky + obj.praxdni
+            dnipraxe += (obj.datum_do - obj.datum_od).days - leapdays(obj.datum_od, obj.datum_do)
+            obj.praxroky = int(dnipraxe/365)
+            obj.praxdni = dnipraxe % 365
         else:               #vytvorený nový výmer
             # nájsť najnovší starý výmer s nevyplneným poľom datum_do
             query_set = PlatovyVymer.objects.filter(cislo_zamestnanca=obj.cislo_zamestnanca).filter(datum_do__isnull=True)
@@ -447,8 +452,8 @@ class PlatovyVymerAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
                 # ukonciť platnosť starého nastavením datum_do
                 stary.datum_do = obj.datum_od-timedelta(1)
                 # aktualizácia praxe v stary, hodnotu použiť aj v aktuálnom
-                stary.prax += (obj.datum_od - stary.datum_od).days 
-                obj.prax = stary.prax
+                stary.praxdni += (obj.datum_od - stary.datum_od).days 
+                obj.praxdni = stary.praxdni
                 stary.save()
                 pass
         super(PlatovyVymerAdmin, self).save_model(request, obj, form, change)

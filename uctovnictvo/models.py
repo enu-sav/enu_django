@@ -8,7 +8,7 @@ from uctovnictvo.storage import OverwriteStorage
 from polymorphic.models import PolymorphicModel
 from django.utils.safestring import mark_safe
 
-from beliana.settings import TMPLTS_DIR_NAME
+from beliana.settings import TMPLTS_DIR_NAME, PLATOVE_VYMERY_DIR
 import os,re, datetime
 import numpy as np
 from ipdb import set_trace as trace
@@ -341,7 +341,7 @@ def system_file_path(instance, filename):
 
 class SystemovySubor(models.Model):
     subor_nazov =  models.CharField("Názov", max_length=100)
-    subor_popis = models.CharField("Popis/účel", max_length=100)
+    subor_popis = models.TextField("Popis/účel", max_length=250)
     # opakované uploadovanie súboru vytvorí novú verziu
     #subor = models.FileField("Súbor",upload_to=TMPLTS_DIR_NAME, null = True, blank = True)
     # opakované uploadovanie súboru prepíše existujúci súbor (nevytvorí novú verziu)
@@ -416,6 +416,9 @@ class ZamestnanecDohodar(FyzickaOsoba):
     def __str__(self):
         return f"{self.priezvisko}, {self.meno}"
 
+def vymer_file_path(instance, filename):
+    return os.path.join(PLATOVE_VYMERY_DIR, filename)
+
 #Polymorphic umožní, aby DoVP a PrijataFaktura mohli použiť ObjednavkaZmluva ako ForeignKey
 class PlatovyVymer(PolymorphicModel, Klasifikacia):
     cislo_zamestnanca = models.CharField("Číslo zamestnanca", 
@@ -425,11 +428,18 @@ class PlatovyVymer(PolymorphicModel, Klasifikacia):
             on_delete=models.PROTECT, 
             verbose_name = "Zamestnanec",
             related_name='%(class)s_zamestnanec')  #zabezpečí rozlíšenie modelov, keby dačo
+    suborvymer = models.FileField("Súbor s platovým výmerom",
+            help_text = "Vložte zoskenovaný platový výmer (vytvorený mzdovou účtárňou)",
+            storage=OverwriteStorage(), 
+            upload_to=vymer_file_path, 
+            null = True, 
+            blank = True 
+            )
     datum_od = models.DateField('Dátum od',
             help_text = "Zadajte dátum začiatku platnosti výmeru",
             null=True)
     datum_do = models.DateField('Dátum do',
-            help_text = "Nechajte prázdne alebo zadajte dátum ukončenia prac. pomeru. Ak sa pre zamestnanca vytvorí nový výmer, toto pole sa vyplní automaticky, čím sa platnosť tohoto výmeru ukončí",
+            help_text = "Nechajte prázdne alebo zadajte dátum ukončenia prac. pomeru. Ak sa pre zamestnanca vytvorí nový výmer, toto pole v predchádzajúcom výmere sa vyplní automaticky, čím sa jeho platnosť ukončí",
             blank=True,
             null=True)
     tarifny_plat = models.DecimalField("Tarifný plat", 
@@ -455,8 +465,12 @@ class PlatovyVymer(PolymorphicModel, Klasifikacia):
             max_digits=8, 
             decimal_places=2, 
             default=0)
-    prax = models.IntegerField("Prax (dni)",
-            help_text = "Pri vytváraní prvého výmeru pre zamestnanca vložte počet dní započítanej odbornej praxe, inak nechajte prázdne. Po ukončení platnosti výmeru (ukončenie prac pomeru alebo vytvorenie nového výmeru) sa do poľa automaticky vloží hodnota ku dňu jeho ukončenia.",
+    praxroky = models.IntegerField("Prax (roky)",
+            help_text = "Pri vytváraní prvého výmeru pre zamestnanca vložte počet rokov započítanej odbornej praxe, inak nechajte prázdne. Po ukončení platnosti výmeru (ukončenie prac. pomeru alebo vytvorenie nového výmeru) sa do poľa automaticky vloží hodnota ku dňu jeho ukončenia.",
+            blank=True,
+            null=True)
+    praxdni = models.IntegerField("Prax (dni)",
+            help_text = "Pri vytváraní prvého výmeru pre zamestnanca vložte počet dní započítanej odbornej praxe, inak nechajte prázdne. Po ukončení platnosti výmeru (ukončenie prac. pomeru alebo vytvorenie nového výmeru) sa do poľa automaticky vloží hodnota ku dňu jeho ukončenia.",
             blank=True,
             null=True)
     history = HistoricalRecords()
