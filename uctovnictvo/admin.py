@@ -437,6 +437,7 @@ class PlatovyVymerAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
     #ukončí platnosť starého výmeru a aktualizuje prax
     def save_model(self, request, obj, form, change):
         if obj.datum_do:    # ukončený prac. pomer, aktualizovať prax
+            trace()
             # rok praxe sa ráta ako 365 dní, t. j. po odpracovaní 10 rokov sa roky praxe zvýšia o 10 a dni sa nezmenia
             dnipraxe = 365*obj.praxroky + obj.praxdni
             dnipraxe += (obj.datum_do - obj.datum_od).days - leapdays(obj.datum_od, obj.datum_do)
@@ -452,7 +453,11 @@ class PlatovyVymerAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
                 # ukonciť platnosť starého nastavením datum_do
                 stary.datum_do = obj.datum_od-timedelta(1)
                 # aktualizácia praxe v stary, hodnotu použiť aj v aktuálnom
-                stary.praxdni += (obj.datum_od - stary.datum_od).days 
+                dnipraxe = 365*stary.praxroky + stary.praxdni
+                dnipraxe += (stary.datum_do - stary.datum_od).days - leapdays(stary.datum_od, stary.datum_do)
+                stary.praxroky = int(dnipraxe/365)
+                stary.praxdni = dnipraxe % 365
+                obj.praxroky = stary.praxroky
                 obj.praxdni = stary.praxdni
                 stary.save()
                 pass
