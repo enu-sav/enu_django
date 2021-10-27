@@ -8,7 +8,7 @@ from uctovnictvo.storage import OverwriteStorage
 from polymorphic.models import PolymorphicModel
 from django.utils.safestring import mark_safe
 
-from beliana.settings import TMPLTS_DIR_NAME, PLATOVE_VYMERY_DIR, DOHODY_DIR, PRIJATEFAKTURY_DIR
+from beliana.settings import TMPLTS_DIR_NAME, PLATOVE_VYMERY_DIR, DOHODY_DIR, PRIJATEFAKTURY_DIR, PLATOBNE_PRIKAZY_DIR
 import os,re, datetime
 import numpy as np
 from ipdb import set_trace as trace
@@ -269,7 +269,7 @@ class PrijataFaktura(Klasifikacia):
             related_name='faktury')    
     prijata_faktura = models.FileField("Faktúra dodádateľa",
             help_text = "Súbor s faktúrou od dodávateľa",
-            upload_to=platobny_prikaz_upload_location, 
+            upload_to=prijata_faktura_upload_location, 
             null = True, blank = True)
     platobny_prikaz = models.FileField("Platobný príkaz pre THS-ku",
             help_text = "Súbor s platobným príkazom a krycím listom pre THS-ku. Generuje sa akciou 'Vytvoriť platobný príkaz a krycí list pre THS'",
