@@ -494,7 +494,7 @@ class Dohoda(PolymorphicModel, Klasifikacia):
             related_name='%(class)s_dohoda')  #zabezpečí rozlíšenie modelov DoVP a DoPC
     predmet = models.TextField("Pracovná činnosť", 
             help_text = "Zadajte stručný popis práce (max. 250 znakov, 3 riadky)",
-            max_length=250,
+            max_length=500,
             null=True)
     datum_od = models.DateField('Dátum od',
             help_text = "Zadajte dátum začiatku platnosti dohody",
