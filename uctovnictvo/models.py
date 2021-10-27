@@ -434,13 +434,6 @@ class PlatovyVymer(PolymorphicModel, Klasifikacia):
             on_delete=models.PROTECT, 
             verbose_name = "Zamestnanec",
             related_name='%(class)s_zamestnanec')  #zabezpečí rozlíšenie modelov, keby dačo
-    suborvymer = models.FileField("Súbor s platovým výmerom",
-            help_text = "Vložte zoskenovaný platový výmer (vytvorený mzdovou účtárňou)",
-            storage=OverwriteStorage(), 
-            upload_to=vymer_file_path, 
-            null = True, 
-            blank = True 
-            )
     datum_od = models.DateField('Dátum od',
             help_text = "Zadajte dátum začiatku platnosti výmeru",
             null=True)
