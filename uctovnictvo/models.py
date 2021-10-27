@@ -8,7 +8,7 @@ from uctovnictvo.storage import OverwriteStorage
 from polymorphic.models import PolymorphicModel
 from django.utils.safestring import mark_safe
 
-from beliana.settings import TMPLTS_DIR_NAME, PLATOVE_VYMERY_DIR
+from beliana.settings import TMPLTS_DIR_NAME, PLATOVE_VYMERY_DIR, DOHODY_DIR
 import os,re, datetime
 import numpy as np
 from ipdb import set_trace as trace
@@ -143,8 +143,9 @@ class ObjednavkaZmluva(PolymorphicModel):
     def __str__(self):
         return f"{self.cislo} - {self.dodavatel}"
 
+# použité len pri vkladané cez admin formulár
 def objednavka_upload_location(instance, filename):
-    return filename
+    return os.path.join(OBJEDNAVKY_DIR, filename)
 class Objednavka(ObjednavkaZmluva):
     oznacenie = "O"    #v čísle faktúry, Fa-2021-123
     # Polia
@@ -230,7 +231,7 @@ class Klasifikacia(models.Model):
 #https://stackoverflow.com/questions/55543232/how-to-upload-multiple-files-from-the-django-admin
 #Vykoná sa len pri vkladaní suborov cez GUI. Pri programovom vytváraní treba cestu nastaviť
 def platobny_prikaz_upload_location(instance, filename):
-    return filename
+    return os.path.join(PLATOBNE_PRIKAZY_DIR, filename)
 
 class PrijataFaktura(Klasifikacia):
     oznacenie = "Fa"    #v čísle faktúry, Fa-2021-123
@@ -481,8 +482,9 @@ class PlatovyVymer(PolymorphicModel, Klasifikacia):
         od = self.datum_od.strftime('%d. %m. %Y') if self.datum_od else '--'
         return f"{self.zamestnanec.priezvisko}, {od}"
 
+# použité len pri vkladané cez admin formulár
 def dohoda_upload_location(instance, filename):
-    return filename
+    return os.path.join(DOHODY_DIR, filename)
 #Polymorphic umožní, aby DoVP a PrijataFaktura mohli použiť ObjednavkaZmluva ako ForeignKey
 class Dohoda(PolymorphicModel, Klasifikacia):
     cislo = models.CharField("Číslo", 
