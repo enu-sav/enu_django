@@ -23,8 +23,8 @@ fi
 
 #rm -f db.sqlite3
 #rm -rf zmluvy/migrations
-./manage.py makemigrations zmluvy
-./manage.py makemigrations uctovnictvo
+#./manage.py makemigrations zmluvy  # not required if migrations are in git
+#./manage.py makemigrations uctovnictvo # not required if migrations are in git
 ./manage.py migrate
 #./manage.py loaddata dump-$dt.json
 sudo service $curdir start
