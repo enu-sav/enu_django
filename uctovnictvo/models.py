@@ -407,7 +407,6 @@ class ZamestnanecDohodar(FyzickaOsoba):
             null=True, 
             choices=Poistovna.choices)
     cop = models.CharField("Číslo OP", max_length=20, null=True)
-    history = HistoricalRecords()
     # test platnosti dát
     def clean(self): 
         if self.poberatel_doch == AnoNie.ANO and not self.typ_doch:
