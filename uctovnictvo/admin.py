@@ -8,7 +8,8 @@ from dateutil.relativedelta import relativedelta
 from ipdb import set_trace as trace
 from .models import EkonomickaKlasifikacia, TypZakazky, Zdroj, Program, Dodavatel, ObjednavkaZmluva, AutorskyHonorar
 from .models import Objednavka, Zmluva, PrijataFaktura, SystemovySubor, Rozhodnutie, PrispevokNaStravne
-from .models import Dohoda, DoVP, DoPC, DoBPS, ZamestnanecDohodar, VyplacanieDohod, AnoNie, PlatovyVymer
+from .models import Dohoda, DoVP, DoPC, DoBPS, VyplacanieDohod, AnoNie, PlatovyVymer
+from .models import ZamestnanecDohodar, Zamestnanec, Dohodar
 from .common import VytvoritPlatobnyPrikaz, VytvoritSuborDohody, VytvoritSuborObjednavky, leapdays
 from .forms import PrijataFakturaForm, AutorskeZmluvyForm, ObjednavkaForm, ZmluvaForm, PrispevokNaStravneForm
 from .forms import PlatovyVymerForm
@@ -289,6 +290,51 @@ class ZamestnanecDohodar(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExport
         else:
             return "Nie"
     _ztp.short_description = "ZŤP"
+
+
+@admin.register(Dohodar)
+class Dohodar(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
+    list_display = ("priezvisko", "meno", "rod_priezvisko", "email", "rodne_cislo", "datum_nar", "miesto_nar", "adresa", "_dochodok", "_ztp","poistovna", "cop", "stav")
+    # ^: v poli vyhľadávať len od začiatku
+    search_fields = ["priezvisko", "meno"]
+    def adresa(self, obj):
+        if obj.adresa_mesto:
+            return f"{obj.adresa_ulica} {obj.adresa_mesto}, {obj.adresa_stat}".strip()
+    def _dochodok(self, obj):
+        if obj.poberatel_doch == AnoNie.ANO:
+            return f"{obj.typ_doch}, {obj.datum_doch}".strip()
+        else:
+            return "Nie"
+    _dochodok.short_description = "Dôchodok"
+    def _ztp(self, obj):
+        if obj.ztp == AnoNie.ANO:
+            return f"Áno, {obj.datum_ztp}".strip()
+        else:
+            return "Nie"
+    _ztp.short_description = "ZŤP"
+
+
+@admin.register(Zamestnanec)
+class Zamestnanec(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
+    list_display = ("priezvisko", "meno", "rod_priezvisko", "email", "rodne_cislo", "datum_nar", "miesto_nar", "adresa", "_dochodok", "_ztp","poistovna", "cop", "stav")
+    # ^: v poli vyhľadávať len od začiatku
+    search_fields = ["priezvisko", "meno"]
+    def adresa(self, obj):
+        if obj.adresa_mesto:
+            return f"{obj.adresa_ulica} {obj.adresa_mesto}, {obj.adresa_stat}".strip()
+    def _dochodok(self, obj):
+        if obj.poberatel_doch == AnoNie.ANO:
+            return f"{obj.typ_doch}, {obj.datum_doch}".strip()
+        else:
+            return "Nie"
+    _dochodok.short_description = "Dôchodok"
+    def _ztp(self, obj):
+        if obj.ztp == AnoNie.ANO:
+            return f"Áno, {obj.datum_ztp}".strip()
+        else:
+            return "Nie"
+    _ztp.short_description = "ZŤP"
+
 
 @admin.register(DoVP)
 class DoVPAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):

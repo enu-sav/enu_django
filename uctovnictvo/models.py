@@ -415,17 +415,45 @@ class ZamestnanecDohodar(PolymorphicModel, FyzickaOsoba):
             raise ValidationError("V prípade poberateľa dôchodku je potrebné zadať dátum vzniku dôchodku")
         if self.ztp == AnoNie.ANO and not self.datum_ztp:
             raise ValidationError("V prípade ZŤP osoby je potrebné zadať dátum vzniku ZŤP")
-    class Meta:
-        verbose_name = "Zamestnanec / dohodár"
-        verbose_name_plural = "Zamestnanci / dohodári"
+    #class Meta:
+        #verbose_name = "Zamestnanec / dohodár"
+        #verbose_name_plural = "Zamestnanci / dohodári"
     def __str__(self):
         return f"{self.priezvisko}, {self.meno}"
+
+class Zamestnanec(ZamestnanecDohodar):
+    zapocitane_roky = models.IntegerField("Započítané roky",
+            help_text = "Započítané celé roky z predchádzajúcich zamestnaní. Nevyplňovať pre dohodára",
+            blank=True,
+            null=True)
+    zapocitane_dni = models.IntegerField("Započítané dni",
+            help_text = "Započítané dni z predchádzajúcich zamestnaní. Nevyplňovať pre dohodára",
+            blank=True,
+            null=True)
+    zamestnanie_od = models.DateField('Zamestnanie v EnÚ od',
+            help_text = "Zadajte dátum nástupu do zamestnanie v EnÚ. Nevyplňovať pre dohodára",
+            blank=True,
+            null=True)
+    #history = HistoricalRecords()
+    class Meta:
+        verbose_name = "Zamestnanec"
+        verbose_name_plural = "Zamestnanci"
+    def __str__(self):
+        return f"Z {self.priezvisko}, {self.meno}"
+
+class Dohodar(ZamestnanecDohodar):
+    #history = HistoricalRecords()
+    class Meta:
+        verbose_name = "Dohodár"
+        verbose_name_plural = "Dohodári"
+    def __str__(self):
+        return f"D {self.priezvisko}, {self.meno}"
 
 def vymer_file_path(instance, filename):
     return os.path.join(PLATOVE_VYMERY_DIR, filename)
 
 #Polymorphic umožní, aby DoVP a PrijataFaktura mohli použiť ObjednavkaZmluva ako ForeignKey
-class PlatovyVymer(PolymorphicModel, Klasifikacia):
+class PlatovyVymer(Klasifikacia):
     cislo_zamestnanca = models.CharField("Číslo zamestnanca", 
             null = True,
             max_length=50)
