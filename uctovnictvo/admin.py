@@ -414,8 +414,8 @@ class VyplacanieDohodAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAd
 @admin.register(PlatovyVymer)
 class PlatovyVymerAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin):
     form = PlatovyVymerForm
-    fields = ["cislo_zamestnanca", "zamestnanec", "datum_od", "datum_do", "tarifny_plat", "osobny_priplatok", "funkcny_priplatok", "platova_trieda", "platovy_stupen", "praxroky", "praxdni", "popis_zmeny", "zdroj", "program", "zakazka", "ekoklas" ]
-    list_display = ["mp","cislo_zamestnanca", "zamestnanec_link", "datum_od", "datum_do", "tarifny_plat", "osobny_priplatok", "funkcny_priplatok",  "platova_trieda", "platovy_stupen", "praxroky", "praxdni"]
+    fields = ["cislo_zamestnanca", "zamestnanec", "suborvymer", "datum_od", "datum_do", "tarifny_plat", "osobny_priplatok", "funkcny_priplatok", "platova_trieda", "platovy_stupen", "praxroky", "praxdni", "popis_zmeny", "zdroj", "program", "zakazka", "ekoklas" ]
+    list_display = ["mp","cislo_zamestnanca", "zamestnanec_link", "suborvymer", "datum_od", "datum_do", "tarifny_plat", "osobny_priplatok", "funkcny_priplatok",  "platova_trieda", "platovy_stupen", "praxroky", "praxdni"]
 
     # ^: v poli vyhľadávať len od začiatku
     search_fields = ["zamestnanec__meno"]
@@ -437,7 +437,6 @@ class PlatovyVymerAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
     #ukončí platnosť starého výmeru a aktualizuje prax
     def save_model(self, request, obj, form, change):
         if obj.datum_do:    # ukončený prac. pomer, aktualizovať prax
-            trace()
             # rok praxe sa ráta ako 365 dní, t. j. po odpracovaní 10 rokov sa roky praxe zvýšia o 10 a dni sa nezmenia
             dnipraxe = 365*obj.praxroky + obj.praxdni
             dnipraxe += (obj.datum_do - obj.datum_od).days - leapdays(obj.datum_od, obj.datum_do)
