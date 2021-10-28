@@ -425,7 +425,7 @@ def vymer_file_path(instance, filename):
     return os.path.join(PLATOVE_VYMERY_DIR, filename)
 
 #Polymorphic umožní, aby DoVP a PrijataFaktura mohli použiť ObjednavkaZmluva ako ForeignKey
-class PlatovyVymer(PolymorphicModel, Klasifikacia):
+class PlatovyVymer(Klasifikacia):
     cislo_zamestnanca = models.CharField("Číslo zamestnanca", 
             null = True,
             max_length=50)
