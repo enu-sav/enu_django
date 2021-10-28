@@ -375,7 +375,7 @@ class FyzickaOsoba(PersonCommon):
     def __str__(self):
         return self.rs_login
 
-class ZamestnanecDohodar(FyzickaOsoba):
+class ZamestnanecDohodar(PolymorphicModel, FyzickaOsoba):
     datum_nar = models.DateField('Dátum narodenia', null=True)
     rod_priezvisko = models.CharField("Rodné priezvisko", max_length=100, blank=True, null=True)
     miesto_nar = models.CharField("Miesto narodenia", max_length=100, null=True)
