@@ -422,6 +422,9 @@ class ZamestnanecDohodar(PolymorphicModel, FyzickaOsoba):
         return f"{self.priezvisko}, {self.meno}"
 
 class Zamestnanec(ZamestnanecDohodar):
+    cislo_zamestnanca = models.CharField("Číslo zamestnanca", 
+            null = True,
+            max_length=50)
     zapocitane_roky = models.IntegerField("Započítané roky",
             help_text = "Započítané celé roky z predchádzajúcich zamestnaní. Nevyplňovať pre dohodára",
             blank=True,
