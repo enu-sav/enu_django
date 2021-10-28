@@ -437,7 +437,7 @@ class Zamestnanec(ZamestnanecDohodar):
             help_text = "Zadajte dátum nástupu do zamestnanie v EnÚ. Nevyplňovať pre dohodára",
             blank=True,
             null=True)
-    #history = HistoricalRecords()
+    history = HistoricalRecords()
     class Meta:
         verbose_name = "Zamestnanec"
         verbose_name_plural = "Zamestnanci"
@@ -445,7 +445,7 @@ class Zamestnanec(ZamestnanecDohodar):
         return f"Z {self.priezvisko}, {self.meno}"
 
 class Dohodar(ZamestnanecDohodar):
-    #history = HistoricalRecords()
+    history = HistoricalRecords()
     class Meta:
         verbose_name = "Dohodár"
         verbose_name_plural = "Dohodári"
