@@ -167,7 +167,7 @@ class Objednavka(ObjednavkaZmluva):
             null = True, blank = True)
     termin_dodania = models.CharField("Termím dodania", 
             max_length=30, 
-            help_text = "Určite termín dodania (dátum alebo slovné určenie",
+            help_text = "Určite termín dodania (dátum alebo slovné určenie)",
             null=True,
             blank=True)
     history = HistoricalRecords()
