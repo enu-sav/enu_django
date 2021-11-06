@@ -290,6 +290,9 @@ class ZamestnanecDohodar(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExport
         else:
             return "Nie"
     _ztp.short_description = "ZŤP"
+    def _roky_dni(self, obj):
+        return f"{obj.zapocitane_roky}, {obj.zapocitane_dni}".strip()
+    _roky_dni.short_description = "Započítaná prax"
 
 
 @admin.register(Dohodar)
@@ -316,12 +319,13 @@ class Dohodar(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin)
 
 @admin.register(Zamestnanec)
 class Zamestnanec(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
-    list_display = ("priezvisko", "meno", "cislo_zamestnanca", "rod_priezvisko", "email", "rodne_cislo", "datum_nar", "miesto_nar", "adresa", "_dochodok", "_ztp","poistovna", "cop", "stav")
+    list_display = ("priezvisko", "meno", "cislo_zamestnanca", "zamestnanie_od", "_roky_dni", "rod_priezvisko", "email", "rodne_cislo", "datum_nar", "miesto_nar", "adresa", "_dochodok", "_ztp","poistovna", "cop", "stav")
     # ^: v poli vyhľadávať len od začiatku
     search_fields = ["priezvisko", "meno"]
     def adresa(self, obj):
         if obj.adresa_mesto:
             return f"{obj.adresa_ulica} {obj.adresa_mesto}, {obj.adresa_stat}".strip()
+    adresa.short_description = "Adresa"
     def _dochodok(self, obj):
         if obj.poberatel_doch == AnoNie.ANO:
             return f"{obj.typ_doch}, {obj.datum_doch}".strip()
@@ -334,6 +338,9 @@ class Zamestnanec(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAd
         else:
             return "Nie"
     _ztp.short_description = "ZŤP"
+    def _roky_dni(self, obj):
+        return f"{obj.zapocitane_roky}.{obj.zapocitane_dni}".strip()
+    _roky_dni.short_description = "Započítaná prax (roky.dni)"
 
 
 @admin.register(DoVP)
@@ -460,8 +467,9 @@ class VyplacanieDohodAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAd
 @admin.register(PlatovyVymer)
 class PlatovyVymerAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin):
     form = PlatovyVymerForm
-    fields = ["cislo_zamestnanca", "zamestnanec", "suborvymer", "datum_od", "datum_do", "tarifny_plat", "osobny_priplatok", "funkcny_priplatok", "platova_trieda", "platovy_stupen", "praxroky", "praxdni", "popis_zmeny", "zdroj", "program", "zakazka", "ekoklas" ]
-    list_display = ["mp","cislo_zamestnanca", "zamestnanec_link", "suborvymer", "datum_od", "datum_do", "tarifny_plat", "osobny_priplatok", "funkcny_priplatok",  "platova_trieda", "platovy_stupen", "praxroky", "praxdni"]
+    fields = ["cislo_zamestnanca", "zamestnanec", "suborvymer", "datum_od", "datum_do", "tarifny_plat", "osobny_priplatok", "funkcny_priplatok", "platova_trieda", "platovy_stupen", "praxroky", "praxdni", "zamestnanieroky", "zamestnaniedni", "popis_zmeny"]
+    list_display = ["mp","cislo_zamestnanca", "zamestnanec_link", "suborvymer", "datum_od", "datum_do", "tarifny_plat", "osobny_priplatok", "funkcny_priplatok",  "platova_trieda", "platovy_stupen", "_prax_roky_dni", "_zamestnanie_roky_dni"]
+    readonly_fields = ["praxroky", "praxdni", "zamestnanieroky", "zamestnaniedni"]
 
     # ^: v poli vyhľadávať len od začiatku
     search_fields = ["zamestnanec__meno"]
@@ -480,6 +488,15 @@ class PlatovyVymerAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
             od = obj.datum_od.strftime('%d. %m. %Y') if obj.datum_od else '--'
             return f"{obj.zamestnanec.priezvisko}, {obj.zamestnanec.meno}".strip()
     mp.short_description = "Výmer pre"
+
+    def _prax_roky_dni(self, obj):
+        return f"{obj.praxroky}, {obj.praxdni}".strip()
+    _prax_roky_dni.short_description = "Celková prax"
+
+    def _zamestnanie_roky_dni(self, obj):
+        return f"{obj.zamestnanieroky}, {obj.zamestnaniedni}".strip()
+    _zamestnanie_roky_dni.short_description = "Zamestnanie v EnÚ"
+
     #ukončí platnosť starého výmeru a aktualizuje prax
     def save_model(self, request, obj, form, change):
         if obj.datum_do:    # ukončený prac. pomer, aktualizovať prax
@@ -526,6 +543,7 @@ class PlatovyVymerAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
                 ekoklas = star.ekoklas,
                 zakazka = star.zakazka,
                 zdroj = star.zdroj
+                #polia praxroky, praxdni, zamestnanieroky, zamestnaniedni sa neduplikuju (sú dopĺňané automaticky pri ukladaní) 
             )
         novy.save()
         self.message_user(request, f"Vytvorený bol nový platobný výmer pre {star.zamestnanec}.", messages.SUCCESS)
