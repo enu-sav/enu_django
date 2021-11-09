@@ -517,6 +517,9 @@ class PlatovyVymer(Klasifikacia):
             help_text = "Pole sa vyplňuje automaticky, ak je pole 'Dátum do' vyplnené. Vtedy toto pole obsahuje počet dní zamestnania neúplného posledného roku do konca platnosti tohoto výmeru.",
             blank=True,
             null=True)
+    datum_postup = models.DateField('Dátum pl. postupu',
+            help_text = "Dátum najbližšieho platového postupu. Pole sa vyplňuje automaticky, ak je pole 'Dátum do' nie je vyplnené, inak je prázdne",
+            null=True)
     history = HistoricalRecords()
     class Meta:
         verbose_name = "Platový výmer"
