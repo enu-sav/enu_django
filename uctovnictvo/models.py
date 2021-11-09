@@ -460,7 +460,7 @@ class PlatovyVymer(Klasifikacia):
     cislo_zamestnanca = models.CharField("Číslo zamestnanca", 
             null = True,
             max_length=50)
-    zamestnanec = models.ForeignKey(ZamestnanecDohodar,
+    zamestnanec = models.ForeignKey(Zamestnanec,
             on_delete=models.PROTECT, 
             verbose_name = "Zamestnanec",
             related_name='%(class)s_zamestnanec')  #zabezpečí rozlíšenie modelov, keby dačo

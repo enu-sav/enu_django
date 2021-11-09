@@ -468,8 +468,8 @@ class VyplacanieDohodAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAd
 class PlatovyVymerAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin):
     form = PlatovyVymerForm
     fields = ["cislo_zamestnanca", "zamestnanec", "suborvymer", "datum_od", "datum_do", "tarifny_plat", "osobny_priplatok", "funkcny_priplatok", "platova_trieda", "platovy_stupen", "datum_postup", "praxroky", "praxdni", "zamestnanieroky", "zamestnaniedni", "popis_zmeny"]
-    list_display = ["mp","cislo_zamestnanca", "zamestnanec_link", "suborvymer", "datum_od", "datum_do", "tarifny_plat", "osobny_priplatok", "funkcny_priplatok",  "platova_trieda", "platovy_stupen", "_prax_roky_dni", "_zamestnanie_roky_dni"]
-    readonly_fields = ["praxroky", "praxdni", "zamestnanieroky", "zamestnaniedni", "datum_postup"]
+    list_display = ["mp","cislo_zamestnanca", "zamestnanec_link", "datum_postup", "suborvymer", "datum_od", "datum_do", "tarifny_plat", "osobny_priplatok", "funkcny_priplatok",  "platova_trieda", "platovy_stupen", "_prax_roky_dni", "_zamestnanie_roky_dni"]
+    readonly_fields = ["praxroky", "praxdni", "zamestnanieroky", "zamestnaniedni"]
 
     # ^: v poli vyhľadávať len od začiatku
     search_fields = ["zamestnanec__meno"]
@@ -490,11 +490,14 @@ class PlatovyVymerAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
     mp.short_description = "Výmer pre"
 
     def _prax_roky_dni(self, obj):
-        return f"{obj.praxroky}, {obj.praxdni}".strip()
+        #return f"{obj.praxroky}, {obj.praxdni}".strip()
+        #return f"{obj.praxroky}r {obj.praxdni}d".strip()
+        return f"{obj.praxroky}r {obj.praxdni}d".strip() if obj.praxroky or obj.praxdni else "-"
     _prax_roky_dni.short_description = "Celková prax"
 
     def _zamestnanie_roky_dni(self, obj):
-        return f"{obj.zamestnanieroky}, {obj.zamestnaniedni}".strip()
+        #return f"{obj.zamestnanieroky}, {obj.zamestnaniedni}".strip()
+        return f"{obj.zamestnanieroky}r {obj.zamestnaniedni}d".strip() if obj.zamestnanieroky or obj.zamestnaniedni else "-"
     _zamestnanie_roky_dni.short_description = "Zamestnanie v EnÚ"
 
     #ukončí platnosť starého výmeru a aktualizuje prax
