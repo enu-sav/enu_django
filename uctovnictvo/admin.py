@@ -468,11 +468,11 @@ class VyplacanieDohodAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAd
 class PlatovyVymerAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin):
     form = PlatovyVymerForm
     fields = ["cislo_zamestnanca", "zamestnanec", "suborvymer", "datum_od", "datum_do", "tarifny_plat", "osobny_priplatok", "funkcny_priplatok", "platova_trieda", "platovy_stupen", "datum_postup", "praxroky", "praxdni", "zamestnanieroky", "zamestnaniedni", "popis_zmeny"]
-    list_display = ["mp","cislo_zamestnanca", "zamestnanec_link", "datum_postup", "suborvymer", "datum_od", "datum_do", "tarifny_plat", "osobny_priplatok", "funkcny_priplatok",  "platova_trieda", "platovy_stupen", "_prax_roky_dni", "_zamestnanie_roky_dni"]
+    list_display = ["mp","cislo_zamestnanca", "zamestnanec_link", "zamestnanie_od", "zapocitane", "datum_postup", "datum_od", "datum_do", "_prax_roky_dni", "_zamestnanie_roky_dni", "tarifny_plat", "osobny_priplatok", "funkcny_priplatok",  "platova_trieda", "platovy_stupen", "suborvymer"]
     readonly_fields = ["praxroky", "praxdni", "zamestnanieroky", "zamestnaniedni"]
 
     # ^: v poli vyhľadávať len od začiatku
-    search_fields = ["zamestnanec__meno"]
+    search_fields = ["zamestnanec__meno", "zamestnanec__priezvisko"]
     actions = ['duplikovat_zaznam']
 
     # zoraďovateľný odkaz na dodávateľa
@@ -483,11 +483,17 @@ class PlatovyVymerAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
         })
     ]
 
+    def zamestnanie_od(self, obj):
+        return obj.zamestnanec.zamestnanie_od.strftime('%d. %m. %Y')
+
+    def zapocitane(self, obj):
+        return f"{obj.zamestnanec.zapocitane_roky}r {obj.zamestnanec.zapocitane_dni}d".strip() 
+
     def mp(self, obj):
         if obj.zamestnanec:
             od = obj.datum_od.strftime('%d. %m. %Y') if obj.datum_od else '--'
-            return f"{obj.zamestnanec.priezvisko}, {obj.zamestnanec.meno}".strip()
-    mp.short_description = "Výmer pre"
+            return f"{obj.zamestnanec.priezvisko}, {od}".strip()
+    mp.short_description = "Výmer"
 
     def _prax_roky_dni(self, obj):
         #return f"{obj.praxroky}, {obj.praxdni}".strip()

@@ -464,7 +464,7 @@ class PlatovyVymer(Klasifikacia):
             on_delete=models.PROTECT, 
             verbose_name = "Zamestnanec",
             related_name='%(class)s_zamestnanec')  #zabezpečí rozlíšenie modelov, keby dačo
-    suborvymer = models.FileField("Súbor s platovým výmerom",
+    suborvymer = models.FileField("Výmer",
             help_text = "Vložte zoskenovaný platový výmer (vytvorený mzdovou účtárňou)",
             storage=OverwriteStorage(), 
             upload_to=vymer_file_path, 
