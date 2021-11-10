@@ -21,8 +21,8 @@ rsync $remote:$remote_dump .
 rsync -avh $remote:$remote_data_dir .
 
 rm -f db.sqlite3
-./manage.py makemigrations zmluvy
-./manage.py makemigrations uctovnictvo
+#./manage.py makemigrations zmluvy
+#./manage.py makemigrations uctovnictvo
 ./manage.py migrate
 ./manage.py loaddata dump-$dt.json
 sudo service $curdir start
