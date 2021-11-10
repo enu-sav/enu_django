@@ -14,6 +14,7 @@ from .common import VytvoritPlatobnyPrikaz, VytvoritSuborDohody, VytvoritSuborOb
 from .forms import PrijataFakturaForm, AutorskeZmluvyForm, ObjednavkaForm, ZmluvaForm, PrispevokNaStravneForm
 from .forms import PlatovyVymerForm
 from .forms import DoPCForm, DoVPForm, DoBPSForm, nasledujuce_cislo
+from .rokydni import datum_postupu, vypocet_prax, vypocet_zamestnanie 
 
 #zobrazenie histórie
 #https://django-simple-history.readthedocs.io/en/latest/admin.html
@@ -507,13 +508,20 @@ class PlatovyVymerAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
     _zamestnanie_roky_dni.short_description = "Zamestnanie v EnÚ"
 
     #ukončí platnosť starého výmeru a aktualizuje prax
-    def _save_model(self, request, obj, form, change):
+    def save_model(self, request, obj, form, change):
         if obj.datum_do:    # ukončený prac. pomer, aktualizovať prax
             # rok praxe sa ráta ako 365 dní, t. j. po odpracovaní 10 rokov sa roky praxe zvýšia o 10 a dni sa nezmenia
-            dnipraxe = 365*obj.praxroky + obj.praxdni
-            dnipraxe += (obj.datum_do - obj.datum_od).days - leapdays(obj.datum_od, obj.datum_do)
-            obj.praxroky = int(dnipraxe/365)
-            obj.praxdni = dnipraxe % 365
+            years, days = vypocet_zamestnanie(obj.zamestnanec.zamestnanie_od, obj.datum_do)
+            obj.zamestnanieroky = years
+            obj.zamestnaniedni = days
+            years, days = vypocet_prax(
+                    obj.zamestnanec.zamestnanie_od, 
+                    obj.datum_do, 
+                    (obj.zamestnanec.zapocitane_roky, obj.zamestnanec.zapocitane_dni)
+                    ) 
+            obj.praxroky = years 
+            obj.praxdni = days
+            obj.datum_postup = None
         else:               #vytvorený nový výmer
             # nájsť najnovší starý výmer s nevyplneným poľom datum_do
             query_set = PlatovyVymer.objects.filter(cislo_zamestnanca=obj.cislo_zamestnanca).filter(datum_do__isnull=True)
@@ -524,12 +532,17 @@ class PlatovyVymerAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
                 # ukonciť platnosť starého nastavením datum_do
                 stary.datum_do = obj.datum_od-timedelta(1)
                 # aktualizácia praxe v stary, hodnotu použiť aj v aktuálnom
-                dnipraxe = 365*stary.praxroky + stary.praxdni
-                dnipraxe += (stary.datum_do - stary.datum_od).days - leapdays(stary.datum_od, stary.datum_do)
-                stary.praxroky = int(dnipraxe/365)
-                stary.praxdni = dnipraxe % 365
-                obj.praxroky = stary.praxroky
-                obj.praxdni = stary.praxdni
+                years, days = vypocet_zamestnanie(obj.zamestnanec.zamestnanie_od, stary.datum_do)
+                stary.zamestnanieroky = years
+                stary.zamestnaniedni = days
+                years, days = vypocet_prax(
+                        obj.zamestnanec.zamestnanie_od, 
+                        stary.datum_do, 
+                        (obj.zamestnanec.zapocitane_roky, obj.zamestnanec.zapocitane_dni)
+                        ) 
+                stary.praxroky = years 
+                stary.praxdni = days
+                stary.datum_postup = None
                 stary.save()
                 pass
         super(PlatovyVymerAdmin, self).save_model(request, obj, form, change)

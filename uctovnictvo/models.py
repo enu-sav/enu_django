@@ -519,6 +519,7 @@ class PlatovyVymer(Klasifikacia):
             null=True)
     datum_postup = models.DateField('Dátum pl. postupu',
             help_text = "Dátum najbližšieho platového postupu. Pole sa vyplňuje automaticky, ak je pole 'Dátum do' nie je vyplnené, inak je prázdne",
+            blank=True,
             null=True)
     history = HistoricalRecords()
     class Meta:
