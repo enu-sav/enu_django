@@ -115,7 +115,8 @@ class Command(BaseCommand):
                 vymer.program = Program.objects.filter(id=1)[0]                     #Ostatné
                 vymer.zakazka = TypZakazky.objects.filter(id=2)[0]                  #11010001 spol. zák.
                 vymer.ekoklas = EkonomickaKlasifikacia.objects.filter(id=18)[0]     #611 - Tarifný plat, ...
-                dp = datum_postupu(vymer.datum_od, date.today(), (vymer.praxroky, vymer.praxdni))
+                dp = datum_postupu(osoba.zamestnanie_od, date.today(), (vymer.praxroky, vymer.praxdni))
+                print("vymer: ",osoba.zamestnanie_od, osoba.zapocitane_roky, osoba.zapocitane_dni,  dp)
                 vymer.datum_postup = dp[1] if dp else None
                 vymer.save()
                 # ak máme zadaný aj novší výmer
@@ -132,8 +133,6 @@ class Command(BaseCommand):
                         platova_trieda = zamestnanci[zd.priezvisko][11],
                         platovy_stupen = zamestnanci[zd.priezvisko][12],
                         uvazok = float(zamestnanci[zd.priezvisko][13].replace(",",".")),
-                        praxroky = osoba.zapocitane_roky,
-                        praxdni = osoba.zapocitane_dni,
                         )
                     if zamestnanci[zd.priezvisko][17]:
                         vymer2.funkcny_priplatok = float(zamestnanci[zd.priezvisko][17].replace(",","."))
@@ -147,10 +146,10 @@ class Command(BaseCommand):
                     # aktualizovať predchádzajúci výmer
                     vymer.datum_do = vymer2.datum_od - timedelta(days=1)
                     #def vypocet_prax(date_from, date_to, zapocitane=(0,0)):
-                    years, days = vypocet_zamestnanie(vymer.datum_od, vymer.datum_do)
+                    years, days = vypocet_zamestnanie(osoba.zamestnanie_od, vymer.datum_do)
                     vymer.zamestnanieroky = years
                     vymer.zamestnaniedni = days
-                    years, days = vypocet_prax(vymer.datum_od, vymer.datum_do, (vymer.praxroky, vymer.praxdni)) 
+                    years, days = vypocet_prax(osoba.zamestnanie_od, vymer.datum_do, (osoba.zapocitane_roky, osoba.zapocitane_dni)) 
                     vymer.praxroky = years 
                     vymer.praxdni = days
                     vymer.datum_postup = None
@@ -158,7 +157,8 @@ class Command(BaseCommand):
 
                     vymer2.praxroky = vymer.praxroky
                     vymer2.praxdni = vymer.praxdni
-                    dp = datum_postupu(vymer2.datum_od, date.today(), (vymer2.praxroky, vymer2.praxdni))
+                    dp = datum_postupu(osoba.zamestnanie_od, date.today(), (osoba.zapocitane_roky, osoba.zapocitane_dni))
+                    print("vymer2: ",osoba.zamestnanie_od, osoba.zapocitane_roky, osoba.zapocitane_dni,  dp)
                     vymer2.datum_postup = dp[1] if dp else None
                     vymer2.save()
                 pass
