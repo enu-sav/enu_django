@@ -3,8 +3,7 @@ from django import forms
 from django.utils import timezone
 from django.contrib import messages
 import re
-from datetime import datetime, timedelta
-from dateutil.relativedelta import relativedelta
+from datetime import date, datetime, timedelta
 from ipdb import set_trace as trace
 from .models import EkonomickaKlasifikacia, TypZakazky, Zdroj, Program, Dodavatel, ObjednavkaZmluva, AutorskyHonorar
 from .models import Objednavka, Zmluva, PrijataFaktura, SystemovySubor, Rozhodnutie, PrispevokNaStravne
@@ -470,7 +469,7 @@ class PlatovyVymerAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
     form = PlatovyVymerForm
     fields = ["cislo_zamestnanca", "zamestnanec", "suborvymer", "datum_od", "datum_do", "tarifny_plat", "osobny_priplatok", "funkcny_priplatok", "platova_trieda", "platovy_stupen", "datum_postup", "praxroky", "praxdni", "zamestnanieroky", "zamestnaniedni", "popis_zmeny"]
     list_display = ["mp","cislo_zamestnanca", "zamestnanec_link", "zamestnanie_od", "zapocitane", "datum_postup", "datum_od", "datum_do", "_prax_roky_dni", "_zamestnanie_roky_dni", "tarifny_plat", "osobny_priplatok", "funkcny_priplatok",  "platova_trieda", "platovy_stupen", "suborvymer"]
-    readonly_fields = ["praxroky", "praxdni", "zamestnanieroky", "zamestnaniedni"]
+    readonly_fields = ["praxroky", "praxdni", "zamestnanieroky", "zamestnaniedni", "datum_postup"]
 
     # ^: v poli vyhľadávať len od začiatku
     search_fields = ["zamestnanec__meno", "zamestnanec__priezvisko"]
@@ -545,13 +544,23 @@ class PlatovyVymerAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
                 stary.datum_postup = None
                 stary.save()
                 pass
+            dp = datum_postupu(
+                    obj.zamestnanec.zamestnanie_od, 
+                    date.today(), 
+                    (obj.zamestnanec.zapocitane_roky, obj.zamestnanec.zapocitane_dni)
+                    )
+            print("vymer2: ",obj.zamestnanec.zamestnanie_od, obj.zamestnanec.zapocitane_roky, obj.zamestnanec.zapocitane_dni,  dp)
+            obj.datum_postup = dp[1] if dp else None
         super(PlatovyVymerAdmin, self).save_model(request, obj, form, change)
 
     def duplikovat_zaznam(self, request, queryset):
         if len(queryset) != 1:
-            self.message_user(request, f"Vybrať možno len jeden výmer", messages.ERROR)
+            self.message_user(request, f"Vybrať možno len jeden výmer.", messages.ERROR)
             return
         star = queryset[0]
+        if star.datum_do:
+            self.message_user(request, f"Tento výmer nie je aktuálny. Duplikovať možno len aktuálny výmer.", messages.ERROR)
+            return
         novy = PlatovyVymer.objects.create(
                 cislo_zamestnanca = star.cislo_zamestnanca,
                 zamestnanec = star.zamestnanec,
