@@ -154,3 +154,4 @@ class PlatovyVymerForm(PopisZmeny):
     class Meta:
         model = PlatovyVymer
         fields = "__all__"
+        field_order = ["cislo_zamestnanca", "zamestnanec", "suborvymer", "datum_od", "datum_do", "tarifny_plat", "osobny_priplatok", "funkcny_priplatok", "platova_trieda", "platovy_stupen", "datum_postup", "praxroky", "praxdni", "zamestnanieroky", "zamestnaniedni", "popis_zmeny"]

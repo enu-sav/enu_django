@@ -467,10 +467,7 @@ class VyplacanieDohodAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAd
 @admin.register(PlatovyVymer)
 class PlatovyVymerAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin):
     form = PlatovyVymerForm
-    fields = ["cislo_zamestnanca", "zamestnanec", "suborvymer", "datum_od", "datum_do", "tarifny_plat", "osobny_priplatok", "funkcny_priplatok", "platova_trieda", "platovy_stupen", "datum_postup", "praxroky", "praxdni", "zamestnanieroky", "zamestnaniedni", "popis_zmeny"]
     list_display = ["mp","cislo_zamestnanca", "zamestnanec_link", "zamestnanie_od", "zapocitane", "datum_postup", "datum_od", "datum_do", "_prax_roky_dni", "_zamestnanie_roky_dni", "tarifny_plat", "osobny_priplatok", "funkcny_priplatok",  "platova_trieda", "platovy_stupen", "suborvymer"]
-    readonly_fields = ["praxroky", "praxdni", "zamestnanieroky", "zamestnaniedni", "datum_postup"]
-
     # ^: v poli vyhľadávať len od začiatku
     search_fields = ["zamestnanec__meno", "zamestnanec__priezvisko"]
     actions = ['duplikovat_zaznam']
@@ -479,9 +476,17 @@ class PlatovyVymerAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
     # umožnené prostredníctvom AdminChangeLinksMixin
     change_links = [
         ('zamestnanec', {
-            'admin_order_field': 'zamestnanec__meno', # Allow to sort members by the column
+            'admin_order_field': 'zamestnanec__priezvisko', # Allow to sort members by the column
         })
     ]
+
+    def get_readonly_fields(self, request, obj=None):
+        if obj.datum_do:
+            aux = [f.name for f in PlatovyVymer._meta.get_fields()]
+            aux.remove("datum_do")
+            return aux
+        else:
+            return ["praxroky", "praxdni", "zamestnanieroky", "zamestnaniedni", "datum_postup"]
 
     def zamestnanie_od(self, obj):
         return obj.zamestnanec.zamestnanie_od.strftime('%d. %m. %Y')
