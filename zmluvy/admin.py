@@ -323,7 +323,7 @@ class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
         platba.datum_aktualizacie = timezone.now(),
         platba.save()
         pass
-    zaznamenat_platby_do_db.short_description = "Zaznamenať platby do databázy"
+    zaznamenat_platby_do_db.short_description = "Vytvoriť finálny prehľad o vyplácaní a zaznamenať platby do databázy"
     #Oprávnenie na použitie akcie, viazané na 'change'
     zaznamenat_platby_do_db.allowed_permissions = ('change',)
 
