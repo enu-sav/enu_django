@@ -22,11 +22,13 @@ class VyplatitAutorskeOdmeny():
     ucetLitFond  = "SK47 0200 0000 0012 2545 9853" 
     ucetFin = "SK61 8180 5002 6780 2710 3305"
 
-    def __init__(self, csv_subory=None, obdobie=None, datum_vyplatenia=None): 
+    def __init__(self, csv_subory=None, obdobie=None, datum_vyplatenia=None, zoznam_autorov=None): 
+
         self.csv_subory = csv_subory
         if obdobie:
             self.obdobie = obdobie
         self.datum_vyplatenia = datum_vyplatenia # Ak None, nevygenerujú sa hárky ImportRS/WEBRS
+        self.zoznam_autorov = zoznam_autorov    #prázdne pri akcii 'Vytvoriť podklady na vyplatenie autorských odmien pre THS'
         self.kmax = 23 #max počet riadkov s údajmi o autoroch v krycom liste 1
         self.kstart = 5 #prvý riadok záznamu o autoroch v hárku 'Krycí list', strana 1
         self.klstart = 34 #prvý riadok krycieho listu
@@ -138,17 +140,18 @@ class VyplatitAutorskeOdmeny():
             mp = f"{mp}, {autor.titul_za_menom}"
         return mp.strip()
             
+    #returns self.zoznam_autorov
     def vyplatit_odmeny(self):
         if not self.csv_subory:
             self.log(messages.ERROR, f"Vyplácanie {self.obdobie} nemá priradený žiadny exportovaný csv súbor s údajmi pre vyplácanie") 
-            return
+            return None
 
         #Súbor šablóny
         nazov_objektu = "Šablóna vyplácania honorárov"  #Presne takto mysí byť objekt pomenovaný
         sablona = SystemovySubor.objects.filter(subor_nazov = nazov_objektu)
         if not sablona:
             self.log(messages.ERROR, f"V systéme nie je definovaný súbor '{nazov_objektu}'.")
-            return
+            return None
         ws_template = sablona[0].subor.file.name 
 
         csv_path = os.path.join(settings.MEDIA_ROOT,settings.RLTS_DIR_NAME, self.obdobie) 
@@ -253,7 +256,7 @@ class VyplatitAutorskeOdmeny():
         #Ak neboli načítané žiadne platné údaje
         if not self.suma_vyplatit:
             self.log(messages.INFO, f"Neboli načítané žiadne platné dáta pre vyplácanie. Súbory na vyplácanie neboli vytvorené.")
-            return
+            return None
 
         # styly buniek, https://openpyxl.readthedocs.io/en/default/styles.html
         # default font dokumentu je Arial
@@ -275,6 +278,13 @@ class VyplatitAutorskeOdmeny():
         workbook.properties.modified = datetime.now()
         workbook.properties.lastPrinted = None
 
+        #Ak generujeme finalny záznam, vyradiť treba autorov, ktorí nie sú v zozname self.zoznam_autorov
+        if self.zoznam_autorov:
+            for autor in list(self.suma_vyplatit.keys()):
+                if not autor in self.zoznam_autorov:
+                    del self.suma_vyplatit[autor]
+            pass
+
         # ak autorov na vyplatenie je viac ako na dve strany krycieho listu, niekoho treba vyradiť
         if len(self.suma_vyplatit) > self.kmax2: 
             #Vyradiť platby s najnižšou sumou
@@ -286,6 +296,10 @@ class VyplatitAutorskeOdmeny():
                 self.log(messages.WARNING, msg)
                 self.error_list.append([vyradit[1],"",msg])
                 del self.suma_vyplatit[vyradit[1]]
+
+        #Ak generujeme podklady na vyplatenie pre THS, treba vyplnit self.zoznam_autorov
+        if not self.zoznam_autorov:
+            self.zoznam_autorov = [autor for autor in self.suma_vyplatit]
 
         #Inicializácia hárkov
         vyplatit = workbook[workbook.sheetnames[0]]
@@ -475,6 +489,7 @@ class VyplatitAutorskeOdmeny():
                 msg = f"Údaje o vyplácaní na odoslanie THS boli uložené do súboru {fpath}"
                 self.log(messages.SUCCESS, msg)
             #self.db_logger.warning(msg)
+        return self.zoznam_autorov
 
     def zapisat_chyby(self):
         alignment = Alignment(wrapText=True, horizontal='left', vertical="center")

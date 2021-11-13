@@ -251,7 +251,7 @@ class PlatbaAutorskaSumarSuborAdmin(admin.StackedInline):
 class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
     form = PlatbaAutorskaSumarForm
     # určiť poradie polí v editovacom formulári
-    fields = ['obdobie', 'vyplatit_ths', 'datum_uhradenia', 'vyplatene', 'datum_zalozenia', 'datum_oznamenia', 'import_rs', 'import_webrs', 'datum_importovania', 'popis_zmeny' ]
+    fields = ['obdobie', 'vyplatit_ths', 'autori_na_vyplatenie', 'datum_uhradenia', 'vyplatene', 'datum_zalozenia', 'datum_oznamenia', 'import_rs', 'import_webrs', 'datum_importovania', 'popis_zmeny' ]
     list_display = ['obdobie', 'datum_uhradenia', 'datum_zalozenia', 'datum_oznamenia', 'datum_importovania', 'honorar_rs', 'honorar_webrs', 'honorar_spolu', 'vyplatene_spolu', 'odvod_LF', 'odvedena_dan']
     actions = ['vytvorit_podklady_pre_THS', 'zaznamenat_platby_do_db', 'zrusit_platbu']
     # pripajanie suborov k objektu: krok 3, inline do XxxAdmin 
@@ -268,7 +268,7 @@ class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
         if obj:
             if obj.platba_zaznamenana == AnoNie.ANO:
                 # platba je zaznamenaná, zakázať všetko"
-                return ["obdobie", "platba_zaznamenana", "datum_uhradenia", "vyplatene", "vyplatit_ths", "import_webrs", "import_rs"]
+                return ["obdobie", "platba_zaznamenana", "datum_uhradenia", "vyplatene", "vyplatit_ths", "import_webrs", "import_rs", "autori_na_vyplatenie"]
             else:
                 # povoliť len "datum_uhradenia"
                 #return ["obdobie", "platba_zaznamenana"]
@@ -313,7 +313,7 @@ class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
             return
         platba = queryset[0]
         if platba.platba_zaznamenana == AnoNie.ANO:
-            self.message_user(request, f"Platba {platba.obdobie} už bola vložená do databázy s dátumom vyplatenia {platba.datum_uhradenia}. Ak chcete platbu opakovane vložiť do databázy, musíte ju zrušit (odstrániť z databázy) pomocou 'Zrušiť platbu'", messages.ERROR)
+            self.message_user(request, f"Platba {platba.obdobie} už bola vložená do databázy s dátumom vyplatenia {platba.datum_uhradenia}. Ak chcete platbu opakovane vložiť do databázy, musíte ju zrušit (odstrániť z databázy) pomocou 'Zrušiť záznam o platbe v databáze'", messages.ERROR)
             return
         if not platba.datum_uhradenia:
             self.message_user(request, f"Platba nebola vložená do databázy, lebo nie je zadaný dátum jej vyplatenia THS-kou. ", messages.ERROR)
@@ -350,8 +350,13 @@ class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
         subory = platba.platbaautorskasumarsubor_set.all()
         nazvy = [subor.file.name for subor in subory]
         try:
-            dat_uhradenia = platba.datum_uhradenia.isoformat() if platba.datum_uhradenia else None
-            vao = VyplatitAutorskeOdmeny(nazvy, platba.obdobie, dat_uhradenia)
+            # ak vytvárame finálny prehľad, platba.datum_uhradenia je vyplnené 
+            if platba.datum_uhradenia:
+                vao = VyplatitAutorskeOdmeny(nazvy, platba.obdobie, 
+                        platba.datum_uhradenia.isoformat(), 
+                        platba.autori_na_vyplatenie.split())
+            else:
+                vao = VyplatitAutorskeOdmeny(nazvy, platba.obdobie)
             vao.vyplatit_odmeny()
             logs = vao.get_logs()
             #status, msg, vytvorene_subory = VyplatitAutorskeOdmeny(platba)
@@ -369,6 +374,9 @@ class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
                         platba.import_webrs = fname
                         
                 self.message_user(request, log[1].replace(settings.MEDIA_ROOT,""), log[0])
+            # prebrať a uložiť novovytvorený zoznam autorov (len pri akcii "Vytvoriť podklady na vyplatenie autorských odmien pre THS")
+            if not platba.datum_uhradenia:
+                platba.autori_na_vyplatenie = " ".join(vao.zoznam_autorov)
             platba.save()
             #self.message_user(request, msg, status)
         except Exception as error:
@@ -390,6 +398,7 @@ class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
         platba.datum_importovania = None
         platba.datum_zalozenia = None
         platba.datum_oznamenia = None
+        platba.autori_na_vyplatenie = None
         platba.platba_zaznamenana = AnoNie.NIE
         #odstrániť súbory
         platba.vyplatit_ths.delete()
@@ -406,7 +415,7 @@ class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
         for log in logs:
             self.message_user(request, log[1].replace(settings.MEDIA_ROOT,""), log[0])
         #self.message_user(request, f"Platba {platba.obdobie} bola zrušená", messages.INFO)
-    zrusit_platbu.short_description = "Zrušiť záznam o platbách v databáze"
+    zrusit_platbu.short_description = "Zrušiť záznam o platbe v databáze"
     #Oprávnenie na použitie akcie, viazané na 'delete'
     zrusit_platbu.allowed_permissions = ('delete',)
 

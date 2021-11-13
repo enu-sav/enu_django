@@ -239,6 +239,11 @@ class PlatbaAutorskaSumar(models.Model):
             max_length=20, default = datetime.now().strftime('%Y-%m-%d')
             )
     vyplatit_ths = models.FileField("Súbor pre THS-ku",upload_to=platba_autorska_sumar_upload_location, null = True, blank = True)
+    autori_na_vyplatenie = models.TextField("Vyplacaní autori", 
+            help_text = "Zoznam vyplácaných autorov. Vypĺňa sa automaticky akciou 'Vytvoriť podklady na vyplatenie autorských odmien pre THS'. <strong>Pokiaľ platba autora neprešla, pred vytvorením finálneho prehľadu platieb ho zo zoznamu odstráňte</strong>.", 
+            null = True,
+            blank = True,
+            max_length=2500)
     vyplatene = models.FileField("Vyplatené",upload_to=platba_autorska_sumar_upload_location, null = True, blank = True)
     import_rs = models.FileField("Importovať do RS",upload_to=platba_autorska_sumar_upload_location, null = True, blank = True)
     import_webrs = models.FileField("Importovať do WEBRS",upload_to=platba_autorska_sumar_upload_location, null = True, blank = True)
