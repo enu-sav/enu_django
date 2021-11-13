@@ -23,13 +23,19 @@ def leapday_corr(date_to, days):
 #Parametre: 
 # date_from: deň nástupu do zamestnania
 # date_to: posledný deň zamestnania
-# zapocitane: (roky, dni) započítanej praxe z predchádzajúcich zamestnaní
+# zapocitane: (roky, dni) započítanej praxe k date_from
+#Ak date_from > date_to, vyráta vstupnú prax k date_to z konečnej praxe k date_from 
 def vypocet_prax(date_from, date_to, zapocitane=(0,0)):
     years, days = vypocet_zamestnanie(date_from, date_to)
     #korekcia na 29. 2
     days -= leapday_corr(date_to, days)
     zr = zapocitane[0]
     zd = zapocitane[1]
+    #korekcia pre prípad výpočtu praxe k začiatku obdobia
+    if date_to < date_from:
+        zd -= 2
+    elif date_to == date_from:
+        zd -= 1
     years += zr + int((days+zd)/365)
     days = (days+zd)%365
     return years, days
@@ -199,7 +205,6 @@ def main():
     #humanet, https://humanet.sk/podpora/platove-postupy-plat-postupy
     print()
     print("postup", datum_postupu(date(2019,8,27), date(2019,9,1), (32,256)) == (date(2022, 12, 14), date(2022, 12, 1), "13"))
-    trace()
     #print(leapday_corr(date(2020,2,29), 0))
     #print(leapday_corr(date(2020,2,29), 1))
     #print(leapday_corr(date(2020,2,29), 2))
@@ -258,6 +263,12 @@ def main():
     print("zam: ", vypocet_zamestnanie(fd, td))
     print("prx :", vypocet_prax(fd, td,(14,122)))
     print()
-    
+    trace()
+
+    #Výpočet praxe k začiatku obdobia z praxe na konci
+    fd = date(2019,7,1)
+    td = date(2021,3,31)
+    prax = (13, 105)
+    prax == rd.vypocet_prax(fd, td ,rd.vypocet_prax(td, fd, prax))
 if __name__ == "__main__":
     main()
