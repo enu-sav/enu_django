@@ -229,7 +229,7 @@ def platba_autorska_sumar_upload_location(instance, filename):
 class PlatbaAutorskaSumar(models.Model):
     #obdobie: priečinok, z ktorého bola platba importovaná
     datum_uhradenia = models.DateField('Vyplatené THS-kou', 
-            help_text = "Dátum vyplatenia honorárov (oznámený účtovníčkou)",
+            help_text = "Dátum vyplatenia honorárov na základe odoslaných podkladov (oznámený účtovníčkou)",
             null=True, blank=True)
     datum_importovania = models.DateField('Importované do RS/WEBRS', 
             help_text = "Dátum importovania do RS/WEBRS",
@@ -250,20 +250,32 @@ class PlatbaAutorskaSumar(models.Model):
             max_length=20, default = datetime.now().strftime('%Y-%m-%d')
             )
     vyplatit_ths = models.FileField("Podklady na vyplatenie",
-            help_text = "Súbor je generovaný akciou 'Vytvoriť podklady na vyplatenie autorských odmien pre THS'. <br .>Súbor obsahuje údaje pre vyplácanie autorov (hárok <em>Na vyplatenie</em>) a zoznam chýb, ktoré boli pre generovaní zistené (hárok <em>Chyby</em>).<br /> <strong>Definitívnu verziu súboru (len hárku  <em>Na vyplatenie</em>) treba poslať mailom účtovníčke na vyplatenie.</strong>", 
+            help_text = "Súbor je generovaný akciou 'Vytvoriť podklady na vyplatenie autorských odmien pre THS'. <br .>Súbor obsahuje údaje pre vyplácanie autorských honorárov (hárok <em>Na vyplatenie</em>) a zoznam chýb, ktoré boli pre generovaní zistené (hárok <em>Chyby</em>).<br /> <strong>Definitívnu verziu súboru (len hárku  <em>Na vyplatenie</em>) treba poslať mailom účtovníčke na vyplatenie.</strong>", 
             upload_to=platba_autorska_sumar_upload_location, 
             null = True, 
             blank = True)
+    podklady_odoslane= models.DateField('Podklady odoslané',
+            help_text = "Dátum odoslania podkladov na vyplatenie účtovníčke",
+            null=True, 
+            blank=True)
     autori_na_vyplatenie = models.TextField("Vyplácaní autori", 
             help_text = "Zoznam vyplácaných autorov. Vypĺňa sa automaticky akciou 'Vytvoriť podklady na vyplatenie autorských odmien pre THS'. <br .><strong>Pokiaľ platba autora neprešla, pred vytvorením finálneho prehľadu platieb ho zo zoznamu odstráňte</strong>.", 
             null = True,
             blank = True,
             max_length=2500)
     vyplatene = models.FileField("Finálny prehľad",
-            help_text = "Súbor je generovaný akciou 'Vytvoriť finálny prehľad o vyplácaní a zaznamenať platby do databázy'.<br .><strong>Hárok <em>Na vyplatenie</em> treba poslať mailom účtovníčke na vyplatenie</strong><br .><strong>Hárky <em>Na vyplatenie</em> a <em>Krycí list</em> treba poslať internou poštou na THS</strong><br .> <strong>Hárok <em>Po autoroch</em> treba vytlačiť a po autoroch založiť so šanonov</strong>.", 
+            help_text = "Súbor je generovaný akciou 'Vytvoriť finálny prehľad o vyplácaní a zaznamenať platby do databázy'.<br .><strong>Hárok <em>Na vyplatenie</em> treba poslať mailom účtovníčke na vyplatenie</strong><br .><strong>Hárok <em>Krycí list</em> treba poslať internou poštou na THS</strong><br .> <strong>Hárok <em>Po autoroch</em> treba vytlačiť a po autoroch založiť so šanonov</strong>.", 
             upload_to=platba_autorska_sumar_upload_location, 
             null = True, 
             blank = True)
+    na_vyplatenie_odoslane= models.DateField("'Na vyplatenie' odoslané",
+            help_text = "Dátum odoslania hárku <em>Na vyplatenie</en> účtovníčke (mailom)",
+            null=True, 
+            blank=True)
+    kryci_list_odoslany= models.DateField("'Krycí list' odoslaný",
+            help_text = "Dátum odoslania hárku <em>Krycí list</en> účtovníčke (internou poštou)",
+            null=True, 
+            blank=True)
     import_rs = models.FileField("Importovať do RS",
             help_text = "Súbor s údajmi o vyplácaní na importovanie do knižného redakčného systému. Po importovaní vyplniť pole <em>Importované do RS/WEBRS</em>.",
             upload_to=platba_autorska_sumar_upload_location, 
