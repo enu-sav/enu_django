@@ -228,25 +228,52 @@ def platba_autorska_sumar_upload_location(instance, filename):
 
 class PlatbaAutorskaSumar(models.Model):
     #obdobie: priečinok, z ktorého bola platba importovaná
-    datum_uhradenia = models.DateField('Vyplatené THS-kou', null=True, blank=True)
-    datum_importovania = models.DateField('Importované do RS/WEBRS', null=True, blank=True)
-    datum_zalozenia = models.DateField('Založené do šanonov (po autoroch)', null=True, blank=True)
-    datum_oznamenia = models.DateField('Oznámené FS (mesačné)', null=True, blank=True)
+    datum_uhradenia = models.DateField('Vyplatené THS-kou', 
+            help_text = "Dátum vyplatenia honorárov (oznámený účtovníčkou)",
+            null=True, blank=True)
+    datum_importovania = models.DateField('Importované do RS/WEBRS', 
+            help_text = "Dátum importovania do RS/WEBRS",
+            null=True, 
+            blank=True)
+    datum_zalozenia = models.DateField('Založené do šanonov (po autoroch)', 
+            help_text = "Dátum založenia hárku <em>Po autoroch</em> do šanonov.",
+            null=True, 
+            blank=True)
+    datum_oznamenia = models.DateField('Oznámené FS (mesačné)', 
+            help_text = "Dátum oznámenia nezdanených autorov na finančnú správu (termín: do 15. dňa nasledujýceho mesiaca).",
+            null=True, 
+            blank=True)
     #platba_zaznamenana: nastavované programovo
     platba_zaznamenana = models.CharField("Platba zaznanenaná v DB", max_length=3, choices=AnoNie.choices, default=AnoNie.NIE)
     obdobie = models.CharField("Identifikátor vyplácania",
             help_text = "Ako identifikátor vyplácania sa použije dátum jeho vytvorenia",
             max_length=20, default = datetime.now().strftime('%Y-%m-%d')
             )
-    vyplatit_ths = models.FileField("Súbor pre THS-ku",upload_to=platba_autorska_sumar_upload_location, null = True, blank = True)
-    autori_na_vyplatenie = models.TextField("Vyplacaní autori", 
-            help_text = "Zoznam vyplácaných autorov. Vypĺňa sa automaticky akciou 'Vytvoriť podklady na vyplatenie autorských odmien pre THS'. <strong>Pokiaľ platba autora neprešla, pred vytvorením finálneho prehľadu platieb ho zo zoznamu odstráňte</strong>.", 
+    vyplatit_ths = models.FileField("Podklady na vyplatenie",
+            help_text = "Súbor je generovaný akciou 'Vytvoriť podklady na vyplatenie autorských odmien pre THS'. <br .>Súbor obsahuje údaje pre vyplácanie autorov (hárok <em>Na vyplatenie</em>) a zoznam chýb, ktoré boli pre generovaní zistené (hárok <em>Chyby</em>).<br /> <strong>Definitívnu verziu súboru (len hárku  <em>Na vyplatenie</em>) treba poslať mailom účtovníčke na vyplatenie.</strong>", 
+            upload_to=platba_autorska_sumar_upload_location, 
+            null = True, 
+            blank = True)
+    autori_na_vyplatenie = models.TextField("Vyplácaní autori", 
+            help_text = "Zoznam vyplácaných autorov. Vypĺňa sa automaticky akciou 'Vytvoriť podklady na vyplatenie autorských odmien pre THS'. <br .><strong>Pokiaľ platba autora neprešla, pred vytvorením finálneho prehľadu platieb ho zo zoznamu odstráňte</strong>.", 
             null = True,
             blank = True,
             max_length=2500)
-    vyplatene = models.FileField("Vyplatené",upload_to=platba_autorska_sumar_upload_location, null = True, blank = True)
-    import_rs = models.FileField("Importovať do RS",upload_to=platba_autorska_sumar_upload_location, null = True, blank = True)
-    import_webrs = models.FileField("Importovať do WEBRS",upload_to=platba_autorska_sumar_upload_location, null = True, blank = True)
+    vyplatene = models.FileField("Finálny prehľad",
+            help_text = "Súbor je generovaný akciou 'Vytvoriť finálny prehľad o vyplácaní a zaznamenať platby do databázy'.<br .><strong>Hárok <em>Na vyplatenie</em> treba poslať mailom účtovníčke na vyplatenie</strong><br .><strong>Hárky <em>Na vyplatenie</em> a <em>Krycí list</em> treba poslať internou poštou na THS</strong><br .> <strong>Hárok <em>Po autoroch</em> treba vytlačiť a po autoroch založiť so šanonov</strong>.", 
+            upload_to=platba_autorska_sumar_upload_location, 
+            null = True, 
+            blank = True)
+    import_rs = models.FileField("Importovať do RS",
+            help_text = "Súbor s údajmi o vyplácaní na importovanie do knižného redakčného systému. Po importovaní vyplniť pole <em>Importované do RS/WEBRS</em>.",
+            upload_to=platba_autorska_sumar_upload_location, 
+            null = True, 
+            blank = True)
+    import_webrs = models.FileField("Importovať do WEBRS",
+            help_text = "Súbor s údajmi o vyplácaní na importovanie do webového redakčného systému. Po importovaní vyplniť pole <em>Importované do RS/WEBRS</em>.",
+            upload_to=platba_autorska_sumar_upload_location, 
+            null = True, 
+            blank = True)
     history = HistoricalRecords()
 
     class Meta:
