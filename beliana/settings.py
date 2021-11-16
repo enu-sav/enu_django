@@ -41,6 +41,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
 # Application definition
 
 INSTALLED_APPS = [
+    'dennik.apps.DennikConfig',
     'zmluvy.apps.ZmluvyConfig',
     'uctovnictvo.apps.UctovnictvoConfig',
     'django.contrib.admin',
