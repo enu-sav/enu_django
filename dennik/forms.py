@@ -3,6 +3,7 @@ from django import forms
 from ipdb import set_trace as trace
 from .models import Dokument
 from datetime import datetime
+import re
 
 # Pre triedu classname určí číslo nasledujúceho záznamu v pvare X-2021-NNN
 def nasledujuce_cislo(classname):
@@ -26,7 +27,7 @@ class DokumentForm(forms.ModelForm):
         if polecislo in self.fields:
             if not polecislo in self.initial:
                 nasledujuce = nasledujuce_cislo(Dokument)
-                self.fields[polecislo].help_text = f"Zadajte číslo novej faktúry v tvare {Dokument.oznacenie}-RRRR-NNN. Predvolené číslo '{nasledujuce} bolo určené na základe čísiel existujúcich faktúr ako nasledujúce v poradí."
+                self.fields[polecislo].help_text = f"Zadajte číslo nového dokumentu v tvare {Dokument.oznacenie}-RRRR-NNN. Predvolené číslo '{nasledujuce} bolo určené na základe čísiel existujúcich dokumentov ako nasledujúce v poradí."
                 self.initial[polecislo] = nasledujuce
             else:
-                self.fields[polecislo].help_text = f"Číslo faktúry v tvare {Dokument.oznacenie}-RRRR-NNN."
+                self.fields[polecislo].help_text = f"Číslo dokumentov v tvare {Dokument.oznacenie}-RRRR-NNN."
