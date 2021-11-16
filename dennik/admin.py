@@ -22,6 +22,7 @@ class ZobrazitZmeny(SimpleHistoryAdmin):
 @admin.register(Dokument)
 class DokumentAdmin(ZobrazitZmeny):
     form = DokumentForm
-    #list_display = ["cislo"]
+    list_display = ["cislo", "datum", "odosielatel", "adresat", "sposob", "url", "vec", "poznamka"]
     # určiť poradie polí v editovacom formulári
     #fields = ["cislo"]
+
