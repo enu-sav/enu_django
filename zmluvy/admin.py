@@ -252,7 +252,7 @@ class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
     form = PlatbaAutorskaSumarForm
     # určiť poradie polí v editovacom formulári
     fields = ['obdobie', 'vyplatit_ths', 'podklady_odoslane', 'autori_na_vyplatenie', 'datum_uhradenia', 'vyplatene', 'na_vyplatenie_odoslane', 'kryci_list_odoslany', 'datum_zalozenia', 'datum_oznamenia', 'import_rs', 'import_webrs', 'datum_importovania', 'popis_zmeny' ]
-    list_display = ['obdobie', 'datum_uhradenia', 'datum_zalozenia', 'datum_oznamenia', 'datum_importovania', 'honorar_rs', 'honorar_webrs', 'honorar_spolu', 'vyplatene_spolu', 'odvod_LF', 'odvedena_dan']
+    list_display = ['obdobie', 'podklady_odoslane', 'datum_uhradenia', 'na_vyplatenie_odoslane', 'kryci_list_odoslany', 'datum_zalozenia', 'datum_oznamenia', 'datum_importovania', 'honorar_rs', 'honorar_webrs', 'honorar_spolu', 'vyplatene_spolu', 'odvod_LF', 'odvedena_dan']
     actions = ['vytvorit_podklady_pre_THS', 'zaznamenat_platby_do_db', 'zrusit_platbu']
     # pripajanie suborov k objektu: krok 3, inline do XxxAdmin 
     inlines = [PlatbaAutorskaSumarSuborAdmin]
