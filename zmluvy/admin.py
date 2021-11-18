@@ -265,7 +265,36 @@ class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
 
     #obj is None during the object creation, but set to the object being edited during an edit
     def get_readonly_fields(self, request, obj=None):
+        #trace()
         if obj:
+            fields = [f.name for f in PlatbaAutorskaSumar._meta.get_fields()]
+            #Pole Podklady odoslané
+            if obj.vyplatit_ths and not obj.datum_uhradenia: 
+                fields.remove("podklady_odoslane")
+            if obj.podklady_odoslane and not "podklady_odoslane" in fields:
+                fields.append("podklady_odoslane")
+            #Pole Vyplácaní autori
+            if obj.podklady_odoslane and not obj.datum_uhradenia and "autori_na_vyplatenie" in fields:
+                fields.remove("autori_na_vyplatenie")
+            #Pole Vyplatené THS-kou
+            if obj.podklady_odoslane and not obj.datum_uhradenia and "datum_uhradenia" in fields:
+                fields.remove("datum_uhradenia")
+            #Pole 'Na vyplatenie' odoslané
+            if obj.vyplatene and not obj.na_vyplatenie_odoslane and "na_vyplatenie_odoslane" in fields:
+                fields.remove("na_vyplatenie_odoslane")
+            #Pole 'Krycí list' odoslaný:
+            if obj.vyplatene and not obj.kryci_list_odoslany and "kryci_list_odoslany" in fields:
+                fields.remove("kryci_list_odoslany")
+            #Pole Založené do šanonov (po autoroch):
+            if obj.vyplatene and not obj.datum_zalozenia and "datum_zalozenia" in fields:
+                fields.remove("datum_zalozenia")
+            #Pole Oznámené FS (mesačné):
+            if obj.vyplatene and not obj.datum_oznamenia and "datum_oznamenia" in fields:
+                fields.remove("datum_oznamenia")
+            #Pole Importované do RS/WEBRS:
+            if obj.vyplatene and not obj.datum_importovania and "datum_importovania" in fields:
+                fields.remove("datum_importovania")
+            return fields
             if obj.platba_zaznamenana == AnoNie.ANO:
                 # platba je zaznamenaná, zakázať všetko"
                 return ["obdobie", "platba_zaznamenana", "datum_uhradenia", "vyplatene", "vyplatit_ths", "import_webrs", "import_rs", "autori_na_vyplatenie"]
@@ -275,7 +304,9 @@ class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
                 return ["obdobie", "platba_zaznamenana", "vyplatene", "vyplatit_ths", "import_webrs", "import_rs"]
         else:
             # V novej platbe povoliť len "obdobie"
-            return ["platba_zaznamenana", "datum_uhradenia"]
+            fields = [f.name for f in PlatbaAutorskaSumar._meta.get_fields()]
+            fields.remove("obdobie")
+            return fields
 
     def honorar_spolu(self, sumplatba):
         platby = PlatbaAutorskaOdmena.objects.filter(obdobie=sumplatba.obdobie)
@@ -409,6 +440,9 @@ class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
         platba.vyplatene=None
         platba.import_rs=None
         platba.import_webrs=None
+        platba.podklady_odoslane=None
+        platba.kryci_list_odoslany=None
+        platba.na_vyplatenie_odoslane=None
         pass
         platba.save()
         logs = vao.get_logs()
