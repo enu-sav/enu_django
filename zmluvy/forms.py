@@ -71,7 +71,7 @@ class PlatbaAutorskaSumarForm(forms.ModelForm):
                         datum = self.cleaned_data['podklady_odoslane'],
                         odosielatel = str(self.instance),
                         adresat = "Účtovník TSH", 
-                        vec = "Podklady na vyplatenie aut. honorárov",
+                        vec = f'<a href="{self.instance.vyplatit_ths.url}">Podklady na vyplatenie aut. honorárov</a>, hárok ''Na vyplatenie''',
                         sposob = SposobDorucenia.MAIL
                     )
                     dok.save()
@@ -91,7 +91,7 @@ class PlatbaAutorskaSumarForm(forms.ModelForm):
                             datum = self.cleaned_data['na_vyplatenie_odoslane'],
                             odosielatel = str(self.instance),
                             adresat = "Účtovník TSH", 
-                            vec = "Finálny prehľad vyplácania aut. honorárov",
+                            vec = f'<a href="{self.instance.vyplatene.url}">Finálny prehľad vyplácania aut. honorárov</a>", hárok ''Na vyplatenie''',
                             sposob = SposobDorucenia.MAIL
                         )
                     else:
@@ -109,7 +109,7 @@ class PlatbaAutorskaSumarForm(forms.ModelForm):
                             datum = self.cleaned_data['kryci_list_odoslany'],
                             odosielatel = str(self.instance),
                             adresat = "Účtovník TSH", 
-                            vec = "Krycí list vyplácania aut. honorárov",
+                            vec = f'<a href="{self.instance.vyplatene.url}">Krycí list vyplácania aut. honorárov</a>", hárok ''Krycí list''',
                             sposob = SposobDorucenia.IPOSTA
                         )
                     else:
