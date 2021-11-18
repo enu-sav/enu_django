@@ -124,7 +124,8 @@ class Zmluva(models.Model):
     datum_pridania = models.DateField('Dátum pridania', auto_now_add=True)
     datum_aktualizacie = models.DateTimeField('Dátum aktualizácie', auto_now=True)
     stav_zmluvy = models.CharField(max_length=20,
-            help_text = "Z ponuky zvoľte aktuálny stav zmluvy. Autorský honorár môže byť vyplatený len vtedy, keď je v stave 'Platná / Zverejnená v CRZ.",
+            #help_text = "Z ponuky zvoľte aktuálny stav zmluvy. Autorský honorár môže byť vyplatený len vtedy, keď je v stave 'Platná / Zverejnená v CRZ.",
+            help_text = '<font color="#aa0000">Zvoliť aktuálny stav zmluvy</font> (po každej jeho zmene).',
             choices=StavZmluvy.choices, blank=True) 
     url_zmluvy = models.URLField('URL zmluvy', 
             help_text = "Zadajte URL pdf súboru zmluvy zo stránky CRZ.",
