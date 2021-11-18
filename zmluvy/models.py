@@ -235,11 +235,11 @@ class PlatbaAutorskaSumar(models.Model):
             help_text = "Dátum importovania do RS/WEBRS",
             null=True, 
             blank=True)
-    datum_zalozenia = models.DateField('Založené do šanonov (po autoroch)', 
+    datum_zalozenia = models.DateField('Založené do šanonov', 
             help_text = "Dátum založenia hárku <em>Po autoroch</em> do šanonov.",
             null=True, 
             blank=True)
-    datum_oznamenia = models.DateField('Oznámené FS (mesačné)', 
+    datum_oznamenia = models.DateField('Oznámené FS)', 
             help_text = "Dátum oznámenia nezdanených autorov na finančnú správu (termín: do 15. dňa nasledujýceho mesiaca).",
             null=True, 
             blank=True)
@@ -250,7 +250,7 @@ class PlatbaAutorskaSumar(models.Model):
             max_length=20, default = datetime.now().strftime('%Y-%m-%d')
             )
     vyplatit_ths = models.FileField("Podklady na vyplatenie",
-            help_text = "Súbor je generovaný akciou 'Vytvoriť podklady na vyplatenie autorských odmien pre THS'. <br .>Súbor obsahuje údaje pre vyplácanie autorských honorárov (hárok <em>Na vyplatenie</em>) a zoznam chýb, ktoré boli pre generovaní zistené (hárok <em>Chyby</em>).<br /> <strong>Definitívnu verziu súboru (len hárku  <em>Na vyplatenie</em>) treba poslať mailom do účtárne THS na vyplatenie.</strong>", 
+            help_text = "Súbor generovaný akciou 'Vytvoriť podklady na vyplatenie autorských odmien pre THS'. <br .>Súbor obsahuje údaje pre vyplácanie autorských honorárov (hárok <em>Na vyplatenie</em>) a zoznam chýb, ktoré boli pre generovaní zistené (hárok <em>Chyby</em>).<br /> <strong>Definitívnu verziu súboru (len hárku  <em>Na vyplatenie</em>) treba poslať mailom do účtárne THS na vyplatenie.</strong>", 
             upload_to=platba_autorska_sumar_upload_location, 
             null = True, 
             blank = True)
@@ -264,7 +264,7 @@ class PlatbaAutorskaSumar(models.Model):
             blank = True,
             max_length=2500)
     vyplatene = models.FileField("Finálny prehľad",
-            help_text = "Súbor je generovaný akciou 'Vytvoriť finálny prehľad o vyplácaní a zaznamenať platby do databázy'.<br .><strong>Hárok <em>Na vyplatenie</em> treba poslať mailom do účtárne THS na vyplatenie</strong><br .><strong>Hárok <em>Krycí list</em> treba poslať internou poštou na THS</strong><br .> <strong>Hárok <em>Po autoroch</em> treba vytlačiť a po autoroch založiť so šanonov</strong>.", 
+            help_text = "Súbor generovaný akciou 'Vytvoriť finálny prehľad o vyplácaní a zaznamenať platby do databázy'.<br .><strong>Hárok <em>Na vyplatenie</em> treba poslať mailom do účtárne THS na vyplatenie</strong><br .><strong>Hárok <em>Krycí list</em> treba poslať internou poštou na THS</strong><br .> <strong>Hárok <em>Po autoroch</em> treba vytlačiť a po autoroch založiť so šanonov</strong>.", 
             upload_to=platba_autorska_sumar_upload_location, 
             null = True, 
             blank = True)
