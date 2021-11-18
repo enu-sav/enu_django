@@ -4,6 +4,9 @@ from django.contrib import admin
 from .models import Dokument
 from .forms import DokumentForm
 from ipdb import set_trace as trace
+from django.utils.html import format_html
+import re
+
 
 #zobrazenie histórie
 #https://django-simple-history.readthedocs.io/en/latest/admin.html
@@ -22,7 +25,13 @@ class ZobrazitZmeny(SimpleHistoryAdmin):
 @admin.register(Dokument)
 class DokumentAdmin(ZobrazitZmeny):
     form = DokumentForm
-    list_display = ["cislo", "datum", "odosielatel", "adresat", "sposob", "url", "vec", "poznamka"]
+    list_display = ["cislo", "datum", "odosielatel", "adresat", "sposob", "url", "vec_html", "poznamka"]
     # určiť poradie polí v editovacom formulári
     #fields = ["cislo"]
+    def vec_html(self, obj):
+        link = re.findall(r'<a href="([^"]*)">([^<]*)</a>', obj.vec)
+        if link:
+            return format_html(obj.vec, url=link[0][0])
+        else:
+            return obj.vec
 
