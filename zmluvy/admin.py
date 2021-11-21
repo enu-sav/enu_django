@@ -131,9 +131,11 @@ class ZmluvaAutorAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportMo
     # modifikovať formulár na pridanie poľa Popis zmeny
     form = ZmluvaAutorForm
     # zmluvna_strana_link: pridá autora zmluvy do zoznamu, vďaka AdminChangeLinksMixin
-    list_display = ('cislo_zmluvy', 'stav_zmluvy', 'zmluvna_strana_link',
+    list_display = ('cislo_zmluvy', 'stav_zmluvy', 'zmluva_odoslana', 'zmluva_vratena', 'zmluvna_strana_link',
             'honorar_ah', 'url_zmluvy_html', 'crz_datum', 'datum_pridania', 'datum_aktualizacie')
-    ordering = ('zmluvna_strana',)
+    #fields = ('cislo_zmluvy', 'stav_zmluvy', 'zmluva_odoslana', 'zmluva_vratena', 'zmluvna_strana',
+            #'honorar_ah', 'url_zmluvy', 'datum_zverejnenia_CRZ', 'datum_pridania', 'datum_aktualizacie')
+    ordering = ('-datum_aktualizacie',)
     search_fields = ['cislo_zmluvy','zmluvna_strana__rs_login', 'honorar_ah', 'stav_zmluvy']
     actions = ['vytvorit_subory_zmluvy']
 
@@ -146,11 +148,38 @@ class ZmluvaAutorAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportMo
     ]
 
     #obj is None during the object creation, but set to the object being edited during an edit
-    def get_readonly_fields(self, request, obj=None):
+    def _get_readonly_fields(self, request, obj=None):
         if obj:
             return ["cislo_zmluvy", "zmluvna_strana", "vygenerovana_subor", "vygenerovana_crz_subor"]
         else:
             return ["vygenerovana_subor", "vygenerovana_crz_subor"]
+
+    #obj is None during the object creation, but set to the object being edited during an edit
+    def get_readonly_fields(self, request, obj=None):
+        fields = [f.name for f in ZmluvaAutor._meta.get_fields()]
+        if obj:
+            fields.remove("stav_zmluvy")
+            if obj.vygenerovana_subor: 
+                if not obj.zmluva_odoslana:
+                    fields.remove("zmluva_odoslana")
+                if obj.zmluva_odoslana and not obj.zmluva_vratena:
+                    fields.remove("zmluva_vratena")
+                if obj.zmluva_vratena:
+                    fields.remove("url_zmluvy")
+                    fields.remove("datum_zverejnenia_CRZ")
+                    fields.remove("podpisana_subor")
+            else:
+                fields.remove("zmluvna_strana")
+                fields.remove("honorar_ah")
+                #fields.remove("podklady_odoslane")
+            pass
+        else:
+            # V novej platbe povoliť len "obdobie"
+            fields.remove("stav_zmluvy")
+            fields.remove("cislo_zmluvy")
+            fields.remove("zmluvna_strana")
+            fields.remove("honorar_ah")
+        return fields
 
     # formátovať pole url_zmluvy
     def url_zmluvy_html(self, obj):
@@ -180,6 +209,15 @@ class ZmluvaAutorAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportMo
             delta = obj.diff_against(obj.prev_record)
             return ", ".join(delta.changed_fields)
         return None
+
+    # do AdminForm pridať request, aby v jej __init__ bolo request dostupné
+    def get_form(self, request, obj=None, **kwargs):
+        AdminForm = super(ZmluvaAutorAdmin, self).get_form(request, obj, **kwargs)
+        class AdminFormMod(AdminForm):
+            def __new__(cls, *args, **kwargs):
+                kwargs['request'] = request
+                return AdminForm(*args, **kwargs)
+        return AdminFormMod
 
     def vytvorit_subory_zmluvy(self, request, queryset):
         for zmluva  in queryset:
@@ -265,9 +303,8 @@ class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
 
     #obj is None during the object creation, but set to the object being edited during an edit
     def get_readonly_fields(self, request, obj=None):
-        #trace()
+        fields = [f.name for f in PlatbaAutorskaSumar._meta.get_fields()]
         if obj:
-            fields = [f.name for f in PlatbaAutorskaSumar._meta.get_fields()]
             #Pole Podklady odoslané
             if obj.vyplatit_ths and not obj.datum_uhradenia: 
                 fields.remove("podklady_odoslane")
@@ -294,19 +331,10 @@ class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
             #Pole Importované do RS/WEBRS:
             if obj.vyplatene and not obj.datum_importovania and "datum_importovania" in fields:
                 fields.remove("datum_importovania")
-            return fields
-            if obj.platba_zaznamenana == AnoNie.ANO:
-                # platba je zaznamenaná, zakázať všetko"
-                return ["obdobie", "platba_zaznamenana", "datum_uhradenia", "vyplatene", "vyplatit_ths", "import_webrs", "import_rs", "autori_na_vyplatenie"]
-            else:
-                # povoliť len "datum_uhradenia"
-                #return ["obdobie", "platba_zaznamenana"]
-                return ["obdobie", "platba_zaznamenana", "vyplatene", "vyplatit_ths", "import_webrs", "import_rs"]
         else:
             # V novej platbe povoliť len "obdobie"
-            fields = [f.name for f in PlatbaAutorskaSumar._meta.get_fields()]
             fields.remove("obdobie")
-            return fields
+        return fields
 
     def honorar_spolu(self, sumplatba):
         platby = PlatbaAutorskaOdmena.objects.filter(obdobie=sumplatba.obdobie)
@@ -452,6 +480,15 @@ class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
     zrusit_platbu.short_description = "Zrušiť záznam o platbe v databáze"
     #Oprávnenie na použitie akcie, viazané na 'delete'
     zrusit_platbu.allowed_permissions = ('delete',)
+
+    # do AdminForm pridať request, aby v jej __init__ bolo request dostupné
+    def get_form(self, request, obj=None, **kwargs):
+        AdminForm = super(PlatbaAutorskaSumarAdmin, self).get_form(request, obj, **kwargs)
+        class AdminFormMod(AdminForm):
+            def __new__(cls, *args, **kwargs):
+                kwargs['request'] = request
+                return AdminForm(*args, **kwargs)
+        return AdminFormMod
 
 
 # pripajanie suborov k objektu: krok 4, register XxxSubor a definicia XxxSuborAdmin
