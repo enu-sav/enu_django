@@ -130,6 +130,14 @@ class Zmluva(models.Model):
     url_zmluvy = models.URLField('URL zmluvy', 
             help_text = "Zadajte URL pdf súboru zmluvy zo stránky CRZ.",
             blank = True)
+    zmluva_odoslana= models.DateField('Odoslaná na podpis ',
+            help_text = "Dátum odoslania zmluvy na podpis (poštou)",
+            null=True, 
+            blank=True)
+    zmluva_vratena= models.DateField('Vrátená podpísaná ',
+            help_text = "Dátum obdržania podpísanej zmluvy (poštou)",
+            null=True, 
+            blank=True)
     datum_zverejnenia_CRZ = models.DateField('Platná od / dátum CRZ', 
             help_text = "Zadajte dátum účinnosti zmluvy (dátum zverejnenia v CRZ + 1 deň).",
             blank=True, null=True)
