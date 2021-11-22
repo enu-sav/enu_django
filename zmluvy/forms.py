@@ -49,14 +49,15 @@ class ZmluvaAutorForm(forms.ModelForm):
                 raise ValidationError(f"Dátum do '{zo_name}' nemožno zadať spolu s '{zv_name}'.")
             if 'zmluva_odoslana' in self.changed_data:
                 if self.instance.vygenerovana_subor:   # súbor zmluvy už existuje
-                    vec = "Zmluva odoslaná autorovi na podpis"
+                    vec = f"Zmluva {self.instance.cislo_zmluvy} odoslaná autorovi na podpis"
                     cislo = nasledujuce_cislo(Dokument)
                     dok = Dokument(
                         cislo = cislo,
                         datum = self.cleaned_data['zmluva_odoslana'],
-                        odosielatel = str(self.instance),
+                        odosielatel = f"Zmluva {str(self.instance)}",
                         adresat = self.instance.zmluvna_strana,
                         vec = f'<a href="{self.instance.vygenerovana_subor.url}">{vec}</a>',
+                        prijalodoslal=self.request.user.username,
                         sposob = SposobDorucenia.POSTA
                     )
                     dok.save()
@@ -66,14 +67,15 @@ class ZmluvaAutorForm(forms.ModelForm):
                     raise ValidationError(f"Pole '{zo_name} možno vyplniť až po vygenerovaní súboru '{vt_name}'. ")
             if 'zmluva_vratena' in self.changed_data:
                 if self.instance.zmluva_odoslana:
-                    vec = "Podpísaná zmluva prijatá od autora"
+                    vec = "Podpísaná zmluva {self.instance.cislo_zmluvy} prijatá od autora"
                     cislo = nasledujuce_cislo(Dokument)
                     dok = Dokument(
                         cislo = cislo,
                         datum = self.cleaned_data['zmluva_vratena'],
-                        odosielatel = str(self.instance),
+                        odosielatel = f"Zmluva {str(self.instance)}",
                         adresat = self.instance.zmluvna_strana,
                         vec = f'<a href="{self.instance.vygenerovana_subor.url}">{vec}"</a>',
+                        prijalodoslal=self.request.user.username,
                         sposob = SposobDorucenia.POSTA
                     )
                     dok.save()
@@ -96,6 +98,8 @@ class ZmluvaAutorForm(forms.ModelForm):
     class Meta:
         model = ZmluvaAutor
         fields = "__all__"
+        fields = ['cislo_zmluvy', 'stav_zmluvy', 'zmluva_odoslana', 'zmluva_vratena', 'zmluvna_strana',
+            'honorar_ah', 'url_zmluvy', 'datum_zverejnenia_CRZ']
 
 
 # Pridať dodatočné pole popis_zmeny, použije sa ako change_reason v SimpleHistoryAdmin
@@ -120,7 +124,7 @@ class PlatbaAutorskaSumarForm(forms.ModelForm):
                 raise ValidationError(f"Dátum do '{po_name}' nemožno zadať spolu s '{nvo_name}' a '{klo_name}'.")
             if 'podklady_odoslane' in self.changed_data:
                 cislo = nasledujuce_cislo(Dokument)
-                vec = "Podklady na vyplatenie aut. honorárov"
+                vec = f"Podklady na vyplatenie aut. honorárov za {self.instance.obdobie}"
                 if self.instance.vyplatit_ths:   # súbor existuje
                     dok = Dokument(
                         cislo = cislo,
@@ -128,6 +132,7 @@ class PlatbaAutorskaSumarForm(forms.ModelForm):
                         odosielatel = str(self.instance),
                         adresat = "Účtovník TSH", 
                         vec = f'<a href="{self.instance.vyplatit_ths.url}">{vec}</a>, hárok ''Na vyplatenie''',
+                        prijalodoslal=self.request.user.username,
                         sposob = SposobDorucenia.MAIL
                     )
                     dok.save()
@@ -141,15 +146,16 @@ class PlatbaAutorskaSumarForm(forms.ModelForm):
                 klo_dok=None
                 nv_cislo=None  #čislo dokumentu, treba inkrementovať, ak boli zadané oba dátumy
                 if 'na_vyplatenie_odoslane' in self.changed_data:
+                    nv_vec = f"Finálny prehľad vyplácania aut. honorárov za obdobie {self.instance.obdobie}"
                     if self.instance.vyplatene:   # súbor existuje
                         nv_cislo = nasledujuce_cislo(Dokument)
-                        nv_vec = "Finálny prehľad vyplácania aut. honorárov"
                         nv_dok = Dokument(
                             cislo = nv_cislo,
                             datum = self.cleaned_data['na_vyplatenie_odoslane'],
                             odosielatel = str(self.instance),
                             adresat = "Účtovník TSH", 
                             vec = f'<a href="{self.instance.vyplatene.url}">{nv_vec}</a>", hárok ''Na vyplatenie''',
+                            prijalodoslal=self.request.user.username,
                             sposob = SposobDorucenia.MAIL
                         )
                     else:
@@ -159,9 +165,9 @@ class PlatbaAutorskaSumarForm(forms.ModelForm):
                         #inkrementovať o 1
                         rr,cc=re.findall(r"D-([0-9]*)-0*([0-9]*)",nv_cislo)[0]
                         klo_cislo = "D-%s-%03d"%(rr,int(cc)+1)
-                        klo_vec = "Krycí list vyplácania aut. honorárov"
                     else:
-                        klo_cislo = nasledujuce_cislo(Dokument),
+                        klo_cislo = nasledujuce_cislo(Dokument)
+                    klo_vec = f"Krycí list vyplácania aut. honorárov  za obdobie {self.instance.obdobie}"
                     if self.instance.vyplatene:   # súbor existuje
                         klo_dok = Dokument(
                             cislo = klo_cislo,
@@ -169,17 +175,18 @@ class PlatbaAutorskaSumarForm(forms.ModelForm):
                             odosielatel = str(self.instance),
                             adresat = "Účtovník TSH", 
                             vec = f'<a href="{self.instance.vyplatene.url}">{klo_vec}</a>", hárok ''Krycí list''',
+                            prijalodoslal=self.request.user.username,
                             sposob = SposobDorucenia.IPOSTA
                         )
                     else:
                         raise ValidationError(f"Pole '{klo_name} možno vyplniť až po vygenerovaní súboru '{v_name}'. ")
-                    if nv_dok: 
-                        nv_dok.save()
-                        messages.warning(self.request, f"Do denníka bol pridaný záznam č. {nv_cislo} '{nv_vec}'")
-                    if klo_dok: 
-                        klo_dok.save()
-                        messages.warning(self.request, f"Do denníka bol pridaný záznam č. {klo_cislo} '{klo_vec}'")
-                    return self.cleaned_data
+                if nv_dok: 
+                    nv_dok.save()
+                    messages.warning(self.request, f"Do denníka bol pridaný záznam č. {nv_cislo} '{nv_vec}'")
+                if klo_dok: 
+                    klo_dok.save()
+                    messages.warning(self.request, f"Do denníka bol pridaný záznam č. {klo_cislo} '{klo_vec}'")
+                return self.cleaned_data
         except ValidationError as ex:
             raise ex
 

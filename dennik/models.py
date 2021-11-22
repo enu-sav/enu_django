@@ -21,6 +21,10 @@ class Dokument(models.Model):
             help_text = "Zvoľte spôsob, akým bol dokument prijatý/doručený",
             max_length=20, choices=SposobDorucenia.choices, null=True, blank=True) 
     vec = models.CharField("Vec", max_length=200)
+    prijalodoslal = models.CharField("Prijal/odoslal", 
+            help_text = "Uveďte meno osoby, ktorá zásielku prijala / odoslala.",
+            max_length=50,
+            blank = True)
     
     poznamka = models.CharField("Poznámka", max_length=200, blank=True)
 
