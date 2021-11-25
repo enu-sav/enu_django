@@ -5,8 +5,10 @@ from django.core.exceptions import ValidationError
 #https://django-simple-history.readthedocs.io/en/latest/admin.html
 from simple_history.models import HistoricalRecords
 from uctovnictvo.storage import OverwriteStorage
+from .odvody import DohodarOdvodySpolu
 from polymorphic.models import PolymorphicModel
 from django.utils.safestring import mark_safe
+from decimal import Decimal
 
 from beliana.settings import TMPLTS_DIR_NAME, PLATOVE_VYMERY_DIR, DOHODY_DIR, PRIJATEFAKTURY_DIR, PLATOBNE_PRIKAZY_DIR
 import os,re, datetime
@@ -541,6 +543,11 @@ class Dohoda(PolymorphicModel, Klasifikacia):
             on_delete=models.PROTECT, 
             verbose_name = "Zmluvná strana",
             related_name='%(class)s_dohoda')  #zabezpečí rozlíšenie modelov DoVP a DoPC
+    vynimka = models.CharField("Uplatnená výnimka", 
+            max_length=3, 
+            help_text = "Uveďte 'Áno', ak si dohodár na túto dohodu uplatňuje odvodovú výnimku",
+            null = True,
+            choices=AnoNie.choices)
     predmet = models.TextField("Pracovná činnosť", 
             help_text = "Zadajte stručný popis práce (max. 250 znakov, 3 riadky)",
             max_length=500,
@@ -652,15 +659,64 @@ class VyplacanieDohod(models.Model):
             on_delete=models.PROTECT, 
             related_name='vyplacanie')    
     vyplatena_odmena = models.DecimalField("Vyplatená odmena v EUR", 
-            help_text = "Uveďte vyplatenú sumu",
+            help_text = "Uveďte vyplatenú sumu. Ak ponecháte hodnotu 0, preberie sa celková alebo mesačná odmena z príslušnej dohody",
             max_digits=8, 
             decimal_places=2, 
             default=0)
     datum_vyplatenia = models.DateField('Dátum vyplatenia dohody',
             help_text = "Zadajte dátum vyplatenia dohody",
-            default=datetime.datetime.now,
             blank=True, null=True)
+    #odvody a platby
+    poistne_zamestnavatel = models.DecimalField("Poistné zamestnávateľ",
+            help_text = "Poistné zamestnávateľa (sociálne a zdravotné). Vypočíta sa automaticky",
+            max_digits=8,
+            decimal_places=2, 
+            default=0)
+    poistne_dohodar = models.DecimalField("Poistné dohodár",
+            help_text = "Poistné uhradené za dohodára (sociálne a zdravotné). Vypočíta sa automaticky",
+            max_digits=8,
+            decimal_places=2, 
+            default=0)
+    dan_dohodar = models.DecimalField("Daň dohodár",
+            help_text = "Daň z príjmu uhradená za dohodára. Vypočíta sa automaticky",
+            max_digits=8,
+            decimal_places=2, 
+            default=0)
+    na_ucet = models.DecimalField("Suma na účet",
+            help_text = "Odmena odoslaná dohodárovi na účet. Vypočíta sa automaticky",
+            max_digits=8,
+            decimal_places=2, 
+            default=0)
     history = HistoricalRecords()
+
+    def clean(self): 
+        #súbor s údajmi o odvodoch
+        nazov_objektu = "Odvody zamestnancov a dohodárov"  #Presne takto musí byť objekt pomenovaný
+        objekt = SystemovySubor.objects.filter(subor_nazov = nazov_objektu)
+        if not objekt:
+            return f"V systéme nie je definovaný súbor '{nazov_objektu}'."
+        nazov_suboru = objekt[0].subor.file.name 
+        # prebrať sumu z dohody
+        #if self.dohoda and not self.vyplatena_odmena:
+        if self.dohoda:
+            if type(self.dohoda) == DoVP:
+                self.vyplatena_odmena = self.dohoda.odmena_celkom
+                td = "DoVP"
+            elif type(self.dohoda) == DoPC:
+                self.vyplatena_odmena = self.dohoda.odmena_mesacne 
+                td = "DoPC"
+        elif type(self.dohoda) == DoBPS:
+            self.vyplatena_odmena = self.dohoda.odmena_celkom
+            td = "DoBPS"
+        #dochodok!
+        vyplatena_odmena = float(self.vyplatena_odmena)
+        odvody_zam, odvody_prac = DohodarOdvodySpolu(nazov_suboru, vyplatena_odmena, td, self.dohoda.vynimka) 
+        self.poistne_zamestnavatel = odvody_zam
+        self.poistne_dohodar = odvody_prac
+        self.dan_dohodar = (vyplatena_odmena - self.poistne_dohodar) * 0.19
+        self.na_ucet = vyplatena_odmena - self.poistne_dohodar - self.dan_dohodar
+        pass
+
     class Meta:
         verbose_name = 'Vyplatenie dohody'
         verbose_name_plural = 'Dohody - Vyplácanie dohôd'

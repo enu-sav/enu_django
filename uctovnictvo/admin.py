@@ -458,10 +458,18 @@ class DoPCAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelA
 
 @admin.register(VyplacanieDohod)
 class VyplacanieDohodAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
-    list_display = ["dohoda", "vyplatena_odmena", "datum_vyplatenia"]
+    list_display = ["dohoda", "vyplatena_odmena", "datum_vyplatenia", "poistne_zamestnavatel", "poistne_dohodar", "dan_dohodar", "na_ucet"]
     search_fields = ["dohoda__cislo", "dohoda__zmluvna_strana__priezvisko"]
     list_totals = [
         ('vyplatena_odmena', Sum),
+    ]
+    #"poistne_zamestnavatel", "poistne_dohodar", "dan_dohodar", "vyplatena_odmena",
+
+    # zoraďovateľný odkaz na dodávateľa
+    change_links = [
+        ('dohoda', {
+            'admin_order_field': 'dohoda__cislo', # Allow to sort members by the column
+        })
     ]
 
 @admin.register(PlatovyVymer)
