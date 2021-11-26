@@ -6,6 +6,7 @@ from django.core.exceptions import ValidationError
 from simple_history.models import HistoricalRecords
 from uctovnictvo.storage import OverwriteStorage
 from .odvody import DohodarOdvodySpolu
+from .rokydni import mesiace
 from polymorphic.models import PolymorphicModel
 from django.utils.safestring import mark_safe
 from decimal import Decimal
@@ -696,6 +697,8 @@ class VyplacanieDohod(models.Model):
         #súbor s údajmi o odvodoch
         if not self.dohoda:
             raise ValidationError(f"Pole '{VyplacanieDohod._meta.get_field('dohoda').verbose_name}' nemôže byť prázdne")
+        if not self.datum_vyplatenia:
+            raise ValidationError(f"Pole '{VyplacanieDohod._meta.get_field('datum_vyplatenia').verbose_name}' nemôže byť prázdne")
 
         nazov_objektu = "Odvody zamestnancov a dohodárov"  #Presne takto musí byť objekt pomenovaný
         objekt = SystemovySubor.objects.filter(subor_nazov = nazov_objektu)
@@ -704,14 +707,24 @@ class VyplacanieDohod(models.Model):
         nazov_suboru = objekt[0].subor.file.name 
         # prebrať sumu z dohody
         #if self.dohoda and not self.vyplatena_odmena:
+        vyplatena = VyplacanieDohod.objects.filter(dohoda = self.dohoda)
         if self.dohoda:
             if type(self.dohoda) == DoVP:
+                #Overiť, či už dohoda nebola zaznamenana - len DoVP
+                if vyplatena:
+                    raise ValidationError(f"Dohoda '{self.dohoda}' už bola vyplatená ({vyplatena[0].datum_vyplatenia}).")
                 self.vyplatena_odmena = self.dohoda.odmena_celkom
                 td = "DoVP"
             elif type(self.dohoda) == DoPC:
+                if vyplatena:
+                    if self.datum_vyplatenia.month == vyplatena[0].datum_vyplatenia.month:
+                        raise ValidationError(f"Dohoda '{self.dohoda}' už bola za mesiac {mesiace[self.datum_vyplatenia.month-1]} vyplatená ({vyplatena[0].datum_vyplatenia}).")
                 self.vyplatena_odmena = self.dohoda.odmena_mesacne 
                 td = "DoPC"
         elif type(self.dohoda) == DoBPS:
+            if vyplatena:
+                if self.datum_vyplatenia.month == vyplatena[0].datum_vyplatenia.month:
+                    raise ValidationError(f"Dohoda '{self.dohoda}' už bola za mesiac {mesiace[self.datum_vyplatenia.month-1]} vyplatená ({vyplatena[0].datum_vyplatenia}).")
             self.vyplatena_odmena = self.dohoda.odmena_celkom
             td = "DoBPS"
 
