@@ -602,7 +602,7 @@ class DoVP(Dohoda):
         verbose_name = 'Dohoda o vykonaní práce'
         verbose_name_plural = 'Dohody - Dohody o vykonaní práce'
     def __str__(self):
-        return f"{self.cislo}; {self.zmluvna_strana}"
+        return f"{self.zmluvna_strana}; {self.cislo}"
 
 class DoBPS(Dohoda):
     oznacenie = "DoBPS"
@@ -625,7 +625,7 @@ class DoBPS(Dohoda):
         verbose_name = 'Dohoda o bigádnickej práci študentov'
         verbose_name_plural = 'Dohody - Dohody o bigádnickej práci študentov'
     def __str__(self):
-        return f"{self.cislo}; {self.zmluvna_strana}"
+        return f"{self.zmluvna_strana}; {self.cislo}"
 
 class DoPC(Dohoda):
     oznacenie = "DoPC"
@@ -652,7 +652,7 @@ class DoPC(Dohoda):
         if self.hod_mesacne > 40:
             raise ValidationError(f"Počet hodín mesačne {hod_mesacne} presahuje maximálny zákonom povolený počet 40.")
     def __str__(self):
-        return f"{self.cislo}; {self.zmluvna_strana}"
+        return f"{self.zmluvna_strana}; {self.cislo}"
 
 class VyplacanieDohod(models.Model):
     dohoda = models.ForeignKey(Dohoda, 
