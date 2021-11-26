@@ -11,6 +11,7 @@ from django.utils.safestring import mark_safe
 from decimal import Decimal
 
 from beliana.settings import TMPLTS_DIR_NAME, PLATOVE_VYMERY_DIR, DOHODY_DIR, PRIJATEFAKTURY_DIR, PLATOBNE_PRIKAZY_DIR
+from beliana.settings import ODVODY_VYNIMKA
 import os,re, datetime
 import numpy as np
 from ipdb import set_trace as trace
@@ -667,13 +668,13 @@ class VyplacanieDohod(models.Model):
             help_text = "Zadajte dátum vyplatenia dohody",
             blank=True, null=True)
     #odvody a platby
-    poistne_zamestnavatel = models.DecimalField("Poistné zamestnávateľ",
-            help_text = "Poistné zamestnávateľa (sociálne a zdravotné). Vypočíta sa automaticky",
+    poistne_zamestnavatel = models.DecimalField("Odvody zamestnávateľ",
+            help_text = "Odvody zamestnávateľa (sociálne a zdravotné). Vypočíta sa automaticky",
             max_digits=8,
             decimal_places=2, 
             default=0)
-    poistne_dohodar = models.DecimalField("Poistné dohodár",
-            help_text = "Poistné uhradené za dohodára (sociálne a zdravotné). Vypočíta sa automaticky",
+    poistne_dohodar = models.DecimalField("Odvody dohodár",
+            help_text = "Odvody uhradené za dohodára (sociálne a zdravotné). Vypočíta sa automaticky",
             max_digits=8,
             decimal_places=2, 
             default=0)
@@ -708,9 +709,25 @@ class VyplacanieDohod(models.Model):
         elif type(self.dohoda) == DoBPS:
             self.vyplatena_odmena = self.dohoda.odmena_celkom
             td = "DoBPS"
-        #dochodok!
+
+        #Vynimka: v pripadade DoVP treba vyňatú sumu prispôsobiť dĺžke trvanie zmluvy
+        if self.dohoda.vynimka and td in ["DoPC", "DoBPSForm"]:
+            vynimka_suma = ODVODY_VYNIMKA    #vyplacané mesačne, fixná suma vynimky
+        elif self.dohoda.vynimka and td in ["DoVP"]:
+            pocet_mesiacov = 12*(self.dohoda.datum_do-self.dohoda.datum_od).days/365
+            vynimka_suma = ODVODY_VYNIMKA * 12*(self.dohoda.datum_do-self.dohoda.datum_od).days/365
+            pass
+        else:
+            vynimka_suma = 0    #bez výnimky
+
+        #dochodok (musí byť umiestnené ZA vypočtom vynimka_suma
+        if self.dohoda.zmluvna_strana.typ_doch in [TypDochodku.STAROBNY, TypDochodku.PREDCASNY, TypDochodku.VYSLUHOVY]:
+            td = "StarDoch"
+        elif self.dohoda.zmluvna_strana.typ_doch in [TypDochodku.INVALIDNY, TypDochodku.INVAL_VYSL]:
+            td = "InvDoch"
+
         vyplatena_odmena = float(self.vyplatena_odmena)
-        odvody_zam, odvody_prac = DohodarOdvodySpolu(nazov_suboru, vyplatena_odmena, td, self.dohoda.vynimka) 
+        odvody_zam, odvody_prac = DohodarOdvodySpolu(nazov_suboru, vyplatena_odmena, td, vynimka_suma) 
         self.poistne_zamestnavatel = odvody_zam
         self.poistne_dohodar = odvody_prac
         self.dan_dohodar = (vyplatena_odmena - self.poistne_dohodar) * 0.19
