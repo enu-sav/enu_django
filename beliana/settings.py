@@ -171,6 +171,9 @@ LOGGING = {
     }
 }
 
+#Parametre
+ODVODY_VYNIMKA = 200    #Vyňatá mesačná suma v prípade, ako dohodár o ňu požiada
+
 #Predvolené zobrazenie dátumu v admin
 from django.conf.locale.sk import formats as sk_formats
 sk_formats.DATE_FORMAT = "d.m.Y"
