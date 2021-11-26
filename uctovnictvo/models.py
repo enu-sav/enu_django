@@ -580,8 +580,8 @@ class DoVP(Dohoda):
             max_digits=8, 
             decimal_places=1, 
             default=0)
-    id_tsh = models.CharField("Číslo pridadené TSH",
-            help_text = "Uveďte číslo, pod ktorým dohody vedie TSH",
+    id_tsh = models.CharField("Číslo pridadené THS",
+            help_text = "Uveďte číslo, pod ktorým dohody vedie THS",
             null = True, blank = True,
             max_length=100)
     pomocnik = models.CharField("Pomoc rod. príslušníkov", 
@@ -655,43 +655,48 @@ class DoPC(Dohoda):
 
 class VyplacanieDohod(models.Model):
     dohoda = models.ForeignKey(Dohoda, 
-            null=True, 
             verbose_name = "Dohoda",
             on_delete=models.PROTECT, 
+            null = True,
             related_name='vyplacanie')    
-    vyplatena_odmena = models.DecimalField("Vyplatená odmena v EUR", 
-            help_text = "Uveďte vyplatenú sumu. Ak ponecháte hodnotu 0, preberie sa celková alebo mesačná odmena z príslušnej dohody",
+    vyplatena_odmena = models.DecimalField("Odmena", 
+            help_text = "Odmena podľa zmluvy",
             max_digits=8, 
             decimal_places=2, 
             default=0)
     datum_vyplatenia = models.DateField('Dátum vyplatenia dohody',
-            help_text = "Zadajte dátum vyplatenia dohody",
-            blank=True, null=True)
+            help_text = "Zadajte dátum vyplatenia dohody. Ostatné polia sa vyplnia automaticky.",
+            null=True)
     #odvody a platby
     poistne_zamestnavatel = models.DecimalField("Odvody zamestnávateľ",
-            help_text = "Odvody zamestnávateľa (sociálne a zdravotné). Vypočíta sa automaticky",
+            help_text = "Odvody zamestnávateľa (sociálne a zdravotné)",
             max_digits=8,
             decimal_places=2, 
             default=0)
     poistne_dohodar = models.DecimalField("Odvody dohodár",
-            help_text = "Odvody uhradené za dohodára (sociálne a zdravotné). Vypočíta sa automaticky",
+            help_text = "Odvody uhradené za dohodára (sociálne a zdravotné)",
             max_digits=8,
             decimal_places=2, 
             default=0)
     dan_dohodar = models.DecimalField("Daň dohodár",
-            help_text = "Daň z príjmu uhradená za dohodára. Vypočíta sa automaticky",
+            help_text = "Daň z príjmu uhradená za dohodára",
             max_digits=8,
             decimal_places=2, 
             default=0)
     na_ucet = models.DecimalField("Suma na účet",
-            help_text = "Odmena odoslaná dohodárovi na účet. Vypočíta sa automaticky",
+            help_text = "Odmena odoslaná dohodárovi na účet",
             max_digits=8,
             decimal_places=2, 
             default=0)
     history = HistoricalRecords()
+    def __str__(self):
+        return f"Vyplatenie dohody {self.dohoda}"
 
     def clean(self): 
         #súbor s údajmi o odvodoch
+        if not self.dohoda:
+            raise ValidationError(f"Pole '{VyplacanieDohod._meta.get_field('dohoda').verbose_name}' nemôže byť prázdne")
+
         nazov_objektu = "Odvody zamestnancov a dohodárov"  #Presne takto musí byť objekt pomenovaný
         objekt = SystemovySubor.objects.filter(subor_nazov = nazov_objektu)
         if not objekt:

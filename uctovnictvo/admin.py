@@ -476,6 +476,14 @@ class VyplacanieDohodAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAd
         })
     ]
 
+    def get_readonly_fields(self, request, obj=None):
+        fields = [f.name for f in VyplacanieDohod._meta.get_fields()]
+        fields.remove("id")
+        if not obj:
+            fields.remove("dohoda")
+            fields.remove("datum_vyplatenia")
+        return fields
+
 @admin.register(PlatovyVymer)
 class PlatovyVymerAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin):
     form = PlatovyVymerForm
