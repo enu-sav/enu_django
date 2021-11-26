@@ -2,6 +2,8 @@
 from datetime import date, timedelta
 from ipdb import set_trace as trace
 
+mesiace = ["január", "február", "marec", "apríl", "máj", "jún", "júl", "august", "september", "október", "november", "december"]
+
 # vypočítať počet priestupných dní v období 'days' dní pred zadaným dátumom
 # použiť na prepočet doby zamestnania na prax
 # predpokladá sa, že days < 365 (netestované)
