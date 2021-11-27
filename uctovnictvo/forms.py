@@ -1,7 +1,10 @@
 
+from django.contrib import messages
 from django import forms
+from django.core.exceptions import ValidationError
 from ipdb import set_trace as trace
-from .models import PrijataFaktura, Objednavka, PrispevokNaStravne, DoPC, DoVP, DoBPS, PlatovyVymer
+from .models import PrijataFaktura, Objednavka, PrispevokNaStravne, DoPC, DoVP, DoBPS, PlatovyVymer, VyplacanieDohod
+from dennik.models import Dokument, SposobDorucenia
 from datetime import datetime
 import re
 
@@ -155,3 +158,44 @@ class PlatovyVymerForm(PopisZmeny):
         model = PlatovyVymer
         fields = "__all__"
         field_order = ["cislo_zamestnanca", "zamestnanec", "suborvymer", "datum_od", "datum_do", "tarifny_plat", "osobny_priplatok", "funkcny_priplatok", "platova_trieda", "platovy_stupen", "datum_postup", "praxroky", "praxdni", "zamestnanieroky", "zamestnaniedni", "popis_zmeny"]
+
+class VyplacanieDohodForm(forms.ModelForm):
+    #inicializácia polí
+    def __init__(self, *args, **kwargs):
+        # do Admin treba pridať metódu get_form
+        self.request = kwargs.pop('request', None)
+        super().__init__(*args, **kwargs)
+
+    # Skontrolovať platnost a keď je všetko OK, spraviť záznam do denníka
+    def clean(self):
+        d_name = VyplacanieDohod._meta.get_field('dohoda').verbose_name
+        dv_name = VyplacanieDohod._meta.get_field('datum_vyplatenia').verbose_name
+        try:
+            if not self.instance.dohoda and not 'dohoda' in self.changed_data:
+                raise ValidationError("")
+            if not self.instance.datum_vyplatenia and not 'datum_vyplatenia' in self.changed_data:
+                raise ValidationError("")
+            #kontrola
+            cislo = nasledujuce_cislo(Dokument)
+            dohoda = self.cleaned_data['dohoda']
+            vec = f"Podklady na vyplatenie dohody {dohoda}"
+            if type(dohoda) == DoVP:
+                dtype="dovp"
+            elif type(dohoda) == DoPC:
+                dtype="dopc"
+            elif type(dohoda) == DoBPS:
+                dtype="dobps"
+            dok = Dokument(
+                cislo = cislo,
+                datum = self.cleaned_data['datum_vyplatenia'],
+                odosielatel = f"Vyplatenie dohody {dohoda}",
+                adresat = "Mzdové oddelenie", 
+                vec = f'Podklady na vyplatenie dohody <a href="/admin/uctovnictvo/{dtype}/{dohoda.id}/change/">{dohoda}</a>',
+                prijalodoslal=self.request.user.username,
+                sposob = SposobDorucenia.IPOSTA
+            )
+            dok.save()
+            messages.warning(self.request, f"Do denníka bol pridaný záznam č. {cislo} '{vec}'")
+            return self.cleaned_data
+        except ValidationError as ex:
+            raise ex

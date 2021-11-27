@@ -12,7 +12,7 @@ from .models import ZamestnanecDohodar, Zamestnanec, Dohodar
 from .common import VytvoritPlatobnyPrikaz, VytvoritSuborDohody, VytvoritSuborObjednavky, leapdays
 from .forms import PrijataFakturaForm, AutorskeZmluvyForm, ObjednavkaForm, ZmluvaForm, PrispevokNaStravneForm
 from .forms import PlatovyVymerForm
-from .forms import DoPCForm, DoVPForm, DoBPSForm, nasledujuce_cislo
+from .forms import DoPCForm, DoVPForm, DoBPSForm, nasledujuce_cislo, VyplacanieDohodForm
 from .rokydni import datum_postupu, vypocet_prax, vypocet_zamestnanie 
 
 #zobrazenie histórie
@@ -458,6 +458,7 @@ class DoPCAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelA
 
 @admin.register(VyplacanieDohod)
 class VyplacanieDohodAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
+    form = VyplacanieDohodForm
     list_display = ["datum_vyplatenia", "dohoda_link", "vyplatena_odmena", "poistne_zamestnavatel", "poistne_dohodar", "dan_dohodar", "na_ucet"]
     search_fields = ["dohoda__cislo", "dohoda__zmluvna_strana__priezvisko"]
     list_totals = [
@@ -484,6 +485,15 @@ class VyplacanieDohodAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAd
             fields.remove("datum_vyplatenia")
             fields.remove("vyplatena_odmena")
         return fields
+
+    # do AdminForm pridať request, aby v jej __init__ bolo request dostupné
+    def get_form(self, request, obj=None, **kwargs):
+        AdminForm = super(VyplacanieDohodAdmin, self).get_form(request, obj, **kwargs)
+        class AdminFormMod(AdminForm):
+            def __new__(cls, *args, **kwargs):
+                kwargs['request'] = request
+                return AdminForm(*args, **kwargs)
+        return AdminFormMod
 
 @admin.register(PlatovyVymer)
 class PlatovyVymerAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin):
