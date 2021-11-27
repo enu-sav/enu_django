@@ -761,6 +761,11 @@ class VyplacanieDohod(models.Model):
         self.poistne_dohodar = odvody_prac
         self.dan_dohodar = (vyplatena_odmena - self.poistne_dohodar) * 0.19
         self.na_ucet = vyplatena_odmena - self.poistne_dohodar - self.dan_dohodar
+
+        #uložiť dátum vyplatenia do dohody. V prípade opakovaného vyplácania DoPC a DoBPS sa pridáva ďalší dátum do zoznamu
+        vypl = "%s, "%self.dohoda.vyplatene if self.dohoda.vyplatene else ""
+        self.dohoda.vyplatene=f"{vypl}{self.datum_vyplatenia}"
+        self.dohoda.save()
         pass
 
     class Meta:
