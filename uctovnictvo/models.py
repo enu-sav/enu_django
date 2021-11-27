@@ -718,19 +718,25 @@ class VyplacanieDohod(models.Model):
                 #Overiť, či už dohoda nebola zaznamenana - len DoVP
                 if vyplatena:
                     raise ValidationError(f"Dohoda '{self.dohoda}' už bola vyplatená ({vyplatena[0].datum_vyplatenia}).")
-                self.vyplatena_odmena = self.dohoda.odmena_celkom
+                # Ak je odmena rovná 0, prebrať sumu z dohody
+                if not self.vyplatena_odmena:
+                    self.vyplatena_odmena = self.dohoda.odmena_celkom
                 td = "DoVP"
             elif type(self.dohoda) == DoPC:
                 if vyplatena:
                     if self.datum_vyplatenia.month == vyplatena[0].datum_vyplatenia.month:
                         raise ValidationError(f"Dohoda '{self.dohoda}' už bola za mesiac {mesiace[self.datum_vyplatenia.month-1]} vyplatená ({vyplatena[0].datum_vyplatenia}).")
-                self.vyplatena_odmena = self.dohoda.odmena_mesacne 
+                # Ak je odmena rovná 0, prebrať sumu z dohody
+                if not self.vyplatena_odmena:
+                    self.vyplatena_odmena = self.dohoda.odmena_mesacne 
                 td = "DoPC"
         elif type(self.dohoda) == DoBPS:
             if vyplatena:
                 if self.datum_vyplatenia.month == vyplatena[0].datum_vyplatenia.month:
                     raise ValidationError(f"Dohoda '{self.dohoda}' už bola za mesiac {mesiace[self.datum_vyplatenia.month-1]} vyplatená ({vyplatena[0].datum_vyplatenia}).")
-            self.vyplatena_odmena = self.dohoda.odmena_celkom
+            # Ak je odmena rovná 0, prebrať sumu z dohody
+            if not self.vyplatena_odmena:
+                self.vyplatena_odmena = self.dohoda.odmena_celkom
             td = "DoBPS"
 
         #Vynimka: v pripadade DoVP treba vyňatú sumu prispôsobiť dĺžke trvanie zmluvy

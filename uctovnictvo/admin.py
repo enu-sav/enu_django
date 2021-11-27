@@ -482,6 +482,7 @@ class VyplacanieDohodAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAd
         if not obj:
             fields.remove("dohoda")
             fields.remove("datum_vyplatenia")
+            fields.remove("vyplatena_odmena")
         return fields
 
 @admin.register(PlatovyVymer)
