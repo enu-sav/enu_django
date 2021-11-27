@@ -67,14 +67,14 @@ class ZmluvaAutorForm(forms.ModelForm):
                     raise ValidationError(f"Pole '{zo_name} možno vyplniť až po vygenerovaní súboru '{vt_name}'. ")
             if 'zmluva_vratena' in self.changed_data:
                 if self.instance.zmluva_odoslana:
-                    vec = "Podpísaná zmluva {self.instance.cislo_zmluvy} prijatá od autora"
+                    vec = f"Podpísaná zmluva {self.instance.cislo_zmluvy} prijatá od autora"
                     cislo = nasledujuce_cislo(Dokument)
                     dok = Dokument(
                         cislo = cislo,
                         datum = self.cleaned_data['zmluva_vratena'],
                         odosielatel = f"Zmluva {str(self.instance)}",
                         adresat = self.instance.zmluvna_strana,
-                        vec = f'<a href="{self.instance.vygenerovana_subor.url}">{vec}"</a>',
+                        vec = f'<a href="{self.instance.vygenerovana_subor.url}">{vec}</a>',
                         prijalodoslal=self.request.user.username,
                         sposob = SposobDorucenia.POSTA
                     )
