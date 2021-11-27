@@ -346,7 +346,7 @@ class Zamestnanec(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAd
 @admin.register(DoVP)
 class DoVPAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
     form = DoVPForm
-    fields = ["cislo", "zmluvna_strana", "vynimka", "_predmet", "id_tsh", "datum_od", "datum_do", "odmena_celkom", "hod_celkom", "pomocnik", "subor_dohody", "poznamka","zdroj", "program", "zakazka", "ekoklas" ]
+    fields = ["cislo", "zmluvna_strana", "vynimka", "predmet", "id_tsh", "datum_od", "datum_do", "odmena_celkom", "hod_celkom", "pomocnik", "subor_dohody", "poznamka","zdroj", "program", "zakazka", "ekoklas" ]
     list_display = ("cislo","id_tsh",  "zmluvna_strana_link", "vyplatene", "_predmet", "vynimka", "subor_dohody", "odmena_celkom", "hod_celkom", "datum_od", "datum_do", "poznamka" )
 
     # ^: v poli vyhľadávať len od začiatku
