@@ -347,7 +347,7 @@ class Zamestnanec(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAd
 class DoVPAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
     form = DoVPForm
     fields = ["cislo", "zmluvna_strana", "vynimka", "predmet", "id_tsh", "datum_od", "datum_do", "odmena_celkom", "hod_celkom", "pomocnik", "subor_dohody", "poznamka","zdroj", "program", "zakazka", "ekoklas" ]
-    list_display = ("cislo","id_tsh",  "zmluvna_strana_link", "vynimka", "predmet", "subor_dohody", "odmena_celkom", "hod_celkom", "datum_od", "datum_do", "poznamka" )
+    list_display = ("cislo","id_tsh",  "zmluvna_strana_link", "vyplatene", "predmet", "vynimka", "subor_dohody", "odmena_celkom", "hod_celkom", "datum_od", "datum_do", "poznamka" )
 
     # ^: v poli vyhľadávať len od začiatku
     search_fields = ["cislo", "zmluvna_strana__priezvisko"]
@@ -385,7 +385,7 @@ class DoVPAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelA
 class DoBPSAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
     form = DoBPSForm
     fields = ["cislo", "zmluvna_strana", "vynimka", "predmet", "subor_dohody", "datum_od", "datum_do", "datum_ukoncenia", "odmena_celkom", "poznamka","zdroj", "program", "zakazka", "ekoklas" ]
-    list_display = ("cislo", "zmluvna_strana_link", "vynimka", "predmet", "subor_dohody", "odmena_celkom", "datum_od", "datum_do", "datum_ukoncenia", "poznamka" )
+    list_display = ("cislo", "zmluvna_strana_link", "vyplatene", "predmet", "vynimka", "subor_dohody", "odmena_celkom", "datum_od", "datum_do", "datum_ukoncenia", "poznamka" )
 
     # ^: v poli vyhľadávať len od začiatku
     search_fields = ["cislo", "zmluvna_strana__priezvisko"]
@@ -423,7 +423,7 @@ class DoBPSAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, Model
 class DoPCAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
     form = DoPCForm
     fields = ["cislo", "zmluvna_strana", "vynimka", "predmet", "subor_dohody", "datum_od", "datum_do", "datum_ukoncenia", "odmena_mesacne", "hod_mesacne", "poznamka","zdroj", "program", "zakazka", "ekoklas" ]
-    list_display = ("cislo", "zmluvna_strana_link", "vynimka", "predmet", "subor_dohody", "odmena_mesacne", "hod_mesacne", "datum_od", "datum_do", "datum_ukoncenia", "poznamka" )
+    list_display = ("cislo", "zmluvna_strana_link", "vyplatene", "predmet", "vynimka", "subor_dohody", "odmena_mesacne", "hod_mesacne", "datum_od", "datum_do", "datum_ukoncenia", "poznamka" )
 
     # ^: v poli vyhľadávať len od začiatku
     search_fields = ["cislo", "zmluvna_strana__priezvisko"]
@@ -458,7 +458,7 @@ class DoPCAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelA
 
 @admin.register(VyplacanieDohod)
 class VyplacanieDohodAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
-    list_display = ["dohoda", "vyplatena_odmena", "datum_vyplatenia", "poistne_zamestnavatel", "poistne_dohodar", "dan_dohodar", "na_ucet"]
+    list_display = ["datum_vyplatenia", "dohoda_link", "vyplatena_odmena", "poistne_zamestnavatel", "poistne_dohodar", "dan_dohodar", "na_ucet"]
     search_fields = ["dohoda__cislo", "dohoda__zmluvna_strana__priezvisko"]
     list_totals = [
         ('vyplatena_odmena', Sum),

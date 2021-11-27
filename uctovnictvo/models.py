@@ -560,6 +560,11 @@ class Dohoda(PolymorphicModel, Klasifikacia):
     datum_do = models.DateField('Dátum do',
             help_text = "Zadajte dátum konca platnosti dohody",
             null=True)
+    #Vypĺňa sa pri vytvorení vyplácania, pri opakovanej platbe obsahuje dátum za každú platbu
+    vyplatene = models.CharField("Vyplatené", 
+            help_text = "Dátum odoslania podkladov na vyplatenie, vypĺňa sa automaticky",
+            null = True, blank = True,
+            max_length=200)
     class Meta:
         verbose_name = "Dohoda"
         verbose_name_plural = "Dohody"
@@ -657,16 +662,16 @@ class DoPC(Dohoda):
 class VyplacanieDohod(models.Model):
     dohoda = models.ForeignKey(Dohoda, 
             verbose_name = "Dohoda",
-            on_delete=models.PROTECT, 
+            on_delete=models.PROTECT,
             null = True,
-            related_name='vyplacanie')    
-    vyplatena_odmena = models.DecimalField("Odmena", 
-            help_text = "Odmena podľa zmluvy",
+            related_name='vyplacanie')
+    vyplatena_odmena = models.DecimalField("Vyplatená odmena",
+            help_text = "Zadajte sumu na vyplatenie. Ak ponecháte 0, doplní sa dohodnutá suma z dohody",
             max_digits=8, 
             decimal_places=2, 
             default=0)
-    datum_vyplatenia = models.DateField('Dátum vyplatenia dohody',
-            help_text = "Zadajte dátum vyplatenia dohody. Ostatné polia sa vyplnia automaticky.",
+    datum_vyplatenia = models.DateField('Dátum odoslania podkladov dohody',
+            help_text = "Zadajte dátum odoslania podkladov na vyplatenie dohody. Ostatné polia sa vyplnia automaticky.",
             null=True)
     #odvody a platby
     poistne_zamestnavatel = models.DecimalField("Odvody zamestnávateľ",
