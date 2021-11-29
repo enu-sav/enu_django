@@ -8,6 +8,7 @@ from django.conf import settings
 from django.contrib.auth import get_permission_codename
 from simple_history.utils import update_change_reason
 import os, re
+from datetime import datetime
 from tempfile import TemporaryFile
 import logging
 
@@ -480,6 +481,10 @@ class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
     zrusit_platbu.short_description = "Zrušiť záznam o platbe v databáze"
     #Oprávnenie na použitie akcie, viazané na 'delete'
     zrusit_platbu.allowed_permissions = ('delete',)
+
+    # Nastaviť počiatočnú hodnotu (netreba to spraviť v model)
+    def get_changeform_initial_data(self, request):
+        return {'obdobie': datetime.now().strftime('%Y-%m-%d')}
 
     # do AdminForm pridať request, aby v jej __init__ bolo request dostupné
     def get_form(self, request, obj=None, **kwargs):

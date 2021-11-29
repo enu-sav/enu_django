@@ -256,7 +256,8 @@ class PlatbaAutorskaSumar(models.Model):
     platba_zaznamenana = models.CharField("Platba zaznanenaná v DB", max_length=3, choices=AnoNie.choices, default=AnoNie.NIE)
     obdobie = models.CharField("Identifikátor vyplácania",
             help_text = "Ako identifikátor vyplácania sa použije dátum jeho vytvorenia",
-            max_length=20, default = datetime.now().strftime('%Y-%m-%d')
+            max_length=20, 
+            null = True
             )
     vyplatit_ths = models.FileField("Podklady na vyplatenie",
             help_text = "Súbor generovaný akciou 'Vytvoriť podklady na vyplatenie autorských odmien pre THS'. <br .>Súbor obsahuje údaje pre vyplácanie autorských honorárov (hárok <em>Na vyplatenie</em>) a zoznam chýb, ktoré boli pre generovaní zistené (hárok <em>Chyby</em>).<br /> <strong>Definitívnu verziu súboru (len hárku  <em>Na vyplatenie</em>) treba poslať mailom do účtárne THS na vyplatenie.</strong>", 
