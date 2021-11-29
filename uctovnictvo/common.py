@@ -207,7 +207,6 @@ def VytvoritSuborDohody(dohoda):
     text = text.replace("[[zdrav_poistovna]]", Poistovna(dohodar.poistovna).label)
     text = text.replace("[[IBAN]]", dohodar.bankovy_kontakt)
     text = text.replace("[[email]]", dohodar.email)
-    trace()
     if dohodar.poberatel_doch == AnoNie.ANO:
         text = text.replace( "[[dochodok]]", 
                 f"{AnoNie(dohodar.poberatel_doch).label}, {TypDochodku(dohodar.typ_doch).label}, dátum vzniku: {dohodar.datum_doch.strftime('%d. %m. %Y')}")
