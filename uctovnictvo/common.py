@@ -207,6 +207,7 @@ def VytvoritSuborDohody(dohoda):
     text = text.replace("[[zdrav_poistovna]]", Poistovna(dohodar.poistovna).label)
     text = text.replace("[[IBAN]]", dohodar.bankovy_kontakt)
     text = text.replace("[[email]]", dohodar.email)
+    trace()
     if dohodar.poberatel_doch == AnoNie.ANO:
         text = text.replace( "[[dochodok]]", 
                 f"{AnoNie(dohodar.poberatel_doch).label}, {TypDochodku(dohodar.typ_doch).label}, dátum vzniku: {dohodar.datum_doch.strftime('%d. %m. %Y')}")
@@ -214,9 +215,9 @@ def VytvoritSuborDohody(dohoda):
         text = text.replace("[[dochodok]]", AnoNie(dohodar.poberatel_doch).label)
     if dohodar.ztp == AnoNie.ANO:
         text = text.replace( "[[ztp]]", 
-                f"{AnoNie(dohodar.poberatel_doch).label}, od {dohodar.datum_ztp.strftime('%d. %m. %Y')}")
+                f"{AnoNie(dohodar.ztp).label}, od {dohodar.datum_ztp.strftime('%d. %m. %Y')}")
     else:
-        text = text.replace("[[ztp]]", AnoNie(dohodar.poberatel_doch).label)
+        text = text.replace("[[ztp]]", AnoNie(dohodar.ztp).label)
 
     text = text.replace("[[dohodnuta_cinnost]]", dohoda.predmet)
     text = text.replace("[[cislo]]", dohoda.cislo)
