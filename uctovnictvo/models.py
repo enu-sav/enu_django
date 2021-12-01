@@ -12,7 +12,7 @@ from django.utils.safestring import mark_safe
 from decimal import Decimal
 
 from beliana.settings import TMPLTS_DIR_NAME, PLATOVE_VYMERY_DIR, DOHODY_DIR, PRIJATEFAKTURY_DIR, PLATOBNE_PRIKAZY_DIR
-from beliana.settings import ODVODY_VYNIMKA
+from beliana.settings import ODVODY_VYNIMKA, DAN_Z_PRIJMU
 import os,re, datetime
 import numpy as np
 from ipdb import set_trace as trace
@@ -759,7 +759,7 @@ class VyplacanieDohod(models.Model):
         odvody_zam, odvody_prac = DohodarOdvodySpolu(nazov_suboru, vyplatena_odmena, td, vynimka_suma) 
         self.poistne_zamestnavatel = odvody_zam
         self.poistne_dohodar = odvody_prac
-        self.dan_dohodar = (vyplatena_odmena - self.poistne_dohodar) * 0.19
+        self.dan_dohodar = (vyplatena_odmena - self.poistne_dohodar) * DAN_Z_PRIJMU / 100
         self.na_ucet = vyplatena_odmena - self.poistne_dohodar - self.dan_dohodar
 
         #uložiť dátum vyplatenia do dohody. V prípade opakovaného vyplácania DoPC a DoBPS sa pridáva ďalší dátum do zoznamu

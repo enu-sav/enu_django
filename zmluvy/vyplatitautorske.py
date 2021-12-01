@@ -15,12 +15,12 @@ from .common import OveritUdajeAutora, valid_rodne_cislo, valid_iban
 
 class VyplatitAutorskeOdmeny():
     #ws_template = f"{settings.TEMPLATES_DIR}/UhradaAutHonoraru.xlsx"
-    litfond_odvod = 0   #Aktuálne 0 kvôli Covid pandémii, inak 2 %
-    dan_odvod = 19    # daň, napr. 19 %
-    min_vyplatit=20     #minimálna suma v Eur, ktorá sa vypláca
-    ucetEnÚ = "SK36 8180 0000 0070 0061 8734 - Beliana"
-    ucetLitFond  = "SK47 0200 0000 0012 2545 9853" 
-    ucetFin = "SK61 8180 5002 6780 2710 3305"
+    litfond_odvod = settings.LITFOND_ODVOD  #Aktuálne 0 kvôli Covid pandémii, inak 2 %
+    dan_odvod = settings.DAN_Z_PRIJMU       # daň, napr. 19 %
+    min_vyplatit = settings.MIN_VYPLATIT    #minimálna suma v Eur, ktorá sa vypláca
+    ucetEnÚ = settings.UCET_ENU
+    ucetLitFond  = settings.UCET_LITFOND
+    ucetFin = settings.UCET_FIN_URAD
 
     def __init__(self, csv_subory=None, obdobie=None, datum_vyplatenia=None, zoznam_autorov=None): 
 
