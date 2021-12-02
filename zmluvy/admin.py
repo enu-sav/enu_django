@@ -180,6 +180,8 @@ class ZmluvaAutorAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportMo
             fields.remove("cislo_zmluvy")
             fields.remove("zmluvna_strana")
             fields.remove("honorar_ah")
+            fields.remove("datum_zverejnenia_CRZ")
+            fields.remove("url_zmluvy")
         return fields
 
     # formátovať pole url_zmluvy
@@ -435,7 +437,7 @@ class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
                         
                 self.message_user(request, log[1].replace(settings.MEDIA_ROOT,""), log[0])
             # prebrať a uložiť novovytvorený zoznam autorov (len pri akcii "Vytvoriť podklady na vyplatenie autorských odmien pre THS")
-            if not platba.datum_uhradenia:
+            if not platba.datum_uhradenia and vao.zoznam_autorov:
                 platba.autori_na_vyplatenie = " ".join(vao.zoznam_autorov)
             platba.save()
             #self.message_user(request, msg, status)

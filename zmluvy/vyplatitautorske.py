@@ -52,7 +52,7 @@ class VyplatitAutorskeOdmeny():
 
     def hlavicka_test(self, fname, row):
         # povinné stĺpce v csv súbore:
-        povinne = ["Nid", "Prihlásiť sa", "Zmluva na vyplatenie", "Vyplatenie odmeny", "Dĺžka autorom odovzdaného textu", "Dátum záznamu dĺžky", "Dátum vyplatenia", "Lexikálna skupina"]
+        povinne = ["Nid", "Prihlásiť sa", "nazov", "Zmluva na vyplatenie", "Vyplatenie odmeny", "Dĺžka autorom odovzdaného textu", "Dátum záznamu dĺžky", "Dátum vyplatenia", "Lexikálna skupina"]
         for item in povinne:
             if not item in row:
                 raise Exception(f"Súbor {fname} musí obsahovať stĺpec '{item}'")
@@ -71,8 +71,9 @@ class VyplatitAutorskeOdmeny():
                     for n, ii in enumerate(row):
                         hdr[ii]=n
                     hdrOK = True
+                    continue
                 nid = row[hdr["Nid"]] if rs_webrs == "rs" else row[hdr["Nid"]].replace("//rs","//webrs")
-                if row[hdr["Vyplatenie odmeny"]] == "Heslo vypracoval autor, vyplatiť" and not row[hdr["Dátum vyplatenia"]] and nid not in duplitest:
+                if row[hdr["Vyplatenie odmeny"]].strip() == "Heslo vypracoval autor, vyplatiť" and not row[hdr["Dátum vyplatenia"]] and nid not in duplitest:
                     duplitest.add(nid)
 
                     login = row[hdr["Prihlásiť sa"]]
@@ -127,6 +128,7 @@ class VyplatitAutorskeOdmeny():
                         #self.log(messages.ERROR, msg)
                         self.error_list.append([login,"",msg])
                     pass
+        pass
 
     def meno_priezvisko(self, autor):
         return f"{autor.meno} {autor.priezvisko}"
