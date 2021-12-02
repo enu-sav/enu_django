@@ -348,7 +348,7 @@ class VyplatitAutorskeOdmeny():
 
         vyplatit["A7"] = "Prevody spolu:"
         #vyplatit.merge_cells("B7:G7")
-        vyplatit["B7"] = f"=Výpočet!G{sum_row}" 
+        vyplatit["B7"] = f"=Výpočet!G{sum_row}" if  self.datum_vyplatenia else "Ešte neurčené"
         vyplatit[f"B7"].alignment = aleft
         vyplatit[f"B7"].font = self.fbold
         vyplatit["A8"] = "Z čísla účtu EnÚ:"
@@ -372,7 +372,7 @@ class VyplatitAutorskeOdmeny():
         vyplatit[f"A{e}"] = "KS:"
         vyplatit[f"B{e}"] = "558"
         vyplatit[f"A{f}"] = "Suma na úhradu:"
-        vyplatit[f"B{f}"] = f"=Výpočet!I{sum_row}"
+        vyplatit[f"B{f}"] = f"=Výpočet!I{sum_row}"  if  self.datum_vyplatenia else "Ešte neurčené"
         vyplatit[f"B{f}"].alignment = aleft
         vyplatit[f"B{f}"].font = self.fbold
         
@@ -389,7 +389,7 @@ class VyplatitAutorskeOdmeny():
         # predpokladáme, ze self.obdobie na tvar yyyy-mmxxx
         vyplatit[f"B{d}"] = f"1700{self.obdobie[5:7]}{self.obdobie[:4]}"
         vyplatit[f"A{e}"] = "Suma na úhradu:"
-        vyplatit[f"B{e}"] = f"=Výpočet!K{sum_row}"
+        vyplatit[f"B{e}"] = f"=Výpočet!K{sum_row}" if  self.datum_vyplatenia else "Ešte neurčené"
         vyplatit[f"B{e}"].alignment = aleft
         vyplatit[f"B{e}"].font = self.fbold
 
