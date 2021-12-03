@@ -214,3 +214,20 @@ PLATOVE_VYMERY_DIR="PlatoveVymery"
 DOHODY_DIR="Dohody"
 OBJEDNAVKY_DIR="Objednavky"
 PRIJATEFAKTURY_DIR="PrijateFaktury"
+
+# Mail
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+# https://www.sitepoint.com/django-send-email/
+# ak netreba autentifikáciu (napr. v siete akadémie):
+EMAIL_HOST = os.environ['EMAIL_HOST']
+EMAIL_PORT = os.environ['EMAIL_PORT']
+#inap pridať
+EMAIL_USE_SSL = os.environ['EMAIL_USE_SSL']
+EMAIL_USE_TLS = os.environ['EMAIL_USE_TLS']
+EMAIL_HOST_USER = os.environ['EMAIL_HOST_USER']
+EMAIL_HOST_PASSWORD = os.environ['EMAIL_HOST_PASSWORD']
+# pri testovaní odosielanie mailov spustiť
+#python -m smtpd -n -c DebuggingServer localhost:1025
+#a použiť
+#EMAIL_HOST = "localhost"
+#EMAIL_PORT = 1025
