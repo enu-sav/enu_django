@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     'django_db_logger',
     'import_export',
     'admin_totals',
+    'django_crontab',
 ]
 
 MIDDLEWARE = [
@@ -171,6 +172,10 @@ LOGGING = {
     }
 }
 
+CRONJOBS = [
+    ('33 3 * * *', 'zmluvy.cron.notifikacie_FU')
+]
+
 #Parametre
 ODVODY_VYNIMKA = 200    #Vyňatá mesačná suma v prípade, ak dohodár (dôchoidca alebo študent) o ňu požiada
 DAN_Z_PRIJMU = 19      #Daň z príjmu, 19 %
@@ -221,13 +226,12 @@ EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 # ak netreba autentifikáciu (napr. v siete akadémie):
 EMAIL_HOST = os.environ['EMAIL_HOST']
 EMAIL_PORT = os.environ['EMAIL_PORT']
-#inap pridať
+#inak pridať
 EMAIL_USE_SSL = os.environ['EMAIL_USE_SSL']
 EMAIL_USE_TLS = os.environ['EMAIL_USE_TLS']
 EMAIL_HOST_USER = os.environ['EMAIL_HOST_USER']
 EMAIL_HOST_PASSWORD = os.environ['EMAIL_HOST_PASSWORD']
-# pri testovaní odosielanie mailov spustiť
-#python -m smtpd -n -c DebuggingServer localhost:1025
-#a použiť
-#EMAIL_HOST = "localhost"
-#EMAIL_PORT = 1025
+
+# Základné údaje o serveri. Používané pri odosielaní notifikačných mailov
+SITE_URL = "http://samba.enu.sav.sk:8000/"
+SITE_HOST = "samba"
