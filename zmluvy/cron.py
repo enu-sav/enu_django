@@ -5,6 +5,7 @@ from datetime import date, timedelta
 from dateutil.relativedelta import relativedelta
 from beliana.settings import SITE_HOST, SITE_URL
 from django.core.mail import send_mail
+from django.contrib.auth.models import User
 
 # notifikácie kvôli finančnému úradu
 def notifikacie_FU():
@@ -33,7 +34,11 @@ def notifikacie_FU():
     for sprava in spravy:
         message = f"{message}\n{sprava}"
 
-    trace()
-    rslt = send_mail('Termíny oznámenia finančnej správe', message, "django-noreply@enu.savba.sk", ["sramek.milos@gmail.com"])
+    #Používatelia s príslušným oprávnením
+    users = User.object.all()
+
+
+    #Nedokončené, treba vybrať používateľov s právom pas_notif_fs 
+    #rslt = send_mail('Termíny oznámenia finančnej správe', message, "django-noreply@enu.savba.sk", ["sramek.milos@gmail.com"])
     trace()
     pass

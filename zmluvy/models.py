@@ -301,6 +301,9 @@ class PlatbaAutorskaSumar(models.Model):
     class Meta:
         verbose_name = 'Vyplácanie aut. honorárov'
         verbose_name_plural = 'Vyplácanie aut. honorárov'
+        permissions = [
+            ('pas_notif_fs', 'Prijímať notifikácie o termínoch FS'),
+        ]
     def __str__(self):
         return f"Vyplácanie za obdobie {self.obdobie}"
 
