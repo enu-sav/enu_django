@@ -260,7 +260,7 @@ class PlatbaAutorskaSumar(models.Model):
             null = True
             )
     vyplatit_ths = models.FileField("Podklady na vyplatenie",
-            help_text = "Súbor generovaný akciou 'Vytvoriť podklady na vyplatenie autorských odmien pre THS'. <br .>Súbor obsahuje údaje pre vyplácanie autorských honorárov (hárok <em>Na vyplatenie</em>) a zoznam chýb, ktoré boli pre generovaní zistené (hárok <em>Chyby</em>).<br /> <strong>Definitívnu verziu súboru (len hárku  <em>Na vyplatenie</em>) treba poslať mailom do účtárne THS na vyplatenie.</strong>", 
+            help_text = "Súbor generovaný akciou 'Vytvoriť podklady na vyplatenie autorských odmien pre THS'. <br />Súbor obsahuje údaje pre vyplácanie autorských honorárov (hárok <em>Na vyplatenie</em>) a zoznam chýb, ktoré boli pre generovaní zistené (hárok <em>Chyby</em>).<br /> <strong>Definitívnu verziu súboru (len hárku  <em>Na vyplatenie</em>) treba poslať mailom do účtárne THS na vyplatenie.</strong>", 
             upload_to=platba_autorska_sumar_upload_location, 
             null = True, 
             blank = True)
@@ -269,12 +269,12 @@ class PlatbaAutorskaSumar(models.Model):
             null=True, 
             blank=True)
     autori_na_vyplatenie = models.TextField("Vyplácaní autori", 
-            help_text = "Zoznam vyplácaných autorov. Vypĺňa sa automaticky akciou 'Vytvoriť podklady na vyplatenie autorských odmien pre THS'. <br .><strong>Pokiaľ platba autora neprešla, pred vytvorením finálneho prehľadu platieb ho zo zoznamu odstráňte</strong>.", 
+            help_text = "Zoznam vyplácaných autorov. Vypĺňa sa automaticky akciou 'Vytvoriť podklady na vyplatenie autorských odmien pre THS'. <br /><strong>Pokiaľ platba autora neprešla, pred vytvorením finálneho prehľadu platieb ho zo zoznamu odstráňte</strong>.", 
             null = True,
             blank = True,
             max_length=2500)
     vyplatene = models.FileField("Finálny prehľad",
-            help_text = "Súbor generovaný akciou 'Vytvoriť finálny prehľad o vyplácaní a zaznamenať platby do databázy'.<br .><strong>Hárok <em>Na vyplatenie</em> treba poslať mailom do účtárne THS na vyplatenie</strong><br .><strong>Hárok <em>Krycí list</em> treba poslať internou poštou na THS</strong><br .> <strong>Hárok <em>Po autoroch</em> treba vytlačiť a po autoroch založiť so šanonov</strong>.", 
+            help_text = "Súbor generovaný akciou 'Vytvoriť finálny prehľad o vyplácaní a zaznamenať platby do databázy'.<br /><strong>Hárok <em>Na vyplatenie</em> treba poslať mailom do účtárne THS na vyplatenie</strong><br /><strong>Hárky <em>Na vyplatenie</em> a <em>Krycí list</em> treba vytlačiť a poslať internou poštou THS-ke</strong><br /><strong>Hárok <em>Po autoroch</em> treba vytlačiť a po autoroch založiť so šanonov</strong>.", 
             upload_to=platba_autorska_sumar_upload_location, 
             null = True, 
             blank = True)
