@@ -82,11 +82,15 @@ def VytvoritPlatobnyPrikaz(faktura):
     if type(faktura.objednavka_zmluva) == Objednavka:
         text = text.replace(f"{lt}obj_zmluva{gt}", "objednávka")
         text = text.replace(f"{lt}oz_cislo{gt}", faktura.objednavka_zmluva.objednavka.cislo)
+        if not faktura.objednavka_zmluva.objednavka.datum_vytvorenia:
+            return messages.ERROR, "Vytváranie príkazu zlyhalo, lebo objednávka nemá zadaný dátum vytvorenia.", None
         text = text.replace(f"{lt}zo_dna{gt}", faktura.objednavka_zmluva.objednavka.datum_vytvorenia.strftime("%d. %m. %Y"))
         pass
     elif type(faktura.objednavka_zmluva) == Zmluva:
         text = text.replace(f"{lt}obj_zmluva{gt}", "zmluva")
         text = text.replace(f"{lt}oz_cislo{gt}", faktura.objednavka_zmluva.zmluva.cislo)
+        if not faktura.objednavka_zmluva.zmluva.datum_zverejnenia_CRZ:
+            return messages.ERROR, "Vytváranie príkazu zlyhalo, lebo zmluva nemá zadaný dátum platnosti.", None
         text = text.replace(f"{lt}zo_dna{gt}", faktura.objednavka_zmluva.zmluva.datum_zverejnenia_CRZ.strftime("%d. %m. %Y"))
         pass
     else:   #Rozhodnutie
@@ -332,6 +336,8 @@ def VytvoritSuborObjednavky(objednavka):
         obj["A32"].value = obj["A32"].value.replace("[[termin_dodania]]", objednavka.termin_dodania)
     else:
         obj["A32"].value = obj["A32"].value.replace("[[termin_dodania]]", "")
+    if not objednavka.datum_vytvorenia:
+        return messages.ERROR, "Vytváranie súboru objednávky zlyhalo, lebo objednávka nemá zadaný dátum vytvorenia.", None
     obj["A34"].value = obj["A34"].value.replace("[[datum]]", objednavka.datum_vytvorenia.strftime("%d. %m. %Y"))
   
     kl = workbook["Finančná kontrola"]
