@@ -415,7 +415,7 @@ class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
             # ak vytvárame finálny prehľad, platba.datum_uhradenia je vyplnené 
             if platba.datum_uhradenia:
                 vao = VyplatitAutorskeOdmeny(nazvy, platba.obdobie, 
-                        platba.datum_uhradenia.isoformat(), 
+                        platba.datum_uhradenia.strftime("%-d.%-m.%Y"),
                         platba.autori_na_vyplatenie.split())
             else:
                 vao = VyplatitAutorskeOdmeny(nazvy, platba.obdobie)
