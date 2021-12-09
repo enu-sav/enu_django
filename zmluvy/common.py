@@ -134,7 +134,7 @@ def VytvoritAutorskuZmluvu(zmluva):
 
     # spoločné úpravy
     # zmluva na podpis s kompletnými údajmi
-    sablona = sablona.replace(f"{lt}cislozmluvy{gt}", zmluva.cislo_zmluvy)
+    sablona = sablona.replace(f"{lt}cislozmluvy{gt}", zmluva.cislo)
     sablona = sablona.replace(f"{lt}menopriezvisko{gt}", mp)
     sablona = sablona.replace(f"{lt}odbor{gt}", autor.odbor)
     sablona = sablona.replace(f"{lt}odmenanum{gt}", str(zmluva.honorar_ah).replace(".",","))
@@ -184,7 +184,7 @@ def VytvoritAutorskuZmluvu(zmluva):
 
     #ulozit
     #Create directory admin.rs_login if necessary
-    auxname = f"{autor.rs_login}-{zmluva.cislo_zmluvy.replace('/','-')}"
+    auxname = f"{autor.rs_login}-{zmluva.cislo.replace('/','-')}"
     odir = os.path.join(settings.CONTRACTS_DIR,auxname)
     if not os.path.isdir(odir):
         os.makedirs(odir)
@@ -200,7 +200,7 @@ def VytvoritAutorskuZmluvu(zmluva):
             f.write(tx)
         vytvorene_subory.append(nazov_zmluvy_log)
     fnames = ", ".join(vytvorene_subory)
-    return messages.SUCCESS, f"Súbory zmluvy {zmluva.cislo_zmluvy} boli úspešne vytvorené ({fnames}).", vytvorene_subory
+    return messages.SUCCESS, f"Súbory zmluvy {zmluva.cislo} boli úspešne vytvorené ({fnames}).", vytvorene_subory
 
 def VyplatitAutorskeOdmeny(platba):
     os.path.join(settings.RLTS_DIR_NAME, platba.obdobie)
