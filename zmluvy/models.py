@@ -74,7 +74,7 @@ class FyzickaOsoba(PersonCommon):
             help_text = "Zadajte dátum oznámenia existencie dohody o nezdaňovaní Finančnej správe. Oznámenie sa posiela v termíne do konca januára roku, ktorý nasleduje po roku, keď po prvýkrát nebol honorár zdanený.",
             blank=True, null=True)
     rezident = models.CharField("Rezident SR", 
-            help_text = "Uveďte, či je autor daňovík s neobmedzenou daňovou povinnosťou v SR (daňový rezident SR). Ak autor nie je daňový rezident SR, tak sa jeho honorár nezdaňuje.",
+            help_text = "Uveďte, či je autor daňovník s neobmedzenou daňovou povinnosťou v SR (daňový rezident SR). Ak autor nie je daňový rezident SR, tak sa jeho honorár nezdaňuje.",
             max_length=3, choices=AnoNie.choices, null=True, blank=True) 
     poznamka = models.CharField("Poznámka", max_length=200, blank=True)
     #pub_date = models.DateField('date published')
@@ -108,9 +108,6 @@ class OsobaAuGaKo(FyzickaOsoba):
         verbose_name_plural = 'Autor/Garant/Konzultant'
 
 class OsobaAutor (OsobaAuGaKo):
-
-    # preplatok sposobeny vyplácaním 540 namiesto 360 (a možno aj iný dôvod)
-    # výpočet je v súbore Kontrola-Kapcova-2018-2021-milos.ods, hárok Preplatok výpočet a Preplatok num.
     preplatok = models.DecimalField("Preplatok", max_digits=8, decimal_places=2, default=0)
     history = HistoricalRecords()
     def __str__(self):
@@ -118,6 +115,14 @@ class OsobaAutor (OsobaAuGaKo):
     class Meta:
         verbose_name = 'Autor'
         verbose_name_plural = 'Autori'
+
+class OsobaGrafik (FyzickaOsoba):
+    history = HistoricalRecords()
+    def __str__(self):
+        return f"{rs.priezvisko}{rs.meno}G"
+    class Meta:
+        verbose_name = 'Grafik'
+        verbose_name_plural = 'Grafici'
 
 class Zmluva(models.Model):
     cislo_zmluvy = models.CharField("Číslo zmluvy", max_length=50)
