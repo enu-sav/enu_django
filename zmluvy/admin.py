@@ -19,7 +19,8 @@ from django.db.models import Sum
 
 # Register your models here.
 # pripajanie suborov k objektu: krok 1, importovať XxxSubor
-from .models import OsobaAutor, ZmluvaAutor, PlatbaAutorskaOdmena, PlatbaAutorskaSumar, StavZmluvy, PlatbaAutorskaSumarSubor, AnoNie, SystemovySubor
+from .models import OsobaAutor, ZmluvaAutor, PlatbaAutorskaOdmena, PlatbaAutorskaSumar, StavZmluvy, PlatbaAutorskaSumarSubor
+from .models import AnoNie, SystemovySubor, PersonCommon
 from .common import VytvoritAutorskuZmluvu, VyplatitAutorskeOdmeny
 from .vyplatitautorske import VyplatitAutorskeOdmeny
 
@@ -35,9 +36,49 @@ from simple_history.admin import SimpleHistoryAdmin
 
 from import_export.admin import ImportExportModelAdmin
 
+class PersonCommonAdmin():
+    def get_list_display(self, request):
+        return ("datum_aktualizacie", "bankovy_kontakt", "adresa", "koresp_adresa")
+
+    def adresa(self, obj):
+        if obj.adresa_mesto:
+            return f"{obj.adresa_ulica} {obj.adresa_mesto}, {obj.adresa_stat}".strip()
+    adresa.short_description = "Trvalé bydlisko"
+
+    def koresp_adresa(self, obj):
+        if obj.koresp_adresa_mesto:
+            return f"{obj.koresp_adresa_institucia} {obj.koresp_adresa_ulica} {obj.koresp_adresa_mesto}, {obj.koresp_adresa_stat}".strip()
+    koresp_adresa.short_description = "Korešp. adresa"
+
+class FyzickaOsobaAdmin(PersonCommonAdmin):
+    def get_list_display(self, request):
+        return ("menopriezvisko",'email', 'rezident', 'nevyplacat', 'zdanit', "datum_dohoda_podpis", "datum_dohoda_oznamenie") + super(FyzickaOsobaAdmin, self).get_list_display(request)
+
+    def get_search_fields(self, request):
+        return ("priezvisko", "email")
+
+    def menopriezvisko(self, obj):
+        if obj.priezvisko:
+            mp = f"{obj.titul_pred_menom} {obj.meno} {obj.priezvisko}, {obj.titul_za_menom}".strip()
+            mp = mp.replace(", None", "").replace("None ","")
+            return mp
+    menopriezvisko.short_description = "Meno a tituly"
+
+class OsobaAuGaKoAdmin(FyzickaOsobaAdmin):
+    def get_list_display(self, request):
+        return ("odbor",) + super(OsobaAuGaKoAdmin, self).get_list_display(request)
+
+    def get_search_fields(self, request):
+        return ("odbor",) + super(OsobaAuGaKoAdmin, self).get_search_fields(request)
+
 @admin.register(OsobaAutor)
 #class OsobaAutorAdmin(AdminChangeLinksMixin, admin.ModelAdmin):
-class OsobaAutorAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
+class OsobaAutorAdmin(OsobaAuGaKoAdmin, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
+    def get_list_display(self, request):
+        return ("rs_login", 'zmluvy_link', 'platby_link') + super(OsobaAutorAdmin, self).get_list_display(request)
+
+    def get_search_fields(self, request):
+        return ("rs_login",) + super(OsobaAutorAdmin, self).get_search_fields(request)
 
     # modifikovať formulár na pridanie poľa Popis zmeny
     form = OsobaAutorForm
@@ -65,17 +106,7 @@ class OsobaAutorAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportMod
             'preplatok',
             'poznamka'
             )
-    #zmluvy_link: pridá odkaz na všetky zmluvy autora do zoznamu
-    #platby_link: pridá odkaz na všetky platby autora do zoznamu
-    list_display = (
-            'rs_login', 'zmluvy_link', 'platby_link', 'preplatok', 'zdanit', 'dohodasubor', 
-            "datum_dohoda_podpis", "datum_dohoda_oznamenie", 'rezident', 'nevyplacat', 'email',
-            'menopriezvisko', 'rodne_cislo', 'odbor', "adresa", "koresp_adresa", 'datum_aktualizacie', 'poznamka'
-            )
-    ordering = ('datum_aktualizacie',)
-    #search_fields = ('rs_login', 'priezvisko')
-    #search_fields = ['rs_login', 'r_uid', 'email']
-    search_fields = ['rs_login', 'email']
+    ordering = ('-datum_aktualizacie',)
 
     #Konfigurácia poľa zmluvy_link (pripojené k ZmluvaAutor cez ForeignKey)
     #changelist_links = ['zmluvy'];
@@ -107,23 +138,6 @@ class OsobaAutorAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportMod
                 return ["rs_uid", "rs_login"]
         else:
             return []
-
-    def menopriezvisko(self, obj):
-        if obj.priezvisko:
-            mp = f"{obj.titul_pred_menom} {obj.meno} {obj.priezvisko}, {obj.titul_za_menom}".strip()
-            mp = mp.replace(", None", "").replace("None ","")
-            return mp
-    menopriezvisko.short_description = "Meno a tituly"
-
-    def adresa(self, obj):
-        if obj.adresa_mesto:
-            return f"{obj.adresa_ulica} {obj.adresa_mesto}, {obj.adresa_stat}".strip()
-    adresa.short_description = "Trvalé bydlisko"
-
-    def koresp_adresa(self, obj):
-        if obj.koresp_adresa_mesto:
-            return f"{obj.koresp_adresa_institucia} {obj.koresp_adresa_ulica} {obj.koresp_adresa_mesto}, {obj.koresp_adresa_stat}".strip()
-    koresp_adresa.short_description = "Korešp. adresa"
 
 #admin.site.register(OsobaAutor, OsobaAutorAdmin)
 
