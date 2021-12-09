@@ -171,34 +171,13 @@ class OsobaGrafikAdmin(FyzickaOsobaAdmin, AdminChangeLinksMixin, SimpleHistoryAd
             return ", ".join(delta.changed_fields)
         return None
 
+class ZmluvaAdmin():
+    def get_list_display(self, request):
+        return ('stav_zmluvy', 'zmluva_odoslana', 'zmluva_vratena', 'zmluvna_strana_link',
+            'url_zmluvy_html', 'crz_datum', 'datum_pridania', 'datum_aktualizacie')
 
-@admin.register(ZmluvaAutor)
-class ZmluvaAutorAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
-    # modifikovať formulár na pridanie poľa Popis zmeny
-    form = ZmluvaAutorForm
-    # zmluvna_strana_link: pridá autora zmluvy do zoznamu, vďaka AdminChangeLinksMixin
-    list_display = ('cislo', 'stav_zmluvy', 'zmluva_odoslana', 'zmluva_vratena', 'zmluvna_strana_link',
-            'honorar_ah', 'url_zmluvy_html', 'crz_datum', 'datum_pridania', 'datum_aktualizacie')
-    #fields = ('cislo', 'stav_zmluvy', 'zmluva_odoslana', 'zmluva_vratena', 'zmluvna_strana',
-            #'honorar_ah', 'url_zmluvy', 'datum_zverejnenia_CRZ', 'datum_pridania', 'datum_aktualizacie')
-    ordering = ('-datum_aktualizacie',)
-    search_fields = ['cislo','zmluvna_strana__rs_login', 'honorar_ah', 'stav_zmluvy']
-    actions = ['vytvorit_subory_zmluvy']
-
-    # umožnené prostredníctvom AdminChangeLinksMixin
-    change_links = ['zmluvna_strana']
-    change_links = [
-        ('zmluvna_strana', {
-            'admin_order_field': 'zmluvna_strana__rs_login',  # Allow to sort members by `zmluvna_strana_link` column
-        })
-    ]
-
-    #obj is None during the object creation, but set to the object being edited during an edit
-    def _get_readonly_fields(self, request, obj=None):
-        if obj:
-            return ["cislo", "zmluvna_strana", "vygenerovana_subor", "vygenerovana_crz_subor"]
-        else:
-            return ["vygenerovana_subor", "vygenerovana_crz_subor"]
+    def get_search_fields(self, request):
+        return ("cislo", "stav_zmluvy")
 
     #obj is None during the object creation, but set to the object being edited during an edit
     def get_readonly_fields(self, request, obj=None):
@@ -215,16 +194,16 @@ class ZmluvaAutorAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportMo
                     fields.remove("datum_zverejnenia_CRZ")
                     fields.remove("podpisana_subor")
             else:
-                fields.remove("zmluvna_strana")
-                fields.remove("honorar_ah")
-                #fields.remove("podklady_odoslane")
+                pass
+                #fields.remove("zmluvna_strana")
+                #fields.remove("honorar_ah")
             pass
         else:
             # V novej platbe povoliť len "obdobie"
             fields.remove("stav_zmluvy")
             fields.remove("cislo")
-            fields.remove("zmluvna_strana")
-            fields.remove("honorar_ah")
+            #fields.remove("zmluvna_strana")
+            #fields.remove("honorar_ah")
             fields.remove("datum_zverejnenia_CRZ")
             fields.remove("url_zmluvy")
         return fields
@@ -258,15 +237,6 @@ class ZmluvaAutorAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportMo
             return ", ".join(delta.changed_fields)
         return None
 
-    # do AdminForm pridať request, aby v jej __init__ bolo request dostupné
-    def get_form(self, request, obj=None, **kwargs):
-        AdminForm = super(ZmluvaAutorAdmin, self).get_form(request, obj, **kwargs)
-        class AdminFormMod(AdminForm):
-            def __new__(cls, *args, **kwargs):
-                kwargs['request'] = request
-                return AdminForm(*args, **kwargs)
-        return AdminFormMod
-
     def vytvorit_subory_zmluvy(self, request, queryset):
         for zmluva  in queryset:
             if not zmluva.stav_zmluvy or zmluva.stav_zmluvy in (
@@ -274,7 +244,7 @@ class ZmluvaAutorAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportMo
                             StavZmluvy.ODOSLANY_DOTAZNIK,  
                             StavZmluvy.VYTVORENA):  
                 #vytvorene_subory: s cestou vzhľadom na MEDIA_ROOT 'AutorskeZmluvy/AdamAnton-1298/AdamAnton-1298.fodt'
-                status, msg, vytvorene_subory = VytvoritAutorskuZmluvu(zmluva)
+                status, msg, vytvorene_subory = self.VytvoritZmluvu(zmluva)
                 if status != messages.ERROR:
                     zmluva.stav_zmluvy = StavZmluvy.VYTVORENA
                     zmluva.datum_aktualizacie = timezone.now(),
@@ -291,6 +261,58 @@ class ZmluvaAutorAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportMo
     vytvorit_subory_zmluvy.short_description = f"Vytvoriť súbory zmluvy"
     #Oprávnenie na použitie akcie, viazané na 'change'
     vytvorit_subory_zmluvy.allowed_permissions = ('change',)
+    actions = ['vytvorit_subory_zmluvy']
+
+@admin.register(ZmluvaAutor)
+class ZmluvaAutorAdmin(ZmluvaAdmin, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
+    # modifikovať formulár na pridanie poľa Popis zmeny
+    form = ZmluvaAutorForm
+    def get_list_display(self, request):
+        return ("cislo", "honorar_ah") + super(ZmluvaAutorAdmin, self).get_list_display(request)
+
+    #fields = ('cislo', 'stav_zmluvy', 'zmluva_odoslana', 'zmluva_vratena', 'zmluvna_strana',
+            #'honorar_ah', 'url_zmluvy', 'datum_zverejnenia_CRZ', 'datum_pridania', 'datum_aktualizacie')
+    ordering = ('-datum_aktualizacie',)
+    def get_search_fields(self, request):
+        return ("zmluvna_strana__rs_login", "honorar_ah") + super(ZmluvaAutorAdmin, self).get_search_fields(request)
+
+
+    # zmluvna_strana_link: pridá autora zmluvy do zoznamu, vďaka AdminChangeLinksMixin
+    # použité v ZmluvaAdmin
+    change_links = ['zmluvna_strana']
+    change_links = [
+        ('zmluvna_strana', {
+            'admin_order_field': 'zmluvna_strana__rs_login',  # Allow to sort members by `zmluvna_strana_link` column
+        })
+    ]
+
+    #obj is None during the object creation, but set to the object being edited during an edit
+    def get_readonly_fields(self, request, obj=None):
+        fields = super(ZmluvaAutorAdmin, self).get_readonly_fields(request, obj)
+        if obj:
+            if obj.vygenerovana_subor: 
+                pass
+            else:
+                fields.remove("zmluvna_strana")
+                fields.remove("honorar_ah")
+                #fields.remove("podklady_odoslane")
+            pass
+        else:
+            # V novej platbe povoliť len "obdobie"
+            fields.remove("honorar_ah")
+        return fields
+
+    # do AdminForm pridať request, aby v jej __init__ bolo request dostupné
+    def get_form(self, request, obj=None, **kwargs):
+        AdminForm = super(ZmluvaAutorAdmin, self).get_form(request, obj, **kwargs)
+        class AdminFormMod(AdminForm):
+            def __new__(cls, *args, **kwargs):
+                kwargs['request'] = request
+                return AdminForm(*args, **kwargs)
+        return AdminFormMod
+
+    def VytvoritZmluvu(self, zmluva):
+        return VytvoritAutorskuZmluvu(zmluva)
 
 @admin.register(PlatbaAutorskaOdmena)
 class PlatbaAutorskaOdmenaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin,ModelAdminTotals):
