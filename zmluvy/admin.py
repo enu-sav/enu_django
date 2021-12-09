@@ -20,11 +20,11 @@ from django.db.models import Sum
 # Register your models here.
 # pripajanie suborov k objektu: krok 1, importovať XxxSubor
 from .models import OsobaAutor, ZmluvaAutor, PlatbaAutorskaOdmena, PlatbaAutorskaSumar, StavZmluvy, PlatbaAutorskaSumarSubor
-from .models import AnoNie, SystemovySubor, PersonCommon
+from .models import AnoNie, SystemovySubor, PersonCommon, OsobaGrafik
 from .common import VytvoritAutorskuZmluvu, VyplatitAutorskeOdmeny
 from .vyplatitautorske import VyplatitAutorskeOdmeny
 
-from .forms import OsobaAutorForm, ZmluvaAutorForm, PlatbaAutorskaSumarForm
+from .forms import OsobaAutorForm, ZmluvaAutorForm, PlatbaAutorskaSumarForm, OsobaGrafikForm
 
 #umožniť zobrazenie autora v zozname zmlúv
 #https://pypi.org/project/django-admin-relation-links/
@@ -139,7 +139,38 @@ class OsobaAutorAdmin(OsobaAuGaKoAdmin, AdminChangeLinksMixin, SimpleHistoryAdmi
         else:
             return []
 
-#admin.site.register(OsobaAutor, OsobaAutorAdmin)
+@admin.register(OsobaGrafik)
+class OsobaGrafikAdmin(FyzickaOsobaAdmin, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
+    def get_list_display(self, request):
+        #return ("priezvisko", 'zmluvy_link', 'platby_link') + super(OsobaGrafikAdmin, self).get_list_display(request)
+        return ("priezvisko",) + super(OsobaGrafikAdmin, self).get_list_display(request)
+
+    def get_search_fields(self, request):
+        return ("priezvisko",) + super(OsobaGrafikAdmin, self).get_search_fields(request)
+
+    # modifikovať formulár na pridanie poľa Popis zmeny
+    form = OsobaGrafikForm
+    ordering = ('-datum_aktualizacie',)
+
+    #Konfigurácia poľa zmluvy_link (pripojené k ZmluvaGrafik cez ForeignKey)
+    #changelist_links = ['zmluvy'];
+    _changelist_links = [
+        ('zmluvy', {
+            'label': 'Zmluvy',  # Used as label for the link
+        }),
+        ('platby', {
+            'label': 'Platby',  # Used as label for the link
+        })
+    ]
+
+    # zobraziť zoznam zmenených polí
+    history_list_display = ['changed_fields']
+    def changed_fields(self, obj):
+        if obj.prev_record:
+            delta = obj.diff_against(obj.prev_record)
+            return ", ".join(delta.changed_fields)
+        return None
+
 
 @admin.register(ZmluvaAutor)
 class ZmluvaAutorAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):

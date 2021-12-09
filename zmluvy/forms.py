@@ -1,7 +1,7 @@
 
 from django import forms
 from ipdb import set_trace as trace
-from .models import OsobaAutor, ZmluvaAutor, PlatbaAutorskaSumar
+from .models import OsobaAutor, ZmluvaAutor, PlatbaAutorskaSumar, OsobaGrafik
 from dennik.models import Dokument, SposobDorucenia
 from dennik.forms import nasledujuce_cislo
 from django.core.exceptions import ValidationError
@@ -22,6 +22,22 @@ class OsobaAutorForm(forms.ModelForm):
 
     class Meta:
         model = OsobaAutor
+        fields = "__all__"
+
+# Pridať dodatočné pole popis_zmeny, použije sa ako change_reason v SimpleHistoryAdmin
+class OsobaGrafikForm(forms.ModelForm):
+    #popis_zmeny = forms.CharField()
+    popis_zmeny = forms.CharField(widget=forms.TextInput(attrs={'size':80}))
+    def save(self, commit=True):
+        popis_zmeny = self.cleaned_data.get('popis_zmeny', None)
+        # Get the form instance so I can write to its fields
+        instance = super(OsobaGrafikForm, self).save(commit=commit)
+        # this writes the processed data to the description field
+        instance._change_reason = popis_zmeny
+        return super(OsobaGrafikForm, self).save(commit=commit)
+
+    class Meta:
+        model = OsobaGrafik
         fields = "__all__"
 
 # Pridať dodatočné pole popis_zmeny, použije sa ako change_reason v SimpleHistoryAdmin

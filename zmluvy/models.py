@@ -119,7 +119,7 @@ class OsobaAutor (OsobaAuGaKo):
 class OsobaGrafik (FyzickaOsoba):
     history = HistoricalRecords()
     def __str__(self):
-        return f"{rs.priezvisko}{rs.meno}G"
+        return f"{self.priezvisko}{self.meno}G"
     class Meta:
         verbose_name = 'Grafik'
         verbose_name_plural = 'Grafici'
