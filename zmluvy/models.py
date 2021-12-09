@@ -124,8 +124,12 @@ class OsobaGrafik (FyzickaOsoba):
         verbose_name = 'Grafik'
         verbose_name_plural = 'Grafici'
 
+# cesta k súborom dohody
+def contract_path(instance, filename):
+    return os.path.join(CONTRACTS_DIR_NAME, filename)
+
 class Zmluva(models.Model):
-    cislo_zmluvy = models.CharField("Číslo zmluvy", max_length=50)
+    cislo = models.CharField("Číslo zmluvy", max_length=50)
     datum_pridania = models.DateField('Dátum pridania', auto_now_add=True)
     datum_aktualizacie = models.DateTimeField('Dátum aktualizácie', auto_now=True)
     stav_zmluvy = models.CharField(max_length=20,
@@ -148,31 +152,14 @@ class Zmluva(models.Model):
             blank=True, null=True)
 
     def __str__(self):
-        return self.cislo_zmluvy
+        return self.cislo
     class Meta:
         abstract = True
         verbose_name = 'Zmluva'
         verbose_name_plural = 'Zmluvy'
 
-# cesta k súborom dohody
-def contract_path(instance, filename):
-    return os.path.join(CONTRACTS_DIR_NAME, filename)
-
 class ZmluvaAutor(Zmluva):
     oznacenie = "A"    #v čísle faktúry, A-2021-123
-    @classmethod
-    # určiť číslo novej objednávky
-    def nasledujuce_cislo(_):   # parameter treba, aby sa metóda mohla volať ako ZmluvaAutor.nasledujuce_cislo()
-        # zoznam objednávok s číslom "FaO2021-123" zoradený vzostupne
-        ozn_rok = f"{ZmluvaAutor.oznacenie}-{datetime.now().year}-"
-        itemlist = ZmluvaAutor.objects.filter(cislo_zmluvy__istartswith=ozn_rok).order_by("cislo_zmluvy")
-        if itemlist:
-            latest = itemlist.last().cislo_zmluvy
-            nove_cislo = int(re.findall(f"{ozn_rok}([0-9]+)",latest)[0]) + 1
-            return "%s%03d"%(ozn_rok, nove_cislo)
-        else:
-            #sme v novom roku
-            return f"{ozn_rok}001"
     # Polia
     # v OsobaAutor je pristup k zmluve cez 'zmluvaautor'
     #models.PROTECT: Prevent deletion of the referenced object

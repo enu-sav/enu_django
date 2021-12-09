@@ -177,12 +177,12 @@ class ZmluvaAutorAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportMo
     # modifikovať formulár na pridanie poľa Popis zmeny
     form = ZmluvaAutorForm
     # zmluvna_strana_link: pridá autora zmluvy do zoznamu, vďaka AdminChangeLinksMixin
-    list_display = ('cislo_zmluvy', 'stav_zmluvy', 'zmluva_odoslana', 'zmluva_vratena', 'zmluvna_strana_link',
+    list_display = ('cislo', 'stav_zmluvy', 'zmluva_odoslana', 'zmluva_vratena', 'zmluvna_strana_link',
             'honorar_ah', 'url_zmluvy_html', 'crz_datum', 'datum_pridania', 'datum_aktualizacie')
-    #fields = ('cislo_zmluvy', 'stav_zmluvy', 'zmluva_odoslana', 'zmluva_vratena', 'zmluvna_strana',
+    #fields = ('cislo', 'stav_zmluvy', 'zmluva_odoslana', 'zmluva_vratena', 'zmluvna_strana',
             #'honorar_ah', 'url_zmluvy', 'datum_zverejnenia_CRZ', 'datum_pridania', 'datum_aktualizacie')
     ordering = ('-datum_aktualizacie',)
-    search_fields = ['cislo_zmluvy','zmluvna_strana__rs_login', 'honorar_ah', 'stav_zmluvy']
+    search_fields = ['cislo','zmluvna_strana__rs_login', 'honorar_ah', 'stav_zmluvy']
     actions = ['vytvorit_subory_zmluvy']
 
     # umožnené prostredníctvom AdminChangeLinksMixin
@@ -196,7 +196,7 @@ class ZmluvaAutorAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportMo
     #obj is None during the object creation, but set to the object being edited during an edit
     def _get_readonly_fields(self, request, obj=None):
         if obj:
-            return ["cislo_zmluvy", "zmluvna_strana", "vygenerovana_subor", "vygenerovana_crz_subor"]
+            return ["cislo", "zmluvna_strana", "vygenerovana_subor", "vygenerovana_crz_subor"]
         else:
             return ["vygenerovana_subor", "vygenerovana_crz_subor"]
 
@@ -222,7 +222,7 @@ class ZmluvaAutorAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportMo
         else:
             # V novej platbe povoliť len "obdobie"
             fields.remove("stav_zmluvy")
-            fields.remove("cislo_zmluvy")
+            fields.remove("cislo")
             fields.remove("zmluvna_strana")
             fields.remove("honorar_ah")
             fields.remove("datum_zverejnenia_CRZ")
@@ -232,7 +232,7 @@ class ZmluvaAutorAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportMo
     # formátovať pole url_zmluvy
     def url_zmluvy_html(self, obj):
         from django.utils.html import format_html
-        result = ZmluvaAutor.objects.filter(cislo_zmluvy=obj)
+        result = ZmluvaAutor.objects.filter(cislo=obj)
         if result and result[0].url_zmluvy:
             result = result[0]
             return format_html(f'<a href="{result.url_zmluvy}" target="_blank">pdf</a>')
@@ -242,7 +242,7 @@ class ZmluvaAutorAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportMo
 
     # formatovat datum
     def crz_datum(self, obj):
-        result = ZmluvaAutor.objects.filter(cislo_zmluvy=obj)
+        result = ZmluvaAutor.objects.filter(cislo=obj)
         if result and result[0].datum_zverejnenia_CRZ:
             result = result[0]
             return obj.datum_zverejnenia_CRZ.strftime("%d-%m-%Y")
@@ -286,7 +286,7 @@ class ZmluvaAutorAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportMo
                     zmluva.save()
                 self.message_user(request, msg, status)
             else:
-                self.message_user(request, f"Súbory zmluvy {zmluva.cislo_zmluvy} neboli vytvorené, lebo zmluva je už v stave '{StavZmluvy(zmluva.stav_zmluvy).label}'", messages.ERROR)
+                self.message_user(request, f"Súbory zmluvy {zmluva.cislo} neboli vytvorené, lebo zmluva je už v stave '{StavZmluvy(zmluva.stav_zmluvy).label}'", messages.ERROR)
                 continue
     vytvorit_subory_zmluvy.short_description = f"Vytvoriť súbory zmluvy"
     #Oprávnenie na použitie akcie, viazané na 'change'

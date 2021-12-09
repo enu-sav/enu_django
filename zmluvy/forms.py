@@ -47,10 +47,10 @@ class ZmluvaAutorForm(forms.ModelForm):
         # do Admin treba pridať metódu get_form
         self.request = kwargs.pop('request', None)
         super().__init__(*args, **kwargs)
-        polecislo = "cislo_zmluvy"
+        polecislo = "cislo"
         # Ak je pole readonly, tak sa nenachádza vo fields. Preto testujeme fields aj initial
         if polecislo in self.fields and not polecislo in self.initial:
-            nasledujuce = ZmluvaAutor.nasledujuce_cislo()
+            nasledujuce = nasledujuce_cislo(ZmluvaAutor)
             self.fields[polecislo].help_text = f"Zadajte číslo novej autorskej zmluvy v tvare {ZmluvaAutor.oznacenie}-RRRR-NNN. Predvolené číslo '{nasledujuce} bolo určené na základe čísel existujúcich zmlúv ako nasledujúce v poradí."
             self.initial[polecislo] = nasledujuce
 
@@ -65,7 +65,7 @@ class ZmluvaAutorForm(forms.ModelForm):
                 raise ValidationError(f"Dátum do '{zo_name}' nemožno zadať spolu s '{zv_name}'.")
             if 'zmluva_odoslana' in self.changed_data:
                 if self.instance.vygenerovana_subor:   # súbor zmluvy už existuje
-                    vec = f"Zmluva {self.instance.cislo_zmluvy} odoslaná autorovi na podpis"
+                    vec = f"Zmluva {self.instance.cislo} odoslaná autorovi na podpis"
                     cislo = nasledujuce_cislo(Dokument)
                     dok = Dokument(
                         cislo = cislo,
@@ -83,7 +83,7 @@ class ZmluvaAutorForm(forms.ModelForm):
                     raise ValidationError(f"Pole '{zo_name} možno vyplniť až po vygenerovaní súboru '{vt_name}'. ")
             if 'zmluva_vratena' in self.changed_data:
                 if self.instance.zmluva_odoslana:
-                    vec = f"Podpísaná zmluva {self.instance.cislo_zmluvy} prijatá od autora"
+                    vec = f"Podpísaná zmluva {self.instance.cislo} prijatá od autora"
                     cislo = nasledujuce_cislo(Dokument)
                     dok = Dokument(
                         cislo = cislo,
@@ -114,7 +114,7 @@ class ZmluvaAutorForm(forms.ModelForm):
     class Meta:
         model = ZmluvaAutor
         fields = "__all__"
-        fields = ['cislo_zmluvy', 'stav_zmluvy', 'zmluva_odoslana', 'zmluva_vratena', 'zmluvna_strana',
+        fields = ['cislo', 'stav_zmluvy', 'zmluva_odoslana', 'zmluva_vratena', 'zmluvna_strana',
             'honorar_ah', 'url_zmluvy', 'datum_zverejnenia_CRZ']
 
 
