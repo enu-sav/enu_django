@@ -150,6 +150,15 @@ class Zmluva(models.Model):
     datum_zverejnenia_CRZ = models.DateField('Platná od / dátum CRZ', 
             help_text = "Zadajte dátum účinnosti zmluvy (dátum zverejnenia v CRZ + 1 deň).",
             blank=True, null=True)
+    vygenerovana_subor = models.FileField("Vygenerovaný súbor zmluvy", 
+            help_text = "Súbor zmluvy na poslanie autorovi na podpis, vygenerovaný akciou 'Vytvoriť súbory zmluvy'.",
+            storage=OverwriteStorage(), upload_to=contract_path, null = True, blank = True)
+    vygenerovana_crz_subor = models.FileField("Vygenerovaný súbor zmluvy pre CRZ", 
+            help_text = "Anonymizovaný súbor zmluvy na vloženie do CRZ, vygenerovaný akciou 'Vytvoriť súbory zmluvy'.",
+            storage=OverwriteStorage(), upload_to=contract_path, null = True, blank = True)
+    podpisana_subor = models.FileField("Podpísaná zmluva", 
+            help_text = "Vložte pdf súbor so zoskenovanou podpísanou zmluvou.",
+            storage=OverwriteStorage(), upload_to=contract_path, null = True, blank = True)
 
     def __str__(self):
         return self.cislo
@@ -166,15 +175,6 @@ class ZmluvaAutor(Zmluva):
     #related_name: v admin.py umožní zobrazit zmluvy autora v zozname autorov cez pole zmluvy_link 
     zmluvna_strana = models.ForeignKey(OsobaAutor, on_delete=models.PROTECT, related_name='zmluvy')    
     honorar_ah = models.DecimalField("Honorár/AH", max_digits=8, decimal_places=2, default=0) #Eur/AH (36 000 znakov)
-    vygenerovana_subor = models.FileField("Vygenerovaný súbor zmluvy", 
-            help_text = "Súbor zmluvy na poslanie autorovi na podpis, vygenerovaný akciou 'Vytvoriť súbory zmluvy'.",
-            storage=OverwriteStorage(), upload_to=contract_path, null = True, blank = True)
-    vygenerovana_crz_subor = models.FileField("Vygenerovaný súbor zmluvy pre CRZ", 
-            help_text = "Anonymizovaný súbor zmluvy na vloženie do CRZ, vygenerovaný akciou 'Vytvoriť súbory zmluvy'.",
-            storage=OverwriteStorage(), upload_to=contract_path, null = True, blank = True)
-    podpisana_subor = models.FileField("Podpísaná zmluva", 
-            help_text = "Vložte pdf súbor so zoskenovanou podpísanou zmluvou.",
-            storage=OverwriteStorage(), upload_to=contract_path, null = True, blank = True)
     history = HistoricalRecords()
     class Meta:
         verbose_name = 'Autorská zmluva'
