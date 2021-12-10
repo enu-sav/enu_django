@@ -180,6 +180,17 @@ class ZmluvaAutor(Zmluva):
         verbose_name = 'Autorská zmluva'
         verbose_name_plural = 'Autorské zmluvy'
 
+class ZmluvaGrafik(Zmluva):
+    oznacenie = "V"    #v čísle faktúry, A-2021-123
+    # Polia
+    #models.PROTECT: Prevent deletion of the referenced object
+    #related_name: v admin.py umožní zobrazit zmluvy autora v zozname autorov cez pole zmluvy_link 
+    zmluvna_strana = models.ForeignKey(OsobaGrafik, on_delete=models.PROTECT, related_name='zmluvy')    
+    history = HistoricalRecords()
+    class Meta:
+        verbose_name = 'Výtvarná zmluva'
+        verbose_name_plural = 'Výtvarné zmluvy'
+
 #Abstraktná tieda pre všetky platby
 #Súčasť Zmluvy 
 class Platba(models.Model):

@@ -20,11 +20,11 @@ from django.db.models import Sum
 # Register your models here.
 # pripajanie suborov k objektu: krok 1, importovať XxxSubor
 from .models import OsobaAutor, ZmluvaAutor, PlatbaAutorskaOdmena, PlatbaAutorskaSumar, StavZmluvy, PlatbaAutorskaSumarSubor
-from .models import AnoNie, SystemovySubor, PersonCommon, OsobaGrafik
+from .models import AnoNie, SystemovySubor, PersonCommon, OsobaGrafik, ZmluvaGrafik, Zmluva
 from .common import VytvoritAutorskuZmluvu, VyplatitAutorskeOdmeny
 from .vyplatitautorske import VyplatitAutorskeOdmeny
 
-from .forms import OsobaAutorForm, ZmluvaAutorForm, PlatbaAutorskaSumarForm, OsobaGrafikForm
+from .forms import OsobaAutorForm, ZmluvaAutorForm, PlatbaAutorskaSumarForm, OsobaGrafikForm, ZmluvaGrafikForm
 
 #umožniť zobrazenie autora v zozname zmlúv
 #https://pypi.org/project/django-admin-relation-links/
@@ -181,7 +181,7 @@ class ZmluvaAdmin():
 
     #obj is None during the object creation, but set to the object being edited during an edit
     def get_readonly_fields(self, request, obj=None):
-        fields = [f.name for f in ZmluvaAutor._meta.get_fields()]
+        fields = [f.name for f in Zmluva._meta.get_fields()]
         if obj:
             fields.remove("stav_zmluvy")
             if obj.vygenerovana_subor: 
@@ -211,22 +211,12 @@ class ZmluvaAdmin():
     # formátovať pole url_zmluvy
     def url_zmluvy_html(self, obj):
         from django.utils.html import format_html
-        result = ZmluvaAutor.objects.filter(cislo=obj)
-        if result and result[0].url_zmluvy:
-            result = result[0]
-            return format_html(f'<a href="{result.url_zmluvy}" target="_blank">pdf</a>')
-        else:
-            return None
+        return format_html(f'<a href="{obj.url_zmluvy}" target="_blank">pdf</a>') if obj else None
     url_zmluvy_html.short_description = "Zmluva v CRZ"
 
     # formatovat datum
     def crz_datum(self, obj):
-        result = ZmluvaAutor.objects.filter(cislo=obj)
-        if result and result[0].datum_zverejnenia_CRZ:
-            result = result[0]
-            return obj.datum_zverejnenia_CRZ.strftime("%d-%m-%Y")
-        else:
-            return None
+        return obj.datum_zverejnenia_CRZ.strftime("%d-%m-%Y") if obj and obj.datum_zverejnenia_CRZ else None
     crz_datum.short_description = "Platná od"
 
     # zobraziť zoznam zmenených polí
@@ -288,7 +278,13 @@ class ZmluvaAutorAdmin(ZmluvaAdmin, AdminChangeLinksMixin, SimpleHistoryAdmin, I
 
     #obj is None during the object creation, but set to the object being edited during an edit
     def get_readonly_fields(self, request, obj=None):
+        # polia rodičovskej triedy
         fields = super(ZmluvaAutorAdmin, self).get_readonly_fields(request, obj)
+        #pridať nové polia aktuálnej triedy
+        fields_cur = {f.name for f in ZmluvaAutor._meta.get_fields()}   #všetky polia akt. triedy
+        fields_par = {f.name for f in Zmluva._meta.get_fields()}        #všetky polia rodičovskej triedy
+        for f in fields_cur - fields_par:   #pridať rozdiel po jednom
+            fields += (f,)
         if obj:
             if obj.vygenerovana_subor: 
                 pass
@@ -300,6 +296,7 @@ class ZmluvaAutorAdmin(ZmluvaAdmin, AdminChangeLinksMixin, SimpleHistoryAdmin, I
         else:
             # V novej platbe povoliť len "obdobie"
             fields.remove("honorar_ah")
+            fields.remove("zmluvna_strana")
         return fields
 
     # do AdminForm pridať request, aby v jej __init__ bolo request dostupné
@@ -313,6 +310,60 @@ class ZmluvaAutorAdmin(ZmluvaAdmin, AdminChangeLinksMixin, SimpleHistoryAdmin, I
 
     def VytvoritZmluvu(self, zmluva):
         return VytvoritAutorskuZmluvu(zmluva)
+
+@admin.register(ZmluvaGrafik)
+class ZmluvaGrafikAdmin(ZmluvaAdmin, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
+    # modifikovať formulár na pridanie poľa Popis zmeny
+    form = ZmluvaGrafikForm
+    def get_list_display(self, request):
+        return ("cislo",) + super(ZmluvaGrafikAdmin, self).get_list_display(request)
+
+    #fields = ('cislo', 'stav_zmluvy', 'zmluva_odoslana', 'zmluva_vratena', 'zmluvna_strana',
+            #'honorar_ah', 'url_zmluvy', 'datum_zverejnenia_CRZ', 'datum_pridania', 'datum_aktualizacie')
+    ordering = ('-datum_aktualizacie',)
+    def get_search_fields(self, request):
+        return ("zmluvna_strana__rs_login",) + super(ZmluvaGrafikAdmin, self).get_search_fields(request)
+
+
+    # zmluvna_strana_link: pridá autora zmluvy do zoznamu, vďaka AdminChangeLinksMixin
+    # použité v ZmluvaAdmin
+    change_links = ['zmluvna_strana']
+    change_links = [
+        ('zmluvna_strana', {
+            'admin_order_field': 'zmluvna_strana__rs_login',  # Allow to sort members by `zmluvna_strana_link` column
+        })
+    ]
+
+    #obj is None during the object creation, but set to the object being edited during an edit
+    def get_readonly_fields(self, request, obj=None):
+        fields = super(ZmluvaGrafikAdmin, self).get_readonly_fields(request, obj)
+        #pridať nové polia aktuálnej triedy
+        fields_cur = {f.name for f in ZmluvaGrafik._meta.get_fields()}  #všetky polia akt. triedy
+        fields_par = {f.name for f in Zmluva._meta.get_fields()}        #všetky polia rodičovskej triedy
+        for f in fields_cur - fields_par:   #pridať rozdiel po jednom
+            fields += (f,)
+        if obj:
+            if obj.vygenerovana_subor: 
+                pass
+            else:
+                fields.remove("zmluvna_strana")
+                #fields.remove("podklady_odoslane")
+            pass
+        else:
+            fields.remove("zmluvna_strana")
+        return fields
+
+    # do AdminForm pridať request, aby v jej __init__ bolo request dostupné
+    def get_form(self, request, obj=None, **kwargs):
+        AdminForm = super(ZmluvaGrafikAdmin, self).get_form(request, obj, **kwargs)
+        class AdminFormMod(AdminForm):
+            def __new__(cls, *args, **kwargs):
+                kwargs['request'] = request
+                return AdminForm(*args, **kwargs)
+        return AdminFormMod
+
+    def VytvoritZmluvu(self, zmluva):
+        return VytvoritVytvarnuZmluvu(zmluva)
 
 @admin.register(PlatbaAutorskaOdmena)
 class PlatbaAutorskaOdmenaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin,ModelAdminTotals):
