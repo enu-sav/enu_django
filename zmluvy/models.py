@@ -242,7 +242,7 @@ def platba_autorska_sumar_upload_location(instance, filename):
 class PlatbaAutorskaSumar(models.Model):
     #obdobie: priečinok, z ktorého bola platba importovaná
     datum_uhradenia = models.DateField('Vyplatené THS-kou', 
-            help_text = "Dátum vyplatenia honorárov na základe odoslaných podkladov (oznámený účtárňou THS)",
+            help_text = "Dátum vyplatenia honorárov na základe odoslaných podkladov (oznámený účtárňou THS). <br /><strong>Nasledujúci krok: spustiť akciu 'Vytvoriť finálny prehľad...'</strong>",
             null=True, blank=True)
     datum_importovania = models.DateField('Importované do RS/WEBRS', 
             help_text = "Dátum importovania do RS/WEBRS",
