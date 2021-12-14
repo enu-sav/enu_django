@@ -60,7 +60,11 @@ class FyzickaOsoba(PersonCommon):
     meno = models.CharField("Meno", max_length=200)
     priezvisko = models.CharField("Priezvisko", max_length=200)
     titul_za_menom = models.CharField("Titul za menom", max_length=100, null=True, blank=True)     #optional
-    rodne_cislo = models.CharField("Rodné číslo", max_length=20, null=True, blank=True) 
+    rodne_cislo = models.CharField("Rodné číslo", 
+            help_text = "Občania SR: rodné číslo, inak dátum narodenia ",
+            max_length=20, 
+            null=True, 
+            blank=True) 
     zdanit = models.CharField("Zdaniť",
             help_text = "Zvoľte 'Nie', ak autor podpísal dohodu o nezdaňovaní. V tom prípade treba vyplniť aj polia 'Dohoda podpísaná' a 'Dohoda o nezdaňovaní'.",
             max_length=3, choices=AnoNie.choices, null=True, blank=True) 
@@ -235,7 +239,7 @@ def platba_autorska_sumar_upload_location(instance, filename):
 class PlatbaAutorskaSumar(models.Model):
     #obdobie: priečinok, z ktorého bola platba importovaná
     datum_uhradenia = models.DateField('Vyplatené THS-kou', 
-            help_text = "Dátum vyplatenia honorárov na základe odoslaných podkladov (oznámený účtárňou THS). <br /><strong>Nasledujúci krok: akcia Vytvoriť finálny prehľad...</strong>",
+            help_text = "Dátum vyplatenia honorárov na základe odoslaných podkladov (oznámený účtárňou THS). <br /><strong>Nasledujúci krok: spustiť akciu 'Vytvoriť finálny prehľad...'</strong>",
             null=True, blank=True)
     datum_importovania = models.DateField('Importované do RS/WEBRS', 
             help_text = "Dátum importovania do RS/WEBRS",

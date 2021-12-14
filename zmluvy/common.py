@@ -46,6 +46,9 @@ def transliterate(text):
 # Ak má 10 znakov, musí byť deliteľné 11 bezo zvyšku
 def valid_rodne_cislo(rc):
     if not rc: return False
+    #dátum narodenia (cudzinci) je OK
+    if "." in rc:
+        return True
     rc = rc.replace("/","")
     if len(rc) == 9:
         return True
