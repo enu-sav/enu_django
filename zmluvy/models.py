@@ -191,34 +191,28 @@ class ZmluvaGrafik(Zmluva):
         verbose_name = 'Výtvarná zmluva'
         verbose_name_plural = 'Výtvarné zmluvy'
 
-#Abstraktná tieda pre všetky platby
-#Súčasť Zmluvy 
+#Abstraktná trieda pre platby za autorské a výtvarné zmluvy
 class Platba(models.Model):
     datum_uhradenia = models.DateField('Dátum vyplatenia')
+    #zmluva príp. zoznam zmlúv, podľa ktorých sa vyplácalo
+    zmluva = models.CharField("Zmluva", max_length=200)
+    honorar = models.DecimalField("Honorár", max_digits=8, decimal_places=2)
     uhradena_suma = models.DecimalField("Uhradená suma", max_digits=8, decimal_places=2, default=0)
+    odvod_LF = models.DecimalField("Odvod aut. fondu", max_digits=8, decimal_places=2)
+    odvedena_dan = models.DecimalField("Odvedená daň", max_digits=8, decimal_places=2)
     class Meta:
         abstract = True
 
-#Hierarchia:
-#Autor
-#---Zmluva1
-#------Platba1
-#------Platba2
 class PlatbaAutorskaOdmena(Platba):
     #obdobie: priečinok, z ktorého bola platba importovaná
     obdobie = models.CharField("Obdobie", max_length=20)  
-    #zoznam zmlúv, podľa ktorých sa vyplácalo
-    zmluva = models.CharField("Zmluva", max_length=200)
     #related_name: v admin.py umožní zobrazit platby autora v zozname autorov cez pole platby_link 
     autor = models.ForeignKey(OsobaAutor, on_delete=models.PROTECT, related_name='platby')
     preplatok_pred = models.DecimalField("Preplatok pred", max_digits=8, decimal_places=2)
-    honorar = models.DecimalField("Honorár", max_digits=8, decimal_places=2)
     honorar_rs = models.DecimalField("Honorár (RS)", max_digits=8, decimal_places=2)
     honorar_webrs = models.DecimalField("Honorár (WEBRS)", max_digits=8, decimal_places=2)
     znaky_rs = models.DecimalField("Počet znakov (RS)", max_digits=8, decimal_places=2)
     znaky_webrs = models.DecimalField("Počet znakov (WEBRS)", max_digits=8, decimal_places=2)
-    odvod_LF = models.DecimalField("Odvod LF", max_digits=8, decimal_places=2)
-    odvedena_dan = models.DecimalField("Odvedená daň", max_digits=8, decimal_places=2)
     preplatok_po = models.DecimalField("Preplatok po", max_digits=8, decimal_places=2)
 
     # executed after 'save'
@@ -241,7 +235,7 @@ def platba_autorska_sumar_upload_location(instance, filename):
 class PlatbaAutorskaSumar(models.Model):
     #obdobie: priečinok, z ktorého bola platba importovaná
     datum_uhradenia = models.DateField('Vyplatené THS-kou', 
-            help_text = "Dátum vyplatenia honorárov na základe odoslaných podkladov (oznámený účtárňou THS)",
+            help_text = "Dátum vyplatenia honorárov na základe odoslaných podkladov (oznámený účtárňou THS). <br /><strong>Nasledujúci krok: akcia Vytvoriť finálny prehľad...</strong>",
             null=True, blank=True)
     datum_importovania = models.DateField('Importované do RS/WEBRS', 
             help_text = "Dátum importovania do RS/WEBRS",
