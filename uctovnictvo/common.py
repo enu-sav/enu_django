@@ -6,7 +6,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.utils import timezone
 from .models import SystemovySubor, PrijataFaktura, AnoNie, Objednavka, PrijataFaktura, Rozhodnutie, Zmluva
-from .models import DoVP, DoPC, Poistovna, TypDochodku
+from .models import DoVP, DoPC, Poistovna, TypDochodku, Mena
 
 from openpyxl import load_workbook
 from openpyxl.styles import Font, Color, colors, Alignment, PatternFill , numbers
@@ -65,7 +65,12 @@ def VytvoritPlatobnyPrikaz(faktura):
     #
     text = text.replace(f"{lt}nasa_faktura_cislo{gt}", faktura.cislo)
     locale.setlocale(locale.LC_ALL, 'sk_SK.UTF-8')
-    text = text.replace(f"{lt}DM{gt}", locale_format(-faktura.suma))    # suma je záporná, o formulári chceme kladné
+    if faktura.mena == Mena.EUR:
+        text = text.replace(f"{lt}DM{gt}", f"{locale_format(-faktura.suma)} €")     # suma je záporná, o formulári chceme kladné
+        text = text.replace(f"{lt}CM{gt}", "")
+    else:
+        text = text.replace(f"{lt}CM{gt}", f"{locale_format(-faktura.suma)} {faktura.mena}")    # suma je záporná, o formulári chceme kladné
+        text = text.replace(f"{lt}DM{gt}", "")
     text = text.replace(f"{lt}dodavatel{gt}", faktura.objednavka_zmluva.dodavatel.nazov)
     text = text.replace(f"{lt}adresa1{gt}", faktura.objednavka_zmluva.dodavatel.adresa_ulica)
     text = text.replace(f"{lt}adresa2{gt}", faktura.objednavka_zmluva.dodavatel.adresa_mesto)
@@ -76,7 +81,6 @@ def VytvoritPlatobnyPrikaz(faktura):
             faktura.doslo_datum.strftime("%d. %m. %Y") if faktura.doslo_datum else "" )
     text = text.replace(f"{lt}datum_splatnosti{gt}", 
             faktura.splatnost_datum.strftime("%d. %m. %Y") if faktura.splatnost_datum else "")
-    text = text.replace(f"{lt}CM{gt}", "")
     text = text.replace(f"{lt}predmet_faktury{gt}", faktura.predmet)
 
     if type(faktura.objednavka_zmluva) == Objednavka:
