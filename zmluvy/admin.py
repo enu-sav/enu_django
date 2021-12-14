@@ -368,7 +368,7 @@ class ZmluvaGrafikAdmin(ZmluvaAdmin, AdminChangeLinksMixin, SimpleHistoryAdmin, 
 @admin.register(PlatbaAutorskaOdmena)
 class PlatbaAutorskaOdmenaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin,ModelAdminTotals):
     # autor_link: pridá autora zmluvy do zoznamu, vďaka AdminChangeLinksMixin
-    list_display = ('autor_link', 'obdobie', 'datum_uhradenia', 'zmluva', 'preplatok_pred', 'honorar', 'odvod_LF', 'odvedena_dan', 'uhradena_suma', 'preplatok_po')
+    list_display = ('autor_link', 'obdobie', 'datum_uhradenia', 'zmluva', 'honorar', 'odvod_LF', 'odvedena_dan', 'uhradena_suma')
     list_totals = [
             ('honorar', Sum),
             ('odvod_LF', Sum),
