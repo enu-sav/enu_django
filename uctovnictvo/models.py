@@ -26,6 +26,7 @@ class Mena(models.TextChoices):
     EUR = 'EUR'
     CZK = 'CZK'
     USD = 'USD'
+    GBP = 'GBP'
 
 class Poistovna(models.TextChoices):
     VSZP = 'VsZP', 'VšZP'

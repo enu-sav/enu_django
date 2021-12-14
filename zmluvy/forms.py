@@ -9,17 +9,21 @@ from django.contrib import messages #import messages
 import re
 
 # Pridať dodatočné pole popis_zmeny, použije sa ako change_reason v SimpleHistoryAdmin
-class OsobaAutorForm(forms.ModelForm):
-    #popis_zmeny = forms.CharField()
+class PopisZmeny(forms.ModelForm):
     popis_zmeny = forms.CharField(widget=forms.TextInput(attrs={'size':80}))
     def save(self, commit=True):
         popis_zmeny = self.cleaned_data.get('popis_zmeny', None)
         # Get the form instance so I can write to its fields
-        instance = super(OsobaAutorForm, self).save(commit=commit)
+        instance = super(PopisZmeny, self).save(commit=commit)
         # this writes the processed data to the description field
         instance._change_reason = popis_zmeny
-        return super(OsobaAutorForm, self).save(commit=commit)
+        return super(PopisZmeny, self).save(commit=commit)
+    class Meta:
+        abstract = True
 
+class OsobaAutorForm(PopisZmeny):
+    #def save(self, commit=True):
+        #return super(OsobaAutorForm, self).save(commit=commit)
     class Meta:
         model = OsobaAutor
         fields = "__all__"
