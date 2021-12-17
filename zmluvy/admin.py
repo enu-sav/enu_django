@@ -338,7 +338,10 @@ class ZmluvaGrafikAdmin(ZmluvaAdmin, AdminChangeLinksMixin, SimpleHistoryAdmin, 
     def get_readonly_fields(self, request, obj=None):
         fields = super(ZmluvaGrafikAdmin, self).get_readonly_fields(request, obj)
         #pridať nové polia aktuálnej triedy
-        fields_cur = {f.name for f in ZmluvaGrafik._meta.get_fields()}  #všetky polia akt. triedy
+        #ak sa nevylúči pole typu ManyToOneRel, nastane výnimka
+        #Exception Value: __call__() missing 1 required keyword-only argument: 'manager'
+        #Pole existuje preto, lebo ZmluvaGrafik vystupuje ako ForeignKey vo VytvarnaObjednavkaPlatba
+        fields_cur = {f.name for f in ZmluvaGrafik._meta.get_fields() if type(f) != ManyToOneRel}  #všetky polia akt. triedy
         fields_par = {f.name for f in Zmluva._meta.get_fields()}        #všetky polia rodičovskej triedy
         for f in fields_cur - fields_par:   #pridať rozdiel po jednom
             fields += (f,)
