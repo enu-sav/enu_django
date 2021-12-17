@@ -128,7 +128,7 @@ class OsobaGrafik (FyzickaOsoba):
         verbose_name = 'Grafik'
         verbose_name_plural = 'Grafici'
 
-# cesta k súborom dohody
+# cesta k súborom autorských a výtvarných zmlúv
 def contract_path(instance, filename):
     return os.path.join(CONTRACTS_DIR_NAME, filename)
 
@@ -189,17 +189,18 @@ class ZmluvaGrafik(Zmluva):
     # Polia
     #models.PROTECT: Prevent deletion of the referenced object
     #related_name: v admin.py umožní zobrazit zmluvy autora v zozname autorov cez pole zmluvy_link 
-    zmluvna_strana = models.ForeignKey(OsobaGrafik, on_delete=models.PROTECT, related_name='zmluvy')    
+    zmluvna_strana = models.ForeignKey(OsobaGrafik, on_delete=models.PROTECT, related_name='zmluvagrafik')
     history = HistoricalRecords()
     class Meta:
         verbose_name = 'Výtvarná zmluva'
         verbose_name_plural = 'Výtvarné zmluvy'
+    def __str__(self):
+        return f"{self.zmluvna_strana}-{self.cislo}"
 
 #Abstraktná trieda pre platby za autorské a výtvarné zmluvy
 class Platba(models.Model):
     datum_uhradenia = models.DateField('Dátum vyplatenia')
     #zmluva príp. zoznam zmlúv, podľa ktorých sa vyplácalo
-    zmluva = models.CharField("Zmluva", max_length=200)
     honorar = models.DecimalField("Honorár", max_digits=8, decimal_places=2)
     uhradena_suma = models.DecimalField("Uhradená suma", max_digits=8, decimal_places=2, default=0)
     odvod_LF = models.DecimalField("Odvod aut. fondu", max_digits=8, decimal_places=2)
@@ -210,6 +211,7 @@ class Platba(models.Model):
 class PlatbaAutorskaOdmena(Platba):
     #obdobie: priečinok, z ktorého bola platba importovaná
     obdobie = models.CharField("Obdobie", max_length=20)  
+    zmluva = models.CharField("Zmluva", max_length=200)
     #related_name: v admin.py umožní zobrazit platby autora v zozname autorov cez pole platby_link 
     autor = models.ForeignKey(OsobaAutor, on_delete=models.PROTECT, related_name='platby')
     preplatok_pred = models.DecimalField("Preplatok pred", max_digits=8, decimal_places=2)
