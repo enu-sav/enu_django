@@ -574,8 +574,12 @@ class Dohoda(PolymorphicModel, Klasifikacia):
         verbose_name = "Dohoda"
         verbose_name_plural = "Dohody"
         #abstract = True
-    subor_dohody = models.FileField("Súbor dohody",
+    subor_dohody = models.FileField("Vygenerovaná dohoda",
             help_text = "Súbor s textom dohody. Generuje sa akciou 'Vytvoriť subor dohody'",
+            upload_to=dohoda_upload_location, 
+            null = True, blank = True)
+    sken_dohody = models.FileField("Skenovaná dohoda",
+            help_text = "Súbor s podpísanou dohodou, treba naskenovať",
             upload_to=dohoda_upload_location, 
             null = True, blank = True)
 
