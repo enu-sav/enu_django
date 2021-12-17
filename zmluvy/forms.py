@@ -1,7 +1,7 @@
 
 from django import forms
 from ipdb import set_trace as trace
-from .models import OsobaAutor, ZmluvaAutor, PlatbaAutorskaSumar, OsobaGrafik, ZmluvaGrafik
+from .models import OsobaAutor, ZmluvaAutor, PlatbaAutorskaSumar, OsobaGrafik, ZmluvaGrafik, VytvarnaObjednavkaPlatba
 from dennik.models import Dokument, SposobDorucenia
 from dennik.forms import nasledujuce_cislo
 from django.core.exceptions import ValidationError
@@ -109,7 +109,7 @@ class ZmluvaGrafikForm(ZmluvaForm):
         # Ak je pole readonly, tak sa nenachádza vo fields. Preto testujeme fields aj initial
         if polecislo in self.fields and not polecislo in self.initial:
             nasledujuce = nasledujuce_cislo(ZmluvaGrafik)
-            self.fields[polecislo].help_text = f"Zadajte číslo novej autorskej zmluvy v tvare {ZmluvaGrafik.oznacenie}-RRRR-NNN. Predvolené číslo '{nasledujuce} bolo určené na základe čísel existujúcich zmlúv ako nasledujúce v poradí."
+            self.fields[polecislo].help_text = f"Zadajte číslo novej výtvarnej zmluvy v tvare {ZmluvaGrafik.oznacenie}-RRRR-NNN. Predvolené číslo '{nasledujuce} bolo určené na základe čísel existujúcich zmlúv ako nasledujúce v poradí."
             self.initial[polecislo] = nasledujuce
 
     class Meta:
@@ -117,6 +117,17 @@ class ZmluvaGrafikForm(ZmluvaForm):
         fields = "__all__"
         fields = ['cislo', 'stav_zmluvy', 'zmluva_odoslana', 'zmluva_vratena', 'zmluvna_strana',
             'url_zmluvy', 'datum_zverejnenia_CRZ']
+
+class VytvarnaObjednavkaPlatbaForm(forms.ModelForm):
+    #inicializácia polí
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        polecislo = "cislo"
+        # Ak je pole readonly, tak sa nenachádza vo fields. Preto testujeme fields aj initial
+        if polecislo in self.fields and not polecislo in self.initial:
+            nasledujuce = nasledujuce_cislo(VytvarnaObjednavkaPlatba)
+            self.fields[polecislo].help_text = f"Zadajte číslo novej objednávky v tvare {VytvarnaObjednavkaPlatba.oznacenie}-RRRR-NNN. Predvolené číslo '{nasledujuce} bolo určené na základe čísel existujúcich výtvarných objednávok ako nasledujúce v poradí."
+            self.initial[polecislo] = nasledujuce
 
 class PlatbaAutorskaSumarForm(PopisZmeny):
     #inicializácia polí

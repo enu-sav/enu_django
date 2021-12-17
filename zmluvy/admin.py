@@ -7,6 +7,7 @@ from django.utils.translation import ngettext
 from django.conf import settings
 from django.contrib.auth import get_permission_codename
 from simple_history.utils import update_change_reason
+from django.db.models.fields.reverse_related import ManyToOneRel
 import os, re
 from datetime import datetime
 from tempfile import TemporaryFile
@@ -20,11 +21,11 @@ from django.db.models import Sum
 # Register your models here.
 # pripajanie suborov k objektu: krok 1, importovať XxxSubor
 from .models import OsobaAutor, ZmluvaAutor, PlatbaAutorskaOdmena, PlatbaAutorskaSumar, StavZmluvy, PlatbaAutorskaSumarSubor
-from .models import AnoNie, SystemovySubor, PersonCommon, OsobaGrafik, ZmluvaGrafik, Zmluva
+from .models import AnoNie, SystemovySubor, PersonCommon, OsobaGrafik, ZmluvaGrafik, Zmluva, VytvarnaObjednavkaPlatba
 from .common import VytvoritAutorskuZmluvu, VyplatitAutorskeOdmeny
 from .vyplatitautorske import VyplatitAutorskeOdmeny
 
-from .forms import OsobaAutorForm, ZmluvaAutorForm, PlatbaAutorskaSumarForm, OsobaGrafikForm, ZmluvaGrafikForm
+from .forms import OsobaAutorForm, ZmluvaAutorForm, PlatbaAutorskaSumarForm, OsobaGrafikForm, ZmluvaGrafikForm, VytvarnaObjednavkaPlatbaForm
 
 #umožniť zobrazenie autora v zozname zmlúv
 #https://pypi.org/project/django-admin-relation-links/
@@ -316,21 +317,20 @@ class ZmluvaGrafikAdmin(ZmluvaAdmin, AdminChangeLinksMixin, SimpleHistoryAdmin, 
     # modifikovať formulár na pridanie poľa Popis zmeny
     form = ZmluvaGrafikForm
     def get_list_display(self, request):
-        return ("cislo",) + super(ZmluvaGrafikAdmin, self).get_list_display(request)
+        return ("cislo", "zmluvna_strana_link") + super(ZmluvaGrafikAdmin, self).get_list_display(request)
 
     #fields = ('cislo', 'stav_zmluvy', 'zmluva_odoslana', 'zmluva_vratena', 'zmluvna_strana',
             #'honorar_ah', 'url_zmluvy', 'datum_zverejnenia_CRZ', 'datum_pridania', 'datum_aktualizacie')
     ordering = ('-datum_aktualizacie',)
     def get_search_fields(self, request):
-        return ("zmluvna_strana__rs_login",) + super(ZmluvaGrafikAdmin, self).get_search_fields(request)
+        return ("zmluvna_strana__priezvisko",) + super(ZmluvaGrafikAdmin, self).get_search_fields(request)
 
 
     # zmluvna_strana_link: pridá autora zmluvy do zoznamu, vďaka AdminChangeLinksMixin
     # použité v ZmluvaAdmin
-    change_links = ['zmluvna_strana']
     change_links = [
         ('zmluvna_strana', {
-            'admin_order_field': 'zmluvna_strana__rs_login',  # Allow to sort members by `zmluvna_strana_link` column
+            'admin_order_field': 'zmluvna_strana__priezvisko',  # Allow to sort members by `zmluvna_strana_link` column
         })
     ]
 
@@ -365,10 +365,10 @@ class ZmluvaGrafikAdmin(ZmluvaAdmin, AdminChangeLinksMixin, SimpleHistoryAdmin, 
     def VytvoritZmluvu(self, zmluva):
         return VytvoritVytvarnuZmluvu(zmluva)
 
-@admin.register(PlatbaAutorskaOdmena)
-class PlatbaAutorskaOdmenaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin,ModelAdminTotals):
+class PlatbaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin,ModelAdminTotals):
     # autor_link: pridá autora zmluvy do zoznamu, vďaka AdminChangeLinksMixin
-    list_display = ('autor_link', 'obdobie', 'datum_uhradenia', 'zmluva', 'honorar', 'odvod_LF', 'odvedena_dan', 'uhradena_suma')
+    def get_list_display(self, request):
+        return ('datum_uhradenia', 'honorar', 'odvod_LF', 'odvedena_dan', 'uhradena_suma')
     list_totals = [
             ('honorar', Sum),
             ('odvod_LF', Sum),
@@ -376,7 +376,15 @@ class PlatbaAutorskaOdmenaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin,ModelA
             ('uhradena_suma', Sum),
             ]
 
-    ordering = ('datum_uhradenia',)
+    # formatovat datum
+    def datum_uhradenia(self, obj):
+        return obj.datum_uhradenia.strftime("%d-%m-%Y")
+
+@admin.register(PlatbaAutorskaOdmena)
+class PlatbaAutorskaOdmenaAdmin(PlatbaAdmin):
+    # autor_link: pridá autora zmluvy do zoznamu, vďaka AdminChangeLinksMixin
+    def get_list_display(self, request):
+        return ('zmluva', 'autor_link', 'obdobie') + super(PlatbaAutorskaOdmenaAdmin, self).get_list_display(request)
 
     search_fields = ['obdobie', "zmluva", "autor__rs_login"]
 
@@ -388,18 +396,36 @@ class PlatbaAutorskaOdmenaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin,ModelA
         }),
     ]
 
+    #Všetky polia sa generujú, takže nič nemožno editovať
+    def get_readonly_fields(self, request, obj=None):
+        #return ['zmluva', 'datum_uhradenia', 'preplatok_pred', 'honorar', 'odvod_LF', 'odvedena_dan', 'uhradena_suma']
+        return {f.name for f in PlatbaAutorskaOdmena._meta.get_fields()}  #všetky polia akt. triedy
+
+@admin.register(VytvarnaObjednavkaPlatba)
+class VytvarnaObjednavkaPlatbaAdmin(PlatbaAdmin):
+    form = VytvarnaObjednavkaPlatbaForm
+    # autor_link: pridá autora zmluvy do zoznamu, vďaka AdminChangeLinksMixin
+    def get_list_display(self, request):
+        return ('cislo', 'vytvarna_zmluva_link',) + super(VytvarnaObjednavkaPlatbaAdmin, self).get_list_display(request)
+
+    #search_fields = ['obdobie', "zmluva", "autor__rs_login"]
+
+    # zoraďovateľný odkaz na číslo zmluvy
+    # umožnené prostredníctvom AdminChangeLinksMixin
+    change_links = [
+        ('vytvarna_zmluva', {
+            'admin_order_field': 'vytvarna_zmluva', # Allow to sort members by the `autor_link` column
+        }),
+    ]
+
     #obj is None during the object creation, but set to the object being edited during an edit
     #predpokladá sa, že hodnoty sa importujú skriptom a že neskôr sa už neupravujú
     def get_readonly_fields(self, request, obj=None):
+        vsetky = {f.name for f in VytvarnaObjednavkaPlatba._meta.get_fields()}  #všetky polia akt. triedy
         if obj:
-            return ['zmluva', 'datum_uhradenia', 'preplatok_pred', 'honorar', 'odvod_LF', 'odvedena_dan', 'uhradena_suma']
+            return ['vytvarna_zmluva', 'datum_uhradenia', 'honorar', 'odvod_LF', 'odvedena_dan', 'uhradena_suma']
         else:
-            return []
-
-    # formatovat datum
-    def datum_uhradenia(self, obj):
-        return obj.datum_uhradenia.strftime("%d-%m-%Y")
-    #crz_datum.short_description = "Platná od"
+            return vsetky - {"vytvarna_zmluva", "datum_objednavky", "objednane_polozky", "cislo"}
 
 # pripajanie suborov k objektu: krok 2, vytvoriť XxxSuborAdmin
 # musí byť pred krokom 3

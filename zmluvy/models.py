@@ -4,6 +4,7 @@ from django.utils import timezone
 from django.contrib import messages
 from ipdb import set_trace as trace
 from zmluvy.storage import OverwriteStorage
+from django.utils.safestring import mark_safe
 
 from beliana.settings import CONTRACTS_DIR_NAME, RLTS_DIR_NAME, TMPLTS_DIR_NAME, TAX_AGMT_DIR_NAME
 import os,re
@@ -199,12 +200,12 @@ class ZmluvaGrafik(Zmluva):
 
 #Abstraktná trieda pre platby za autorské a výtvarné zmluvy
 class Platba(models.Model):
-    datum_uhradenia = models.DateField('Dátum vyplatenia')
+    datum_uhradenia = models.DateField('Dátum vyplatenia', null=True, blank=True)
     #zmluva príp. zoznam zmlúv, podľa ktorých sa vyplácalo
-    honorar = models.DecimalField("Honorár", max_digits=8, decimal_places=2)
-    uhradena_suma = models.DecimalField("Uhradená suma", max_digits=8, decimal_places=2, default=0)
-    odvod_LF = models.DecimalField("Odvod aut. fondu", max_digits=8, decimal_places=2)
-    odvedena_dan = models.DecimalField("Odvedená daň", max_digits=8, decimal_places=2)
+    honorar = models.DecimalField("Honorár", max_digits=8, decimal_places=2, null=True, blank=True)
+    uhradena_suma = models.DecimalField("Uhradená suma", max_digits=8, decimal_places=2, default=0, blank=True)
+    odvod_LF = models.DecimalField("Odvod aut. fondu", max_digits=8, decimal_places=2, null=True, blank=True)
+    odvedena_dan = models.DecimalField("Odvedená daň", max_digits=8, decimal_places=2, null=True, blank=True)
     class Meta:
         abstract = True
 
@@ -229,6 +230,31 @@ class PlatbaAutorskaOdmena(Platba):
     class Meta:
         verbose_name = 'Aut. honorár po autoroch'
         verbose_name_plural = 'Aut. honoráre po autoroch'
+
+class VytvarnaObjednavkaPlatba(Platba):
+    oznacenie = "VO"    #čislo objednávky výtvarného diela
+    #related_name: v admin.py umožní zobrazit platby autora v zozname autorov cez pole platby_link 
+    cislo = models.CharField("Číslo objednávky", max_length=50, null=True)
+    vytvarna_zmluva = models.ForeignKey(ZmluvaGrafik, on_delete=models.PROTECT, related_name = "vytvarne_platby")
+    datum_objednavky = models.DateField('Dátum objednávky',
+            help_text = "Dátum vystavenia objednávky",
+            null=True)
+    objednane_polozky = models.TextField("Objednané položky", 
+            help_text = mark_safe("Po riadkoch zadajte objednávané položky so štyrmi poľami oddelenými bodkočiarkou v poradí: <b>Popis</b>; <b>Typ</b>; <b>Množstvo</b>; <b>Cena za jednotku</b>.<br />Ako typ uveďte: mapa, fotografia, čb perovka, farebná kresba."),
+            null=True,
+            max_length=5000)
+    subor_objednavky = models.FileField("Vygenerovaná objednávka", 
+            help_text = "Súbor objednávky na poslanie autorovi na podpis, vygenerovaný akciou 'Vytvoriť súbor objednávky'.",
+            storage=OverwriteStorage(), upload_to=contract_path, null = True, blank = True)
+
+    # executed after 'save'
+    #def clean(self):
+        #if getattr(self, 'autor', None) is None: # check that current instance has 'autor' attribute not set
+            #self.autor = self.zmluva.zmluvna_strana
+
+    class Meta:
+        verbose_name = 'Objednávka a vyplatenie výtvarných diel'
+        verbose_name_plural = 'Objednávky a vyplácanie výtvarných diel'
 
 #https://stackoverflow.com/questions/55543232/how-to-upload-multiple-files-from-the-django-admin
 #Vykoná sa len pri vkladaní suborov cez GUI. Pri programovom vytváraní treba cestu nastaviť
