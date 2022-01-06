@@ -221,6 +221,9 @@ class PlatbaAutorskaOdmena(Platba):
     znaky_rs = models.DecimalField("Počet znakov (RS)", max_digits=8, decimal_places=2)
     znaky_webrs = models.DecimalField("Počet znakov (WEBRS)", max_digits=8, decimal_places=2)
     preplatok_po = models.DecimalField("Preplatok po", max_digits=8, decimal_places=2)
+    def __str__(self):
+        return f"{self.autor.priezvisko}-{self.obdobie}"
+
 
     # executed after 'save'
     #def clean(self):
