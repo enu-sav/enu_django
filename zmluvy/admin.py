@@ -387,7 +387,32 @@ class PlatbaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin,ModelAdminTotals):
 class PlatbaAutorskaOdmenaAdmin(PlatbaAdmin):
     # autor_link: pridá autora zmluvy do zoznamu, vďaka AdminChangeLinksMixin
     def get_list_display(self, request):
-        return ('zmluva', 'autor_link', 'obdobie') + super(PlatbaAutorskaOdmenaAdmin, self).get_list_display(request)
+        return ('platba', 'zmluva', 'autor_link', 'zdanit', 'rezident', 'podpis', 'oznamenie','obdobie') + super(PlatbaAutorskaOdmenaAdmin, self).get_list_display(request)
+
+    def zdanit(self, obj):
+        return f"{obj.autor.zdanit if obj.autor.zdanit else '-'}"
+    zdanit.short_description = 'Zdanit'
+    zdanit.admin_order_field = 'autor__zdanit'
+
+    def podpis(self, obj):
+        return f"{obj.autor.datum_dohoda_podpis if obj.autor.datum_dohoda_podpis else '-'}"
+    podpis.short_description = 'Dátum podpisu'
+    podpis.admin_order_field = 'autor__datum_dohoda_podpis'
+
+    def oznamenie(self, obj):
+        return f"{obj.autor.datum_dohoda_oznamenie if obj.autor.datum_dohoda_oznamenie else '-'}"
+    oznamenie.short_description = 'Dátum oznámenia'
+    oznamenie.admin_order_field = 'autor__datum_dohoda_oznamenie'
+
+    def rezident(self, obj):
+        return f"{obj.autor.rezident if obj.autor.rezident else '-'}"
+    rezident.short_description = 'Rezident'
+    rezident.admin_order_field = 'autor__rezident'
+
+    def platba(self, obj):
+        return f"{obj.autor.rs_login}-{obj.obdobie}"
+    platba.short_description = 'Platba'
+    platba.admin_order_field = 'autor__rs_login'
 
     search_fields = ['obdobie', "zmluva", "autor__rs_login"]
 
@@ -396,6 +421,9 @@ class PlatbaAutorskaOdmenaAdmin(PlatbaAdmin):
     change_links = [
         ('autor', {
             'admin_order_field': 'autor__rs_login', # Allow to sort members by the `autor_link` column
+        }),
+        ('zdanit', {
+            'admin_order_field': 'autor__zdanit',
         }),
     ]
 
