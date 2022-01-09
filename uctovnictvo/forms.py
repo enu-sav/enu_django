@@ -195,7 +195,7 @@ class VyplacanieDohodForm(forms.ModelForm):
                 sposob = SposobDorucenia.IPOSTA
             )
             dok.save()
-            messages.warning(self.request, f"Do denníka bol pridaný záznam č. {cislo} '{vec}'")
+            messages.warning(self.request, f"Do denníka prijatej a odoslanej pošty bol pridaný záznam č. {cislo} '{vec}'")
             return self.cleaned_data
         except ValidationError as ex:
             raise ex

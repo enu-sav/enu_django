@@ -145,11 +145,11 @@ class Zmluva(models.Model):
             help_text = "Zadajte URL pdf súboru zmluvy zo stránky CRZ.",
             blank = True)
     zmluva_odoslana= models.DateField('Odoslaná na podpis ',
-            help_text = "Dátum odoslania zmluvy na podpis (poštou)",
+            help_text = 'Dátum odoslania zmluvy na podpis (poštou).  Dátum sa zapíše do <a href="/admin/dennik/dokument/">denníka prijatej a odoslanej pošty</a>.',
             null=True, 
             blank=True)
     zmluva_vratena= models.DateField('Vrátená podpísaná ',
-            help_text = "Dátum obdržania podpísanej zmluvy (poštou)",
+            help_text = 'Dátum obdržania podpísanej zmluvy (poštou). Dátum sa zapíše do <a href="/admin/dennik/dokument/">denníka prijatej a odoslanej pošty</a>.',
             null=True, 
             blank=True)
     datum_zverejnenia_CRZ = models.DateField('Platná od / dátum CRZ', 
@@ -159,7 +159,7 @@ class Zmluva(models.Model):
             help_text = "Súbor zmluvy na poslanie autorovi na podpis, vygenerovaný akciou 'Vytvoriť súbory zmluvy'.",
             storage=OverwriteStorage(), upload_to=contract_path, null = True, blank = True)
     vygenerovana_crz_subor = models.FileField("Vygenerovaný súbor zmluvy pre CRZ", 
-            help_text = "Anonymizovaný súbor zmluvy na vloženie do CRZ, vygenerovaný akciou 'Vytvoriť súbory zmluvy'.",
+            help_text = "Anonymizovaný súbor zmluvy na vloženie do CRZ, vygenerovaný akciou 'Vytvoriť súbory zmluvy'. Pred vložením do CRZ treba aktualizovať dátum podpisu.",
             storage=OverwriteStorage(), upload_to=contract_path, null = True, blank = True)
     podpisana_subor = models.FileField("Podpísaná zmluva", 
             help_text = "Vložte pdf súbor so zoskenovanou podpísanou zmluvou.",
@@ -297,7 +297,7 @@ class PlatbaAutorskaSumar(models.Model):
             null = True, 
             blank = True)
     podklady_odoslane= models.DateField('Podklady odoslané',
-            help_text = "Dátum odoslania podkladov na vyplatenie do účtárne THS",
+            help_text = 'Dátum odoslania podkladov na vyplatenie do účtárne THS. Dátum odoslania sa zapíše do <a href="/admin/dennik/dokument/">denníka prijatej a odoslanej pošty</a>.',
             null=True, 
             blank=True)
     autori_na_vyplatenie = models.TextField("Vyplácaní autori", 
@@ -311,11 +311,11 @@ class PlatbaAutorskaSumar(models.Model):
             null = True, 
             blank = True)
     na_vyplatenie_odoslane= models.DateField("'Na vyplatenie' odoslané",
-            help_text = "Dátum odoslania hárku <em>Na vyplatenie</em> do účtárne THS (mailom)</em>",
+            help_text = 'Dátum odoslania hárku <em>Na vyplatenie</em> do účtárne THS (mailom)</em>. Dátum odoslania sa zapíše do <a href="/admin/dennik/dokument/">denníka prijatej a odoslanej pošty</a>.',
             null=True, 
             blank=True)
     kryci_list_odoslany= models.DateField("'Krycí list' odoslaný",
-            help_text = "Dátum odoslania hárku <em>Krycí list</em> do účtárne THS (internou poštou)</em>",
+            help_text = 'Dátum odoslania hárku <em>Krycí list</em> do účtárne THS (internou poštou)</em>. Dátum odoslania sa zapíše do <a href="/admin/dennik/dokument/">denníka prijatej a odoslanej pošty</a>.',
             null=True, 
             blank=True)
     import_rs = models.FileField("Importovať do RS",
