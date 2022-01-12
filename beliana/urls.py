@@ -39,6 +39,7 @@ from ipdb import set_trace as trace
 urlpatterns = [
     path('', RedirectView.as_view(url=reverse_lazy('admin:index'))),
     path('admin/', admin.site.urls),
+    path('export_action/', include("admin_export_action.urls", namespace="admin_export_action")),
     # Recent versions of Python however have special syntax to include an iterable in a list by using the asterisk (*)
     *static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT) # needed because of file upload
 ]

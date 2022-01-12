@@ -55,6 +55,7 @@ INSTALLED_APPS = [
     'import_export',
     'admin_totals',
     'django_crontab',
+    'admin_export_action',
 ]
 
 MIDDLEWARE = [
@@ -175,6 +176,12 @@ LOGGING = {
 CRONJOBS = [
     ('33 3 * * *', 'zmluvy.cron.notifikacie_FU')
 ]
+
+#https://pypi.org/project/django-admin-export-action/
+#see class PlatbaAutorskaOdmenaAdmin
+ADMIN_EXPORT_ACTION = {
+    'ENABLE_SITEWIDE': False
+}
 
 #Parametre
 ODVODY_VYNIMKA = 200    #Vyňatá mesačná suma v prípade, ak dohodár (dôchoidca alebo študent) o ňu požiada

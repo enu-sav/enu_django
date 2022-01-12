@@ -27,6 +27,9 @@ from .vyplatitautorske import VyplatitAutorskeOdmeny
 
 from .forms import OsobaAutorForm, ZmluvaAutorForm, PlatbaAutorskaSumarForm, OsobaGrafikForm, ZmluvaGrafikForm, VytvarnaObjednavkaPlatbaForm
 
+#https://pypi.org/project/django-admin-export-action/
+from admin_export_action.admin import export_selected_objects
+
 #umožniť zobrazenie autora v zozname zmlúv
 #https://pypi.org/project/django-admin-relation-links/
 from django_admin_relation_links import AdminChangeLinksMixin
@@ -252,7 +255,7 @@ class ZmluvaAdmin():
     vytvorit_subory_zmluvy.short_description = f"Vytvoriť súbory zmluvy"
     #Oprávnenie na použitie akcie, viazané na 'change'
     vytvorit_subory_zmluvy.allowed_permissions = ('change',)
-    actions = ['vytvorit_subory_zmluvy']
+    actions = ['vytvorit_subory_zmluvy', export_selected_objects]
 
 @admin.register(ZmluvaAutor)
 class ZmluvaAutorAdmin(ZmluvaAdmin, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
@@ -415,6 +418,7 @@ class PlatbaAutorskaOdmenaAdmin(PlatbaAdmin):
     platba.admin_order_field = 'autor__rs_login'
 
     search_fields = ['obdobie', "zmluva", "autor__rs_login"]
+    actions = [export_selected_objects,]
 
     # zoraďovateľný odkaz na číslo zmluvy
     # umožnené prostredníctvom AdminChangeLinksMixin
