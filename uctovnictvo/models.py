@@ -750,11 +750,11 @@ class VyplacanieDohod(models.Model):
             td = "DoBPS"
 
         #Vynimka: v pripadade DoVP treba vyňatú sumu prispôsobiť dĺžke trvanie zmluvy
-        trace()
+        #Treba zistiť, ako sa to vlastne ráta - či ide o kalendárne mesiace alebo treba zohladnit alikvotnu cast
         if self.dohoda.vynimka and td in ["DoPC", "DoBPSForm"]:
             vynimka_suma = ODVODY_VYNIMKA    #vyplacané mesačne, fixná suma vynimky
         elif self.dohoda.vynimka and td in ["DoVP"]:
-            #datum_do j eposlédný deň práce, preto + 1
+            #datum_do je posledný deň práce, preto + 1
             pocet_mesiacov = 12*(self.dohoda.datum_do-self.dohoda.datum_od+timedelta(days=1)).days/365
             vynimka_suma = ODVODY_VYNIMKA * pocet_mesiacov
             pass
