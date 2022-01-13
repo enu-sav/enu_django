@@ -72,9 +72,19 @@ def VytvoritPlatobnyPrikaz(faktura):
         text = text.replace(f"{lt}CM{gt}", f"{locale_format(-faktura.suma)} {faktura.mena}")    # suma je záporná, o formulári chceme kladné
         text = text.replace(f"{lt}DM{gt}", "")
     text = text.replace(f"{lt}dodavatel{gt}", faktura.objednavka_zmluva.dodavatel.nazov)
-    text = text.replace(f"{lt}adresa1{gt}", faktura.objednavka_zmluva.dodavatel.adresa_ulica)
-    text = text.replace(f"{lt}adresa2{gt}", faktura.objednavka_zmluva.dodavatel.adresa_mesto)
-    text = text.replace(f"{lt}adresa3{gt}", faktura.objednavka_zmluva.dodavatel.adresa_stat)
+    # ulica ne nepovinná (malá obec)
+    if faktura.objednavka_zmluva.dodavatel.adresa_ulica:
+        text = text.replace(f"{lt}adresa1{gt}", faktura.objednavka_zmluva.dodavatel.adresa_ulica)
+    else:
+        text = text.replace(f"{lt}adresa1{gt}", "")
+    if not faktura.objednavka_zmluva.dodavatel.adresa_mesto:
+        return messages.ERROR, "Vytváranie príkazu zlyhalo, lebo adresa dodávateľa je nekompletná (mesto).", None
+    else:
+        text = text.replace(f"{lt}adresa2{gt}", faktura.objednavka_zmluva.dodavatel.adresa_mesto)
+    if not faktura.objednavka_zmluva.dodavatel.adresa_stat:
+        return messages.ERROR, "Vytváranie príkazu zlyhalo, lebo adresa dodávateľa je nekompletná (štát).", None
+    else:
+        text = text.replace(f"{lt}adresa3{gt}", faktura.objednavka_zmluva.dodavatel.adresa_stat)
     text = text.replace(f"{lt}dodavatel_faktura{gt}", 
             faktura.dcislo if faktura.dcislo else "")
     text = text.replace(f"{lt}doslo_dna{gt}", 
