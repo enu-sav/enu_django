@@ -14,6 +14,7 @@ from decimal import Decimal
 from beliana.settings import TMPLTS_DIR_NAME, PLATOVE_VYMERY_DIR, DOHODY_DIR, PRIJATEFAKTURY_DIR, PLATOBNE_PRIKAZY_DIR
 from beliana.settings import ODVODY_VYNIMKA, DAN_Z_PRIJMU, OBJEDNAVKY_DIR
 import os,re, datetime
+from datetime import timedelta
 import numpy as np
 from ipdb import set_trace as trace
 
@@ -749,11 +750,13 @@ class VyplacanieDohod(models.Model):
             td = "DoBPS"
 
         #Vynimka: v pripadade DoVP treba vyňatú sumu prispôsobiť dĺžke trvanie zmluvy
+        trace()
         if self.dohoda.vynimka and td in ["DoPC", "DoBPSForm"]:
             vynimka_suma = ODVODY_VYNIMKA    #vyplacané mesačne, fixná suma vynimky
         elif self.dohoda.vynimka and td in ["DoVP"]:
-            pocet_mesiacov = 12*(self.dohoda.datum_do-self.dohoda.datum_od).days/365
-            vynimka_suma = ODVODY_VYNIMKA * 12*(self.dohoda.datum_do-self.dohoda.datum_od).days/365
+            #datum_do j eposlédný deň práce, preto + 1
+            pocet_mesiacov = 12*(self.dohoda.datum_do-self.dohoda.datum_od+timedelta(days=1)).days/365
+            vynimka_suma = ODVODY_VYNIMKA * pocet_mesiacov
             pass
         else:
             vynimka_suma = 0    #bez výnimky
