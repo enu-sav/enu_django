@@ -215,7 +215,10 @@ class ZmluvaAdmin():
     # formátovať pole url_zmluvy
     def url_zmluvy_html(self, obj):
         from django.utils.html import format_html
-        return format_html(f'<a href="{obj.url_zmluvy}" target="_blank">pdf</a>') if obj else None
+        if obj:
+            return format_html(f'<a href="{obj.url_zmluvy}" target="_blank">pdf</a>') if obj.url_zmluvy else None
+        else:
+            return None
     url_zmluvy_html.short_description = "Zmluva v CRZ"
 
     # formatovat datum
