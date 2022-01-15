@@ -34,5 +34,6 @@ class DokumentAdmin(ZobrazitZmeny):
             return format_html(obj.vec, url=link[0][0])
         else:
             return obj.vec
+    search_fields = ("cislo","adresat","sposob", "odosielatel", "prijalodoslal")
     vec_html.short_description = "Vec"
 
