@@ -39,12 +39,12 @@ def adresa(osoba):
     else:
         return f"{osoba.adresa_mesto}, {osoba.adresa_stat}".strip()
             
-def VytvoritPlatobnyPrikaz(faktura):
+# pouzivatel: aktualny pouzivatel
+def VytvoritPlatobnyPrikaz(faktura, pouzivatel):
     #úvodné testy
     if not os.path.isdir(settings.PLATOBNE_PRIKAZY_DIR):
         os.makedirs(settings.PLATOBNE_PRIKAZY_DIR)
     
-    # nacitat sablonu
     lt="[["
     gt="]]"
 
@@ -92,6 +92,7 @@ def VytvoritPlatobnyPrikaz(faktura):
     text = text.replace(f"{lt}datum_splatnosti{gt}", 
             faktura.splatnost_datum.strftime("%d. %m. %Y") if faktura.splatnost_datum else "")
     text = text.replace(f"{lt}predmet_faktury{gt}", faktura.predmet)
+    text = text.replace(f"{lt}pouzivatel{gt}", pouzivatel.get_full_name())
 
     if type(faktura.objednavka_zmluva) == Objednavka:
         text = text.replace(f"{lt}obj_zmluva{gt}", "objednávka")

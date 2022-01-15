@@ -188,7 +188,7 @@ class PrijataFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdm
 
     def vytvorit_platobny_prikaz(self, request, queryset):
         for faktura in queryset:
-            status, msg, vytvoreny_subor = VytvoritPlatobnyPrikaz(faktura)
+            status, msg, vytvoreny_subor = VytvoritPlatobnyPrikaz(faktura, request.user)
             if status != messages.ERROR:
                 faktura.dane_na_uhradu = timezone.now()
                 faktura.platobny_prikaz = vytvoreny_subor
