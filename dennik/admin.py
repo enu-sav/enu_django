@@ -37,3 +37,10 @@ class DokumentAdmin(ZobrazitZmeny):
     search_fields = ("cislo","adresat","sposob", "inout", "prijalodoslal", "vec", "poznamka")
     vec_html.short_description = "Popis"
 
+    # vyplniť pole prijalodoslal, ak je zadany datum
+    def save_model(self, request, obj, form, change):
+        if obj.datum:
+            obj.prijalodoslal = request.user.get_username()
+        super().save_model(request, obj, form, change)
+        pass
+
