@@ -59,24 +59,6 @@ class ZmluvaForm(PopisZmeny):
                     return self.cleaned_data
                 else:
                     raise ValidationError(f"Pole '{zo_name} možno vyplniť až po vygenerovaní súboru '{vt_name}'. ")
-            if 'zmluva_vratena' in self.changed_data:
-                if self.instance.zmluva_odoslana:
-                    vec = f"Podpísaná zmluva {self.instance.cislo} prijatá od autora"
-                    cislo = nasledujuce_cislo(Dokument)
-                    dok = Dokument(
-                        cislo = cislo,
-                        datum = self.cleaned_data['zmluva_vratena'],
-                        odosielatel = f"Zmluva {str(self.instance)}",
-                        adresat = self.instance.zmluvna_strana,
-                        vec = f'<a href="{self.instance.vygenerovana_subor.url}">{vec}</a>',
-                        prijalodoslal=self.request.user.username,
-                        sposob = SposobDorucenia.POSTA
-                    )
-                    dok.save()
-                    messages.warning(self.request, f"Do denníka bol pridaný záznam č. {cislo} '{vec}'")
-                    return self.cleaned_data
-                else:
-                    raise ValidationError(f"Pole '{zv_name}' nemožno vyplniť, lebo nie je vyplnené pole '{zo_name}'.")
         except ValidationError as ex:
             raise ex
 
