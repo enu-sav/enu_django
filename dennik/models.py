@@ -35,7 +35,9 @@ class Dokument(models.Model):
             null = True,
             help_text = "Ak je to relevantné, uveďte číslo súvisiacej položky (zmluvy, dohody, faktúry). Pokiaľ položka ešte nie je v Djagu vytvorená (napr. ešte v prípade faktúry), najskôr ju vytvorte a záznam spravte potom)", 
             max_length=200)
-    odosielatel = models.CharField("xTyp dokumentu", max_length=200)
+    odosielatel = models.CharField("xTyp dokumentu", 
+            max_length=200,
+            blank = True)
     adresat = models.CharField("Odosielateľ / Adresát", 
             help_text = "Uveďte adresáta",
             max_length=200)
@@ -49,9 +51,16 @@ class Dokument(models.Model):
             help_text = "Stručne popíšte obsah, napr. 'Zmluva A-2022-007'",
             max_length=200)
     prijalodoslal = models.CharField("Prijal/odoslal", 
-            help_text = "Uveďte meno osoby, ktorá zásielku prijala / odoslala.",
+            help_text = "Meno používateľa, ktorý zaznamenal prijatie / odoslanie zásielky (vypĺňané automaticky).",
             max_length=50,
             blank = True)
+    zaznamvytvoril = models.CharField("Záznam vytvoril", 
+            help_text = "Meno používateľa, ktorý záznam v denníku vytvoril (vypĺňané automaticky)",
+            max_length=50,
+            blank = True)
+    datumvytvorenia = models.DateField("Dátum vytvorenia záznamu",
+            help_text = "Dátum vytvorenia záznamu (vypĺňané automaticky)",
+            null = True)
     
     poznamka = models.CharField("Poznámka", max_length=200, blank=True)
 
