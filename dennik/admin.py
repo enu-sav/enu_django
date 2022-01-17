@@ -25,7 +25,7 @@ class ZobrazitZmeny(SimpleHistoryAdmin):
 @admin.register(Dokument)
 class DokumentAdmin(ZobrazitZmeny):
     form = DokumentForm
-    list_display = ["cislo", "datum", "odosielatel", "adresat", "sposob", "prijalodoslal", "vec_html", "poznamka"]
+    list_display = ["cislo", "adresat", "typdokumentu", "inout", "cislopolozky", "datum", "sposob", "prijalodoslal", "vec_html", "poznamka"]
     # určiť poradie polí v editovacom formulári
     #fields = ["cislo"]
     def vec_html(self, obj):
@@ -34,6 +34,6 @@ class DokumentAdmin(ZobrazitZmeny):
             return format_html(obj.vec, url=link[0][0])
         else:
             return obj.vec
-    search_fields = ("cislo","adresat","sposob", "odosielatel", "prijalodoslal")
-    vec_html.short_description = "Vec"
+    search_fields = ("cislo","adresat","sposob", "inout", "prijalodoslal", "vec", "poznamka")
+    vec_html.short_description = "Popis"
 
