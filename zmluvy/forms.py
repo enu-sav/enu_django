@@ -2,7 +2,7 @@
 from django import forms
 from ipdb import set_trace as trace
 from .models import OsobaAutor, ZmluvaAutor, PlatbaAutorskaSumar, OsobaGrafik, ZmluvaGrafik, VytvarnaObjednavkaPlatba
-from dennik.models import Dokument, SposobDorucenia
+from dennik.models import Dokument, SposobDorucenia, TypDokumentu
 from dennik.forms import nasledujuce_cislo
 from django.core.exceptions import ValidationError
 from django.contrib import messages #import messages
@@ -43,16 +43,16 @@ class ZmluvaForm(PopisZmeny):
                 raise ValidationError(f"Dátum do '{zo_name}' nemožno zadať spolu s '{zv_name}'.")
             if 'zmluva_odoslana' in self.changed_data:
                 if self.instance.vygenerovana_subor:   # súbor zmluvy už existuje
-                    vec = f"Zmluva {self.instance.cislo} odoslaná autorovi na podpis"
+                    vec = f"Zmluva {self.instance.cislo} autorovi na podpis"
                     cislo = nasledujuce_cislo(Dokument)
                     dok = Dokument(
                         cislo = cislo,
-                        datum = self.cleaned_data['zmluva_odoslana'],
-                        odosielatel = f"Zmluva {str(self.instance)}",
+                        cislopolozky = self.instance.cislo,
+                        datumvytvorenia = self.cleaned_data['zmluva_odoslana'],
+                        typdokumentu = TypDokumentu.AZMLUVA,
                         adresat = self.instance.zmluvna_strana,
                         vec = f'<a href="{self.instance.vygenerovana_subor.url}">{vec}</a>',
-                        prijalodoslal=self.request.user.username,
-                        sposob = SposobDorucenia.POSTA
+                        prijalodoslal=self.request.user.username, #zámena mien prijalodoslal - zaznamvytvoril
                     )
                     dok.save()
                     messages.warning(self.request, f"Do denníka bol pridaný záznam č. {cislo} '{vec}'")

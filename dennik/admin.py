@@ -41,7 +41,7 @@ class DokumentAdmin(ZobrazitZmeny):
     # vyplniť pole prijalodoslal, ak je zadany datum
     def save_model(self, request, obj, form, change):
         if obj.datum:
-            obj.prijalodoslal = request.user.get_username()
+            obj.zaznamvytvoril = request.user.get_username()  #zámena mien prijalodoslal - zaznamvytvoril
         super().save_model(request, obj, form, change)
         pass
 

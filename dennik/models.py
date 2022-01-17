@@ -41,6 +41,7 @@ class Dokument(models.Model):
             max_length=20, choices=InOut.choices, null=True)
     datum = models.DateField('Dátum prijatia / odoslania',
             help_text = "Dátum prijatia / odoslania dokumentu",
+            null = True,
             )
     #odosielatel not used
     odosielatel = models.CharField("xTyp dokumentu", 
@@ -57,7 +58,7 @@ class Dokument(models.Model):
             help_text = "Stručne popíšte obsah, napr. 'Podpísaná zmluva'",
             max_length=200)
     naspracovanie = models.CharField("Na spracovanie", 
-            help_text = "Uveďte meno osoby, ktorej bol prijatý dokument daný na spracovanie. Pri odosielanom dokumente vložte pomlčku '-'.",
+            help_text = "Uveďte meno osoby, ktorej bol <strong>prijatý dokument</strong> daný na vybavenie. Pri odosielanom dokumente vložte pomlčku '-'.",
             max_length=50,
             null = True)
     #pozor: prehodené popisy polí prijalodoslal a zaznamvytvoril

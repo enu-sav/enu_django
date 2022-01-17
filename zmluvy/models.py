@@ -24,7 +24,7 @@ class StavZmluvy(models.TextChoices):
     ODOSLANY_DOTAZNIK = "odoslany_dotaznik", "Odoslaný dotazník autorovi"#Autorovi bol odoslaný dotazník na vyplnenie
     VYTVORENA = "vytvorena", "Vytvorená"                        #Úvodný stav, ak sa zmluva vytvára v EnÚ
     PODPISANA_ENU = "podpisana_enu", "Podpísaná EnÚ"
-    ODOSLANA_AUTOROVI = "odoslana_autorovi", "Odoslaná autorovi"
+    ODOSLANA_AUTOROVI = "odoslana_autorovi", "Daná autorovi na podpis"
     VRATENA_OD_AUTORA = "vratena_od_autora", "Vrátená od autora"
     ZVEREJNENA_V_CRZ = "zverejnena_v_crz", "Platná / Zverejnená v CRZ" #Nemusí byť v CRZ, ak bola uzatvorená pred r. 2012
     NEPLATNA = "neplatna", "Neplatná / Nebola verejnená v CRZ"  #Zmluva nie je platná pokiaľ nebola v CRZ zverejnená do 30 dní od podpísania
@@ -144,9 +144,9 @@ class Zmluva(models.Model):
     url_zmluvy = models.URLField('URL zmluvy', 
             help_text = "Zadajte URL pdf súboru zmluvy zo stránky CRZ.",
             blank = True)
-    zmluva_odoslana= models.DateField('Odoslaná na podpis ',
-            help_text = 'Dátum odoslania zmluvy na podpis (poštou).  Dátum sa zapíše do <a href="/admin/dennik/dokument/">denníka prijatej a odoslanej pošty</a>.',
-            null=True, 
+    zmluva_odoslana= models.DateField('Autorovi na podpis ',
+            help_text = 'Dátum odovzdania zmluvy na sekretariát na odoslanie na podpis (poštou). Vytvorí sa záznam v <a href="/admin/dennik/dokument/">denníku prijatej a odoslanej pošty</a>.',
+            null=True,
             blank=True)
     zmluva_vratena= models.DateField('Vrátená podpísaná ',
             help_text = 'Dátum obdržania podpísanej zmluvy (poštou). Dátum sa zapíše do <a href="/admin/dennik/dokument/">denníka prijatej a odoslanej pošty</a>.',
