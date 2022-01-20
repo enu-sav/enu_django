@@ -184,7 +184,16 @@ class PrijataFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdm
     #obj is None during the object creation, but set to the object being edited during an edit
     #"platobny_prikaz" je generovaný, preto je vźdy readonly
     def get_readonly_fields(self, request, obj=None):
-        return ["platobny_prikaz"]
+        if obj:
+            if obj.platobny_prikaz:
+                nearly_all = ["zdroj", "program", "zakazka", "ekoklas", "cislo", "platobny_prikaz", "dcislo", "doslo_datum", "splatnost_datum", "predmet", "suma", "mena", "objednavka_zmluva"]
+                if obj.dane_na_uhradu:
+                     nearly_all = nearly_all + ["dane_na_uhradu"]
+                return nearly_all
+            else:
+                return ["cislo", "dane_na_uhradu","platobny_prikaz"]
+        else:
+            return ["dane_na_uhradu","platobny_prikaz"]
 
     def vytvorit_platobny_prikaz(self, request, queryset):
         for faktura in queryset:
@@ -223,8 +232,8 @@ class PrijataFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdm
 
     def save_model(self, request, obj, form, change):
         if 'suma' in form.changed_data:
-            if obj.suma > 0:
-                messages.add_message(request, messages.WARNING, "Do poľa 'suma' sa obvykle vkladajú výdavky (záporná suma), vložili ste však kladnú hodnotu sumy. Ak ide o omyl, hodnotu opravte.") 
+            if obj.suma >= 0:
+                messages.add_message(request, messages.WARNING, "Do poľa 'suma' sa obvykle vkladajú výdavky (záporná suma), vložili ste však 0 alebo kladnú hodnotu sumy. Ak ide o omyl, hodnotu opravte.") 
         super(PrijataFakturaAdmin, self).save_model(request, obj, form, change)
 
 @admin.register(AutorskyHonorar)

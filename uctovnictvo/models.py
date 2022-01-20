@@ -255,15 +255,16 @@ class PrijataFaktura(Klasifikacia):
             null=True,
             max_length=50)
     doslo_datum = models.DateField('Došlo dňa',
-            blank=True, null=True)
+            null=True)
     dane_na_uhradu = models.DateField('Dané na úhradu dňa',
+            help_text = "Zadajte dátum, kedy bola faktúra odovzdaná na sekretariát na vyplatenie",
             blank=True, null=True)
     splatnost_datum = models.DateField('Dátum splatnosti',
-            blank=True, null=True)
+            null=True)
     predmet = models.CharField("Predmet faktúry", 
             help_text = "Zadajte stručný popis, napr. 'Dodávka a inštalácia dátoveho rozvádzača'",
             max_length=100)
-    suma = models.DecimalField("Suma v EUR", 
+    suma = models.DecimalField("Suma", 
             help_text = "Zadajte príjmy ako kladné, výdavky ako záporné číslo",
             max_digits=8, 
             decimal_places=2, 
