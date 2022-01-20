@@ -1,5 +1,8 @@
 from django.db import models
 from simple_history.models import HistoricalRecords
+from django.core.exceptions import ValidationError
+from ipdb import set_trace as trace
+import re
 
 class InOut(models.TextChoices):
     PRIJATY = 'prijaty', 'Prijatý'
@@ -7,8 +10,12 @@ class InOut(models.TextChoices):
 
 class TypDokumentu(models.TextChoices):
     AZMLUVA = 'autorskazmluva', 'Autorská zmluva'
+    VZMLUVA = 'vytvarnazmluva', 'Výtvarná zmluva'
+    VOBJEDNAVKA = 'vobjednavka', 'Výtvarná objednávka'
+    OBJEDNAVKA = 'objednavka', 'Objednávka'
     FAKTURA = 'faktura', 'Faktúra'
-    Zmluva = 'zmluva', 'Zmluva'
+    PSTRAVNE = 'pstravne', 'Príspevok na stravné'
+    ZMLUVA = 'zmluva', 'Zmluva'
     DoVP = 'dovp', 'DoVP'
     DoPC = 'dopc', 'DoPC'
     DoBPS = 'dobps', 'DoBPS'
@@ -26,15 +33,15 @@ class Dokument(models.Model):
     cislo = models.CharField("Číslo", max_length=50)
     cislopolozky = models.CharField("Súvisiaca položka", 
             null = True,
-            help_text = "Ak je to relevantné, uveďte číslo súvisiacej položky (zmluvy, dohody, faktúry), inak vložte pomlčku '-'. Pokiaľ položka ešte nie je v Djangu vytvorená (napr. v prípade faktúry), najskôr ju vytvorte a záznam spravte potom).", 
+            help_text = "Ak je to relevantné, uveďte číslo súvisiacej položky v databáze (zmluvy, dohody, faktúry) v tvare X-RRRR-NNN, inak vložte pomlčku '-'.<br />Pokiaľ položka ešte nie je v databáze vytvorená (napr. v prípade faktúry), najskôr ju vytvorte a tento záznam spravte potom).", 
             max_length=200)
     typdokumentu = models.CharField("Typ dokumentu",
             max_length=20, choices=TypDokumentu.choices, 
-            help_text = "Uveďte typ dokumentu. <strong>Netreba vypĺňať, ak je vyplnené pole Súvisiaca položka</strong>.",
+            help_text = "Uveďte typ dokumentu. <strong>Netreba vypĺňať, ak je v poli Súvisiaca položka uvedená položka databázy v tvare X-RRRR-NNN</strong>.",
             blank = True,
             null=True)
     adresat = models.CharField("Odosielateľ / Adresát", 
-            help_text = "Uveďte adresáta. <strong>Netreba vypĺňať, ak je vyplnené pole Súvisiaca položka</strong>.",
+            help_text = "Uveďte adresáta. <strong>Netreba vypĺňať, ak je v poli Súvisiaca položka uvedená položka databázy v tvare X-RRRR-NNN</strong>.",
             blank = True,
             max_length=200)
     inout = models.CharField("Prijatý / odoslaný",
@@ -58,8 +65,9 @@ class Dokument(models.Model):
             help_text = "Stručne popíšte obsah, napr. 'Podpísaná zmluva'",
             max_length=200)
     naspracovanie = models.CharField("Na spracovanie", 
-            help_text = "Uveďte meno osoby, ktorej bol <strong>prijatý dokument</strong> daný na vybavenie. Pri odosielanom dokumente vložte pomlčku '-'.",
+            help_text = "<strong>Ak ide o prijatý dokument</strong>, uveďte meno osoby, ktorej bol daný na vybavenie. Pri odosielanom dokumente vypĺňať netreba.",
             max_length=50,
+            blank = True,
             null = True)
     #pozor: prehodené popisy polí prijalodoslal a zaznamvytvoril
     prijalodoslal = models.CharField("Záznam vytvoril", 

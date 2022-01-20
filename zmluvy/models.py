@@ -181,6 +181,11 @@ class ZmluvaAutor(Zmluva):
     zmluvna_strana = models.ForeignKey(OsobaAutor, on_delete=models.PROTECT, related_name='zmluvy')    
     honorar_ah = models.DecimalField("Honorár/AH", max_digits=8, decimal_places=2, default=0) #Eur/AH (36 000 znakov)
     history = HistoricalRecords()
+
+    # Koho uviesť ako adresata v denniku
+    def adresat(self):
+        return self.zmluvna_strana.rs_login
+
     class Meta:
         verbose_name = 'Autorská zmluva'
         verbose_name_plural = 'Autorské zmluvy'
@@ -192,6 +197,10 @@ class ZmluvaGrafik(Zmluva):
     #related_name: v admin.py umožní zobrazit zmluvy autora v zozname autorov cez pole zmluvy_link 
     zmluvna_strana = models.ForeignKey(OsobaGrafik, on_delete=models.PROTECT, related_name='zmluvagrafik')
     history = HistoricalRecords()
+    # Koho uviesť ako adresata v denniku
+    def adresat(self):
+        return self.zmluvna_strana
+
     class Meta:
         verbose_name = 'Výtvarná zmluva'
         verbose_name_plural = 'Výtvarné zmluvy'

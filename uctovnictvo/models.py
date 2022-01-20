@@ -287,6 +287,10 @@ class PrijataFaktura(Klasifikacia):
             null = True, blank = True)
     history = HistoricalRecords()
 
+    # Koho uviesť ako adresata v denniku
+    def adresat(self):
+        return self.objednavka_zmluva.dodavatel.nazov
+
     class Meta:
         verbose_name = 'Prijatá faktúra'
         verbose_name_plural = 'Faktúry - Prijaté faktúry'
@@ -571,6 +575,10 @@ class Dohoda(PolymorphicModel, Klasifikacia):
             help_text = "Dátum odoslania podkladov na vyplatenie, vypĺňa sa automaticky",
             null = True, blank = True,
             max_length=200)
+    # Koho uviesť ako adresata v denniku
+    def adresat(self):
+        return self.zmluvna_strana
+
     class Meta:
         verbose_name = "Dohoda"
         verbose_name_plural = "Dohody"
