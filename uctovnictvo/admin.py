@@ -199,7 +199,7 @@ class PrijataFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdm
         for faktura in queryset:
             status, msg, vytvoreny_subor = VytvoritPlatobnyPrikaz(faktura, request.user)
             if status != messages.ERROR:
-                faktura.dane_na_uhradu = timezone.now()
+                #faktura.dane_na_uhradu = timezone.now()
                 faktura.platobny_prikaz = vytvoreny_subor
                 faktura.save()
             self.message_user(request, msg, status)
@@ -235,6 +235,15 @@ class PrijataFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdm
             if obj.suma >= 0:
                 messages.add_message(request, messages.WARNING, "Do poľa 'suma' sa obvykle vkladajú výdavky (záporná suma), vložili ste však 0 alebo kladnú hodnotu sumy. Ak ide o omyl, hodnotu opravte.") 
         super(PrijataFakturaAdmin, self).save_model(request, obj, form, change)
+
+    # do AdminForm pridať request, aby v jej __init__ bolo request dostupné
+    def get_form(self, request, obj=None, **kwargs):
+        AdminForm = super(PrijataFakturaAdmin, self).get_form(request, obj, **kwargs)
+        class AdminFormMod(AdminForm):
+            def __new__(cls, *args, **kwargs):
+                kwargs['request'] = request
+                return AdminForm(*args, **kwargs)
+        return AdminFormMod
 
 @admin.register(AutorskyHonorar)
 

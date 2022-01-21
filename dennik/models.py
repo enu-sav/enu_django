@@ -5,8 +5,8 @@ from ipdb import set_trace as trace
 import re
 
 class InOut(models.TextChoices):
-    PRIJATY = 'prijaty', 'Prijatý'
-    ODOSLANY = 'odoslany', 'Odoslaný'
+    PRIJATY = 'prijaty', 'Príjem'
+    ODOSLANY = 'odoslany', 'Odosielanie'
 
 class TypDokumentu(models.TextChoices):
     AZMLUVA = 'autorskazmluva', 'Autorská zmluva'
@@ -41,13 +41,13 @@ class Dokument(models.Model):
             blank = True,
             null=True)
     adresat = models.CharField("Odosielateľ / Adresát", 
-            help_text = "Uveďte adresáta. <strong>Netreba vypĺňať, ak je v poli Súvisiaca položka uvedená položka databázy v tvare X-RRRR-NNN</strong>.",
+            help_text = "Uveďte adresáta. <br />Netreba vypĺňať, ak je v poli Súvisiaca položka uvedená položka databázy v tvare X-RRRR-NNN.<br />Ak už je pole v prípade odosielania dokumentu vopred vyplnené, adresáta ponechajte.",
             blank = True,
             max_length=200)
-    inout = models.CharField("Prijatý / odoslaný",
+    inout = models.CharField("Príjem / odosielanie",
             max_length=20, choices=InOut.choices, null=True)
-    datum = models.DateField('Dátum prijatia / odoslania',
-            help_text = "Dátum prijatia / odoslania dokumentu",
+    datum = models.DateField('Dátum príjmu / odoslania',
+            help_text = "Dátum príjmu / odoslania dokumentu",
             null = True,
             )
     #odosielatel not used

@@ -4,7 +4,7 @@ from django import forms
 from django.core.exceptions import ValidationError
 from ipdb import set_trace as trace
 from .models import PrijataFaktura, Objednavka, PrispevokNaStravne, DoPC, DoVP, DoBPS, PlatovyVymer, VyplacanieDohod
-from dennik.models import Dokument, SposobDorucenia
+from dennik.models import Dokument, SposobDorucenia, TypDokumentu
 from datetime import datetime
 import re
 
@@ -54,6 +54,8 @@ class ZmluvaForm(forms.ModelForm):
 class PrijataFakturaForm(forms.ModelForm):
     #inicializácia polí
     def __init__(self, *args, **kwargs):
+        # do Admin treba pridať metódu get_form
+        self.request = kwargs.pop('request', None)
         super().__init__(*args, **kwargs)
         polecislo = "cislo"
         # Ak je pole readonly, tak sa nenachádza vo fields. Preto testujeme fields aj initial
@@ -64,6 +66,29 @@ class PrijataFakturaForm(forms.ModelForm):
                 self.initial[polecislo] = nasledujuce
             else:
                 self.fields[polecislo].help_text = f"Číslo faktúry v tvare {PrijataFaktura.oznacenie}-RRRR-NNN. V prípade trvalej platby uveďte 'trvalá platba'."
+
+    # Skontrolovať platnost a keď je všetko OK, spraviť záznam do denníka
+    def clean(self):
+        try:
+            #pole dane_na_uhradu možno vyplniť až po vygenerovani platobného príkazu akciou 
+            #"Vytvoriť platobný príkaz a krycí list pre THS"
+            if 'dane_na_uhradu' in self.changed_data:
+                vec = f"Platobný príkaz na THS {self.instance.cislo} na vyplatenie"
+                cislo = nasledujuce_cislo(Dokument)
+                dok = Dokument(
+                    cislo = cislo,
+                    cislopolozky = self.instance.cislo,
+                    datumvytvorenia = self.cleaned_data['dane_na_uhradu'],
+                    typdokumentu = TypDokumentu.FAKTURA,
+                    adresat = "THS",
+                    vec = f'<a href="{self.instance.platobny_prikaz.url}">{vec}</a>',
+                    prijalodoslal=self.request.user.username, #zámena mien prijalodoslal - zaznamvytvoril
+                )
+                dok.save()
+                messages.warning(self.request, f"Do denníka bol pridaný záznam č. {cislo} '{vec}'")
+                return self.cleaned_data
+        except ValidationError as ex:
+            raise ex
 
 class PrispevokNaStravneForm(forms.ModelForm):
     #inicializácia polí
