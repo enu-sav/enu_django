@@ -268,7 +268,7 @@ class PrijataFaktura(Klasifikacia):
             help_text = "Zadajte príjmy ako kladné, výdavky ako záporné číslo",
             max_digits=8, 
             decimal_places=2, 
-            default=0)
+            null=True)
     mena = models.CharField("Mena", 
             max_length=3, 
             default= Mena.EUR,
