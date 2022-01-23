@@ -2,6 +2,8 @@ from django.contrib import admin
 from django import forms
 from django.utils import timezone
 from django.contrib import messages
+from django.utils.html import format_html
+from django.utils.safestring import mark_safe
 import re
 from datetime import date, datetime, timedelta
 from ipdb import set_trace as trace
@@ -14,6 +16,7 @@ from .forms import PrijataFakturaForm, AutorskeZmluvyForm, ObjednavkaForm, Zmluv
 from .forms import PlatovyVymerForm
 from .forms import DoPCForm, DoVPForm, DoBPSForm, nasledujuce_cislo, VyplacanieDohodForm
 from .rokydni import datum_postupu, vypocet_prax, vypocet_zamestnanie 
+from dennik.models import Dokument, TypDokumentu
 
 #zobrazenie histórie
 #https://django-simple-history.readthedocs.io/en/latest/admin.html
@@ -151,7 +154,6 @@ class ZmluvaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, Impo
 
     # formátovať pole url_zmluvy
     def url_zmluvy_html(self, obj):
-        from django.utils.html import format_html
         if obj.url_zmluvy:
             return format_html(f'<a href="{obj.url_zmluvy}" target="_blank">pdf</a>')
         else:
@@ -225,12 +227,56 @@ class PrijataFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdm
             )
         nova_faktura.save()
         self.message_user(request, f"Vytvorená bola nová faktúra dodávateľa {nova_faktura.objednavka_zmluva.dodavatel.nazov} číslo {nc}.", messages.SUCCESS)
+        #Do denníka pridať záznam o prijatej pošte
+        vec = f"Faktúra {nc}"
+        cislo_posta = nasledujuce_cislo(Dokument)
+        dok = Dokument(
+            cislo = cislo_posta,
+            cislopolozky = nc,
+            #datumvytvorenia = self.cleaned_data['doslo_datum'],
+            typdokumentu = TypDokumentu.FAKTURA,
+            adresat = stara.adresat(),
+            #vec = f'<a href="{self.instance.platobny_prikaz.url}">{vec}</a>',
+            vec = vec,
+            prijalodoslal=request.user.username, #zámena mien prijalodoslal - zaznamvytvoril
+        )
+        dok.save()
+        messages.warning(request, 
+            format_html(
+                'Do denníka prijatej a odoslanej pošty bol pridaný záznam č. {}: {}, treba v ňom doplniť údaje o prijatí.',
+                mark_safe(f'<a href="/admin/dennik/dokument/{dok.id}/change/">{cislo_posta}</a>'),
+                vec
+                )
+        )
 
     duplikovat_zaznam.short_description = "Duplikovať faktúru"
     #Oprávnenie na použitie akcie, viazané na 'change'
     duplikovat_zaznam.allowed_permissions = ('change',)
 
     def save_model(self, request, obj, form, change):
+        #Ak sa vytvára nový záznam, do denníka pridať záznam o prijatej pošte
+        if not PrijataFaktura.objects.filter(cislo=obj.cislo):  #Faktúra ešte nie je v databáze
+            trace()
+            vec = f"Faktúra {obj.cislo}"
+            cislo_posta = nasledujuce_cislo(Dokument)
+            dok = Dokument(
+                cislo = cislo_posta,
+                cislopolozky = obj.cislo,
+                #datumvytvorenia = self.cleaned_data['doslo_datum'],
+                typdokumentu = TypDokumentu.FAKTURA,
+                adresat = obj.adresat(),
+                #vec = f'<a href="{self.instance.platobny_prikaz.url}">{vec}</a>',
+                vec = vec,
+                prijalodoslal=request.user.username, #zámena mien prijalodoslal - zaznamvytvoril
+            )
+            messages.warning(request, 
+                format_html(
+                    'Do denníka prijatej a odoslanej pošty bol pridaný záznam č. {}: {}, treba v ňom doplniť údaje o prijatí.',
+                    mark_safe(f'<a href="/admin/dennik/dokument/{dok.id}/change/">{cislo_posta}</a>'),
+                    vec
+                    )
+            )
+            pass
         if 'suma' in form.changed_data:
             if obj.suma >= 0:
                 messages.add_message(request, messages.WARNING, "Do poľa 'suma' sa obvykle vkladajú výdavky (záporná suma), vložili ste však 0 alebo kladnú hodnotu sumy. Ak ide o omyl, hodnotu opravte.") 
