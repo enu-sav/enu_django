@@ -86,9 +86,9 @@ class PrijataFakturaForm(forms.ModelForm):
                 )
                 dok.save()
                 messages.warning(self.request, f"Do denníka bol pridaný záznam č. {cislo} '{vec}'")
-                return self.cleaned_data
         except ValidationError as ex:
             raise ex
+        return self.cleaned_data
 
 class PrispevokNaStravneForm(forms.ModelForm):
     #inicializácia polí
