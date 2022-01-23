@@ -290,7 +290,7 @@ class PrijataFaktura(Klasifikacia):
 
     # Koho uviesť ako adresata v denniku
     def adresat(self):
-        return self.objednavka_zmluva.dodavatel.nazov
+        return self.objednavka_zmluva.dodavatel.nazov if self.objednavka_zmluva else ""
 
     class Meta:
         verbose_name = 'Prijatá faktúra'
