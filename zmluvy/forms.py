@@ -55,7 +55,7 @@ class ZmluvaForm(PopisZmeny):
                         prijalodoslal=self.request.user.username, #zámena mien prijalodoslal - zaznamvytvoril
                     )
                     dok.save()
-                    messages.warning(self.request, f"Do denníka bol pridaný záznam č. {cislo} '{vec}'")
+                    messages.warning(self.request, f"Do denníka prijatej a odoslanej pošty bol pridaný záznam č. {cislo} '{vec}'")
                     return self.cleaned_data
                 else:
                     raise ValidationError(f"Pole '{zo_name} možno vyplniť až po vygenerovaní súboru '{vt_name}'. ")
@@ -143,7 +143,7 @@ class PlatbaAutorskaSumarForm(PopisZmeny):
                         sposob = SposobDorucenia.MAIL
                     )
                     dok.save()
-                    messages.warning(self.request, f"Do denníka bol pridaný záznam č. {cislo} '{vec}'")
+                    messages.warning(self.request, f"Do denníka prijatej a odoslanej pošty bol pridaný záznam č. {cislo} '{vec}'")
                     return self.cleaned_data
                 else:
                     raise ValidationError(f"Pole '{po_name} možno vyplniť až po vygenerovaní súboru '{vt_name}'. ")
@@ -189,10 +189,10 @@ class PlatbaAutorskaSumarForm(PopisZmeny):
                         raise ValidationError(f"Pole '{klo_name} možno vyplniť až po vygenerovaní súboru '{v_name}'. ")
                 if nv_dok: 
                     nv_dok.save()
-                    messages.warning(self.request, f"Do denníka bol pridaný záznam č. {nv_cislo} '{nv_vec}'")
+                    messages.warning(self.request, f"Do denníka prijatej a odoslanej pošty bol pridaný záznam č. {nv_cislo} '{nv_vec}'")
                 if klo_dok: 
                     klo_dok.save()
-                    messages.warning(self.request, f"Do denníka bol pridaný záznam č. {klo_cislo} '{klo_vec}'")
+                    messages.warning(self.request, f"Do denníka prijatej a odoslanej pošty bol pridaný záznam č. {klo_cislo} '{klo_vec}'")
                 return self.cleaned_data
         except ValidationError as ex:
             raise ex
