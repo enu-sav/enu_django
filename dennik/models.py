@@ -87,7 +87,7 @@ class Dokument(models.Model):
 
     history = HistoricalRecords()
     class Meta:
-        verbose_name = 'Dokument'
-        verbose_name_plural = 'Prijaté a odoslané dokumenty'
+        verbose_name = 'Prijatá alebo odoslaná pošta'
+        verbose_name_plural = 'Denník prijatej a odoslanej pošty'
     def __str__(self):
         return(self.cislo)
