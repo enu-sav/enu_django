@@ -2,7 +2,7 @@
 from django import forms
 from ipdb import set_trace as trace
 from .models import OsobaAutor, ZmluvaAutor, PlatbaAutorskaSumar, OsobaGrafik, ZmluvaGrafik, VytvarnaObjednavkaPlatba
-from dennik.models import Dokument, SposobDorucenia, TypDokumentu
+from dennik.models import Dokument, SposobDorucenia, TypDokumentu, InOut
 from dennik.forms import nasledujuce_cislo
 from django.core.exceptions import ValidationError
 from django.contrib import messages #import messages
@@ -50,6 +50,7 @@ class ZmluvaForm(PopisZmeny):
                         cislopolozky = self.instance.cislo,
                         datumvytvorenia = self.cleaned_data['zmluva_odoslana'],
                         typdokumentu = TypDokumentu.AZMLUVA,
+                        inout = InOut.ODOSLANY,
                         adresat = self.instance.zmluvna_strana,
                         vec = f'<a href="{self.instance.vygenerovana_subor.url}">{vec}</a>',
                         prijalodoslal=self.request.user.username, #zámena mien prijalodoslal - zaznamvytvoril

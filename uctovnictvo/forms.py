@@ -3,8 +3,10 @@ from django.contrib import messages
 from django import forms
 from django.core.exceptions import ValidationError
 from ipdb import set_trace as trace
+from django.utils.html import format_html
+from django.utils.safestring import mark_safe
 from .models import PrijataFaktura, Objednavka, PrispevokNaStravne, DoPC, DoVP, DoBPS, PlatovyVymer, VyplacanieDohod
-from dennik.models import Dokument, SposobDorucenia, TypDokumentu
+from dennik.models import Dokument, SposobDorucenia, TypDokumentu, InOut
 from datetime import datetime
 import re
 
@@ -80,12 +82,19 @@ class PrijataFakturaForm(forms.ModelForm):
                     cislopolozky = self.instance.cislo,
                     datumvytvorenia = self.cleaned_data['dane_na_uhradu'],
                     typdokumentu = TypDokumentu.FAKTURA,
+                    inout = InOut.ODOSLANY,
                     adresat = "THS",
                     vec = f'<a href="{self.instance.platobny_prikaz.url}">{vec}</a>',
                     prijalodoslal=self.request.user.username, #zámena mien prijalodoslal - zaznamvytvoril
                 )
                 dok.save()
-                messages.warning(self.request, f"Do denníka bol pridaný záznam č. {cislo} '{vec}'")
+                messages.warning(self.request, 
+                    format_html(
+                        'Do denníka prijatej a odoslanej pošty bol pridaný záznam č. {}: <em>{}</em>, treba v ňom doplniť údaje o odoslaní.',
+                        mark_safe(f'<a href="/admin/dennik/dokument/{dok.id}/change/">{cislo}</a>'),
+                        vec
+                        )
+            )
         except ValidationError as ex:
             raise ex
         return self.cleaned_data

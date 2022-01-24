@@ -16,7 +16,7 @@ from .forms import PrijataFakturaForm, AutorskeZmluvyForm, ObjednavkaForm, Zmluv
 from .forms import PlatovyVymerForm
 from .forms import DoPCForm, DoVPForm, DoBPSForm, nasledujuce_cislo, VyplacanieDohodForm
 from .rokydni import datum_postupu, vypocet_prax, vypocet_zamestnanie 
-from dennik.models import Dokument, TypDokumentu
+from dennik.models import Dokument, TypDokumentu, InOut
 
 #zobrazenie histórie
 #https://django-simple-history.readthedocs.io/en/latest/admin.html
@@ -235,6 +235,7 @@ class PrijataFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdm
             cislopolozky = nc,
             #datumvytvorenia = self.cleaned_data['doslo_datum'],
             typdokumentu = TypDokumentu.FAKTURA,
+            inout = InOut.PRIJATY,
             adresat = stara.adresat(),
             #vec = f'<a href="{self.instance.platobny_prikaz.url}">{vec}</a>',
             vec = vec,
@@ -243,7 +244,7 @@ class PrijataFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdm
         dok.save()
         messages.warning(request, 
             format_html(
-                'Do denníka prijatej a odoslanej pošty bol pridaný záznam č. {}: {}, treba v ňom doplniť údaje o prijatí.',
+                'Do denníka prijatej a odoslanej pošty bol pridaný záznam č. {}: <em>{}</em>, treba v ňom doplniť údaje o prijatí.',
                 mark_safe(f'<a href="/admin/dennik/dokument/{dok.id}/change/">{cislo_posta}</a>'),
                 vec
                 )
@@ -264,6 +265,7 @@ class PrijataFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdm
                 cislopolozky = obj.cislo,
                 #datumvytvorenia = self.cleaned_data['doslo_datum'],
                 typdokumentu = TypDokumentu.FAKTURA,
+                inout = InOut.PRIJATY,
                 adresat = obj.adresat(),
                 #vec = f'<a href="{self.instance.platobny_prikaz.url}">{vec}</a>',
                 vec = vec,
@@ -271,7 +273,7 @@ class PrijataFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdm
             )
             messages.warning(request, 
                 format_html(
-                    'Do denníka prijatej a odoslanej pošty bol pridaný záznam č. {}: {}, treba v ňom doplniť údaje o prijatí.',
+                    'Do denníka prijatej a odoslanej pošty bol pridaný záznam č. {}: <em>{}</em>, treba v ňom doplniť údaje o prijatí.',
                     mark_safe(f'<a href="/admin/dennik/dokument/{dok.id}/change/">{cislo_posta}</a>'),
                     vec
                     )

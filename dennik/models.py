@@ -6,7 +6,7 @@ import re
 
 class InOut(models.TextChoices):
     PRIJATY = 'prijaty', 'Príjem'
-    ODOSLANY = 'odoslany', 'Odosielanie'
+    ODOSLANY = 'odoslany', 'Odoslanie'
 
 class TypDokumentu(models.TextChoices):
     AZMLUVA = 'autorskazmluva', 'Autorská zmluva'
@@ -33,7 +33,7 @@ class Dokument(models.Model):
     cislo = models.CharField("Číslo", max_length=50)
     cislopolozky = models.CharField("Súvisiaca položka", 
             null = True,
-            help_text = "Ak je to relevantné, uveďte číslo súvisiacej položky v databáze (zmluvy, dohody, faktúry) v tvare X-RRRR-NNN, inak vložte pomlčku '-'.<br />Pokiaľ položka ešte nie je v databáze vytvorená (napr. v prípade faktúry), najskôr ju vytvorte a tento záznam spravte potom).", 
+            help_text = "Ak je to relevantné, uveďte číslo súvisiacej položky v Djangu (autorskej zmluvy, dohody) v tvare X-RRRR-NNN, inak vložte pomlčku '-'.<br />V prípade <strong>prijatej faktúry</strong> najskôr vytvorte novú prijatú faktúru a následne len upravte záznam pošty, ktorý sa tým vytvorí.<br />V prípade <strong>odosielaných dokumentov</strong>, ktoré sa vytvárajú v Djangu, už pre ne môže v tomto denníku existovať záznam. Skontrolujte to, a ak záznam existuje, použite ten.", 
             max_length=200)
     typdokumentu = models.CharField("Typ dokumentu",
             max_length=20, choices=TypDokumentu.choices, 
@@ -44,7 +44,7 @@ class Dokument(models.Model):
             help_text = "Uveďte adresáta. <br />Netreba vypĺňať, ak je v poli Súvisiaca položka uvedená položka databázy v tvare X-RRRR-NNN.<br />Ak už je pole v prípade odosielania dokumentu vopred vyplnené, adresáta ponechajte.",
             blank = True,
             max_length=200)
-    inout = models.CharField("Príjem / odosielanie",
+    inout = models.CharField("Príjem / odoslanie",
             max_length=20, choices=InOut.choices, null=True)
     datum = models.DateField('Dátum príjmu / odoslania',
             help_text = "Dátum príjmu / odoslania dokumentu",

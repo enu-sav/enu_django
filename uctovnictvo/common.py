@@ -65,12 +65,15 @@ def VytvoritPlatobnyPrikaz(faktura, pouzivatel):
     #
     text = text.replace(f"{lt}nasa_faktura_cislo{gt}", faktura.cislo)
     locale.setlocale(locale.LC_ALL, 'sk_SK.UTF-8')
-    if faktura.mena == Mena.EUR:
-        text = text.replace(f"{lt}DM{gt}", f"{locale_format(-faktura.suma)} €")     # suma je záporná, o formulári chceme kladné
-        text = text.replace(f"{lt}CM{gt}", "")
+    if faktura.suma:
+        if faktura.mena == Mena.EUR:
+            text = text.replace(f"{lt}DM{gt}", f"{locale_format(-faktura.suma)} €")     # suma je záporná, o formulári chceme kladné
+            text = text.replace(f"{lt}CM{gt}", "")
+        else:
+            text = text.replace(f"{lt}CM{gt}", f"{locale_format(-faktura.suma)} {faktura.mena}")    # suma je záporná, o formulári chceme kladné
+            text = text.replace(f"{lt}DM{gt}", "")
     else:
-        text = text.replace(f"{lt}CM{gt}", f"{locale_format(-faktura.suma)} {faktura.mena}")    # suma je záporná, o formulári chceme kladné
-        text = text.replace(f"{lt}DM{gt}", "")
+        return messages.ERROR, "Vytváranie príkazu zlyhalo, lebo nebola zadaná suma.", None
     text = text.replace(f"{lt}dodavatel{gt}", faktura.objednavka_zmluva.dodavatel.nazov)
     # ulica ne nepovinná (malá obec)
     if faktura.objednavka_zmluva.dodavatel.adresa_ulica:
