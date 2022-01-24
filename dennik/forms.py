@@ -90,16 +90,17 @@ class DokumentForm(forms.ModelForm):
     # Ak ide o existujúci objekt, ako číslo očakávane X-RRRR-NNN
     def clean(self):
         # testovať správnosť čísla zadaného objektu
-        cp = normalizovat_cislo(self.cleaned_data['cislopolozky'])
-        self.cleaned_data['cislopolozky'] = cp
-        podla_schemy = overit_polozku(cp) #skončí výnimkou, ak vyzerá byť ako podľa schémy X-RRRR-NNN, ale nie je
-        if podla_schemy: #cislo je podľa schémy X-RRRR-NNN
-            td_str = parse_cislo(cp)[0][0]
-            if not self.cleaned_data['adresat']:
-                self.cleaned_data['adresat'] = triedy[td_str].objects.filter(cislo = cp)[0].adresat()
-        else: #cislo nie je podľa schémy X-RRRR-NNN
-            if not self.cleaned_data['adresat']:
-                raise ValidationError({'adresat':"Ak nie je zadaná položka databázy, tak pole 'Odosielateľ / Adresát' treba vyplniť"})
-        if self.cleaned_data['inout'] == InOut.PRIJATY and not self.cleaned_data['naspracovanie']:
-            raise ValidationError({'naspracovanie':"Ak ide o prijatý dokument, treba vyplniť pole 'Na spracovanie'"})
+        if 'cislopolozky' in self.cleaned_data:
+            cp = normalizovat_cislo(self.cleaned_data['cislopolozky'])
+            self.cleaned_data['cislopolozky'] = cp
+            podla_schemy = overit_polozku(cp) #skončí výnimkou, ak vyzerá byť ako podľa schémy X-RRRR-NNN, ale nie je
+            if podla_schemy: #cislo je podľa schémy X-RRRR-NNN
+                td_str = parse_cislo(cp)[0][0]
+                if not self.cleaned_data['adresat']:
+                    self.cleaned_data['adresat'] = triedy[td_str].objects.filter(cislo = cp)[0].adresat()
+            else: #cislo nie je podľa schémy X-RRRR-NNN
+                if not self.cleaned_data['adresat']:
+                    raise ValidationError({'adresat':"Ak nie je zadaná položka databázy, tak pole 'Odosielateľ / Adresát' treba vyplniť"})
+            if self.cleaned_data['inout'] == InOut.PRIJATY and not self.cleaned_data['naspracovanie']:
+                raise ValidationError({'naspracovanie':"Ak ide o prijatý dokument, treba vyplniť pole 'Na spracovanie'"})
         return self.cleaned_data
