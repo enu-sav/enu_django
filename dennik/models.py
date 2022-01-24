@@ -51,13 +51,13 @@ class Dokument(models.Model):
             null = True,
             )
     #odosielatel not used
-    odosielatel = models.CharField("xTyp dokumentu", 
-            max_length=200,
-            blank = True)
+    #odosielatel = models.CharField("xTyp dokumentu", 
+            #max_length=200,
+            #blank = True)
     #url not used
-    url = models.URLField('URL', 
-            help_text = "Zadajte URL.",
-            blank = True)
+    #url = models.URLField('URL', 
+            #help_text = "Zadajte URL.",
+            #blank = True)
     sposob = models.CharField("Spôsob doručenia",
             help_text = "Zvoľte spôsob, akým bol dokument prijatý/doručený",
             max_length=20, choices=SposobDorucenia.choices, null=True)
@@ -82,7 +82,6 @@ class Dokument(models.Model):
             help_text = "Dátum vytvorenia záznamu (vypĺňané automaticky)",
             null = True)
     
-    #poznamka not used
     poznamka = models.CharField("Poznámka", max_length=200, blank=True)
 
     history = HistoricalRecords()
