@@ -281,7 +281,7 @@ class PrijataFaktura(Klasifikacia):
     prijata_faktura = models.FileField("Faktúra dodádateľa",
             help_text = "Súbor s faktúrou od dodávateľa",
             upload_to=prijata_faktura_upload_location, 
-            null = True, blank = True)
+            null = True)
     platobny_prikaz = models.FileField("Platobný príkaz pre THS-ku",
             help_text = "Súbor s platobným príkazom a krycím listom pre THS-ku. Generuje sa akciou 'Vytvoriť platobný príkaz a krycí list pre THS'",
             upload_to=platobny_prikaz_upload_location, 
