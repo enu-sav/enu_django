@@ -82,8 +82,6 @@ class Dokument(models.Model):
             help_text = "Dátum vytvorenia záznamu (vypĺňané automaticky)",
             null = True)
     
-    poznamka = models.CharField("Poznámka", max_length=200, blank=True)
-
     history = HistoricalRecords()
     class Meta:
         verbose_name = 'Prijatá alebo odoslaná pošta'
