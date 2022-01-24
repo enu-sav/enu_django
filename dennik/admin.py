@@ -9,6 +9,7 @@ from django.utils import timezone
 from zmluvy.models import ZmluvaAutor, ZmluvaGrafik, VytvarnaObjednavkaPlatba
 from uctovnictvo.models import Objednavka, PrijataFaktura, PrispevokNaStravne, DoVP, DoPC, DoBPS
 import re
+from import_export.admin import ImportExportModelAdmin
 
 
 #priradenie typu dokumentu k jeho označeniu v čísle
@@ -39,7 +40,7 @@ class ZobrazitZmeny(SimpleHistoryAdmin):
         return None
 
 @admin.register(Dokument)
-class DokumentAdmin(ZobrazitZmeny):
+class DokumentAdmin(ZobrazitZmeny,ImportExportModelAdmin):
     form = DokumentForm
     list_display = ["cislo", "cislopolozky", "adresat", "typdokumentu", "inout", "datum", "sposob", "naspracovanie", "zaznamvytvoril", "vec_html", "prijalodoslal", "datumvytvorenia"]
     # určiť poradie polí v editovacom formulári
