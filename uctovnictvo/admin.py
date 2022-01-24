@@ -215,6 +215,9 @@ class PrijataFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdm
             self.message_user(request, f"Vybrať možno len jednu faktúru", messages.ERROR)
             return
         stara = queryset[0]
+        if not stara.dane_na_uhradu:
+            self.message_user(request, f"Faktúra {stara.cislo} ešte nebola daná na uhradenie. Duplikovať možno len uhradené faktúry.", messages.ERROR)
+            return
         nc = nasledujuce_cislo(PrijataFaktura)
         nova_faktura = PrijataFaktura.objects.create(
                 cislo = nc,
