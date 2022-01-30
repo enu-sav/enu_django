@@ -238,7 +238,10 @@ def VytvoritSuborDohody(dohoda):
         text = text.replace( "[[ztp]]", 
                 f"{AnoNie(dohodar.ztp).label}, od {dohodar.datum_ztp.strftime('%d. %m. %Y')}")
     else:
-        text = text.replace("[[ztp]]", AnoNie(dohodar.ztp).label)
+        if dohodar.ztp:
+            text = text.replace("[[ztp]]", AnoNie(dohodar.ztp).label)
+        else:
+            text = text.replace("[[ztp]]", AnoNie("nie").label)
 
     text = text.replace("[[dohodnuta_cinnost]]", dohoda.predmet)
     text = text.replace("[[cislo]]", dohoda.cislo)
