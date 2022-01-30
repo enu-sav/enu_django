@@ -29,6 +29,14 @@ class Mena(models.TextChoices):
     USD = 'USD'
     GBP = 'GBP'
 
+#ak sa doplni stav pred 'PODPISANA_ENU', treba doplniť test vo funkcii vytvorit_subory_zmluvy
+class StavDohody(models.TextChoices):
+    NOVA = "nova", "Nová"                        #Stav dohody po vytvorení
+    VYTVORENA = "vytvorena", "Vytvorená"                        #Stav dohody po vytvorení súboru. Treba dať na podpis
+    #PODPISANA_ENU = "podpisana_enu", "Podpísaná EnÚ"
+    ODOSLANA_DOHODAROVI = "odoslana_dohodarovi", "Daná dohodárovi na podpis"
+    PODPISANA_DOHODAROM = "podpisana_dohodarom", "Podpisaná"
+
 class Poistovna(models.TextChoices):
     VSZP = 'VsZP', 'VšZP'
     DOVERA = "Dovera", 'Dôvera'
@@ -556,6 +564,10 @@ class Dohoda(PolymorphicModel, Klasifikacia):
             on_delete=models.PROTECT, 
             verbose_name = "Zmluvná strana",
             related_name='%(class)s_dohoda')  #zabezpečí rozlíšenie modelov DoVP a DoPC
+    stav_dohody = models.CharField(max_length=20,
+            #help_text = "Z ponuky zvoľte aktuálny stav zmluvy. Autorský honorár môže byť vyplatený len vtedy, keď je v stave 'Platná / Zverejnená v CRZ.",
+            help_text = 'Aktuálny stav dohody, <font color="#aa0000">správne nastaviť každej jeho zmene</font>.',
+            choices=StavDohody.choices, default=StavDohody.NOVA, blank=True) 
     vynimka = models.CharField("Uplatnená výnimka", 
             max_length=3, 
             help_text = "Uveďte 'Áno', ak si dohodár na túto dohodu uplatňuje odvodovú výnimku",

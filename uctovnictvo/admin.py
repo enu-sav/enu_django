@@ -10,7 +10,7 @@ from ipdb import set_trace as trace
 from .models import EkonomickaKlasifikacia, TypZakazky, Zdroj, Program, Dodavatel, ObjednavkaZmluva, AutorskyHonorar
 from .models import Objednavka, Zmluva, PrijataFaktura, SystemovySubor, Rozhodnutie, PrispevokNaStravne
 from .models import Dohoda, DoVP, DoPC, DoBPS, VyplacanieDohod, AnoNie, PlatovyVymer
-from .models import ZamestnanecDohodar, Zamestnanec, Dohodar
+from .models import ZamestnanecDohodar, Zamestnanec, Dohodar, StavDohody
 from .common import VytvoritPlatobnyPrikaz, VytvoritSuborDohody, VytvoritSuborObjednavky, leapdays
 from .forms import PrijataFakturaForm, AutorskeZmluvyForm, ObjednavkaForm, ZmluvaForm, PrispevokNaStravneForm
 from .forms import PlatovyVymerForm
@@ -411,11 +411,12 @@ class Zamestnanec(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAd
     _roky_dni.short_description = "Započítaná prax (roky.dni)"
 
 
+
 @admin.register(DoVP)
 class DoVPAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
     form = DoVPForm
-    fields = ["cislo", "zmluvna_strana", "vynimka", "predmet", "id_tsh", "datum_od", "datum_do", "odmena_celkom", "hod_celkom", "pomocnik", "subor_dohody", "sken_dohody", "poznamka","zdroj", "program", "zakazka", "ekoklas" ]
-    list_display = ("cislo","id_tsh",  "zmluvna_strana_link", "vyplatene", "_predmet", "vynimka", "subor_dohody", "sken_dohody", "odmena_celkom", "hod_celkom", "datum_od", "datum_do", "poznamka" )
+    fields = ["cislo", "zmluvna_strana", "stav_dohody", "vynimka", "predmet", "id_tsh", "datum_od", "datum_do", "odmena_celkom", "hod_celkom", "pomocnik", "subor_dohody", "sken_dohody", "poznamka","zdroj", "program", "zakazka", "ekoklas" ]
+    list_display = ("cislo","id_tsh",  "zmluvna_strana_link", "stav_dohody", "vyplatene", "_predmet", "vynimka", "subor_dohody", "sken_dohody", "odmena_celkom", "hod_celkom", "datum_od", "datum_do", "poznamka" )
 
     # ^: v poli vyhľadávať len od začiatku
     search_fields = ["cislo", "zmluvna_strana__priezvisko"]
@@ -446,8 +447,9 @@ class DoVPAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelA
         status, msg, vytvoreny_subor = VytvoritSuborDohody(dohoda)
         if status != messages.ERROR:
             dohoda.subor_dohody = vytvoreny_subor
+            dohoda.stav_dohody = StavDohody.VYTVORENA
             dohoda.save()
-            pass
+        self.message_user(request, f"Dohodu teraz treba dať na podpis vedeniu, a potom dať na sekretariát na odoslanie dohodárovi a následne stav dohody zmeniť na '{StavDohody.ODOSLANA_DOHODAROVI.label}'", messages.WARNING)
         self.message_user(request, msg, status)
 
     vytvorit_subor_dohody.short_description = "Vytvoriť súbor dohody"
@@ -457,8 +459,8 @@ class DoVPAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelA
 @admin.register(DoBPS)
 class DoBPSAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
     form = DoBPSForm
-    fields = ["cislo", "zmluvna_strana", "vynimka", "predmet", "subor_dohody", "sken_dohody", "datum_od", "datum_do", "datum_ukoncenia", "odmena_celkom", "poznamka","zdroj", "program", "zakazka", "ekoklas" ]
-    list_display = ("cislo", "zmluvna_strana_link", "vyplatene", "_predmet", "vynimka", "subor_dohody", "sken_dohody", "odmena_celkom", "datum_od", "datum_do", "datum_ukoncenia", "poznamka" )
+    fields = ["cislo", "zmluvna_strana", "stav_dohody", "vynimka", "predmet", "subor_dohody", "sken_dohody", "datum_od", "datum_do", "datum_ukoncenia", "odmena_celkom", "poznamka","zdroj", "program", "zakazka", "ekoklas" ]
+    list_display = ("cislo", "zmluvna_strana_link", "stav_dohody", "vyplatene", "_predmet", "vynimka", "subor_dohody", "sken_dohody", "odmena_celkom", "datum_od", "datum_do", "datum_ukoncenia", "poznamka" )
 
     # ^: v poli vyhľadávať len od začiatku
     search_fields = ["cislo", "zmluvna_strana__priezvisko"]
@@ -489,8 +491,9 @@ class DoBPSAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, Model
         status, msg, vytvoreny_subor = VytvoritSuborDohody(dohoda)
         if status != messages.ERROR:
             dohoda.subor_dohody = vytvoreny_subor
+            dohoda.stav_dohody = StavDohody.VYTVORENA
             dohoda.save()
-            pass
+        self.message_user(request, f"Dohodu teraz treba dať na podpis vedeniu, a potom dať na sekretariát na odoslanie dohodárovi a následne stav dohody zmeniť na '{StavDohody.ODOSLANA_DOHODAROVI.label}'", messages.WARNING)
         self.message_user(request, msg, status)
 
     vytvorit_subor_dohody.short_description = "Vytvoriť súbor dohody"
@@ -500,8 +503,8 @@ class DoBPSAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, Model
 @admin.register(DoPC)
 class DoPCAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
     form = DoPCForm
-    fields = ["cislo", "zmluvna_strana", "vynimka", "predmet", "subor_dohody", "sken_dohody", "datum_od", "datum_do", "datum_ukoncenia", "odmena_mesacne", "hod_mesacne", "poznamka","zdroj", "program", "zakazka", "ekoklas" ]
-    list_display = ("cislo", "zmluvna_strana_link", "vyplatene", "_predmet", "vynimka", "subor_dohody", "sken_dohody", "odmena_mesacne", "hod_mesacne", "datum_od", "datum_do", "datum_ukoncenia", "poznamka" )
+    fields = ["cislo", "zmluvna_strana", "stav_dohody", "vynimka", "predmet", "subor_dohody", "sken_dohody", "datum_od", "datum_do", "datum_ukoncenia", "odmena_mesacne", "hod_mesacne", "poznamka","zdroj", "program", "zakazka", "ekoklas" ]
+    list_display = ("cislo", "zmluvna_strana_link", "stav_dohody", "vyplatene", "_predmet", "vynimka", "subor_dohody", "sken_dohody", "odmena_mesacne", "hod_mesacne", "datum_od", "datum_do", "datum_ukoncenia", "poznamka" )
 
     # ^: v poli vyhľadávať len od začiatku
     search_fields = ["cislo", "zmluvna_strana__priezvisko"]
@@ -531,8 +534,9 @@ class DoPCAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelA
         status, msg, vytvoreny_subor = VytvoritSuborDohody(dohoda)
         if status != messages.ERROR:
             dohoda.subor_dohody = vytvoreny_subor
+            dohoda.stav_dohody = StavDohody.VYTVORENA
             dohoda.save()
-            pass
+        self.message_user(request, f"Dohodu teraz treba dať na podpis vedeniu, a potom dať na sekretariát na odoslanie dohodárovi a následne stav dohody zmeniť na '{StavDohody.ODOSLANA_DOHODAROVI.label}'", messages.WARNING)
         self.message_user(request, msg, status)
 
     vytvorit_subor_dohody.short_description = "Vytvoriť súbor dohody"
