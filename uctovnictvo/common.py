@@ -6,7 +6,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.utils import timezone
 from .models import SystemovySubor, PrijataFaktura, AnoNie, Objednavka, PrijataFaktura, Rozhodnutie, Zmluva
-from .models import DoVP, DoPC, Poistovna, TypDochodku, Mena
+from .models import DoVP, DoPC, DoBPS, Poistovna, TypDochodku, Mena
 
 from openpyxl import load_workbook
 from openpyxl.styles import Font, Color, colors, Alignment, PatternFill , numbers

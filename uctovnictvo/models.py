@@ -34,8 +34,10 @@ class StavDohody(models.TextChoices):
     NOVA = "nova", "Nová"                        #Stav dohody po vytvorení
     VYTVORENA = "vytvorena", "Vytvorená"                        #Stav dohody po vytvorení súboru. Treba dať na podpis
     #PODPISANA_ENU = "podpisana_enu", "Podpísaná EnÚ"
+    NAPODPIS = "napodpis", "Daná na podpis vedeniu EnÚ"
     ODOSLANA_DOHODAROVI = "odoslana_dohodarovi", "Daná dohodárovi na podpis"
     PODPISANA_DOHODAROM = "podpisana_dohodarom", "Podpisaná"
+    DOKONCENA = "dokoncena", "Dokončená"
 
 class Poistovna(models.TextChoices):
     VSZP = 'VsZP', 'VšZP'
@@ -568,6 +570,10 @@ class Dohoda(PolymorphicModel, Klasifikacia):
             #help_text = "Z ponuky zvoľte aktuálny stav zmluvy. Autorský honorár môže byť vyplatený len vtedy, keď je v stave 'Platná / Zverejnená v CRZ.",
             help_text = 'Aktuálny stav dohody, <font color="#aa0000">správne nastaviť každej jeho zmene</font>.',
             choices=StavDohody.choices, default=StavDohody.NOVA, blank=True) 
+    dohoda_odoslana= models.DateField('Dohodárovi na podpis ',
+            help_text = 'Dátum odovzdania dohody na sekretariát na odoslanie na podpis (poštou). Vytvorí sa záznam v <a href="/admin/dennik/dokument/">denníku prijatej a odoslanej pošty</a>.',
+            null=True,
+            blank=True)
     vynimka = models.CharField("Uplatnená výnimka", 
             max_length=3, 
             help_text = "Uveďte 'Áno', ak si dohodár na túto dohodu uplatňuje odvodovú výnimku",
@@ -588,14 +594,6 @@ class Dohoda(PolymorphicModel, Klasifikacia):
             help_text = "Dátum odoslania podkladov na vyplatenie, vypĺňa sa automaticky",
             null = True, blank = True,
             max_length=200)
-    # Koho uviesť ako adresata v denniku
-    def adresat(self):
-        return self.zmluvna_strana
-
-    class Meta:
-        verbose_name = "Dohoda"
-        verbose_name_plural = "Dohody"
-        #abstract = True
     subor_dohody = models.FileField("Vygenerovaná dohoda",
             help_text = "Súbor s textom dohody. Generuje sa akciou 'Vytvoriť subor dohody'",
             upload_to=dohoda_upload_location, 
@@ -604,6 +602,13 @@ class Dohoda(PolymorphicModel, Klasifikacia):
             help_text = "Súbor s podpísanou dohodou, treba naskenovať",
             upload_to=dohoda_upload_location, 
             null = True, blank = True)
+    # Koho uviesť ako adresata v denniku
+    def adresat(self):
+        return self.zmluvna_strana
+    class Meta:
+        verbose_name = "Dohoda"
+        verbose_name_plural = "Dohody"
+        #abstract = True
 
 class DoVP(Dohoda):
     oznacenie = "DoVP"
@@ -617,7 +622,7 @@ class DoVP(Dohoda):
             max_digits=8, 
             decimal_places=1, 
             default=0)
-    id_tsh = models.CharField("Číslo pridadené THS",
+    id_tsh = models.CharField("Číslo priradené THS",
             help_text = "Uveďte číslo, pod ktorým dohody vedie THS",
             null = True, blank = True,
             max_length=100)

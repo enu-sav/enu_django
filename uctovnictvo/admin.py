@@ -410,138 +410,128 @@ class Zamestnanec(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAd
         return f"{obj.zapocitane_roky}.{obj.zapocitane_dni}".strip()
     _roky_dni.short_description = "Započítaná prax (roky.dni)"
 
+class DohodaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
+    #Polia Dohoda: cislo zmluvna_strana stav_dohody dohoda_odoslana vynimka predmet datum_od datum_do vyplatene subor_dohody sken_dohody
+    #Polia Klasifikacia: zdroj program zakazka ekoklas 
+    def get_list_display(self, request):
+        #cislo a zmluvna_strana riešime v odvodenej triede
+        return ("stav_dohody", "dohoda_odoslana", "_predmet", "datum_od", "datum_do", "vyplatene", "subor_dohody", "sken_dohody", "vynimka")
+    def get_readonly_fields(self, request, obj=None):
+        polia_klasif = ["zdroj", "program", "zakazka", "ekoklas"]
+        if not obj:
+            return ["subor_dohody","sken_dohody", "dohoda_odoslana", "vyplatene"]
+        elif obj.stav_dohody == StavDohody.NOVA or obj.stav_dohody == StavDohody.VYTVORENA: 
+            return ["cislo", "zmluvna_strana", "subor_dohody","sken_dohody", "dohoda_odoslana", "vyplatene"]
+        elif obj.stav_dohody == StavDohody.NAPODPIS: 
+            return polia_klasif + ["cislo", "zmluvna_strana", "subor_dohody", "sken_dohody", "predmet", "datum_od", "datum_do", "vynimka", "vyplatene"]
+        elif obj.stav_dohody == StavDohody.ODOSLANA_DOHODAROVI: 
+            return polia_klasif + ["cislo", "zmluvna_strana", "subor_dohody", "sken_dohody", "dohoda_odoslana", "predmet", "datum_od", "datum_do", "vynimka", "vyplatene"]
+            
+    def _predmet(self, obj):
+        if obj:
+            return obj.predmet if len(obj.predmet) < 60 else f"{obj.predmet[:60]}..."
+    _predmet.short_description = "Pracovná činnosť                             " # nezalomiteľné medzery ...
 
+    # zoraďovateľný odkaz na dodávateľa
+    # umožnené prostredníctvom AdminChangeLinksMixin
+    # Použité v odvodenenej triede
+    change_links = [
+        ('zmluvna_strana', {
+            'admin_order_field': 'zmluvna_strana__priezvisko', # Allow to sort members by the column
+        })
+    ]
+
+    # ^: v poli vyhľadávať len od začiatku
+    search_fields = ["cislo", "zmluvna_strana__priezvisko"]
+
+    actions = ['vytvorit_subor_dohody']
+    def vytvorit_subor_dohody(self, request, queryset):
+        if len(queryset) != 1:
+            self.message_user(request, f"Vybrať možno len jednu dohodu", messages.ERROR)
+            return
+        dohoda = queryset[0]
+        status, msg, vytvoreny_subor = VytvoritSuborDohody(dohoda)
+        if status != messages.ERROR:
+            dohoda.subor_dohody = vytvoreny_subor
+            dohoda.stav_dohody = StavDohody.VYTVORENA
+            dohoda.save()
+        self.message_user(request, f"Dohodu treba dať na podpis, potom dať na sekretariát na odoslanie dohodárovi a následne stav dohody zmeniť na '{StavDohody.ODOSLANA_DOHODAROVI.label}'", messages.WARNING)
+        self.message_user(request, msg, status)
+
+    vytvorit_subor_dohody.short_description = "Vytvoriť súbor dohody"
+    #Oprávnenie na použitie akcie, viazané na 'change'
+    vytvorit_subor_dohody.allowed_permissions = ('change',)
 
 @admin.register(DoVP)
-class DoVPAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
+class DoVPAdmin(DohodaAdmin):
+    #Polia DoVP: odmena_celkom hod_celkom id_tsh pomocnik
     form = DoVPForm
-    fields = ["cislo", "zmluvna_strana", "stav_dohody", "vynimka", "predmet", "id_tsh", "datum_od", "datum_do", "odmena_celkom", "hod_celkom", "pomocnik", "subor_dohody", "sken_dohody", "poznamka","zdroj", "program", "zakazka", "ekoklas" ]
-    list_display = ("cislo","id_tsh",  "zmluvna_strana_link", "stav_dohody", "vyplatene", "_predmet", "vynimka", "subor_dohody", "sken_dohody", "odmena_celkom", "hod_celkom", "datum_od", "datum_do", "poznamka" )
+    def get_list_display(self, request):
+        list_display = ("cislo", "zmluvna_strana_link", "odmena_celkom", "hod_celkom", "poznamka" )
+        return list_display + super(DoVPAdmin, self).get_list_display(request)
+    def get_readonly_fields(self, request, obj=None):
+        # polia rodičovskej triedy
+        ro_parent = super(DoVPAdmin, self).get_readonly_fields(request, obj)
+        if not obj:
+            return ro_parent
+        elif obj.stav_dohody == StavDohody.NOVA or obj.stav_dohody == StavDohody.VYTVORENA: 
+            return ro_parent
+        elif obj.stav_dohody == StavDohody.NAPODPIS: 
+            return ro_parent + ["odmena_celkom", "hod_celkom", "pomocnik"]
+        elif obj.stav_dohody == StavDohody.ODOSLANA_DOHODAROVI: 
+            return ro_parent + ["odmena_celkom", "hod_celkom", "pomocnik"]
 
-    # ^: v poli vyhľadávať len od začiatku
-    search_fields = ["cislo", "zmluvna_strana__priezvisko"]
-
-    # zoraďovateľný odkaz na dodávateľa
-    # umožnené prostredníctvom AdminChangeLinksMixin
-    change_links = [
-        ('zmluvna_strana', {
-            'admin_order_field': 'zmluvna_strana__priezvisko', # Allow to sort members by the column
-        })
-    ]
     list_totals = [
         ('odmena_celkom', Sum),
     ]
-
-    def _predmet(self, obj):
-        if obj:
-            return obj.predmet if len(obj.predmet) < 60 else f"{obj.predmet[:60]}..."
-    _predmet.short_description = "Pracovná činnosť                             " # nezalomiteľné medzery ...
-
-    actions = ['vytvorit_subor_dohody']
-
-    def vytvorit_subor_dohody(self, request, queryset):
-        if len(queryset) != 1:
-            self.message_user(request, f"Vybrať možno len jednu dohodu", messages.ERROR)
-            return
-        dohoda = queryset[0]
-        status, msg, vytvoreny_subor = VytvoritSuborDohody(dohoda)
-        if status != messages.ERROR:
-            dohoda.subor_dohody = vytvoreny_subor
-            dohoda.stav_dohody = StavDohody.VYTVORENA
-            dohoda.save()
-        self.message_user(request, f"Dohodu teraz treba dať na podpis vedeniu, a potom dať na sekretariát na odoslanie dohodárovi a následne stav dohody zmeniť na '{StavDohody.ODOSLANA_DOHODAROVI.label}'", messages.WARNING)
-        self.message_user(request, msg, status)
-
-    vytvorit_subor_dohody.short_description = "Vytvoriť súbor dohody"
-    #Oprávnenie na použitie akcie, viazané na 'change'
-    vytvorit_subor_dohody.allowed_permissions = ('change',)
 
 @admin.register(DoBPS)
-class DoBPSAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
+class DoBPSAdmin(DohodaAdmin):
+    #Polia DoBPS: odmena_celkom hod_mesacne datum_ukoncenia
     form = DoBPSForm
-    fields = ["cislo", "zmluvna_strana", "stav_dohody", "vynimka", "predmet", "subor_dohody", "sken_dohody", "datum_od", "datum_do", "datum_ukoncenia", "odmena_celkom", "poznamka","zdroj", "program", "zakazka", "ekoklas" ]
-    list_display = ("cislo", "zmluvna_strana_link", "stav_dohody", "vyplatene", "_predmet", "vynimka", "subor_dohody", "sken_dohody", "odmena_celkom", "datum_od", "datum_do", "datum_ukoncenia", "poznamka" )
+    def get_list_display(self, request):
+        list_display = ("cislo", "zmluvna_strana_link", "odmena_celkom", "hod_mesacne", "poznamka" )
+        return list_display + super(DoBPSAdmin, self).get_list_display(request)
+    def get_readonly_fields(self, request, obj=None):
+        # polia rodičovskej triedy
+        ro_parent = super(DoBPSAdmin, self).get_readonly_fields(request, obj)
+        if not obj:
+            return ro_parent
+        elif obj.stav_dohody == StavDohody.NOVA or obj.stav_dohody == StavDohody.VYTVORENA: 
+            return ro_parent
+        elif obj.stav_dohody == StavDohody.NAPODPIS: 
+            return ro_parent + ["odmena_celkom", "hod_mesacne"]
+        elif obj.stav_dohody == StavDohody.ODOSLANA_DOHODAROVI: 
+            return ro_parent + ["odmena_celkom", "hod_mesacne"]
 
-    # ^: v poli vyhľadávať len od začiatku
-    search_fields = ["cislo", "zmluvna_strana__priezvisko"]
-
-    # zoraďovateľný odkaz na dodávateľa
-    # umožnené prostredníctvom AdminChangeLinksMixin
-    change_links = [
-        ('zmluvna_strana', {
-            'admin_order_field': 'zmluvna_strana__priezvisko', # Allow to sort members by the column
-        })
-    ]
     list_totals = [
         ('odmena_celkom', Sum),
     ]
 
-    def _predmet(self, obj):
-        if obj:
-            return obj.predmet if len(obj.predmet) < 60 else f"{obj.predmet[:60]}..."
-    _predmet.short_description = "Pracovná činnosť                             " # nezalomiteľné medzery ...
-
-    actions = ['vytvorit_subor_dohody']
-
-    def vytvorit_subor_dohody(self, request, queryset):
-        if len(queryset) != 1:
-            self.message_user(request, f"Vybrať možno len jednu dohodu", messages.ERROR)
-            return
-        dohoda = queryset[0]
-        status, msg, vytvoreny_subor = VytvoritSuborDohody(dohoda)
-        if status != messages.ERROR:
-            dohoda.subor_dohody = vytvoreny_subor
-            dohoda.stav_dohody = StavDohody.VYTVORENA
-            dohoda.save()
-        self.message_user(request, f"Dohodu teraz treba dať na podpis vedeniu, a potom dať na sekretariát na odoslanie dohodárovi a následne stav dohody zmeniť na '{StavDohody.ODOSLANA_DOHODAROVI.label}'", messages.WARNING)
-        self.message_user(request, msg, status)
-
-    vytvorit_subor_dohody.short_description = "Vytvoriť súbor dohody"
-    #Oprávnenie na použitie akcie, viazané na 'change'
-    vytvorit_subor_dohody.allowed_permissions = ('change',)
-
 @admin.register(DoPC)
-class DoPCAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
+class DoPCAdmin(DohodaAdmin):
+#class DoPCAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
+    #Polia DoPC: odmena_mesacne hod_mesacne datum_ukoncenia
     form = DoPCForm
-    fields = ["cislo", "zmluvna_strana", "stav_dohody", "vynimka", "predmet", "subor_dohody", "sken_dohody", "datum_od", "datum_do", "datum_ukoncenia", "odmena_mesacne", "hod_mesacne", "poznamka","zdroj", "program", "zakazka", "ekoklas" ]
-    list_display = ("cislo", "zmluvna_strana_link", "stav_dohody", "vyplatene", "_predmet", "vynimka", "subor_dohody", "sken_dohody", "odmena_mesacne", "hod_mesacne", "datum_od", "datum_do", "datum_ukoncenia", "poznamka" )
+    #list_display = ("cislo", "zmluvna_strana_link", "stav_dohody", "dohoda_odoslana", "vyplatene", "_predmet", "vynimka", "subor_dohody", "sken_dohody", "odmena_mesacne", "hod_mesacne", "datum_od", "datum_do", "datum_ukoncenia", "poznamka" )
+    def get_list_display(self, request):
+        list_display = ("cislo", "zmluvna_strana_link", "odmena_mesacne", "hod_mesacne", "datum_ukoncenia", "poznamka" )
+        return list_display + super(DoPCAdmin, self).get_list_display(request)
+    def get_readonly_fields(self, request, obj=None):
+        # polia rodičovskej triedy
+        ro_parent = super(DoPCAdmin, self).get_readonly_fields(request, obj)
+        if not obj:
+            return ro_parent
+        elif obj.stav_dohody == StavDohody.NOVA or obj.stav_dohody == StavDohody.VYTVORENA: 
+            return ro_parent
+        elif obj.stav_dohody == StavDohody.NAPODPIS: 
+            return ro_parent + ["odmena_mesacne", "hod_mesacne"]
+        elif obj.stav_dohody == StavDohody.ODOSLANA_DOHODAROVI: 
+            return ro_parent + ["odmena_mesacne", "hod_mesacne"]
 
-    # ^: v poli vyhľadávať len od začiatku
-    search_fields = ["cislo", "zmluvna_strana__priezvisko"]
-
-    # zoraďovateľný odkaz na dodávateľa
-    # umožnené prostredníctvom AdminChangeLinksMixin
-    change_links = [
-        ('zmluvna_strana', {
-            'admin_order_field': 'zmluvna_strana__priezvisko', # Allow to sort members by the column
-        })
-    ]
     list_totals = [
         ('odmena_mesacne', Sum),
     ]
-    actions = ['vytvorit_subor_dohody']
-
-    def _predmet(self, obj):
-        if obj:
-            return obj.predmet if len(obj.predmet) < 60 else f"{obj.predmet[:60]}..."
-    _predmet.short_description = "Pracovná činnosť                             " # nezalomiteľné medzery ...
-
-    def vytvorit_subor_dohody(self, request, queryset):
-        if len(queryset) != 1:
-            self.message_user(request, f"Vybrať možno len jednu dohodu", messages.ERROR)
-            return
-        dohoda = queryset[0]
-        status, msg, vytvoreny_subor = VytvoritSuborDohody(dohoda)
-        if status != messages.ERROR:
-            dohoda.subor_dohody = vytvoreny_subor
-            dohoda.stav_dohody = StavDohody.VYTVORENA
-            dohoda.save()
-        self.message_user(request, f"Dohodu teraz treba dať na podpis vedeniu, a potom dať na sekretariát na odoslanie dohodárovi a následne stav dohody zmeniť na '{StavDohody.ODOSLANA_DOHODAROVI.label}'", messages.WARNING)
-        self.message_user(request, msg, status)
-
-    vytvorit_subor_dohody.short_description = "Vytvoriť súbor dohody"
-    #Oprávnenie na použitie akcie, viazané na 'change'
-    vytvorit_subor_dohody.allowed_permissions = ('change',)
 
 @admin.register(VyplacanieDohod)
 class VyplacanieDohodAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
@@ -555,7 +545,6 @@ class VyplacanieDohodAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAd
         ('dan_dohodar', Sum),
         ('na_ucet', Sum)
     ]
-    #"poistne_zamestnavatel", "poistne_dohodar", "dan_dohodar", "vyplatena_odmena",
 
     # zoraďovateľný odkaz na dodávateľa
     change_links = [
@@ -705,3 +694,5 @@ class PlatovyVymerAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
     duplikovat_zaznam.short_description = "Duplikovať platobný výmer"
     #Oprávnenie na použitie akcie, viazané na 'change'
     duplikovat_zaznam.allowed_permissions = ('change',)
+
+
