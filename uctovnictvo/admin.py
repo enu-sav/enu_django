@@ -481,6 +481,8 @@ class DoVPAdmin(DohodaAdmin):
         elif obj.stav_dohody == StavDohody.ODOSLANA_DOHODAROVI: 
             return ro_parent + ["odmena_celkom", "hod_celkom", "pomocnik"]
 
+    # od februára 2022 sa id_tsh nepoužíva
+    exclude = ["id_tsh"]
     list_totals = [
         ('odmena_celkom', Sum),
     ]
