@@ -5,9 +5,9 @@ from django.core.exceptions import ValidationError
 from ipdb import set_trace as trace
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
-from .models import PrijataFaktura, Objednavka, PrispevokNaStravne, DoPC, DoVP, DoBPS, PlatovyVymer, VyplacanieDohod
+from .models import PrijataFaktura, Objednavka, PrispevokNaStravne, DoPC, DoVP, DoBPS, PlatovyVymer, VyplacanieDohod, StavDohody, Dohoda
 from dennik.models import Dokument, SposobDorucenia, TypDokumentu, InOut
-from datetime import datetime
+from datetime import date, datetime
 import re
 
 # Pre triedu classname určí číslo nasledujúceho záznamu v pvare X-2021-NNN
@@ -126,9 +126,55 @@ class AutorskeZmluvyForm(forms.ModelForm):
         self.initial['zakazka'] = 1     #Beliana
         self.initial['ekoklas'] = 58    #633018	Licencie
 
+class DohodaForm(forms.ModelForm):
+    # Skontrolovať platnost a keď je všetko OK, spraviť záznam do denníka
+    def clean(self):
+        do_name = Dohoda._meta.get_field('dohoda_odoslana').verbose_name
+        try:
+            if 'dohoda_odoslana' in self.changed_data and 'stav_dohody' in self.changed_data:
+                if self.instance.subor_dohody and self.cleaned_data['stav_dohody'] == StavDohody.ODOSLANA_DOHODAROVI:   # súbor dohody musí existovať
+                    vec = f"Zmluva {self.instance.cislo} autorovi na podpis"
+                    cislo = nasledujuce_cislo(Dokument)
+                    dok = Dokument(
+                        cislo = cislo,
+                        cislopolozky = self.instance.cislo,
+                        datumvytvorenia = date.today(), 
+                        typdokumentu = TypDokumentu.DoVP if type(self.instance)== DoVP else TypDokumentu.DoPC if type(self.instance) == DoPC else TypDokumentu.DoBPS,
+                        inout = InOut.ODOSLANY,
+                        adresat = self.instance.zmluvna_strana,
+                        vec = f'<a href="{self.instance.subor_dohody.url}">{vec}</a>',
+                        prijalodoslal=self.request.user.username, #zámena mien prijalodoslal - zaznamvytvoril
+                    )
+                    dok.save()
+                    messages.warning(self.request, f"Do denníka prijatej a odoslanej pošty bol pridaný záznam č. {cislo} '{vec}'")
+                    return self.cleaned_data
+                elif not self.instance.subor_dohody:
+                    raise ValidationError({"stav_dohody":f"Stav dohody možno zmeniť na '{StavDohody.ODOSLANA_DOHODAROVI.label}' až po vygenerovaní súboru dohody akciou 'Vytvoriť súbor dohody' a po jej podpísaní vedením EnÚ."})
+                elif self.instance.stav_dohody != StavDohody.ODOSLANA_DOHODAROVI:
+                    raise ValidationError({"stav_dohody":f"Ak bolo vyplnené pole '{do_name}', stav dohody musí byť zmenený na '{StavDohody.ODOSLANA_DOHODAROVI.label}'."})
+            elif 'dohoda_odoslana' in self.changed_data and not 'stav_dohody' in self.changed_data:
+                raise ValidationError({"stav_dohody":f"Ak bolo vyplnené pole '{do_name}', stav dohody musí byť zmenený na '{StavDohody.ODOSLANA_DOHODAROVI.label}'."})
+            elif not 'dohoda_odoslana' in self.changed_data and 'stav_dohody' in self.changed_data and self.cleaned_data["stav_dohody"] == StavDohody.ODOSLANA_DOHODAROVI:
+                #vrátiť na pôvodnú hodnotu, inak bude pole 'dohoda_odoslana' readonly
+                self.cleaned_data["stav_dohody"]=self.instance.stav_dohody
+                if not self.instance.subor_dohody:
+                    raise ValidationError(f"Ak chcete stav dohody zmeniť na '{StavDohody.ODOSLANA_DOHODAROVI.label}', tak najskôr treba vygenerovať súbor dohody akciou 'Vytvoriť súbor dohody'.")
+                else:
+                    raise ValidationError({"dohoda_odoslana":f"Ak chcete stav dohody zmeniť na '{StavDohody.ODOSLANA_DOHODAROVI.label}', tak treba vyplniť aj pole '{do_name}'."})
+        except ValidationError as ex:
+            raise ex
+        if "stav_dohody" in self.cleaned_data and self.cleaned_data["stav_dohody"] == StavDohody.NOVA:
+            messages.warning(self.request, f"Po vyplnení údajov treba vygenerovať súbor dohody akciou 'Vytvoriť súbor dohody'")
+        elif "stav_dohody" in self.cleaned_data and self.cleaned_data["stav_dohody"] == StavDohody.VYTVORENA:
+            messages.warning(self.request, f"Po aktualizácii údajov treba opakovane vygenerovať súbor dohody akciou 'Vytvoriť súbor dohody'")
+        elif "stav_dohody" in self.cleaned_data and self.cleaned_data["stav_dohody"] == StavDohody.NAPODPIS:
+            messages.warning(self.request, f"Podpísanú dohodu treba dať na sekretariát na odoslanie dohodárovi a následne stav dohody zmeniť na '{StavDohody.ODOSLANA_DOHODAROVI.label}'")
+
 class DoPCForm(forms.ModelForm):
     #inicializácia polí
     def __init__(self, *args, **kwargs):
+        # do Admin treba pridať metódu get_form
+        self.request = kwargs.pop('request', None)
         super().__init__(*args, **kwargs)
         self.initial['zdroj'] = 1       #111
         self.initial['program'] = 1     #Ostatné
@@ -144,9 +190,11 @@ class DoPCForm(forms.ModelForm):
             else:
                 self.fields[polecislo].help_text = f"Číslo faktúry v tvare {DoPC.oznacenie}-RRRR-NNN."
 
-class DoVPForm(forms.ModelForm):
+class DoVPForm(DohodaForm):
     #inicializácia polí
     def __init__(self, *args, **kwargs):
+        # do Admin treba pridať metódu get_form
+        self.request = kwargs.pop('request', None)
         super().__init__(*args, **kwargs)
         self.initial['zdroj'] = 1       #111
         self.initial['program'] = 1     #Ostatné
@@ -165,6 +213,8 @@ class DoVPForm(forms.ModelForm):
 class DoBPSForm(forms.ModelForm):
     #inicializácia polí
     def __init__(self, *args, **kwargs):
+        # do Admin treba pridať metódu get_form
+        self.request = kwargs.pop('request', None)
         super().__init__(*args, **kwargs)
         self.initial['zdroj'] = 1       #111
         self.initial['program'] = 1     #Ostatné

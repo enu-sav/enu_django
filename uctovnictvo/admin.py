@@ -426,6 +426,13 @@ class DohodaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, Mode
             return polia_klasif + ["cislo", "zmluvna_strana", "subor_dohody", "sken_dohody", "predmet", "datum_od", "datum_do", "vynimka", "vyplatene"]
         elif obj.stav_dohody == StavDohody.ODOSLANA_DOHODAROVI: 
             return polia_klasif + ["cislo", "zmluvna_strana", "subor_dohody", "sken_dohody", "dohoda_odoslana", "predmet", "datum_od", "datum_do", "vynimka", "vyplatene"]
+        elif obj.stav_dohody == StavDohody.PODPISANA_DOHODAROM:
+            return polia_klasif + ["cislo", "zmluvna_strana", "subor_dohody", "dohoda_odoslana", "predmet", "datum_od", "datum_do", "vynimka", "vyplatene"]
+        elif obj.stav_dohody == StavDohody.DOKONCENA:
+            return polia_klasif + ["cislo", "zmluvna_strana", "subor_dohody", "dohoda_odoslana", "predmet", "datum_od", "datum_do", "vynimka"]
+        else:
+            #sem by sme nemali prist
+            return polia_klasif
             
     def _predmet(self, obj):
         if obj:
@@ -455,7 +462,7 @@ class DohodaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, Mode
             dohoda.subor_dohody = vytvoreny_subor
             dohoda.stav_dohody = StavDohody.VYTVORENA
             dohoda.save()
-        self.message_user(request, f"Dohodu treba dať na podpis, potom dať na sekretariát na odoslanie dohodárovi a následne stav dohody zmeniť na '{StavDohody.ODOSLANA_DOHODAROVI.label}'", messages.WARNING)
+        self.message_user(request, f"Dohodu treba po vytvorení súboru dať na podpis vedeniu EnÚ a jej stav treba zmeniť na '{StavDohody.NAPODPIS.label}'", messages.WARNING)
         self.message_user(request, msg, status)
 
     vytvorit_subor_dohody.short_description = "Vytvoriť súbor dohody"
@@ -480,6 +487,22 @@ class DoVPAdmin(DohodaAdmin):
             return ro_parent + ["odmena_celkom", "hod_celkom", "pomocnik"]
         elif obj.stav_dohody == StavDohody.ODOSLANA_DOHODAROVI: 
             return ro_parent + ["odmena_celkom", "hod_celkom", "pomocnik"]
+        elif obj.stav_dohody == StavDohody.PODPISANA_DOHODAROM:
+            return ro_parent + ["odmena_celkom", "hod_celkom", "pomocnik"]
+        elif obj.stav_dohody == StavDohody.DOKONCENA:
+            return ro_parent + ["odmena_celkom", "hod_celkom", "pomocnik"]
+        else:
+            #sem by sme nemali prist
+            return [ro_parent]
+
+    # do AdminForm pridať request, aby v jej __init__ bolo request dostupné
+    def get_form(self, request, obj=None, **kwargs):
+        AdminForm = super(DoVPAdmin, self).get_form(request, obj, **kwargs)
+        class AdminFormMod(AdminForm):
+            def __new__(cls, *args, **kwargs):
+                kwargs['request'] = request
+                return AdminForm(*args, **kwargs)
+        return AdminFormMod
 
     # od februára 2022 sa id_tsh nepoužíva
     exclude = ["id_tsh"]
@@ -492,7 +515,7 @@ class DoBPSAdmin(DohodaAdmin):
     #Polia DoBPS: odmena_celkom hod_mesacne datum_ukoncenia
     form = DoBPSForm
     def get_list_display(self, request):
-        list_display = ("cislo", "zmluvna_strana_link", "odmena_celkom", "hod_mesacne", "poznamka" )
+        list_display = ("cislo", "zmluvna_strana_link", "odmena_celkom", "hod_mesacne", "datum_ukoncenia", "poznamka" )
         return list_display + super(DoBPSAdmin, self).get_list_display(request)
     def get_readonly_fields(self, request, obj=None):
         # polia rodičovskej triedy
@@ -502,9 +525,25 @@ class DoBPSAdmin(DohodaAdmin):
         elif obj.stav_dohody == StavDohody.NOVA or obj.stav_dohody == StavDohody.VYTVORENA: 
             return ro_parent
         elif obj.stav_dohody == StavDohody.NAPODPIS: 
-            return ro_parent + ["odmena_celkom", "hod_mesacne"]
+            return ro_parent + ["odmena_celkom", "hod_mesacne", "datum_ukoncenia"]
         elif obj.stav_dohody == StavDohody.ODOSLANA_DOHODAROVI: 
+            return ro_parent + ["odmena_celkom", "hod_mesacne", "datum_ukoncenia"]
+        elif obj.stav_dohody == StavDohody.PODPISANA_DOHODAROM:
             return ro_parent + ["odmena_celkom", "hod_mesacne"]
+        elif obj.stav_dohody == StavDohody.DOKONCENA:
+            return ro_parent + ["odmena_celkom", "hod_mesacne"]
+        else:
+            #sem by sme nemali prist
+            return [ro_parent]
+
+    # do AdminForm pridať request, aby v jej __init__ bolo request dostupné
+    def get_form(self, request, obj=None, **kwargs):
+        AdminForm = super(DoBPSAdmin, self).get_form(request, obj, **kwargs)
+        class AdminFormMod(AdminForm):
+            def __new__(cls, *args, **kwargs):
+                kwargs['request'] = request
+                return AdminForm(*args, **kwargs)
+        return AdminFormMod
 
     list_totals = [
         ('odmena_celkom', Sum),
@@ -523,13 +562,29 @@ class DoPCAdmin(DohodaAdmin):
         # polia rodičovskej triedy
         ro_parent = super(DoPCAdmin, self).get_readonly_fields(request, obj)
         if not obj:
-            return ro_parent
+            return ro_parent + ["datum_ukoncenia"]
         elif obj.stav_dohody == StavDohody.NOVA or obj.stav_dohody == StavDohody.VYTVORENA: 
-            return ro_parent
+            return ro_parent + ["datum_ukoncenia"]
         elif obj.stav_dohody == StavDohody.NAPODPIS: 
-            return ro_parent + ["odmena_mesacne", "hod_mesacne"]
+            return ro_parent + ["odmena_mesacne", "hod_mesacne", "datum_ukoncenia"]
         elif obj.stav_dohody == StavDohody.ODOSLANA_DOHODAROVI: 
+            return ro_parent + ["odmena_mesacne", "hod_mesacne", "datum_ukoncenia"]
+        elif obj.stav_dohody == StavDohody.PODPISANA_DOHODAROM:
             return ro_parent + ["odmena_mesacne", "hod_mesacne"]
+        elif obj.stav_dohody == StavDohody.DOKONCENA:
+            return ro_parent + ["odmena_mesacne", "hod_mesacne"]
+        else:
+            #sem by sme nemali prist
+            return [ro_parent]
+
+    # do AdminForm pridať request, aby v jej __init__ bolo request dostupné
+    def get_form(self, request, obj=None, **kwargs):
+        AdminForm = super(DoPCAdmin, self).get_form(request, obj, **kwargs)
+        class AdminFormMod(AdminForm):
+            def __new__(cls, *args, **kwargs):
+                kwargs['request'] = request
+                return AdminForm(*args, **kwargs)
+        return AdminFormMod
 
     list_totals = [
         ('odmena_mesacne', Sum),

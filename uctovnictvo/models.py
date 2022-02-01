@@ -36,7 +36,7 @@ class StavDohody(models.TextChoices):
     #PODPISANA_ENU = "podpisana_enu", "Podpísaná EnÚ"
     NAPODPIS = "napodpis", "Daná na podpis vedeniu EnÚ"
     ODOSLANA_DOHODAROVI = "odoslana_dohodarovi", "Daná dohodárovi na podpis"
-    PODPISANA_DOHODAROM = "podpisana_dohodarom", "Podpisaná"
+    PODPISANA_DOHODAROM = "podpisana_dohodarom", "Podpísaná"
     DOKONCENA = "dokoncena", "Dokončená"
 
 class Poistovna(models.TextChoices):
@@ -569,11 +569,10 @@ class Dohoda(PolymorphicModel, Klasifikacia):
     stav_dohody = models.CharField(max_length=20,
             #help_text = "Z ponuky zvoľte aktuálny stav zmluvy. Autorský honorár môže byť vyplatený len vtedy, keď je v stave 'Platná / Zverejnená v CRZ.",
             help_text = 'Aktuálny stav dohody, <font color="#aa0000">správne nastaviť každej jeho zmene</font>.',
-            choices=StavDohody.choices, default=StavDohody.NOVA, blank=True) 
+            choices=StavDohody.choices, default=StavDohody.NOVA)
     dohoda_odoslana= models.DateField('Dohodárovi na podpis ',
             help_text = 'Dátum odovzdania dohody na sekretariát na odoslanie na podpis (poštou). Vytvorí sa záznam v <a href="/admin/dennik/dokument/">denníku prijatej a odoslanej pošty</a>.',
-            null=True,
-            blank=True)
+            null=True)
     vynimka = models.CharField("Uplatnená výnimka", 
             max_length=3, 
             help_text = "Uveďte 'Áno', ak si dohodár na túto dohodu uplatňuje odvodovú výnimku",
@@ -605,6 +604,7 @@ class Dohoda(PolymorphicModel, Klasifikacia):
     # Koho uviesť ako adresata v denniku
     def adresat(self):
         return self.zmluvna_strana
+
     class Meta:
         verbose_name = "Dohoda"
         verbose_name_plural = "Dohody"
@@ -616,12 +616,12 @@ class DoVP(Dohoda):
             help_text = "Zadajte celkovú odmenu za vykonanú prácu. Bude vyplatená po odovzdaní práce a výkazu",
             max_digits=8, 
             decimal_places=2, 
-            default=0)
+            null=True)
     hod_celkom = models.DecimalField("Predpokl. počet hodín",
             help_text = "Uveďte predpokladaný celkový počet odpracovaných hodín, najviac 350.",
             max_digits=8, 
             decimal_places=1, 
-            default=0)
+            null=True)
     id_tsh = models.CharField("Číslo priradené THS",
             help_text = "Uveďte číslo, pod ktorým dohody vedie THS",
             null = True, blank = True,
@@ -651,12 +651,12 @@ class DoBPS(Dohoda):
             help_text = "Zadajte celkovú odmenu za vykonanú prácu. Bude vyplatená po odovzdaní práce a výkazu",
             max_digits=8, 
             decimal_places=2, 
-            default=0)
+            null=True)
     hod_mesacne = models.DecimalField("Predpokl. počet hodín mesačne",
             help_text = "Uveďte predpokladaný priemerný počet odpracovaných hodín. Počet nesmie v priemere prekračovať 80 hodín mesačne",
             max_digits=8, 
             decimal_places=1, 
-            default=0)
+            null=True)
     datum_ukoncenia = models.DateField('Dátum ukončenia',
             help_text = "Zadajte dátum predčasného ukončenia platnosti dohody",
             blank = True,
@@ -674,12 +674,12 @@ class DoPC(Dohoda):
             help_text = "Dohodnutá mesačná odmena",
             max_digits=8,
             decimal_places=2, 
-            default=0)
+            null=True)
     hod_mesacne = models.DecimalField("Hodín za mesiac",
             help_text = "Dohodnutý počet odpracovaných hodín za mesiac, najviac 40",
             max_digits=8, 
             decimal_places=1, 
-            default=0)
+            null=True)
     datum_ukoncenia = models.DateField('Dátum ukončenia',
             help_text = "Zadajte dátum predčasného ukončenia platnosti dohody",
             blank = True,
