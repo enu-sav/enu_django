@@ -493,7 +493,9 @@ class DoVPAdmin(DohodaAdmin):
             return ro_parent + ["odmena_celkom", "hod_celkom", "pomocnik"]
         else:
             #sem by sme nemali prist
-            return [ro_parent]
+            trace()
+            pass
+            return ro_parent
 
     # do AdminForm pridať request, aby v jej __init__ bolo request dostupné
     def get_form(self, request, obj=None, **kwargs):
@@ -534,7 +536,7 @@ class DoBPSAdmin(DohodaAdmin):
             return ro_parent + ["odmena_celkom", "hod_mesacne"]
         else:
             #sem by sme nemali prist
-            return [ro_parent]
+            return ro_parent
 
     # do AdminForm pridať request, aby v jej __init__ bolo request dostupné
     def get_form(self, request, obj=None, **kwargs):
@@ -575,7 +577,7 @@ class DoPCAdmin(DohodaAdmin):
             return ro_parent + ["odmena_mesacne", "hod_mesacne"]
         else:
             #sem by sme nemali prist
-            return [ro_parent]
+            return ro_parent
 
     # do AdminForm pridať request, aby v jej __init__ bolo request dostupné
     def get_form(self, request, obj=None, **kwargs):
