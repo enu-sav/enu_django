@@ -169,6 +169,22 @@ class DohodaForm(forms.ModelForm):
             messages.warning(self.request, f"Po aktualizácii údajov treba opakovane vygenerovať súbor dohody akciou 'Vytvoriť súbor dohody'")
         elif "stav_dohody" in self.cleaned_data and self.cleaned_data["stav_dohody"] == StavDohody.NAPODPIS:
             messages.warning(self.request, f"Podpísanú dohodu treba dať na sekretariát na odoslanie dohodárovi a následne stav dohody zmeniť na '{StavDohody.ODOSLANA_DOHODAROVI.label}'")
+        elif "stav_dohody" in self.changed_data and self.cleaned_data["stav_dohody"] == StavDohody.DOKONCENA:
+            #Vytvoriť záznam do denníka
+            vec = f"Podpísaná dohoda {self.instance.cislo} od autora"
+            cislo = nasledujuce_cislo(Dokument)
+            dok = Dokument(
+                cislo = cislo,
+                cislopolozky = self.instance.cislo,
+                datumvytvorenia = date.today(), 
+                typdokumentu = TypDokumentu.DoVP if type(self.instance)== DoVP else TypDokumentu.DoPC if type(self.instance) == DoPC else TypDokumentu.DoBPS,
+                inout = InOut.PRIJATY,
+                adresat = self.instance.zmluvna_strana,
+                vec = f'<a href="{self.instance.subor_dohody.url}">{vec}</a>',
+                prijalodoslal=self.request.user.username, #zámena mien prijalodoslal - zaznamvytvoril
+            )
+            dok.save()
+            messages.warning(self.request, f"Sken podpísanej dohody treba vložiť do poľa '{Dohoda.sken_dohody.label}'. Po vypršaní dohody treba spraviť záznam do 'Dohody - Vyplácanie dohôd'")
 
 class DoPCForm(forms.ModelForm):
     #inicializácia polí
