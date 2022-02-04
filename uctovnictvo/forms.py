@@ -133,7 +133,7 @@ class DohodaForm(forms.ModelForm):
         try:
             if 'dohoda_odoslana' in self.changed_data and 'stav_dohody' in self.changed_data:
                 if self.instance.subor_dohody and self.cleaned_data['stav_dohody'] == StavDohody.ODOSLANA_DOHODAROVI:   # súbor dohody musí existovať
-                    vec = f"Zmluva {self.instance.cislo} autorovi na podpis"
+                    vec = f"Dohoda {self.instance.cislo} autorovi na podpis"
                     cislo = nasledujuce_cislo(Dokument)
                     dok = Dokument(
                         cislo = cislo,
@@ -269,14 +269,16 @@ class VyplacanieDohodForm(forms.ModelForm):
                 dtype="dopc"
             elif type(dohoda) == DoBPS:
                 dtype="dobps"
+            trace()
             dok = Dokument(
                 cislo = cislo,
-                datum = self.cleaned_data['datum_vyplatenia'],
-                odosielatel = f"Vyplatenie dohody {dohoda}",
+                inout = InOut.ODOSLANY,
+                typdokumentu = TypDokumentu.DoVP if type(dohoda)== DoVP else TypDokumentu.DoPC if type(dohoda) == DoPC else TypDokumentu.DoBPS,
                 adresat = "Mzdové oddelenie", 
                 vec = f'Podklady na vyplatenie dohody <a href="/admin/uctovnictvo/{dtype}/{dohoda.id}/change/">{dohoda}</a>',
-                prijalodoslal=self.request.user.username,
-                sposob = SposobDorucenia.IPOSTA
+                prijalodoslal=self.request.user.username, #zámena mien prijalodoslal - zaznamvytvoril
+                datumvytvorenia = date.today(), 
+                cislopolozky = dohoda.cislo
             )
             dok.save()
             messages.warning(self.request, f"Do denníka prijatej a odoslanej pošty bol pridaný záznam č. {cislo} '{vec}'")
