@@ -1,8 +1,11 @@
 from django.db import models
+from beliana import settings
 from simple_history.models import HistoricalRecords
 from django.core.exceptions import ValidationError
+from django.core.validators import FileExtensionValidator
+from uctovnictvo.storage import OverwriteStorage
 from ipdb import set_trace as trace
-import re
+import re, os
 
 class InOut(models.TextChoices):
     PRIJATY = 'prijaty', 'Príjem'
@@ -20,6 +23,13 @@ class TypDokumentu(models.TextChoices):
     DoPC = 'dopc', 'DoPC'
     DoBPS = 'dobps', 'DoBPS'
     INY = 'iny', 'Iný'
+
+# Typy šablón na vyplňovanie. Určuje, zoznam povolených tokenov v šablóne
+class TypFormulara(models.TextChoices):
+    VSEOBECNY = 'vseobecny', 'Všeobecný dokument'    #Ľubovoľné tokeny, bez väzby na databázu
+    #AUTOR = 'autor', 'Formulár k autorským zmluvám'    #Ľubovoľné tokeny plus vybrané tokeny autorských zmlúv
+    #DOHZAM = 'dohzam', 'Formulár pre dohodárov a zamestnancov'    #Ľubovoľné tokeny plus vybrané tokeny pre dohodárov a zamestnancov
+    #ZRAZENA = 'zrazena', 'Potvrdenie o zrazenej dani'    # bez dátového súboru
 
 class SposobDorucenia(models.TextChoices):
     POSTA = 'posta', 'Pošta'
@@ -81,10 +91,67 @@ class Dokument(models.Model):
     datumvytvorenia = models.DateField("Dátum vytvorenia záznamu",
             help_text = "Dátum vytvorenia záznamu (vypĺňané automaticky)",
             null = True)
-    
+
     history = HistoricalRecords()
     class Meta:
         verbose_name = 'Prijatá alebo odoslaná pošta'
         verbose_name_plural = 'Denník prijatej a odoslanej pošty'
     def __str__(self):
         return(self.cislo)
+
+def form_file_path(instance, filename):
+    return os.path.join(settings.FORM_DIR_NAME, filename)
+class Formular(models.Model):
+    oznacenie = "Form"
+    typformulara = models.CharField("Typ šablóny",
+            max_length=20, choices=TypFormulara.choices, 
+            help_text = """Uveďte typ šablóny. Určuje, aké tokeny možno použiť:
+                <ul>
+                <li><em>Všeobecný dokument</em>: ľubovoľné tokeny, bez väzby na databázu</li>
+                </ul>""",
+            null=True)
+    subor_nazov =  models.CharField("Názov",
+            help_text = "Krátky názov dokumentu",
+            max_length=40)
+    subor_popis = models.TextField("Popis",
+            help_text = "Dlhší popis k dokumentu: účel, poznámky a pod.",
+            blank = True,
+            max_length=250)
+    na_odoslanie = models.DateField('Na odoslanie dňa',
+            help_text = 'Zadajte dátum odovzdania vytvorených dokumentov na sekretariát na odoslanie. <br />Vytvorí sa záznam v <a href="/admin/dennik/dokument/">denníku prijatej a odoslanej pošty</a>.</br />Po odoslaní nemožno ďalej upravovať',
+            blank=True, null=True)
+    # opakované uploadovanie súboru vytvorí novú verziu
+    #subor = models.FileField("Súbor",upload_to=TMPLTS_DIR_NAME, null = True, blank = True)
+    # opakované uploadovanie súboru prepíše existujúci súbor (nevytvorí novú verziu)
+    #fodt súbor šablóny
+    sablona = models.FileField("Šablóna dokumentu", storage=OverwriteStorage(),
+            help_text = "FODT súbor šablóny na generovanie dokumentu. <br />Polia na vyplnenie musia byť definované ako [[tokeny]] s dvojitými hranatými zátvorkami.<br />Posledná strana šablóny musí byť vyplnená prázdnymi riadkami až po koniec strany. <br />Tokeny sa musia presne zhodovať s názvami stĺpcov v dátovom súbore.",
+            upload_to=form_file_path,
+            validators=[FileExtensionValidator(allowed_extensions=['fodt'])],
+            null = True,
+    )
+    #xlsx súbor s dátami na vyplnenie šablóny
+    data = models.FileField("Dáta", storage=OverwriteStorage(),
+            help_text = "XLSX súbor s dátami na generovanie. <br />Názvy stĺpcov na vyplnenie sa musia presne zhodovať s tokenmi v šablóne (bez zátvoriek).<br />Názvy stĺpcov, ktoré majú byť formátované s dvomi des. miestami, musia začínať 'n_'.",
+            upload_to=form_file_path,
+            validators=[FileExtensionValidator(allowed_extensions=['xlsx'])],
+            null = True,
+    )
+    #xlsx súbor s dátami na vyplnenie šablóny
+    vyplnene = models.FileField("Vytvorený súbor", storage=OverwriteStorage(),
+            help_text = "Vytvorený súbor hromadného dokumentu vo formáte FODT (vytvorený akciou 'Vytvoriť súbor hromadného dokumentu').",
+            upload_to=form_file_path,
+            null = True,
+    )
+    #xlsx súbor s dátami na vyplnenie šablóny
+    vyplnene_data = models.FileField("Vyplnené dáta", storage=OverwriteStorage(),
+            help_text = "XLSX súbor s dátami použitými na vytvorenie hromadného dokumentu (vytvorený akciou 'Vyplniť formulár').",
+            upload_to=form_file_path,
+            null = True
+    )
+    history = HistoricalRecords()
+    class Meta:
+            verbose_name = 'Hromadný dokument'
+            verbose_name_plural = 'Hromadné dokumenty'
+    def __str__(self):
+            return(self.subor_nazov)

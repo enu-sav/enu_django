@@ -1,11 +1,13 @@
 from django.contrib import admin
 
 # Register your models here.
-from .models import Dokument,TypDokumentu
+from .models import Dokument,TypDokumentu, TypFormulara, Formular
 from .forms import DokumentForm, overit_polozku, parse_cislo
+from dennik.common import VyplnitAVygenerovat
 from ipdb import set_trace as trace
 from django.utils.html import format_html
 from django.utils import timezone
+from django.contrib import messages
 from zmluvy.models import ZmluvaAutor, ZmluvaGrafik, VytvarnaObjednavkaPlatba
 from uctovnictvo.models import Objednavka, PrijataFaktura, PrispevokNaStravne, DoVP, DoPC, DoBPS
 import re
@@ -80,3 +82,42 @@ class DokumentAdmin(ZobrazitZmeny,ImportExportModelAdmin):
             obj.typdokumentu = TypDokumentu.INY
         super().save_model(request, obj, form, change)
 
+#Hromadný dokument
+@admin.register(Formular)
+class FormularAdmin(ZobrazitZmeny):
+    pass
+
+    list_display = ["subor_nazov", "typformulara", "na_odoslanie", "sablona", "data", "vyplnene", "vyplnene_data"]
+    def get_readonly_fields(self, request, obj=None):
+        if not obj:
+            return ["na_odoslanie", "vyplnene", "vyplnene_data"]
+        elif not obj.na_odoslanie:
+            return ["vyplnene", "vyplnene_data"]
+        else:
+            return ["typformulara", "subor_nazov", "subor_popis", "na_odoslanie", "sablona", "data", "vyplnene", "vyplnene_data"]
+
+    actions = ['vyplnit_a_vygenerovat']
+
+    def vyplnit_a_vygenerovat(self, request, queryset):
+        if len(queryset) != 1:
+            messages.error(request, f"Vybrať možno len jednu položku")
+            return
+        formular = queryset[0]
+        status, msg, vyplnene, vyplnene_data = VyplnitAVygenerovat(formular)
+        self.message_user(request, msg, status)
+        if status != messages.ERROR:
+            formular.vyplnene = vyplnene
+            formular.vyplnene_data = vyplnene_data
+            formular.save()
+            if formular.typformulara == TypFormulara.VSEOBECNY: 
+                #Použité dáta sú totožné so vstupnými dátami.
+                messages.warning(request, format_html("Vo výstupnom fodt súbore 'Vytvorený súbor' skontrolujte stránkovanie a ak treba, tak ho upravte.<br />Po kontrole súbor vytlačte (prípadne ešte raz skontrolujte vytlačené), dajte na sekretarát na rozposlanie a vyplňte dátum v poli 'Na odoslanie dňa'. Tým sa vytvorí zázmam v <em>Denníku prijatej a odoslanej pošty</em>, kam sekretariát doplní dátum odoslania.  "))
+            else:
+                #Použité dáta sú celkom alebo čiastočne prevzaté z databázy.
+                messages.warning(request, format_html("Vo výstupnom fodt súbore 'Vytvorený súbor' skontrolujte stránkovanie a ak treba, tak ho upravte.<br />Správnosť dát prevzatých z databázy Djanga skontrolujte vo výstupnom xlsx súbore 'Vyplnené dáta'."))
+        else:
+            messages.error(request, "Súbory neboli vytvorené.")
+
+    vyplnit_a_vygenerovat.short_description = "Vytvoriť súbor hromadného dokumentu"
+    #Oprávnenie na použitie akcie, viazané na 'change'
+    vyplnit_a_vygenerovat.allowed_permissions = ('change',)

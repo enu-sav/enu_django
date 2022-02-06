@@ -227,6 +227,9 @@ DOHODY_DIR="Dohody"
 OBJEDNAVKY_DIR="Objednavky"
 PRIJATEFAKTURY_DIR="PrijateFaktury"
 
+#App denniky
+FORM_DIR_NAME="HromadneDokumenty"
+
 # Mail
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 # https://www.sitepoint.com/django-send-email/
