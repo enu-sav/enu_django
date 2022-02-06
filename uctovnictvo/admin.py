@@ -212,13 +212,13 @@ class PrijataFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdm
 
     def duplikovat_zaznam(self, request, queryset):
         if len(queryset) != 1:
-            self.message_user(request, f"Vybrať možno len jednu faktúru", messages.ERROR)
+            self.message_user(request, f"Vybrať možno len jednu položku", messages.ERROR)
             return
         stara = queryset[0]
         if not stara.dane_na_uhradu:
             self.message_user(request, f"Faktúra {stara.cislo} ešte nebola daná na uhradenie. Duplikovať možno len uhradené faktúry.", messages.ERROR)
             return
-        nc = nasledujuce_cislo(PrijataFaktura)
+        nc = PrijataFaktura.tp_text if stara.cislo == PrijataFaktura.tp_text else nasledujuce_cislo(PrijataFaktura)
         nova_faktura = PrijataFaktura.objects.create(
                 cislo = nc,
                 program = stara.program,
@@ -229,37 +229,41 @@ class PrijataFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdm
                 objednavka_zmluva = stara.objednavka_zmluva
             )
         nova_faktura.save()
-        self.message_user(request, f"Vytvorená bola nová faktúra dodávateľa {nova_faktura.objednavka_zmluva.dodavatel.nazov} číslo {nc}.", messages.SUCCESS)
-        #Do denníka pridať záznam o prijatej pošte
-        vec = f"Faktúra {nc}"
-        cislo_posta = nasledujuce_cislo(Dokument)
-        dok = Dokument(
-            cislo = cislo_posta,
-            cislopolozky = nc,
-            #datumvytvorenia = self.cleaned_data['doslo_datum'],
-            typdokumentu = TypDokumentu.FAKTURA,
-            inout = InOut.PRIJATY,
-            adresat = stara.adresat(),
-            #vec = f'<a href="{self.instance.platobny_prikaz.url}">{vec}</a>',
-            vec = vec,
-            prijalodoslal=request.user.username, #zámena mien prijalodoslal - zaznamvytvoril
-        )
-        dok.save()
-        messages.warning(request, 
-            format_html(
-                'Do denníka prijatej a odoslanej pošty bol pridaný záznam č. {}: <em>{}</em>, treba v ňom doplniť údaje o prijatí.',
-                mark_safe(f'<a href="/admin/dennik/dokument/{dok.id}/change/">{cislo_posta}</a>'),
-                vec
-                )
+        if nc != PrijataFaktura.tp_text:
+            self.message_user(request, f"Vytvorená bola nová faktúra dodávateľa '{nova_faktura.objednavka_zmluva.dodavatel.nazov}' číslo '{nc}', aktualizujte polia", messages.SUCCESS)
+        else:
+            self.message_user(request, f"Vytvorená bola nová trvalá platba dodávateľa '{nova_faktura.objednavka_zmluva.dodavatel.nazov}', aktualizujte polia.", messages.SUCCESS)
+        # Ak nejde o trvalú platbu do denníka pridať záznam o prijatej pošte
+        if nc != PrijataFaktura.tp_text:
+            vec = f"Faktúra {nc}"
+            cislo_posta = nasledujuce_cislo(Dokument)
+            dok = Dokument(
+                cislo = cislo_posta,
+                cislopolozky = nc,
+                #datumvytvorenia = self.cleaned_data['doslo_datum'],
+                typdokumentu = TypDokumentu.FAKTURA,
+                inout = InOut.PRIJATY,
+                adresat = stara.adresat(),
+                #vec = f'<a href="{self.instance.platobny_prikaz.url}">{vec}</a>',
+                vec = vec,
+                prijalodoslal=request.user.username, #zámena mien prijalodoslal - zaznamvytvoril
+            )
+            dok.save()
+            messages.warning(request, 
+                format_html(
+                    'Do denníka prijatej a odoslanej pošty bol pridaný záznam č. {}: <em>{}</em>, treba v ňom doplniť údaje o prijatí.',
+                    mark_safe(f'<a href="/admin/dennik/dokument/{dok.id}/change/">{cislo_posta}</a>'),
+                    vec
+                    )
         )
 
-    duplikovat_zaznam.short_description = "Duplikovať faktúru"
+    duplikovat_zaznam.short_description = "Duplikovať faktúru / trvalú platbu"
     #Oprávnenie na použitie akcie, viazané na 'change'
     duplikovat_zaznam.allowed_permissions = ('change',)
 
     def save_model(self, request, obj, form, change):
         #Ak sa vytvára nový záznam, do denníka pridať záznam o prijatej pošte
-        if not PrijataFaktura.objects.filter(cislo=obj.cislo):  #Faktúra ešte nie je v databáze
+        if obj.cislo != PrijataFaktura.tp_text and not PrijataFaktura.objects.filter(cislo=obj.cislo):  #Faktúra ešte nie je v databáze
             vec = f"Faktúra {obj.cislo}"
             cislo_posta = nasledujuce_cislo(Dokument)
             dok = Dokument(

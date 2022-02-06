@@ -71,6 +71,9 @@ class PrijataFakturaForm(forms.ModelForm):
 
     # Skontrolovať platnost a keď je všetko OK, spraviť záznam do denníka
     def clean(self):
+        if 'cislo' in self.changed_data:
+            if not (self.cleaned_data['cislo'][:2] == PrijataFaktura.oznacenie or self.cleaned_data['cislo'] == PrijataFaktura.tp_text):
+                raise ValidationError({"cislo": "Nesprávne číslo. Zadajte číslo novej faktúry v tvare {PrijataFaktura.oznacenie}-RRRR-NNN alebo v prípade trvalej platby uveďte 'trvalá platba'"})
         try:
             #pole dane_na_uhradu možno vyplniť až po vygenerovani platobného príkazu akciou 
             #"Vytvoriť platobný príkaz a krycí list pre THS"
