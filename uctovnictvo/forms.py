@@ -159,11 +159,15 @@ class DohodaForm(forms.ModelForm):
                 raise ValidationError({"stav_dohody":f"Ak bolo vyplnené pole '{do_name}', stav dohody musí byť zmenený na '{StavDohody.ODOSLANA_DOHODAROVI.label}'."})
             elif not 'dohoda_odoslana' in self.changed_data and 'stav_dohody' in self.changed_data and self.cleaned_data["stav_dohody"] == StavDohody.ODOSLANA_DOHODAROVI:
                 #vrátiť na pôvodnú hodnotu, inak bude pole 'dohoda_odoslana' readonly
-                self.cleaned_data["stav_dohody"]=self.instance.stav_dohody
                 if not self.instance.subor_dohody:
+                    self.cleaned_data["stav_dohody"]=self.instance.stav_dohody
                     raise ValidationError(f"Ak chcete stav dohody zmeniť na '{StavDohody.ODOSLANA_DOHODAROVI.label}', tak najskôr treba vygenerovať súbor dohody akciou 'Vytvoriť súbor dohody'.")
+                elif self.instance.stav_dohody == StavDohody.VYTVORENA:
+                    self.cleaned_data["stav_dohody"]=self.instance.stav_dohody
+                    raise ValidationError({"stav_dohody":f"Ak chcete stav dohody zmeniť na '{StavDohody.ODOSLANA_DOHODAROVI.label}', tak ju najskôr treba dať do stavu '{StavDohody.NAPODPIS.label}'"})
                 else:
-                    raise ValidationError({"dohoda_odoslana":f"Ak chcete stav dohody zmeniť na '{StavDohody.ODOSLANA_DOHODAROVI.label}', tak treba vyplniť aj pole '{do_name}'."})
+                    self.cleaned_data["stav_dohody"]=self.instance.stav_dohody
+                    raise ValidationError(f"Ak chcete stav dohody zmeniť na '{StavDohody.ODOSLANA_DOHODAROVI.label}', tak treba vyplniť aj pole '{do_name}'.")
         except ValidationError as ex:
             raise ex
         if "stav_dohody" in self.cleaned_data and self.cleaned_data["stav_dohody"] == StavDohody.NOVA:
