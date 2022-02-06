@@ -246,6 +246,7 @@ def prijata_faktura_upload_location(instance, filename):
     return os.path.join(PRIJATEFAKTURY_DIR, filename)
 class PrijataFaktura(Klasifikacia):
     oznacenie = "Fa"    #v čísle faktúry, Fa-2021-123
+    tp_text = "trvalá platba"   #text, ktorý sa má použiť namiesto čísla faktúry, ak ide o trvalú platbu
     # Polia
     cislo = models.CharField("Číslo faktúry", 
             #help_text: definovaný vo forms
@@ -293,10 +294,13 @@ class PrijataFaktura(Klasifikacia):
         return self.objednavka_zmluva.dodavatel.nazov if self.objednavka_zmluva else ""
 
     class Meta:
-        verbose_name = 'Prijatá faktúra'
-        verbose_name_plural = 'Faktúry - Prijaté faktúry'
+        verbose_name = 'Prijatá faktúra / trvalá platba'
+        verbose_name_plural = 'Faktúry - Prijaté faktúry / trvalé platby'
     def __str__(self):
-        return f'Faktúra k "{self.objednavka_zmluva}" : {self.suma} €'
+        if self.cislo == PrijataFaktura.tp_text:
+            return f'Trvalá platba k "{self.objednavka_zmluva}" : {self.suma} €'
+        else:
+            return f'Faktúra k "{self.objednavka_zmluva}" : {self.suma} €'
 
 class AutorskyHonorar(Klasifikacia):
     cislo = models.CharField("Číslo platby", max_length=50)
