@@ -65,16 +65,19 @@ class Zdroj(models.Model):
         verbose_name = 'Zdroj'
         verbose_name_plural = 'Klasifikácia - Zdroje'
 
+#V 2020 sa programy nepoužívajú, dohodnuté je použivať default=4 (nealokovaný)
 class Program(models.Model):
     kod = models.CharField("Kód", 
             help_text = "Zadajte kód programu - napr. 087060J, 0EK1102 alebo 0EK1103",
             max_length=20)
     popis = models.CharField("Popis", 
             help_text = "Popíšte program",
+            null = True,
+            blank = True,
             max_length=100)
     history = HistoricalRecords()
     def __str__(self):
-        return f"{self.kod} - {self.popis}"
+        return f"{self.kod} - {self.popis}" if self.popis else self.kod
     class Meta:
         verbose_name = 'Program'
         verbose_name_plural = 'Klasifikácia - Programy'
@@ -232,6 +235,7 @@ class Klasifikacia(models.Model):
                                                     # s za zatvorkou je povinne
     program = models.ForeignKey(Program,
             on_delete=models.PROTECT,
+            default = 4,    #'nealokovaný'
             related_name='%(class)s_klasifikacia')
     zakazka = models.ForeignKey(TypZakazky,
             on_delete=models.PROTECT,

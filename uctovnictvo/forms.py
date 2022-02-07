@@ -107,7 +107,7 @@ class PrispevokNaStravneForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.initial['zdroj'] = 1       #111
-        self.initial['program'] = 1     #Ostatné
+        self.initial['program'] = 4     #nealokovaný
         self.initial['zakazka'] = 2     #11010001 spol. zák.	Činnosti z prostriedkov SAV - rozpočet 111
         self.initial['ekoklas'] = 108   #642014 Transfery jednotlivcom
         polecislo = "cislo"
@@ -125,7 +125,7 @@ class AutorskeZmluvyForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.initial['zdroj'] = 1       #111
-        self.initial['program'] = 1     #Ostatné
+        self.initial['program'] = 4     #nealokovaný
         self.initial['zakazka'] = 1     #Beliana
         self.initial['ekoklas'] = 58    #633018	Licencie
 
@@ -200,7 +200,7 @@ class DoPCForm(forms.ModelForm):
         self.request = kwargs.pop('request', None)
         super().__init__(*args, **kwargs)
         self.initial['zdroj'] = 1       #111
-        self.initial['program'] = 1     #Ostatné
+        self.initial['program'] = 4     #nealokovaný
         self.initial['zakazka'] = 1     #Beliana
         self.initial['ekoklas'] = 97    #637027 - Odmeny zamestnancov mimopracovného pomeru
         polecislo = "cislo"
@@ -220,7 +220,7 @@ class DoVPForm(DohodaForm):
         self.request = kwargs.pop('request', None)
         super().__init__(*args, **kwargs)
         self.initial['zdroj'] = 1       #111
-        self.initial['program'] = 1     #Ostatné
+        self.initial['program'] = 4     #nealokovaný
         self.initial['zakazka'] = 1     #Beliana
         self.initial['ekoklas'] = 97    #637027 - Odmeny zamestnancov mimopracovného pomeru
         polecislo = "cislo"
@@ -240,7 +240,7 @@ class DoBPSForm(forms.ModelForm):
         self.request = kwargs.pop('request', None)
         super().__init__(*args, **kwargs)
         self.initial['zdroj'] = 1       #111
-        self.initial['program'] = 1     #Ostatné
+        self.initial['program'] = 4     #nealokovaný
         self.initial['zakazka'] = 1     #Beliana
         self.initial['ekoklas'] = 97    #637027 - Odmeny zamestnancov mimopracovného pomeru
         polecislo = "cislo"
@@ -258,7 +258,7 @@ class PlatovyVymerForm(PopisZmeny):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.initial['zdroj'] = 1       #111
-        self.initial['program'] = 1     #Ostatné
+        self.initial['program'] = 4     #nealokovaný
         self.initial['zakazka'] = 2     #11010001 spol. zák.
         self.initial['ekoklas'] = 18    #611 - Tarifný plat, osobný plat, základný plat, funkčný plat, hodnostný plat, plat, vrátane ich náhrad
     class Meta:
