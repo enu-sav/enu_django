@@ -187,10 +187,9 @@ class PrijataFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdm
     #"platobny_prikaz" je generovaný, preto je vźdy readonly
     def get_readonly_fields(self, request, obj=None):
         if obj:
-            if obj.platobny_prikaz:
+            if obj.dane_na_uhradu:
                 nearly_all = ["zdroj", "program", "zakazka", "ekoklas", "cislo", "platobny_prikaz", "dcislo", "doslo_datum", "splatnost_datum", "predmet", "suma", "mena", "objednavka_zmluva"]
-                if obj.dane_na_uhradu:
-                     nearly_all = nearly_all + ["dane_na_uhradu"]
+                nearly_all = nearly_all + ["dane_na_uhradu"]
                 return nearly_all
             else:
                 return ["cislo", "dane_na_uhradu","platobny_prikaz"]
