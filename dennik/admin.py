@@ -87,14 +87,16 @@ class DokumentAdmin(ZobrazitZmeny,ImportExportModelAdmin):
 class FormularAdmin(ZobrazitZmeny):
     pass
 
-    list_display = ["subor_nazov", "typformulara", "na_odoslanie", "sablona", "data", "vyplnene", "vyplnene_data"]
+    list_display = ["subor_nazov", "typformulara", "na_odoslanie", "sablona", "data", "vyplnene", "vyplnene_data", "rozposlany", "data_komentar"]
     def get_readonly_fields(self, request, obj=None):
         if not obj:
-            return ["na_odoslanie", "vyplnene", "vyplnene_data"]
-        elif not obj.na_odoslanie:
-            return ["vyplnene", "vyplnene_data"]
+            return ["na_odoslanie", "vyplnene", "vyplnene_data", "rozposlany", "data_komentar"]
+        elif obj.vyplnene:
+            return ["typformulara", "subor_nazov", "vyplnene", "vyplnene_data"]
+        elif obj.na_odoslanie:
+            return ["typformulara", "subor_nazov", "sablona", "data", "vyplnene", "vyplnene_data"]
         else:
-            return ["typformulara", "subor_nazov", "subor_popis", "na_odoslanie", "sablona", "data", "vyplnene", "vyplnene_data"]
+            return []
 
     actions = ['vyplnit_a_vygenerovat']
 

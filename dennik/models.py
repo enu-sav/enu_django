@@ -29,7 +29,7 @@ class TypFormulara(models.TextChoices):
     VSEOBECNY = 'vseobecny', 'Všeobecný dokument'    #Ľubovoľné tokeny, bez väzby na databázu
     #AUTOR = 'autor', 'Formulár k autorským zmluvám'    #Ľubovoľné tokeny plus vybrané tokeny autorských zmlúv
     #DOHZAM = 'dohzam', 'Formulár pre dohodárov a zamestnancov'    #Ľubovoľné tokeny plus vybrané tokeny pre dohodárov a zamestnancov
-    #ZRAZENA = 'zrazena', 'Potvrdenie o zrazenej dani'    # bez dátového súboru
+    #ZRAZENA = 'zrazena', 'Potvrdenie o zrazenej dani z autorských honorárov'    # bez dátového súboru
 
 class SposobDorucenia(models.TextChoices):
     POSTA = 'posta', 'Pošta'
@@ -135,18 +135,34 @@ class Formular(models.Model):
             help_text = "XLSX súbor s dátami na generovanie. <br />Názvy stĺpcov na vyplnenie sa musia presne zhodovať s tokenmi v šablóne (bez zátvoriek).<br />Názvy stĺpcov, ktoré majú byť formátované s dvomi des. miestami, musia začínať 'n_'.",
             upload_to=form_file_path,
             validators=[FileExtensionValidator(allowed_extensions=['xlsx'])],
-            null = True,
+            null = True
     )
-    #xlsx súbor s dátami na vyplnenie šablóny
+    #vytvorený hromadný dokument
     vyplnene = models.FileField("Vytvorený súbor", storage=OverwriteStorage(),
             help_text = "Vytvorený súbor hromadného dokumentu vo formáte FODT (vytvorený akciou 'Vytvoriť súbor hromadného dokumentu').",
             upload_to=form_file_path,
-            null = True,
+            null = True
     )
-    #xlsx súbor s dátami na vyplnenie šablóny
+    #dáta použité na vytvorenie hromadného dokumentu
     vyplnene_data = models.FileField("Vyplnené dáta", storage=OverwriteStorage(),
             help_text = "XLSX súbor s dátami použitými na vytvorenie hromadného dokumentu (vytvorený akciou 'Vyplniť formulár').",
             upload_to=form_file_path,
+            null = True
+    )
+    #Finálny hromadný dokument. Ak bol hromadný dokument rozdelený, priložiť zip archív
+    rozposlany = models.FileField("Rozposlaný dokument", storage=OverwriteStorage(),
+            help_text = "Pdf vytlačeného a rozposlaného dokumentu. Ak bol hromadný dokument rozdelený, priložiť zip archív so všetkými pdf súbormi.",
+            validators=[FileExtensionValidator(allowed_extensions=['pdf', 'zip'])],
+            upload_to=form_file_path,
+            blank=True,
+            null = True
+    )
+    #dáta použité na vytvorenie hromadného dokumentu s komentárom
+    data_komentar = models.FileField("Vyplnené dáta", storage=OverwriteStorage(),
+            help_text = "Upravený XLSX súbor z poľa 'Vyplnené dáta' s prípadnými zmenami, ktoré boli ručne spravené v rozposlanom dokumente a komentárom.",
+            upload_to=form_file_path,
+            validators=[FileExtensionValidator(allowed_extensions=['xlsx'])],
+            blank=True,
             null = True
     )
     history = HistoricalRecords()
