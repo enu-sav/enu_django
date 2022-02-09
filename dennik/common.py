@@ -83,7 +83,7 @@ def VyplnitAVygenerovat(formular):
         if formular.typformulara == TypFormulara.VSEOBECNY:
             for key in polia_vseob:
                 if key == "dat_vytv":
-                    atext = atext.replace(f"[[{key}]]", date.today().strftime("%d. %m. %Y"))
+                    atext = atext.replace(f"[[{key}]]", date.today().strftime("%-d. %-m. %Y"))
         #Pridať ako nový text na koniec existujúceho textu
         sablona = sablona.replace("</office:text>",f"{atext}\n</office:text>")
         nn += 1

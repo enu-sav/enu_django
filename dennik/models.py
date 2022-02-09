@@ -108,7 +108,8 @@ class Formular(models.Model):
             help_text = """Uveďte typ šablóny. Určuje, aké tokeny možno použiť:
                 <ul>
                 <li><em>Všeobecný dokument</em>: ľubovoľné tokeny, bez väzby na databázu</li>
-                </ul>""",
+                </ul>
+                Ako dátum vytvorenia dokumentu možno použiť token <em>dat_vytv</em>. Ak sa v dátovom súbore neuvedie, vloží sa aktuálny dátum.""",
             null=True)
     subor_nazov =  models.CharField("Názov",
             help_text = "Krátky názov dokumentu",
