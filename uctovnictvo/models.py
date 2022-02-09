@@ -57,10 +57,12 @@ class Zdroj(models.Model):
             max_length=20)
     popis = models.CharField("Popis", 
             help_text = "Popíšte zdroj",
+            null = True,
+            blank = True,
             max_length=100)
     history = HistoricalRecords()
     def __str__(self):
-        return f"{self.kod} - {self.popis}"
+        return f"{self.kod} - {self.popis}" if self.popis else self.kod
     class Meta:
         verbose_name = 'Zdroj'
         verbose_name_plural = 'Klasifikácia - Zdroje'
