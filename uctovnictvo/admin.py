@@ -192,7 +192,7 @@ class PrijataFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdm
                 nearly_all = nearly_all + ["dane_na_uhradu"]
                 return nearly_all
             else:
-                return ["cislo", "dane_na_uhradu","platobny_prikaz"]
+                return ["cislo", "platobny_prikaz"]
         else:
             return ["dane_na_uhradu","platobny_prikaz"]
 
