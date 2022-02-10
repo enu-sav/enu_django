@@ -184,17 +184,18 @@ class PrijataFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdm
     actions = ['vytvorit_platobny_prikaz', 'duplikovat_zaznam']
 
     #obj is None during the object creation, but set to the object being edited during an edit
-    #"platobny_prikaz" je generovaný, preto je vźdy readonly
+    #"platobny_prikaz" je generovaný, preto je vždy readonly
     def get_readonly_fields(self, request, obj=None):
-        if obj:
-            if obj.dane_na_uhradu:
-                nearly_all = ["zdroj", "program", "zakazka", "ekoklas", "cislo", "platobny_prikaz", "dcislo", "doslo_datum", "splatnost_datum", "predmet", "suma", "mena", "objednavka_zmluva"]
-                nearly_all = nearly_all + ["dane_na_uhradu"]
-                return nearly_all
-            else:
-                return ["cislo", "platobny_prikaz"]
-        else:
-            return ["dane_na_uhradu","platobny_prikaz"]
+        if not obj:
+            return ["program", "platobny_prikaz", "dane_na_uhradu"]
+        elif obj.dane_na_uhradu:
+            nearly_all = ["zdroj", "program", "zakazka", "ekoklas", "cislo", "platobny_prikaz", "doslo_datum"] 
+            nearly_all += ["splatnost_datum", "predmet", "suma", "mena", "objednavka_zmluva", "dane_na_uhradu"]
+            return nearly_all
+        elif not obj.platobny_prikaz:   #ešte nebola spustená akcia
+            return ["program", "cislo", "platobny_prikaz", "dane_na_uhradu"]
+        else:   #všetko hotové, možno odoslať, ale stále možno aj editovať
+            return ["program", "cislo", "platobny_prikaz"]
 
     def vytvorit_platobny_prikaz(self, request, queryset):
         for faktura in queryset:
