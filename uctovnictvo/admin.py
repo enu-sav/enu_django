@@ -198,13 +198,19 @@ class PrijataFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdm
             return ["program", "cislo", "platobny_prikaz"]
 
     def vytvorit_platobny_prikaz(self, request, queryset):
-        for faktura in queryset:
-            status, msg, vytvoreny_subor = VytvoritPlatobnyPrikaz(faktura, request.user)
-            if status != messages.ERROR:
-                #faktura.dane_na_uhradu = timezone.now()
-                faktura.platobny_prikaz = vytvoreny_subor
-                faktura.save()
-            self.message_user(request, msg, status)
+        if len(queryset) != 1:
+            self.message_user(request, f"Vybrať možno len jednu položku", messages.ERROR)
+            return
+        faktura = queryset[0]
+        if faktura.dane_na_uhradu:
+            self.message_user(request, f"Faktúra už bola daná na úhradu, vytváranie platobného príkazu nie je možné", messages.ERROR)
+            return
+        status, msg, vytvoreny_subor = VytvoritPlatobnyPrikaz(faktura, request.user)
+        if status != messages.ERROR:
+            #faktura.dane_na_uhradu = timezone.now()
+            faktura.platobny_prikaz = vytvoreny_subor
+            faktura.save()
+        self.message_user(request, msg, status)
 
     vytvorit_platobny_prikaz.short_description = "Vytvoriť platobný príkaz a krycí list pre THS"
     #Oprávnenie na použitie akcie, viazané na 'change'
