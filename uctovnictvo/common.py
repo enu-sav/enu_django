@@ -2,6 +2,7 @@
 
 import os, locale
 from ipdb import set_trace as trace
+from django.utils.safestring import mark_safe
 from django.conf import settings
 from django.contrib import messages
 from django.utils import timezone
@@ -133,7 +134,7 @@ def VytvoritPlatobnyPrikaz(faktura, pouzivatel):
     opath = os.path.join(settings.PLATOBNE_PRIKAZY_DIR,nazov)
     with open(os.path.join(settings.MEDIA_ROOT,opath), "w") as f:
         f.write(text)
-    return messages.SUCCESS, f"Súbor platobného príkazu faktúry {faktura.cislo} bol úspešne vytvorený ({opath}).", opath
+    return messages.SUCCESS, mark_safe(f"Súbor platobného príkazu faktúry {faktura.cislo} bol úspešne vytvorený ({opath}). Príkaz dajte na podpis. <br />Ak treba, údaje faktúry možno ešte upravovať. Po každej úprave treba vytvoriť nový platobný príkaz opakovaním akcie.<br />Po podpísaní príkaz dajte na sekretariát na odoslanie a vyplňte pole 'Dané na úhradu dňa'."), opath
 
 
 # skryt sekciu v dokumente dohody
