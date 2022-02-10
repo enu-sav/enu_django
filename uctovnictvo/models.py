@@ -267,15 +267,15 @@ class PrijataFaktura(Klasifikacia):
     cislo = models.CharField("Číslo faktúry", 
             #help_text: definovaný vo forms
             max_length=50)
+    dane_na_uhradu = models.DateField('Dané na úhradu dňa',
+            help_text = 'Zadajte dátum odovzdania podpísaného platobného príkazu faktúry a krycieho listu na sekretariát na odoslanie THS. <br />Vytvorí sa záznam v <a href="/admin/dennik/dokument/">denníku prijatej a odoslanej pošty</a>.',
+            blank=True, null=True)
     dcislo = models.CharField("Dodávateľské číslo faktúry", 
             blank=True, 
             null=True,
             max_length=50)
     doslo_datum = models.DateField('Došlo dňa',
             null=True)
-    dane_na_uhradu = models.DateField('Dané na úhradu dňa',
-            help_text = 'Zadajte dátum odovzdania podpísaného platobného príkazu faktúry a krycieho listu na sekretariát na odoslanie THS. <br />Vytvorí sa záznam v <a href="/admin/dennik/dokument/">denníku prijatej a odoslanej pošty</a>.',
-            blank=True, null=True)
     splatnost_datum = models.DateField('Dátum splatnosti',
             null=True)
     predmet = models.CharField("Predmet faktúry", 
