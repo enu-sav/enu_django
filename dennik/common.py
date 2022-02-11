@@ -26,32 +26,36 @@ def locale_format(d):
     return locale.format('%.2f', d, grouping=True)
 
 def VyplnitAVygenerovat(formular):
-    if formular.typformulara == TypFormulara.VSEOBECNY:
-        return VyplnitAVygenerovatVseobecny(formular)
-    else:
-        return messages.ERROR, f"Typ formulára {formular.typformulara} zatiaľ nie je implementovaný.", None, None
-
-def VyplnitAVygenerovatVseobecny(formular):
-    nazov_suboru=formular.sablona.file.name
+    #testy
     try:
-        #with open(settings.AUTHORS_CONTRACT_TEMPLATE, "r") as f:
-        with open(nazov_suboru, "r") as f:
+        with open(formular.sablona.file.name, "r") as f:
             sablona = f.read()
     except:
         return messages.ERROR, f"Súbor šablóny {formular.sablona} neexistuje alebo je nečitateľný.", None, None
 
-    workbook = load_workbook(filename=formular.data)
-    iws = workbook.active
+    try:
+        with open(formular.data.file.name, "r") as f:
+            workbook = load_workbook(filename=formular.data)
+    except:
+        return messages.ERROR, f"Dátový súbor {formular.data} neexistuje alebo je nečitateľný.", None, None
+    ws = workbook.active
 
     #hlavička, po prvú prázdnu bunku
     hdr = []
-    col_range = iws[iws.min_column : iws.max_column]
+    col_range = ws[ws.min_column : ws.max_column]
     for n in range(1,1024):
-        val = iws.cell(1,n).value
+        val = ws.cell(1,n).value
         if not val:
             break
         else:
             hdr.append(val)
+
+    if formular.typformulara == TypFormulara.VSEOBECNY:
+        return VyplnitAVygenerovatVseobecny(formular, sablona, ws, hdr)
+    else:
+        return messages.ERROR, f"Typ formulára {formular.typformulara} zatiaľ nie je implementovaný.", None, None
+
+def VyplnitAVygenerovatVseobecny(formular, sablona, iws, hdr):
 
     #testy
     stokens = re.findall(r"\[\[(.*)\]\]",sablona)   #tokeny v šablóne
