@@ -91,11 +91,11 @@ class FormularAdmin(ZobrazitZmeny):
         if not obj:
             return ["na_odoslanie", "vyplnene", "vyplnene_data", "rozposlany", "data_komentar"]
         elif not obj.vyplnene:
-            return ["subor_nazov", "typformulara", "na_odoslanie", "vyplnene", "vyplnene_data", "rozposlany", "data_komentar"]
+            return ["cislo", "subor_nazov", "typformulara", "na_odoslanie", "vyplnene", "vyplnene_data", "rozposlany", "data_komentar"]
         elif obj.na_odoslanie:
-            return ["typformulara", "subor_nazov", "sablona", "data", "vyplnene", "vyplnene_data", "na_odoslanie"]
+            return ["cislo", "typformulara", "subor_nazov", "sablona", "data", "vyplnene", "vyplnene_data", "na_odoslanie"]
         else:
-            return ["typformulara", "subor_nazov", "vyplnene", "vyplnene_data"]
+            return ["cislo", "typformulara", "subor_nazov", "vyplnene", "vyplnene_data"]
 
     actions = ['vyplnit_a_vygenerovat']
 
