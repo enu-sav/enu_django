@@ -26,6 +26,12 @@ def locale_format(d):
     return locale.format('%.2f', d, grouping=True)
 
 def VyplnitAVygenerovat(formular):
+    if formular.typformulara == TypFormulara.VSEOBECNY:
+        return VyplnitAVygenerovatVseobecny(formular)
+    else:
+        return messages.ERROR, f"Typ formulára {formular.typformulara} zatiaľ nie je implementovaný.", None, None
+
+def VyplnitAVygenerovatVseobecny(formular):
     nazov_suboru=formular.sablona.file.name
     try:
         #with open(settings.AUTHORS_CONTRACT_TEMPLATE, "r") as f:

@@ -2,7 +2,7 @@ from django.contrib import admin
 
 # Register your models here.
 from .models import Dokument,TypDokumentu, TypFormulara, Formular
-from .forms import DokumentForm, overit_polozku, parse_cislo
+from .forms import DokumentForm, FormularForm, overit_polozku, parse_cislo
 from dennik.common import VyplnitAVygenerovat
 from ipdb import set_trace as trace
 from django.utils.html import format_html
@@ -85,18 +85,17 @@ class DokumentAdmin(ZobrazitZmeny,ImportExportModelAdmin):
 #Hromadný dokument
 @admin.register(Formular)
 class FormularAdmin(ZobrazitZmeny):
-    pass
-
-    list_display = ["subor_nazov", "typformulara", "na_odoslanie", "sablona", "data", "vyplnene", "vyplnene_data", "rozposlany", "data_komentar"]
+    form = FormularForm
+    list_display = ["cislo", "subor_nazov", "typformulara", "na_odoslanie", "sablona", "data", "vyplnene", "vyplnene_data", "rozposlany", "data_komentar"]
     def get_readonly_fields(self, request, obj=None):
         if not obj:
             return ["na_odoslanie", "vyplnene", "vyplnene_data", "rozposlany", "data_komentar"]
-        elif obj.vyplnene:
-            return ["typformulara", "subor_nazov", "vyplnene", "vyplnene_data"]
+        elif not obj.vyplnene:
+            return ["subor_nazov", "typformulara", "na_odoslanie", "vyplnene", "vyplnene_data", "rozposlany", "data_komentar"]
         elif obj.na_odoslanie:
-            return ["typformulara", "subor_nazov", "sablona", "data", "vyplnene", "vyplnene_data"]
+            return ["typformulara", "subor_nazov", "sablona", "data", "vyplnene", "vyplnene_data", "na_odoslanie"]
         else:
-            return []
+            return ["typformulara", "subor_nazov", "vyplnene", "vyplnene_data"]
 
     actions = ['vyplnit_a_vygenerovat']
 
@@ -113,7 +112,7 @@ class FormularAdmin(ZobrazitZmeny):
             formular.save()
             if formular.typformulara == TypFormulara.VSEOBECNY: 
                 #Použité dáta sú totožné so vstupnými dátami.
-                messages.warning(request, format_html("Vo výstupnom fodt súbore 'Vytvorený súbor' skontrolujte stránkovanie a ak treba, tak ho upravte.<br />Po kontrole súbor vytlačte (prípadne ešte raz skontrolujte vytlačené), dajte na sekretarát na rozposlanie a vyplňte dátum v poli 'Na odoslanie dňa'. Tým sa vytvorí zázmam v <em>Denníku prijatej a odoslanej pošty</em>, kam sekretariát doplní dátum rozposlania."))
+                messages.warning(request, format_html("Vo výstupnom fodt súbore 'Vytvorený súbor' skontrolujte stránkovanie a ak treba, tak ho upravte.<br />Po kontrole súbor vytlačte (prípadne ešte raz skontrolujte vytlačené), dajte na sekretarát na rozposlanie a vyplňte dátum v poli 'Na odoslanie dňa'. Tým sa vytvorí záznam v <em>Denníku prijatej a odoslanej pošty</em>, kam sekretariát doplní dátum rozposlania."))
             else:
                 #Použité dáta sú celkom alebo čiastočne prevzaté z databázy.
                 messages.warning(request, format_html("Vo výstupnom fodt súbore 'Vytvorený súbor' skontrolujte stránkovanie a ak treba, tak ho upravte.<br />Správnosť dát prevzatých z databázy Djanga skontrolujte vo výstupnom xlsx súbore 'Vyplnené dáta'."))
@@ -123,3 +122,13 @@ class FormularAdmin(ZobrazitZmeny):
     vyplnit_a_vygenerovat.short_description = "Vytvoriť súbor hromadného dokumentu"
     #Oprávnenie na použitie akcie, viazané na 'change'
     vyplnit_a_vygenerovat.allowed_permissions = ('change',)
+
+    # do AdminForm pridať request, aby v jej __init__ bolo request dostupné
+    def get_form(self, request, obj=None, **kwargs):
+        AdminForm = super(FormularAdmin, self).get_form(request, obj, **kwargs)
+        class AdminFormMod(AdminForm):
+            def __new__(cls, *args, **kwargs):
+                kwargs['request'] = request
+                return AdminForm(*args, **kwargs)
+        return AdminFormMod
+

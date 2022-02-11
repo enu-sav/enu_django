@@ -1,7 +1,10 @@
 
+from django.contrib import messages
+from django.utils.safestring import mark_safe
+from django.utils.html import format_html
 from django import forms
 from ipdb import set_trace as trace
-from .models import Dokument, InOut, TypDokumentu
+from .models import Dokument, InOut, TypDokumentu, Formular
 from zmluvy.models import ZmluvaAutor, ZmluvaGrafik, VytvarnaObjednavkaPlatba
 from uctovnictvo.models import Objednavka, PrijataFaktura, PrispevokNaStravne, DoVP, DoPC, DoBPS
 from datetime import datetime
@@ -103,4 +106,50 @@ class DokumentForm(forms.ModelForm):
                     raise ValidationError({'adresat':"Ak nie je zadaná položka databázy, tak pole 'Odosielateľ / Adresát' treba vyplniť"})
             if self.cleaned_data['inout'] == InOut.PRIJATY and not self.cleaned_data['naspracovanie']:
                 raise ValidationError({'naspracovanie':"Ak ide o prijatý dokument, treba vyplniť pole 'Na spracovanie'"})
+        return self.cleaned_data
+
+class FormularForm(forms.ModelForm):
+    #inicializácia polí
+    def __init__(self, *args, **kwargs):
+        # do Admin treba pridať metódu get_form
+        self.request = kwargs.pop('request', None)
+        super().__init__(*args, **kwargs)
+        polecislo = "cislo"
+        # Ak je pole readonly, tak sa nenachádza vo fields. Preto testujeme fields aj initial
+        if polecislo in self.fields:
+            if not polecislo in self.initial:
+                nasledujuce = nasledujuce_cislo(Formular)
+                self.fields[polecislo].help_text = f"Zadajte číslo nového dokumentu v tvare {Formular.oznacenie}-RRRR-NNN. Predvolené číslo '{nasledujuce} bolo určené na základe čísiel existujúcich dokumentov ako nasledujúce v poradí."
+                self.initial[polecislo] = nasledujuce
+            else:
+                self.fields[polecislo].help_text = f"Číslo dokumentu v tvare {Formular.oznacenie}-RRRR-NNN."
+
+    # Skontrolovať platnost a keď je všetko OK, spraviť záznam do denníka
+    def clean(self):
+        try:
+            #pole dane_na_uhradu možno vyplniť až po vygenerovani platobného príkazu akciou 
+            #"Vytvoriť platobný príkaz a krycí list pre THS"
+            if 'na_odoslanie' in self.changed_data:
+                vec = f"Hromadný dokument {self.instance.subor_nazov}"
+                cislo = nasledujuce_cislo(Dokument)
+                dok = Dokument(
+                    cislo = cislo,
+                    cislopolozky = self.instance.cislo,
+                    datumvytvorenia = self.cleaned_data['na_odoslanie'],
+                    typdokumentu = TypDokumentu.HROMADNY,
+                    inout = InOut.ODOSLANY,
+                    adresat = "viacnásobný",
+                    vec = f'<a href="{self.instance.vyplnene.url}">{vec}</a>',
+                    prijalodoslal=self.request.user.username, #zámena mien prijalodoslal - zaznamvytvoril
+                )
+                dok.save()
+                messages.warning(self.request, 
+                    format_html(
+                        'Do denníka prijatej a odoslanej pošty bol pridaný záznam č. {}: <em>{}</em>, treba v ňom doplniť údaje o odoslaní.',
+                        mark_safe(f'<a href="/admin/dennik/dokument/{dok.id}/change/">{cislo}</a>'),
+                        vec
+                        )
+            )
+        except ValidationError as ex:
+            raise ex
         return self.cleaned_data

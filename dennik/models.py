@@ -22,6 +22,7 @@ class TypDokumentu(models.TextChoices):
     DoVP = 'dovp', 'DoVP'
     DoPC = 'dopc', 'DoPC'
     DoBPS = 'dobps', 'DoBPS'
+    HROMADNY = 'hromadny', 'Hromadný dokument'
     INY = 'iny', 'Iný'
 
 # Typy šablón na vyplňovanie. Určuje, zoznam povolených tokenov v šablóne
@@ -29,7 +30,7 @@ class TypFormulara(models.TextChoices):
     VSEOBECNY = 'vseobecny', 'Všeobecný dokument'    #Ľubovoľné tokeny, bez väzby na databázu
     #AUTOR = 'autor', 'Formulár k autorským zmluvám'    #Ľubovoľné tokeny plus vybrané tokeny autorských zmlúv
     #DOHZAM = 'dohzam', 'Formulár pre dohodárov a zamestnancov'    #Ľubovoľné tokeny plus vybrané tokeny pre dohodárov a zamestnancov
-    #ZRAZENA = 'zrazena', 'Potvrdenie o zrazenej dani z autorských honorárov'    # bez dátového súboru
+    AH_ZRAZENA = 'ah_zrazena', 'Potvrdenie o zrazení dane z autorských honorárov'    # bez dátového súboru
 
 class SposobDorucenia(models.TextChoices):
     POSTA = 'posta', 'Pošta'
@@ -101,18 +102,21 @@ class Dokument(models.Model):
 
 def form_file_path(instance, filename):
     return os.path.join(settings.FORM_DIR_NAME, filename)
+# používaný názov Hromadný dokument
 class Formular(models.Model):
-    oznacenie = "Form"
+    oznacenie = "HD"
+    cislo = models.CharField("Číslo", max_length=50, null=True)
     typformulara = models.CharField("Typ šablóny",
             max_length=20, choices=TypFormulara.choices, 
-            help_text = """Uveďte typ šablóny. Určuje, aké tokeny možno použiť:
+            help_text = f"""Uveďte typ šablóny. Určuje, aké tokeny možno použiť:
                 <ul>
-                <li><em>Všeobecný dokument</em>: ľubovoľné tokeny, bez väzby na databázu</li>
-                </ul>
-                Ako dátum vytvorenia dokumentu možno použiť token <em>dat_vytv</em>. Ak sa v dátovom súbore neuvedie, vloží sa aktuálny dátum.""",
+                <li style="list-style-type:square"><em>{TypFormulara.VSEOBECNY.label}</em>: ľubovoľné tokeny, bez väzby na databázu</li>
+                <li style="list-style-type:square"><em>{TypFormulara.AH_ZRAZENA.label}</em>: v dátovom súbore zadajte len stĺpec 'za_rok' s jedným riadkom, v ktorom je uvedený rok, za ktorý sa má potvrdenie vytvoriť.<br />Povolené tokeny:</li>
+                <li style="list-style-type:square"> Ako dátum vytvorenia dokumentu možno použiť token <em>dat_vytv</em>. Ak sa v dátovom súbore neuvedie, vloží sa aktuálny dátum.</li>
+                </ul>""",
             null=True)
     subor_nazov =  models.CharField("Názov",
-            help_text = "Krátky názov dokumentu",
+            help_text = "Krátky názov dokumentu (použije sa ako názov vytvorených súborov)",
             max_length=40)
     subor_popis = models.TextField("Popis",
             help_text = "Dlhší popis k dokumentu: účel, poznámky a pod.",
@@ -133,7 +137,7 @@ class Formular(models.Model):
     )
     #xlsx súbor s dátami na vyplnenie šablóny
     data = models.FileField("Dáta", storage=OverwriteStorage(),
-            help_text = "XLSX súbor s dátami na generovanie. <br />Názvy stĺpcov na vyplnenie sa musia presne zhodovať s tokenmi v šablóne (bez zátvoriek).<br />Názvy stĺpcov, ktoré majú byť formátované s dvomi des. miestami, musia začínať 'n_'.",
+            help_text = "XLSX súbor s dátami na generovanie. <br />Názvy stĺpcov sa musia presne zhodovať s tokenmi v šablóne (bez zátvoriek).<br />Názvy stĺpcov, ktoré majú byť formátované s dvomi desatinnými miestami, musia začínať 'n_'.",
             upload_to=form_file_path,
             validators=[FileExtensionValidator(allowed_extensions=['xlsx'])],
             null = True
@@ -142,12 +146,14 @@ class Formular(models.Model):
     vyplnene = models.FileField("Vytvorený súbor", storage=OverwriteStorage(),
             help_text = "Vytvorený súbor hromadného dokumentu vo formáte FODT (vytvorený akciou 'Vytvoriť súbor hromadného dokumentu').",
             upload_to=form_file_path,
+            blank=True,
             null = True
     )
     #dáta použité na vytvorenie hromadného dokumentu
     vyplnene_data = models.FileField("Vyplnené dáta", storage=OverwriteStorage(),
             help_text = "XLSX súbor s dátami použitými na vytvorenie hromadného dokumentu (vytvorený akciou 'Vyplniť formulár').",
             upload_to=form_file_path,
+            blank=True,
             null = True
     )
     #Finálny hromadný dokument. Ak bol hromadný dokument rozdelený, priložiť zip archív
