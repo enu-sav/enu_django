@@ -121,7 +121,7 @@ class Formular(models.Model):
     subor_popis = models.TextField("Popis",
             help_text = "Dlhší popis k dokumentu: účel, poznámky a pod.",
             blank = True,
-            max_length=250)
+            max_length=600)
     na_odoslanie = models.DateField('Na odoslanie dňa',
             help_text = 'Zadajte dátum odovzdania vytvorených dokumentov na sekretariát na odoslanie. <br />Vytvorí sa záznam v <a href="/admin/dennik/dokument/">denníku prijatej a odoslanej pošty</a>.</br />Po odoslaní nemožno ďalej upravovať',
             blank=True, null=True)
@@ -165,7 +165,7 @@ class Formular(models.Model):
             null = True
     )
     #dáta použité na vytvorenie hromadného dokumentu s komentárom
-    data_komentar = models.FileField("Vyplnené dáta", storage=OverwriteStorage(),
+    data_komentar = models.FileField("Upravené vyplnené dáta", storage=OverwriteStorage(),
             help_text = "Upravený XLSX súbor z poľa 'Vyplnené dáta' s prípadnými zmenami, ktoré boli ručne spravené v rozposlanom dokumente a komentárom.",
             upload_to=form_file_path,
             validators=[FileExtensionValidator(allowed_extensions=['xlsx'])],
