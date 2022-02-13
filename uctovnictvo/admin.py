@@ -283,6 +283,7 @@ class PrijataFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdm
                 vec = vec,
                 prijalodoslal=request.user.username, #zámena mien prijalodoslal - zaznamvytvoril
             )
+            dok.save()
             messages.warning(request, 
                 format_html(
                     'Do denníka prijatej a odoslanej pošty bol pridaný záznam č. {}: <em>{}</em>, treba v ňom doplniť údaje o prijatí.',
