@@ -18,12 +18,10 @@ class AnoNie(models.TextChoices):
     ANO = 'ano', 'Áno'
     NIE = 'nie', 'Nie'
 
-#ak sa doplni stav pred 'PODPISANA_ENU', treba doplniť test vo funkcii vytvorit_subory_zmluvy
 class StavZmluvy(models.TextChoices):
     POZIADAVKA = "odoslana_poziadavka", "Odoslaná požiadavka na sekretariát"#Autorovi bol odoslaný dotazník na vyplnenie
     ODOSLANY_DOTAZNIK = "odoslany_dotaznik", "Odoslaný dotazník autorovi"#Autorovi bol odoslaný dotazník na vyplnenie
     VYTVORENA = "vytvorena", "Vytvorená"                        #Úvodný stav, ak sa zmluva vytvára v EnÚ
-    PODPISANA_ENU = "podpisana_enu", "Podpísaná EnÚ"
     ODOSLANA_AUTOROVI = "odoslana_autorovi", "Daná autorovi na podpis"
     VRATENA_OD_AUTORA = "vratena_od_autora", "Vrátená od autora"
     ZVEREJNENA_V_CRZ = "zverejnena_v_crz", "Platná / Zverejnená v CRZ" #Nemusí byť v CRZ, ak bola uzatvorená pred r. 2012
@@ -143,7 +141,7 @@ class Zmluva(models.Model):
             choices=StavZmluvy.choices, blank=True) 
     url_zmluvy = models.URLField('URL zmluvy', 
             help_text = "Zadajte URL pdf súboru zmluvy zo stránky CRZ.",
-            blank = True)
+            null = True)
     zmluva_odoslana= models.DateField('Autorovi na podpis ',
             help_text = 'Dátum odovzdania zmluvy na sekretariát na odoslanie na podpis (poštou). Vytvorí sa záznam v <a href="/admin/dennik/dokument/">denníku prijatej a odoslanej pošty</a>.',
             null=True,
@@ -153,8 +151,8 @@ class Zmluva(models.Model):
             null=True, 
             blank=True)
     datum_zverejnenia_CRZ = models.DateField('Platná od / dátum CRZ', 
-            help_text = "Zadajte dátum účinnosti zmluvy (dátum zverejnenia v CRZ + 1 deň).",
-            blank=True, null=True)
+            help_text = "Zadajte dátum účinnosti zmluvy (dátum zverejnenia v CRZ + 1 deň). <br />Ak autor podpísal dohodu o nezdaňovaní, vyplňte súvisiace polia v údajoch autora.",
+            null=True)
     vygenerovana_subor = models.FileField("Vygenerovaný súbor zmluvy", 
             help_text = "Súbor zmluvy na poslanie autorovi na podpis, vygenerovaný akciou 'Vytvoriť súbory zmluvy'.",
             storage=OverwriteStorage(), upload_to=contract_path, null = True, blank = True)
@@ -179,7 +177,7 @@ class ZmluvaAutor(Zmluva):
     #models.PROTECT: Prevent deletion of the referenced object
     #related_name: v admin.py umožní zobrazit zmluvy autora v zozname autorov cez pole zmluvy_link 
     zmluvna_strana = models.ForeignKey(OsobaAutor, on_delete=models.PROTECT, related_name='zmluvy')    
-    honorar_ah = models.DecimalField("Honorár/AH", max_digits=8, decimal_places=2, default=0) #Eur/AH (36 000 znakov)
+    honorar_ah = models.DecimalField("Honorár/AH", max_digits=8, decimal_places=2) #Eur/AH (36 000 znakov)
     history = HistoricalRecords()
 
     # Koho uviesť ako adresata v denniku

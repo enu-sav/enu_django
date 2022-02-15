@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.utils.html import format_html
 from django.utils import timezone
 from django import forms
 from ipdb import set_trace as trace
@@ -177,7 +178,7 @@ class OsobaGrafikAdmin(FyzickaOsobaAdmin, AdminChangeLinksMixin, SimpleHistoryAd
 
 class ZmluvaAdmin():
     def get_list_display(self, request):
-        return ('stav_zmluvy', 'zmluva_odoslana', 'zmluva_vratena', 'zmluvna_strana_link',
+        return ('zmluvna_strana_link', 'stav_zmluvy', 'subor_zmluvy_html', 'subor_zmluvy_crz_html', 'zmluva_odoslana', 'zmluva_vratena',
             'url_zmluvy_html', 'crz_datum', 'datum_pridania', 'datum_aktualizacie')
 
     def get_search_fields(self, request):
@@ -187,15 +188,18 @@ class ZmluvaAdmin():
     def get_readonly_fields(self, request, obj=None):
         fields = [f.name for f in Zmluva._meta.get_fields()]
         if obj:
-            fields.remove("stav_zmluvy")
-            if obj.vygenerovana_subor: 
-                if not obj.zmluva_odoslana:
-                    fields.remove("zmluva_odoslana")
-                if obj.zmluva_odoslana and not obj.zmluva_vratena:
-                    fields.remove("zmluva_vratena")
-                if obj.zmluva_vratena:
+            if obj.stav_zmluvy:
+                fields.remove("stav_zmluvy")
+            if obj.stav_zmluvy == StavZmluvy.VYTVORENA:
+                fields.remove("zmluva_odoslana")
+            elif obj.stav_zmluvy == StavZmluvy.ODOSLANA_AUTOROVI:
+                fields.remove("zmluva_vratena")
+            elif obj.stav_zmluvy == StavZmluvy.VRATENA_OD_AUTORA:
+                if "url_zmluvy" in fields:
                     fields.remove("url_zmluvy")
+                if "datum_zverejnenia_CRZ" in fields:
                     fields.remove("datum_zverejnenia_CRZ")
+                if "podpisana_subor" in fields:
                     fields.remove("podpisana_subor")
             else:
                 pass
@@ -203,23 +207,34 @@ class ZmluvaAdmin():
                 #fields.remove("honorar_ah")
             pass
         else:
-            # V novej platbe povoliť len "obdobie"
-            fields.remove("stav_zmluvy")
+            # V novej zmluve povoliť (teda pouzit remove) len: 
             fields.remove("cislo")
-            #fields.remove("zmluvna_strana")
-            #fields.remove("honorar_ah")
-            fields.remove("datum_zverejnenia_CRZ")
-            fields.remove("url_zmluvy")
+        pass
         return fields
 
     # formátovať pole url_zmluvy
     def url_zmluvy_html(self, obj):
-        from django.utils.html import format_html
         if obj:
             return format_html(f'<a href="{obj.url_zmluvy}" target="_blank">pdf</a>') if obj.url_zmluvy else None
         else:
             return None
     url_zmluvy_html.short_description = "Zmluva v CRZ"
+
+    # formátovať pole súboru zmluvy
+    def subor_zmluvy_html(self, obj):
+        if obj:
+            return format_html(f'<a href="{obj.vygenerovana_subor.url}" target="_blank">{obj.vygenerovana_subor.name.split("/")[-1]}</a>') if obj.vygenerovana_subor else None
+        else:
+            return None
+    subor_zmluvy_html.short_description = "Súbor zmluvy"
+
+    # formátovať pole súboru zmluvy
+    def subor_zmluvy_crz_html(self, obj):
+        if obj:
+            return format_html(f'<a href="{obj.vygenerovana_crz_subor.url}" target="_blank">{obj.vygenerovana_crz_subor.name.split("/")[-1]}</a>') if obj.vygenerovana_crz_subor else None
+        else:
+            return None
+    subor_zmluvy_crz_html.short_description = "Súbor pre CRZ"
 
     # formatovat datum
     def crz_datum(self, obj):
@@ -252,6 +267,7 @@ class ZmluvaAdmin():
                             zmluva.vygenerovana_subor=subor
                     zmluva.save()
                 self.message_user(request, msg, status)
+                self.message_user(request, f"Vytvorenú zmluvu dajte ju na podpis vedeniu Enú.\n Podpísanú zmluvu dajte na sekretariát na odoslanie autorovi a vyplňte pole 'Autorovi na podpis'", messages.WARNING)
             else:
                 self.message_user(request, f"Súbory zmluvy {zmluva.cislo} neboli vytvorené, lebo zmluva je už v stave '{StavZmluvy(zmluva.stav_zmluvy).label}'", messages.ERROR)
                 continue
@@ -293,15 +309,10 @@ class ZmluvaAutorAdmin(ZmluvaAdmin, AdminChangeLinksMixin, SimpleHistoryAdmin, I
         for f in fields_cur - fields_par:   #pridať rozdiel po jednom
             fields += (f,)
         if obj:
-            if obj.vygenerovana_subor: 
-                pass
-            else:
-                fields.remove("zmluvna_strana")
+            if not obj.stav_zmluvy or obj.stav_zmluvy in [StavZmluvy.VYTVORENA, StavZmluvy.POZIADAVKA, StavZmluvy.ODOSLANY_DOTAZNIK]:
                 fields.remove("honorar_ah")
-                #fields.remove("podklady_odoslane")
-            pass
         else:
-            # V novej platbe povoliť len "obdobie"
+            # V novej zmluve povoliť (teda pouzit remove) len: 
             fields.remove("honorar_ah")
             fields.remove("zmluvna_strana")
         return fields

@@ -1,7 +1,9 @@
 
 from django import forms
+from django.utils.html import format_html
+from django.utils.safestring import mark_safe
 from ipdb import set_trace as trace
-from .models import OsobaAutor, ZmluvaAutor, PlatbaAutorskaSumar, OsobaGrafik, ZmluvaGrafik, VytvarnaObjednavkaPlatba
+from .models import OsobaAutor, ZmluvaAutor, PlatbaAutorskaSumar, OsobaGrafik, ZmluvaGrafik, VytvarnaObjednavkaPlatba, StavZmluvy
 from dennik.models import Dokument, SposobDorucenia, TypDokumentu, InOut
 from dennik.forms import nasledujuce_cislo
 from django.core.exceptions import ValidationError
@@ -39,27 +41,87 @@ class ZmluvaForm(PopisZmeny):
         vs_name = ZmluvaAutor._meta.get_field('vygenerovana_subor').verbose_name
         try:
             #kontrola
-            if 'zmluva_odoslana' in self.changed_data and 'zmluva_vratena' in self.changed_data:
-                raise ValidationError(f"Dátum do '{zo_name}' nemožno zadať spolu s '{zv_name}'.")
-            if 'zmluva_odoslana' in self.changed_data:
-                if self.instance.vygenerovana_subor:   # súbor zmluvy už existuje
-                    vec = f"Zmluva {self.instance.cislo} autorovi na podpis"
-                    cislo = nasledujuce_cislo(Dokument)
-                    dok = Dokument(
-                        cislo = cislo,
-                        cislopolozky = self.instance.cislo,
-                        datumvytvorenia = self.cleaned_data['zmluva_odoslana'],
-                        typdokumentu = TypDokumentu.AZMLUVA,
-                        inout = InOut.ODOSLANY,
-                        adresat = self.instance.zmluvna_strana,
-                        vec = f'<a href="{self.instance.vygenerovana_subor.url}">{vec}</a>',
-                        prijalodoslal=self.request.user.username, #zámena mien prijalodoslal - zaznamvytvoril
+            if not 'stav_zmluvy' in self.cleaned_data:
+                messages.warning(self.request, f"Akciou 'Vytvoriť súbory zmluvy' vytvorte súbory zmluvy")
+                return self.cleaned_data
+            elif 'honorar_ah' in self.changed_data:
+                messages.warning(self.request, f"Akciou 'Vytvoriť súbory zmluvy' treba aktualizovať súbory zmluvy")
+                return self.cleaned_data
+            elif 'zmluva_odoslana' in self.changed_data:
+                vec = f"Zmluva {self.instance.cislo} autorovi na podpis"
+                cislo = nasledujuce_cislo(Dokument)
+                dok = Dokument(
+                    cislo = cislo,
+                    cislopolozky = self.instance.cislo,
+                    datumvytvorenia = self.cleaned_data['zmluva_odoslana'],
+                    typdokumentu = TypDokumentu.AZMLUVA,
+                    inout = InOut.ODOSLANY,
+                    adresat = self.instance.zmluvna_strana,
+                    vec = f'<a href="{self.instance.vygenerovana_subor.url}">{vec}</a>',
+                    prijalodoslal=self.request.user.username, #zámena mien prijalodoslal - zaznamvytvoril
+                )
+                dok.save()
+                messages.warning(self.request, 
+                    format_html(
+                        'Do denníka prijatej a odoslanej pošty bol pridaný záznam č. {}: <em>{}</em>, treba v ňom doplniť údaje o odoslaní.',
+                        mark_safe(f'<a href="/admin/dennik/dokument/{dok.id}/change/">{cislo}</a>'),
+                        vec
+                        )
                     )
-                    dok.save()
-                    messages.warning(self.request, f"Do denníka prijatej a odoslanej pošty bol pridaný záznam č. {cislo} '{vec}'")
-                    return self.cleaned_data
-                else:
-                    raise ValidationError(f"Pole '{zo_name} možno vyplniť až po vygenerovaní súboru '{vt_name}'. ")
+                self.cleaned_data['stav_zmluvy'] = StavZmluvy.ODOSLANA_AUTOROVI
+                return self.cleaned_data
+            elif 'zmluva_vratena' in self.changed_data:
+                vec = f"Zmluva {self.instance.cislo} vrátená od autora"
+                cislo = nasledujuce_cislo(Dokument)
+                dok = Dokument(
+                    cislo = cislo,
+                    cislopolozky = self.instance.cislo,
+                    datumvytvorenia = self.cleaned_data['zmluva_vratena'],
+                    typdokumentu = TypDokumentu.AZMLUVA,
+                    inout = InOut.PRIJATY,
+                    adresat = self.instance.zmluvna_strana,
+                    vec = f'<a href="{self.instance.vygenerovana_subor.url}">{vec}</a>',
+                    prijalodoslal=self.request.user.username, #zámena mien prijalodoslal - zaznamvytvoril
+                )
+                dok.save()
+                messages.warning(self.request, 
+                    format_html(
+                        'Do denníka prijatej a odoslanej pošty bol pridaný záznam č. {}: <em>{}</em>, treba v ňom doplniť údaje o odoslaní.',
+                        mark_safe(f'<a href="/admin/dennik/dokument/{dok.id}/change/">{cislo}</a>'),
+                        vec
+                        )
+                    )
+                messages.warning(self.request, f"Zmluvu treba dať príslušnej osobe na vloženie do CRZ.")
+                self.cleaned_data['stav_zmluvy'] = StavZmluvy.VRATENA_OD_AUTORA
+                return self.cleaned_data
+            elif 'datum_zverejnenia_CRZ' in self.changed_data and 'url_zmluvy' in self.changed_data:
+                vec = f"Zmluva {self.instance.cislo} vložená do CRZ."
+                cislo = nasledujuce_cislo(Dokument)
+                dok = Dokument(
+                    cislo = cislo,
+                    cislopolozky = self.instance.cislo,
+                    datum = self.cleaned_data['datum_zverejnenia_CRZ'],
+                    datumvytvorenia = self.cleaned_data['datum_zverejnenia_CRZ'],
+                    typdokumentu = TypDokumentu.AZMLUVA,
+                    inout = InOut.ODOSLANY,
+                    sposob = SposobDorucenia.WEB,
+                    adresat = "CRZ",
+                    vec = f'<a href="{self.instance.vygenerovana_subor.url}">{vec}</a>',
+                    zaznamvytvoril=self.request.user.username, #zámena mien prijalodoslal - zaznamvytvoril
+                    prijalodoslal=self.request.user.username, #zámena mien prijalodoslal - zaznamvytvoril
+                )
+                dok.save()
+                self.cleaned_data['stav_zmluvy'] = StavZmluvy.ZVEREJNENA_V_CRZ
+                messages.warning(self.request, 
+                    format_html(
+                        'Do denníka prijatej a odoslanej pošty bol pridaný záznam č. {}: <em>{}</em>',
+                        mark_safe(f'<a href="/admin/dennik/dokument/{dok.id}/change/">{cislo}</a>'),
+                        vec
+                        )
+                    )
+                return self.cleaned_data
+            #elif 'url_zmluvy' in self.changed_data or 'datum_zverejnenia_CRZ' in self.changed_data:
+                #return self.cleaned_data
         except ValidationError as ex:
             raise ex
 

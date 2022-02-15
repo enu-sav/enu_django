@@ -195,13 +195,12 @@ def VytvoritAutorskuZmluvu(zmluva):
     fname = f"{auxname}.fodt"
     fname_crz = f"{auxname}-CRZ.fodt"
     for fn, tx in ((fname, sablona), (fname_crz, sablona_crz)): 
-        print(fn)
         nazov_zmluvy_log = os.path.join(settings.CONTRACTS_DIR.split("/")[-1],auxname,fn)
         nazov_zmluvy = os.path.join(odir,fn)
 
         with open(nazov_zmluvy, "w") as f:
             f.write(tx)
-        vytvorene_subory.append(nazov_zmluvy_log)
+        vytvorene_subory.append(nazov_zmluvy_log.split("/")[-1])
     fnames = ", ".join(vytvorene_subory)
     return messages.SUCCESS, f"Súbory zmluvy {zmluva.cislo} boli úspešne vytvorené ({fnames}).", vytvorene_subory
 

@@ -37,6 +37,7 @@ class SposobDorucenia(models.TextChoices):
     IPOSTA = 'iposta', 'Interná pošta'
     MAIL = 'mail', 'E-mail'
     OSOBNE = 'osobne', 'Osobne'
+    WEB = 'web', 'Web rozhranie'
 
 # Create your models here.
 class Dokument(models.Model):
