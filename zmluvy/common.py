@@ -200,7 +200,7 @@ def VytvoritAutorskuZmluvu(zmluva):
 
         with open(nazov_zmluvy, "w") as f:
             f.write(tx)
-        vytvorene_subory.append(nazov_zmluvy_log.split("/")[-1])
+        vytvorene_subory.append(nazov_zmluvy_log)
     fnames = ", ".join(vytvorene_subory)
     return messages.SUCCESS, f"Súbory zmluvy {zmluva.cislo} boli úspešne vytvorené ({fnames}).", vytvorene_subory
 
