@@ -98,19 +98,19 @@ class VyplatitAutorskeOdmeny():
 
                     #údaje po heslách uložiť do self.data
                     #overiť, či autor má zadanú zmluvu, v prípade chyby vynechať
-                    query_set = ZmluvaAutor.objects.filter(zmluvna_strana__rs_login=login, cislo_zmluvy=cislo_zmluvy)
+                    query_set = ZmluvaAutor.objects.filter(zmluvna_strana__rs_login=login, cislo=cislo_zmluvy)
                     if query_set:
                         zmluva = query_set[0] 
                         if zmluva.stav_zmluvy != StavZmluvy.ZVEREJNENA_V_CRZ:
-                            msg = f"Zmluva {zmluva.cislo_zmluvy} autora {login} ({row[hdr['Lexikálna skupina']]}) nie je platná / zverejnená v CRZ"
+                            msg = f"Zmluva {zmluva.cislo} autora {login} ({row[hdr['Lexikálna skupina']]}) nie je platná / zverejnená v CRZ"
                             #self.log(messages.ERROR, msg)
                             self.error_list.append([login, "", msg])
                         elif zmluva.honorar_ah < 1:
-                            msg = f"Zmluva {zmluva.cislo_zmluvy} autora {login} nemá určený honorár/AH"
+                            msg = f"Zmluva {zmluva.cislo} autora {login} nemá určený honorár/AH"
                             #self.log(messages.ERROR, msg)
                             self.error_list.append([login, "", msg])
                         elif not zmluva.datum_zverejnenia_CRZ:
-                            msg = f"Zmluva {zmluva.cislo_zmluvy} autora {login} nemá uvedený dátum platnosti / zverejnenia v CRZ"
+                            msg = f"Zmluva {zmluva.cislo} autora {login} nemá uvedený dátum platnosti / zverejnenia v CRZ"
                             #self.log(messages.ERROR, msg)
                             self.error_list.append([login, "", msg])
                         else:   # vytvoriť záznam na vyplatenie
@@ -187,7 +187,7 @@ class VyplatitAutorskeOdmeny():
             redaktor = f" ({','.join(redaktor)})" if redaktor else ""
             # spanning relationship: zmluvna_strana->rs_login
             zdata = ZmluvaAutor.objects.filter(zmluvna_strana__rs_login=autor)
-            zmluvy_autora = ", ".join([z.cislo_zmluvy for z in zdata])
+            zmluvy_autora = ", ".join([z.cislo for z in zdata])
             adata = OsobaAutor.objects.filter(rs_login=autor)
             
             if not adata:
@@ -222,7 +222,7 @@ class VyplatitAutorskeOdmeny():
             # pomocna struktura na vyplacanie
             zvyplatit = {}
             for zmluva in zdata:
-                zvyplatit[zmluva.cislo_zmluvy] = zmluva.honorar_ah
+                zvyplatit[zmluva.cislo] = zmluva.honorar_ah
             # vypocitat odmenu za vsetky hesla
             ahonorar = 0 #sucet odmien za jednotlive hesla na zaklade zmluv
             zmluvy_autora = set()
@@ -778,7 +778,7 @@ class VyplatitAutorskeOdmeny():
         zdata = ZmluvaAutor.objects.filter(zmluvna_strana__rs_login=autor)
         zvyplatit = {}
         for zmluva in zdata:
-            zvyplatit[zmluva.cislo_zmluvy] = zmluva.honorar_ah
+            zvyplatit[zmluva.cislo] = zmluva.honorar_ah
         nitems = 0  #pocet hesiel
         for rstype in self.data[autor]:
             for zmluva in self.data[autor][rstype]:
