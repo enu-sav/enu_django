@@ -632,6 +632,12 @@ class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
             # prebrať a uložiť novovytvorený zoznam autorov (len pri akcii "Vytvoriť podklady na vyplatenie autorských odmien pre THS")
             if not platba.datum_uhradenia and vao.zoznam_autorov:
                 platba.autori_na_vyplatenie = " ".join(vao.zoznam_autorov)
+
+            if platba.datum_uhradenia:
+                self.message_user(request, "Vygenerované boli finálne dokumenty platby, pokračujte podľa inštrukcií v jednotlivých poliach platby." , messages.WARNING)
+            else:
+                self.message_user(request, "Ak je platba pripravená na vyplatenie, odošlite podklady podľa inštrukcií v poli 'Podklady na vyplatenie' a vyplňte pole 'Podklady odoslané'." , messages.WARNING)
+
             platba.save()
             #self.message_user(request, msg, status)
         except Exception as error:

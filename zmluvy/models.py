@@ -277,7 +277,7 @@ def platba_autorska_sumar_upload_location(instance, filename):
 class PlatbaAutorskaSumar(models.Model):
     #obdobie: priečinok, z ktorého bola platba importovaná
     datum_uhradenia = models.DateField('Vyplatené THS-kou', 
-            help_text = "Dátum vyplatenia honorárov na základe odoslaných podkladov (oznámený účtárňou THS). <br /><strong>Nasledujúci krok: spustiť akciu 'Vytvoriť finálny prehľad...'</strong>",
+            help_text = "Dátum vyplatenia honorárov na základe odoslaných podkladov (oznámený účtárňou THS).",
             null=True, blank=True)
     datum_importovania = models.DateField('Importované do RS/WEBRS', 
             help_text = "Dátum importovania do RS/WEBRS",
@@ -299,7 +299,7 @@ class PlatbaAutorskaSumar(models.Model):
             null = True
             )
     vyplatit_ths = models.FileField("Podklady na vyplatenie",
-            help_text = "Súbor generovaný akciou 'Vytvoriť podklady na vyplatenie autorských odmien pre THS'. <br />Súbor obsahuje údaje pre vyplácanie autorských honorárov (hárok <em>Na vyplatenie</em>) a zoznam chýb, ktoré boli pre generovaní zistené (hárok <em>Chyby</em>).<br /> <strong>Definitívnu verziu súboru (len hárku  <em>Na vyplatenie</em>) treba poslať mailom do účtárne THS na vyplatenie.</strong>", 
+            help_text = "Súbor generovaný akciou 'Vytvoriť podklady na vyplatenie autorských odmien pre THS'. <br />Súbor obsahuje údaje pre vyplácanie autorských honorárov (hárok <em>Na vyplatenie</em>) a zoznam chýb, ktoré boli pre generovaní zistené (hárok <em>Chyby</em>).<br /> <strong>PDF definitívnej verzie súboru (len hárku  <em>Na vyplatenie</em>) treba poslať mailom do účtárne THS na vyplatenie.</strong>", 
             upload_to=platba_autorska_sumar_upload_location, 
             null = True, 
             blank = True)

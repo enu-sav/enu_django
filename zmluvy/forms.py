@@ -199,18 +199,35 @@ class PlatbaAutorskaSumarForm(PopisZmeny):
                     dok = Dokument(
                         cislo = cislo,
                         datum = self.cleaned_data['podklady_odoslane'],
-                        odosielatel = str(self.instance),
-                        adresat = "Účtovník TSH", 
+                        cislopolozky = self.instance,
+                        adresat = "Účtovník THS", 
+                        inout = InOut.ODOSLANY,
                         vec = f'<a href="{self.instance.vyplatit_ths.url}">{vec}</a>, hárok ''Na vyplatenie''',
+                        zaznamvytvoril=self.request.user.username, #zámena mien prijalodoslal - zaznamvytvoril
                         prijalodoslal=self.request.user.username,
                         sposob = SposobDorucenia.MAIL
                     )
                     dok.save()
-                    messages.warning(self.request, f"Do denníka prijatej a odoslanej pošty bol pridaný záznam č. {cislo} '{vec}'")
+                    #messages.warning(self.request, 
+                        #format_html(
+                            #'Účtovníkovi THS e-mailom odošlite <strong>pdf</strong> hárka <em>Na vyplatenie</em> dokumentu {}.',
+                            #mark_safe(f'<a href="{self.instance.vyplatit_ths.url}">{vec}</a>')
+                        #)
+                    #)
+                    messages.warning(self.request, 
+                        format_html(
+                            'Do denníka prijatej a odoslanej pošty bol pridaný záznam č. {}: <em>{}</em>.',
+                            mark_safe(f'<a href="/admin/dennik/dokument/{dok.id}/change/">{cislo}</a>'),
+                            vec
+                            )
+                        )
+                    messages.warning(self.request, format_html("Týždeň čakajte na informáciu z THS o neúspešných platbách. <br/>Potom v poli 'Vyplácaní autori' zmažte <em>nevyplatených autorov</em> (ak boli) a vyplňte pole 'Vyplatené THS-kou'.") , messages.WARNING)
                     return self.cleaned_data
                 else:
                     raise ValidationError(f"Pole '{po_name} možno vyplniť až po vygenerovaní súboru '{vt_name}'. ")
             #na_vyplatenie_odoslane a kryci_list_odoslany možno zaznamenať naraz
+            if 'datum_uhradenia' in self.changed_data:
+                    messages.warning(self.request, "Teraz vytvorte finálny prehľad akciou 'Vytvoriť finálny prehľad o vyplácaní...'." , messages.WARNING)
             if 'na_vyplatenie_odoslane' in self.changed_data or 'kryci_list_odoslany' in self.changed_data:
                 nv_dok=None
                 klo_dok=None
@@ -222,9 +239,11 @@ class PlatbaAutorskaSumarForm(PopisZmeny):
                         nv_dok = Dokument(
                             cislo = nv_cislo,
                             datum = self.cleaned_data['na_vyplatenie_odoslane'],
-                            odosielatel = str(self.instance),
-                            adresat = "Účtovník TSH", 
+                            cislopolozky = self.instance.obdobie,
+                            adresat = "Účtovník THS", 
+                            inout = InOut.ODOSLANY,
                             vec = f'<a href="{self.instance.vyplatene.url}">{nv_vec}</a>", hárok ''Na vyplatenie''',
+                            zaznamvytvoril=self.request.user.username, #zámena mien prijalodoslal - zaznamvytvoril
                             prijalodoslal=self.request.user.username,
                             sposob = SposobDorucenia.MAIL
                         )
@@ -237,25 +256,48 @@ class PlatbaAutorskaSumarForm(PopisZmeny):
                         klo_cislo = "D-%s-%03d"%(rr,int(cc)+1)
                     else:
                         klo_cislo = nasledujuce_cislo(Dokument)
-                    klo_vec = f"Krycí list vyplácania aut. honorárov  za obdobie {self.instance.obdobie}"
+                    klo_vec = f"Krycí list vyplácania aut. honorárov za obdobie {self.instance.obdobie}"
                     if self.instance.vyplatene:   # súbor existuje
                         klo_dok = Dokument(
                             cislo = klo_cislo,
-                            datum = self.cleaned_data['kryci_list_odoslany'],
-                            odosielatel = str(self.instance),
-                            adresat = "Účtovník TSH", 
+                            cislopolozky = self.instance.obdobie,
+                            adresat = "Účtovník THS", 
+                            inout = InOut.ODOSLANY,
                             vec = f'<a href="{self.instance.vyplatene.url}">{klo_vec}</a>", hárok ''Krycí list''',
-                            prijalodoslal=self.request.user.username,
                             sposob = SposobDorucenia.IPOSTA
                         )
                     else:
                         raise ValidationError(f"Pole '{klo_name} možno vyplniť až po vygenerovaní súboru '{v_name}'. ")
                 if nv_dok: 
                     nv_dok.save()
-                    messages.warning(self.request, f"Do denníka prijatej a odoslanej pošty bol pridaný záznam č. {nv_cislo} '{nv_vec}'")
+                    #messages.warning(self.request, 
+                        #format_html(
+                            #'Účtovníkovi THS treba emailom odoslať <strong>pdf</strong> hárka <em>Na vyplatenie</em> dokumentu {}.',
+                            #mark_safe(f'<a href="{self.instance.vyplatene.url}">{nv_vec}</a>')
+                        #)
+                    #)
+                    messages.warning(self.request, 
+                        format_html(
+                            'Do denníka prijatej a odoslanej pošty bol pridaný záznam č. {}: <em>{}</em>',
+                            mark_safe(f'<a href="/admin/dennik/dokument/{nv_dok.id}/change/">{nv_cislo}</a>'),
+                            nv_vec
+                            )
+                        )
                 if klo_dok: 
                     klo_dok.save()
-                    messages.warning(self.request, f"Do denníka prijatej a odoslanej pošty bol pridaný záznam č. {klo_cislo} '{klo_vec}'")
+                    #messages.warning(self.request, 
+                        #format_html(
+                            #'Účtovníkovi THS treba internou poštou odoslať hárok <em>Krycí list</em> dokumentu {}.',
+                            #mark_safe(f'<a href="{self.instance.vyplatene.url}">{klo_vec}</a>')
+                        #)
+                    #)
+                    messages.warning(self.request, 
+                        format_html(
+                            'Do denníka prijatej a odoslanej pošty bol pridaný záznam č. {}: <em>{}</em>, treba v ňom doplniť údaje o odoslaní.',
+                            mark_safe(f'<a href="/admin/dennik/dokument/{klo_dok.id}/change/">{klo_cislo}</a>'),
+                            klo_vec
+                            )
+                        )
                 return self.cleaned_data
         except ValidationError as ex:
             raise ex
