@@ -322,7 +322,7 @@ class PlatbaAutorskaSumar(models.Model):
             null=True, 
             blank=True)
     kryci_list_odoslany= models.DateField("'Krycí list' odoslaný",
-            help_text = 'Dátum odoslania hárku <em>Krycí list</em> do účtárne THS (internou poštou)</em>. Dátum odoslania sa zapíše do <a href="/admin/dennik/dokument/">denníka prijatej a odoslanej pošty</a>.',
+            help_text = 'Dátum odoslania hárkov <em>Na vyplatenie</em> a <em>Krycí list</em> do účtárne THS (internou poštou)</em>. Dátum odoslania sa zapíše do <a href="/admin/dennik/dokument/">denníka prijatej a odoslanej pošty</a>.',
             null=True, 
             blank=True)
     import_rs = models.FileField("Importovať do RS",

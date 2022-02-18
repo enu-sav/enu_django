@@ -174,7 +174,7 @@ class VytvarnaObjednavkaPlatbaForm(forms.ModelForm):
             self.fields[polecislo].help_text = f"Zadajte číslo novej objednávky v tvare {VytvarnaObjednavkaPlatba.oznacenie}-RRRR-NNN. Predvolené číslo '{nasledujuce} bolo určené na základe čísel existujúcich výtvarných objednávok ako nasledujúce v poradí."
             self.initial[polecislo] = nasledujuce
 
-class PlatbaAutorskaSumarForm(PopisZmeny):
+class PlatbaAutorskaSumarForm(forms.ModelForm):
     #inicializácia polí
     def __init__(self, *args, **kwargs):
         # do Admin treba pridať metódu get_form
@@ -228,6 +228,13 @@ class PlatbaAutorskaSumarForm(PopisZmeny):
             #na_vyplatenie_odoslane a kryci_list_odoslany možno zaznamenať naraz
             if 'datum_uhradenia' in self.changed_data:
                     messages.warning(self.request, "Teraz vytvorte finálny prehľad akciou 'Vytvoriť finálny prehľad o vyplácaní...'." , messages.WARNING)
+
+            if 'datum_oznamenia' in self.changed_data:
+                pass
+
+            if 'datum_importovania' in self.changed_data:
+                pass
+
             if 'na_vyplatenie_odoslane' in self.changed_data or 'kryci_list_odoslany' in self.changed_data:
                 nv_dok=None
                 klo_dok=None
