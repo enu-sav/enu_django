@@ -385,7 +385,7 @@ class ZmluvaGrafikAdmin(ZmluvaAdmin, AdminChangeLinksMixin, SimpleHistoryAdmin, 
     def VytvoritZmluvu(self, zmluva):
         return VytvoritVytvarnuZmluvu(zmluva)
 
-class PlatbaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin,ModelAdminTotals):
+class PlatbaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
     # autor_link: pridá autora zmluvy do zoznamu, vďaka AdminChangeLinksMixin
     def get_list_display(self, request):
         return ('datum_uhradenia', 'honorar', 'odvod_LF', 'odvedena_dan', 'uhradena_suma')
@@ -578,7 +578,7 @@ class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
         platba.datum_aktualizacie = timezone.now(),
         platba.save()
         pass
-    zaznamenat_platby_do_db.short_description = "Vytvoriť finálny prehľad o vyplácaní a zaznamenať platby do databázy"
+    zaznamenat_platby_do_db.short_description = PlatbaAutorskaSumar.zaznamenat_platby_do_db_name
     #Oprávnenie na použitie akcie, viazané na 'change'
     zaznamenat_platby_do_db.allowed_permissions = ('change',)
 
@@ -588,13 +588,13 @@ class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
             return
         platba = queryset[0]
         if platba.platba_zaznamenana == AnoNie.ANO: 
-            self.message_user(request, f"Platba {platba.obdobie} už bola vložená do databázy s dátumom vyplatenia {platba.datum_uhradenia}. Ak chcete opakovane generovať podklady pre THS, platbu najskôr musíte zrušit (odstrániť z databázy) pomocou 'Zrušiť platbu'", messages.ERROR)
+            self.message_user(request, f"Platba {platba.obdobie} už bola vložená do databázy s dátumom vyplatenia {platba.datum_uhradenia}. Ak chcete opakovane generovať podklady pre THS, platbu najskôr musíte zrušit (odstrániť z databázy) pomocou akcie 'Zrušiť platbu'", messages.ERROR)
             return
         self.vyplatit_autorske_odmeny(request, platba)
         platba.datum_aktualizacie = timezone.now(),
         platba.save()
         pass
-    vytvorit_podklady_pre_THS.short_description = "Vytvoriť podklady na vyplatenie autorských odmien pre THS"
+    vytvorit_podklady_pre_THS.short_description = PlatbaAutorskaSumar.vytvorit_podklady_pre_THS_name
     #Oprávnenie na použitie akcie, viazané na 'change'
     vytvorit_podklady_pre_THS.allowed_permissions = ('change',)
 
@@ -636,7 +636,9 @@ class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
             if platba.datum_uhradenia:
                 self.message_user(request, "Vygenerované boli finálne dokumenty platby, pokračujte podľa inštrukcií v jednotlivých poliach platby." , messages.WARNING)
             else:
-                self.message_user(request, "Ak je platba pripravená na vyplatenie, odošlite podklady podľa inštrukcií v poli 'Podklady na vyplatenie' a vyplňte pole 'Podklady odoslané'." , messages.WARNING)
+                po = PlatbaAutorskaSumar.podklady_odoslane.field.verbose_name
+                pv = PlatbaAutorskaSumar.vyplatit_ths.field.verbose_name
+                self.message_user(request, f"Ak je platba pripravená na vyplatenie, odošlite platobný príkaz na vyplatenie honorárov podľa inštrukcií v poli '{pv}' a vyplňte pole '{po}'." , messages.WARNING)
 
             platba.save()
             #self.message_user(request, msg, status)
@@ -679,7 +681,7 @@ class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
         for log in logs:
             self.message_user(request, log[1].replace(settings.MEDIA_ROOT,""), log[0])
         #self.message_user(request, f"Platba {platba.obdobie} bola zrušená", messages.INFO)
-    zrusit_platbu.short_description = "Zrušiť záznam o platbe v databáze"
+    zrusit_platbu.short_description = PlatbaAutorskaSumar.zrusit_platbu_name
     #Oprávnenie na použitie akcie, viazané na 'delete'
     zrusit_platbu.allowed_permissions = ('delete',)
 

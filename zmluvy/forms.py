@@ -183,13 +183,21 @@ class PlatbaAutorskaSumarForm(forms.ModelForm):
 
     # Skontrolovať platnost a keď je všetko OK, spraviť záznam do denníka
     def clean(self):
+        anv_name = PlatbaAutorskaSumar._meta.get_field('autori_na_vyplatenie').verbose_name
+        du_name = PlatbaAutorskaSumar._meta.get_field('datum_uhradenia').verbose_name
         po_name = PlatbaAutorskaSumar._meta.get_field('podklady_odoslane').verbose_name
         nvo_name = PlatbaAutorskaSumar._meta.get_field('na_vyplatenie_odoslane').verbose_name
         klo_name = PlatbaAutorskaSumar._meta.get_field('kryci_list_odoslany').verbose_name
         vt_name = PlatbaAutorskaSumar._meta.get_field('vyplatit_ths').verbose_name
         v_name = PlatbaAutorskaSumar._meta.get_field('vyplatene').verbose_name
+        zp_name = PlatbaAutorskaSumar.zrusit_platbu_name
+        vpt_name = PlatbaAutorskaSumar.vytvorit_podklady_pre_THS_name
+        zpd_name = PlatbaAutorskaSumar.zaznamenat_platby_do_db_name
         try:
             #kontrola
+            # ak je platba len vytvorená
+            if 'obdobie' in self.changed_data:
+                messages.warning(self.request, format_html(f"Ak ste tak ešte nespravili, z redakčných systémov exportujte csv súbory s údajmi pre vyplácanie a vložte ich do vytvoreného vyplácania.<br />Podklady na vyplatenie autorských honorárov vytvorte akciou <em>{vpt_name}</em>."))
             if 'podklady_odoslane' in self.changed_data and ('kryci_list_odoslany' in self.changed_data or 'na_vyplatenie_odoslane' in self.changed_data):
                 raise ValidationError(f"Dátum do '{po_name}' nemožno zadať spolu s '{nvo_name}' a '{klo_name}'.")
             if 'podklady_odoslane' in self.changed_data:
@@ -198,14 +206,14 @@ class PlatbaAutorskaSumarForm(forms.ModelForm):
                 if self.instance.vyplatit_ths:   # súbor existuje
                     dok = Dokument(
                         cislo = cislo,
-                        datum = self.cleaned_data['podklady_odoslane'],
-                        cislopolozky = self.instance,
+                        #datum = self.cleaned_data['podklady_odoslane'],
+                        cislopolozky = f"{self.instance} - honoráre",
                         adresat = "Účtovník THS", 
                         inout = InOut.ODOSLANY,
                         vec = f'<a href="{self.instance.vyplatit_ths.url}">{vec}</a>, hárok ''Na vyplatenie''',
-                        zaznamvytvoril=self.request.user.username, #zámena mien prijalodoslal - zaznamvytvoril
+                        #zaznamvytvoril=self.request.user.username, #zámena mien prijalodoslal - zaznamvytvoril
                         prijalodoslal=self.request.user.username,
-                        sposob = SposobDorucenia.MAIL
+                        #sposob = SposobDorucenia.MAIL
                     )
                     dok.save()
                     #messages.warning(self.request, 
@@ -216,18 +224,18 @@ class PlatbaAutorskaSumarForm(forms.ModelForm):
                     #)
                     messages.warning(self.request, 
                         format_html(
-                            'Do denníka prijatej a odoslanej pošty bol pridaný záznam č. {}: <em>{}</em>.',
+                            'Do denníka prijatej a odoslanej pošty bol pridaný záznam č. {}: <em>{}</em>, treba v ňom doplniť údaje o odoslaní.',
                             mark_safe(f'<a href="/admin/dennik/dokument/{dok.id}/change/">{cislo}</a>'),
                             vec
                             )
                         )
-                    messages.warning(self.request, format_html("Týždeň čakajte na informáciu z THS o neúspešných platbách. <br/>Potom v poli 'Vyplácaní autori' zmažte <em>nevyplatených autorov</em> (ak boli) a vyplňte pole 'Vyplatené THS-kou'.") , messages.WARNING)
+                    messages.warning(self.request, format_html(f"Týždeň čakajte na informáciu z THS o neúspešných platbách. <br/>Potom v poli '{anv_name}' zmažte <em>nevyplatených autorov</em> (ak boli) a vyplňte pole '{du_name}'.") , messages.WARNING)
                     return self.cleaned_data
                 else:
                     raise ValidationError(f"Pole '{po_name} možno vyplniť až po vygenerovaní súboru '{vt_name}'. ")
             #na_vyplatenie_odoslane a kryci_list_odoslany možno zaznamenať naraz
             if 'datum_uhradenia' in self.changed_data:
-                    messages.warning(self.request, "Teraz vytvorte finálny prehľad akciou 'Vytvoriť finálny prehľad o vyplácaní...'." , messages.WARNING)
+                    messages.warning(self.request, f"Teraz vytvorte finálny prehľad akciou '{zpd_name}'." , messages.WARNING)
 
             if 'datum_oznamenia' in self.changed_data:
                 pass
@@ -246,7 +254,7 @@ class PlatbaAutorskaSumarForm(forms.ModelForm):
                         nv_dok = Dokument(
                             cislo = nv_cislo,
                             datum = self.cleaned_data['na_vyplatenie_odoslane'],
-                            cislopolozky = self.instance.obdobie,
+                            cislopolozky = f"{self.instance} - daň a odvody",
                             adresat = "Účtovník THS", 
                             inout = InOut.ODOSLANY,
                             vec = f'<a href="{self.instance.vyplatene.url}">{nv_vec}</a>", hárok ''Na vyplatenie''',
@@ -263,11 +271,11 @@ class PlatbaAutorskaSumarForm(forms.ModelForm):
                         klo_cislo = "D-%s-%03d"%(rr,int(cc)+1)
                     else:
                         klo_cislo = nasledujuce_cislo(Dokument)
-                    klo_vec = f"Krycí list vyplácania aut. honorárov za obdobie {self.instance.obdobie}"
+                    klo_vec = f"Podklady na vyplatenie zrážkovej dane a odvodov do fondov za obdobie {self.instance.obdobie}"
                     if self.instance.vyplatene:   # súbor existuje
                         klo_dok = Dokument(
                             cislo = klo_cislo,
-                            cislopolozky = self.instance.obdobie,
+                            cislopolozky = f"{self.instance} - daň a odvody",
                             adresat = "Účtovník THS", 
                             inout = InOut.ODOSLANY,
                             vec = f'<a href="{self.instance.vyplatene.url}">{klo_vec}</a>", hárok ''Krycí list''',
