@@ -485,8 +485,8 @@ class PlatbaAutorskaSumarSuborAdmin(admin.StackedInline):
 class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
     form = PlatbaAutorskaSumarForm
     # určiť poradie polí v editovacom formulári
-    fields = ['obdobie', 'vyplatit_ths', 'podklady_odoslane', 'autori_na_vyplatenie', 'datum_uhradenia', 'vyplatene', 'na_vyplatenie_odoslane', 'kryci_list_odoslany', 'datum_zalozenia', 'datum_oznamenia', 'import_rs', 'import_webrs', 'datum_importovania']
-    list_display = ['obdobie', 'podklady_odoslane', 'datum_uhradenia', 'na_vyplatenie_odoslane', 'kryci_list_odoslany', 'datum_zalozenia', 'datum_oznamenia', 'datum_importovania', 'honorar_rs', 'honorar_webrs', 'honorar_spolu', 'vyplatene_spolu', 'odvod_LF', 'odvedena_dan']
+    fields = ['obdobie', 'vyplatit_ths', 'podklady_odoslane', 'autori_na_vyplatenie', 'datum_uhradenia', 'vyplatene', 'kryci_list_odoslany', 'datum_zalozenia', 'datum_oznamenia', 'import_rs', 'import_webrs', 'datum_importovania']
+    list_display = ['obdobie', 'podklady_odoslane', 'datum_uhradenia', 'kryci_list_odoslany', 'datum_zalozenia', 'datum_oznamenia', 'datum_importovania', 'honorar_rs', 'honorar_webrs', 'honorar_spolu', 'vyplatene_spolu', 'odvod_LF', 'odvedena_dan']
     actions = ['vytvorit_podklady_pre_THS', 'zaznamenat_platby_do_db', 'zrusit_platbu']
     # pripajanie suborov k objektu: krok 3, inline do XxxAdmin 
     inlines = [PlatbaAutorskaSumarSuborAdmin]
@@ -512,9 +512,6 @@ class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
             #Pole Vyplatené THS-kou
             if obj.podklady_odoslane and not obj.datum_uhradenia and "datum_uhradenia" in fields:
                 fields.remove("datum_uhradenia")
-            #Pole 'Na vyplatenie' odoslané
-            if obj.vyplatene and not obj.na_vyplatenie_odoslane and "na_vyplatenie_odoslane" in fields:
-                fields.remove("na_vyplatenie_odoslane")
             #Pole 'Krycí list' odoslaný:
             if obj.vyplatene and not obj.kryci_list_odoslany and "kryci_list_odoslany" in fields:
                 fields.remove("kryci_list_odoslany")
@@ -674,7 +671,6 @@ class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
         platba.import_webrs=None
         platba.podklady_odoslane=None
         platba.kryci_list_odoslany=None
-        platba.na_vyplatenie_odoslane=None
         pass
         platba.save()
         logs = vao.get_logs()

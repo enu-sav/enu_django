@@ -309,7 +309,7 @@ class PlatbaAutorskaSumar(models.Model):
             help_text = f"Dátum vyplatenia honorárov na základe odoslaných podkladov z poľa <em>{vyplatit_ths.verbose_name}</em> (oznámený účtárňou THS).",
             null=True, blank=True)
     podklady_odoslane= models.DateField('Honoráre na THS',
-            help_text = f'Dátum odovzdania podkladov na vyplatenie autorských honorárov z poľa <em>{vyplatit_ths.verbose_name}</em> na sekretariát na odoslanie do účtárne THS.',
+            help_text = f'Dátum odovzdania podkladov z poľa <em>{vyplatit_ths.verbose_name}</em> na vyplatenie autorských honorárov na sekretariát na odoslanie do účtárne THS.',
             null=True, 
             blank=True)
     autori_na_vyplatenie = models.TextField("Vyplácaní autori", 
@@ -322,13 +322,8 @@ class PlatbaAutorskaSumar(models.Model):
             upload_to=platba_autorska_sumar_upload_location, 
             null = True, 
             blank = True)
-    ##
-    na_vyplatenie_odoslane= models.DateField("'Na vyplatenie' odoslané",
-            help_text = 'Dátum odoslania hárku <em>Na vyplatenie</em> do účtárne THS (mailom)</em>. Dátum odoslania sa zapíše do <a href="/admin/dennik/dokument/">denníka prijatej a odoslanej pošty</a>.',
-            null=True, 
-            blank=True)
     kryci_list_odoslany= models.DateField("Daň na THS",
-            help_text = f'Dátum odovzdania podkladov na vyplatenie zrážkovej dane a odvodov do fondov z poľa <em>{vyplatene.verbose_name}</em> na sekretariát na odoslanie do účtárne THS.',
+            help_text = f'Dátum odovzdania podkladov z poľa <em>{vyplatene.verbose_name}</em> na vyplatenie zrážkovej dane a odvodov do fondov na sekretariát na odoslanie do účtárne THS.',
             null=True, 
             blank=True)
     import_rs = models.FileField("Importovať do RS",
