@@ -193,7 +193,6 @@ class PlatbaAutorskaSumarForm(forms.ModelForm):
         vpt_name = PlatbaAutorskaSumar.vytvorit_podklady_pre_THS_name
         zpd_name = PlatbaAutorskaSumar.zaznamenat_platby_do_db_name
         try:
-            #kontrola
             # ak je platba len vytvorená
             if 'obdobie' in self.changed_data:
                 messages.warning(self.request, format_html(f"Ak ste tak ešte nespravili, z redakčných systémov exportujte csv súbory s údajmi pre vyplácanie a vložte ich do vytvoreného vyplácania.<br />Podklady na vyplatenie autorských honorárov vytvorte akciou <em>{vpt_name}</em>."))
@@ -213,12 +212,6 @@ class PlatbaAutorskaSumarForm(forms.ModelForm):
                         #sposob = SposobDorucenia.MAIL
                     )
                     dok.save()
-                    #messages.warning(self.request, 
-                        #format_html(
-                            #'Účtovníkovi THS e-mailom odošlite <strong>pdf</strong> hárka <em>Na vyplatenie</em> dokumentu {}.',
-                            #mark_safe(f'<a href="{self.instance.vyplatit_ths.url}">{vec}</a>')
-                        #)
-                    #)
                     messages.warning(self.request, 
                         format_html(
                             'Do denníka prijatej a odoslanej pošty bol pridaný záznam č. {}: <em>{}</em>, treba v ňom doplniť údaje o odoslaní.',
@@ -226,7 +219,7 @@ class PlatbaAutorskaSumarForm(forms.ModelForm):
                             vec
                             )
                         )
-                    messages.warning(self.request, format_html(f"Po odoslaní na THS Týždeň čakajte na informáciu o neúspešných platbách. <br/>Potom v poli '{anv_name}' zmažte <em>nevyplatených autorov</em> (ak boli) a vyplňte pole '{du_name}'.") , messages.WARNING)
+                    messages.warning(self.request, format_html(f"Po odoslaní na THS týždeň čakajte na informáciu o neúspešných platbách.<br/>Potom v poli '{anv_name}' zmažte <em>nevyplatených autorov</em> (ak boli) a vyplňte pole '{du_name}'.") , messages.WARNING)
                     return self.cleaned_data
                 else:
                     raise ValidationError(f"Pole '{po_name} možno vyplniť až po vygenerovaní súboru '{vt_name}'. ")
@@ -234,10 +227,53 @@ class PlatbaAutorskaSumarForm(forms.ModelForm):
                     messages.warning(self.request, f"Teraz vytvorte finálny prehľad akciou '{zpd_name}'." , messages.WARNING)
 
             if 'datum_oznamenia' in self.changed_data:
+                cislo = nasledujuce_cislo(Dokument)
+                vec = f"Oznámenie nezdanených autorov na finančnú správu za` {self.instance.obdobie}"
+                if self.instance.vyplatene:   # súbor existuje
+                    dok = Dokument(
+                        cislo = cislo,
+                        cislopolozky = f"{self.instance}",
+                        adresat = "Finanačná správa",
+                        inout = InOut.ODOSLANY,
+                        vec = f'<a href="{self.instance.vyplatene.url}">{vec}</a>"',
+                        zaznamvytvoril=self.request.user.username, #zámena mien prijalodoslal - zaznamvytvoril
+                        sposob = SposobDorucenia.WEB,
+                    )
+                else:
+                    raise ValidationError(f"Pole '{name} možno vyplniť až po vygenerovaní súboru '{v_name}'. ")
+                dok.save()
+                messages.warning(self.request, 
+                    format_html(
+                        'Do denníka prijatej a odoslanej pošty bol pridaný záznam č. {}: <em>{}</em>',
+                        mark_safe(f'<a href="/admin/dennik/dokument/{dok.id}/change/">{cislo}</a>'),
+                        vec
+                        )
+                    )
                 pass
 
             if 'datum_importovania' in self.changed_data:
-                pass
+                cislo = nasledujuce_cislo(Dokument)
+                vec = f"Importovanie údajov o vyplatení do RS/WEBRS za {self.instance.obdobie}"
+                if self.instance.vyplatene:   # súbor existuje
+                    dok = Dokument(
+                        cislo = cislo,
+                        cislopolozky = f"{self.instance}",
+                        adresat = "RS/WEBRS",
+                        inout = InOut.ODOSLANY,
+                        vec = f'<a href="{self.instance.vyplatene.url}">{vec}</a>"',
+                        zaznamvytvoril=self.request.user.username, #zámena mien prijalodoslal - zaznamvytvoril
+                        sposob = SposobDorucenia.WEB,
+                    )
+                else:
+                    raise ValidationError(f"Pole '{name} možno vyplniť až po vygenerovaní súboru '{v_name}'. ")
+                dok.save()
+                messages.warning(self.request, 
+                    format_html(
+                        'Do denníka prijatej a odoslanej pošty bol pridaný záznam č. {}: <em>{}</em>',
+                        mark_safe(f'<a href="/admin/dennik/dokument/{dok.id}/change/">{cislo}</a>'),
+                        vec
+                        )
+                    )
 
             if 'kryci_list_odoslany' in self.changed_data:
                 cislo = nasledujuce_cislo(Dokument)
