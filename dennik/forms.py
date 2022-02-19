@@ -30,6 +30,8 @@ def parse_cislo(cislo):
 
     #odstráni detegovateľné chyby
 def normalizovat_cislo(cislo):
+    if "Vyplácanie" in cislo:
+        return cislo
     typy = {
         ZmluvaAutor.oznacenie.lower(): ZmluvaAutor.oznacenie,
         ZmluvaGrafik.oznacenie.lower(): ZmluvaGrafik.oznacenie,
@@ -52,6 +54,8 @@ def normalizovat_cislo(cislo):
 
 #overí existenciu položky v databáze
 def overit_polozku(cislo_polozky):
+    if "Vyplácanie" in cislo_polozky:
+        return False
     aux = re.findall(r"([^-]+)-([0-9]+)-([0-9]+)",cislo_polozky)
     if aux:
         typ, rok, cislo = aux[0]
