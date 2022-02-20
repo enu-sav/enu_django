@@ -205,7 +205,7 @@ def VytvoritAutorskuZmluvu(zmluva):
     return messages.SUCCESS, f"Súbory zmluvy {zmluva.cislo} boli úspešne vytvorené ({fnames}).", vytvorene_subory
 
 def VyplatitAutorskeOdmeny(platba):
-    os.path.join(settings.RLTS_DIR_NAME, platba.obdobie)
+    os.path.join(settings.RLTS_DIR_NAME, platba.cislo)
     pass
 
 def OveritUdajeAutora(autor, testovat_zdanovanie = True):

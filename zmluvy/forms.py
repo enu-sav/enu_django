@@ -9,6 +9,7 @@ from dennik.forms import nasledujuce_cislo
 from django.core.exceptions import ValidationError
 from django.contrib import messages #import messages
 import re
+from datetime import date
 
 # Pridať dodatočné pole popis_zmeny, použije sa ako change_reason v SimpleHistoryAdmin
 class PopisZmeny(forms.ModelForm):
@@ -101,7 +102,7 @@ class ZmluvaForm(PopisZmeny):
                     cislo = cislo,
                     cislopolozky = self.instance.cislo,
                     datum = self.cleaned_data['datum_zverejnenia_CRZ'],
-                    datumvytvorenia = self.cleaned_data['datum_zverejnenia_CRZ'],
+                    datumvytvorenia = date.today(), 
                     typdokumentu = TypDokumentu.AZMLUVA,
                     inout = InOut.ODOSLANY,
                     sposob = SposobDorucenia.WEB,
@@ -194,18 +195,22 @@ class PlatbaAutorskaSumarForm(forms.ModelForm):
         zpd_name = PlatbaAutorskaSumar.zaznamenat_platby_do_db_name
         try:
             # ak je platba len vytvorená
-            if 'obdobie' in self.changed_data:
-                messages.warning(self.request, format_html(f"Ak ste tak ešte nespravili, z redakčných systémov exportujte csv súbory s údajmi pre vyplácanie a vložte ich do vytvoreného vyplácania.<br />Podklady na vyplatenie autorských honorárov vytvorte akciou <em>{vpt_name}</em>."))
+            if 'cislo' in self.changed_data or not self.instance.vyplatit_ths:
+                if 'cislo' in self.changed_data:
+                    messages.warning(self.request, format_html(f"Ak ste tak ešte nespravili, z redakčných systémov exportujte csv súbory s údajmi pre vyplácanie a vložte ich do vytvoreného vyplácania."))
+                messages.warning(self.request, format_html(f"Podklady na vyplatenie autorských honorárov vytvorte akciou <em>{vpt_name}</em>."))
             if 'podklady_odoslane' in self.changed_data:
                 cislo = nasledujuce_cislo(Dokument)
-                vec = f"Podklady na vyplatenie aut. honorárov za {self.instance.obdobie}"
+                vec = f"Podklady na vyplatenie aut. honorárov za {self.instance.cislo}"
                 if self.instance.vyplatit_ths:   # súbor existuje
                     dok = Dokument(
                         cislo = cislo,
                         #datum = self.cleaned_data['podklady_odoslane'],
-                        cislopolozky = f"{self.instance} - honoráre",
+                        cislopolozky = self.instance.cislo,
                         adresat = "Účtovník THS", 
                         inout = InOut.ODOSLANY,
+                        typdokumentu = TypDokumentu.VYPLACANIE_AH,
+                        datumvytvorenia = date.today(), 
                         vec = f'<a href="{self.instance.vyplatit_ths.url}">{vec}</a>, hárok ''Na vyplatenie''',
                         #zaznamvytvoril=self.request.user.username, #zámena mien prijalodoslal - zaznamvytvoril
                         prijalodoslal=self.request.user.username,
@@ -228,15 +233,19 @@ class PlatbaAutorskaSumarForm(forms.ModelForm):
 
             if 'datum_oznamenia' in self.changed_data:
                 cislo = nasledujuce_cislo(Dokument)
-                vec = f"Oznámenie nezdanených autorov na finančnú správu za` {self.instance.obdobie}"
+                vec = f"Oznámenie nezdanených autorov na finančnú správu za {self.instance.cislo}"
                 if self.instance.vyplatene:   # súbor existuje
                     dok = Dokument(
                         cislo = cislo,
-                        cislopolozky = f"{self.instance}",
+                        cislopolozky = self.instance.cislo,
                         adresat = "Finanačná správa",
                         inout = InOut.ODOSLANY,
-                        vec = f'<a href="{self.instance.vyplatene.url}">{vec}</a>"',
+                        typdokumentu = TypDokumentu.VYPLACANIE_AH,
+                        datumvytvorenia = date.today(), 
+                        datum = self.cleaned_data['datum_oznamenia'],
+                        vec = f'<a href="{self.instance.vyplatene.url}">{vec}</a>',
                         zaznamvytvoril=self.request.user.username, #zámena mien prijalodoslal - zaznamvytvoril
+                        prijalodoslal=self.request.user.username, #zámena mien prijalodoslal - zaznamvytvoril
                         sposob = SposobDorucenia.WEB,
                     )
                 else:
@@ -253,15 +262,19 @@ class PlatbaAutorskaSumarForm(forms.ModelForm):
 
             if 'datum_importovania' in self.changed_data:
                 cislo = nasledujuce_cislo(Dokument)
-                vec = f"Importovanie údajov o vyplatení do RS/WEBRS za {self.instance.obdobie}"
+                vec = f"Importovanie údajov o vyplatení do RS/WEBRS za {self.instance.cislo}"
                 if self.instance.vyplatene:   # súbor existuje
                     dok = Dokument(
                         cislo = cislo,
-                        cislopolozky = f"{self.instance}",
+                        cislopolozky = self.instance.cislo,
                         adresat = "RS/WEBRS",
                         inout = InOut.ODOSLANY,
+                        typdokumentu = TypDokumentu.VYPLACANIE_AH,
+                        datumvytvorenia = date.today(), 
+                        datum = self.cleaned_data['datum_importovania'],
                         vec = f'<a href="{self.instance.vyplatene.url}">{vec}</a>"',
                         zaznamvytvoril=self.request.user.username, #zámena mien prijalodoslal - zaznamvytvoril
+                        prijalodoslal=self.request.user.username, #zámena mien prijalodoslal - zaznamvytvoril
                         sposob = SposobDorucenia.WEB,
                     )
                 else:
@@ -277,14 +290,17 @@ class PlatbaAutorskaSumarForm(forms.ModelForm):
 
             if 'kryci_list_odoslany' in self.changed_data:
                 cislo = nasledujuce_cislo(Dokument)
-                vec = f"Podklady na vyplatenie zrážkovej dane a odvodov do fondov za obdobie {self.instance.obdobie}"
+                vec = f"Podklady na vyplatenie zrážkovej dane a odvodov do fondov za {self.instance.cislo}"
                 if self.instance.vyplatene:   # súbor existuje
                     dok = Dokument(
                         cislo = cislo,
-                        cislopolozky = f"{self.instance} - daň a odvody",
+                        cislopolozky = self.instance.cislo,
                         adresat = "Účtovník THS", 
                         inout = InOut.ODOSLANY,
-                        vec = f'<a href="{self.instance.vyplatene.url}">{vec}</a>", hárok ''Krycí list''',
+                        typdokumentu = TypDokumentu.VYPLACANIE_AH,
+                        datumvytvorenia = date.today(), 
+                        prijalodoslal=self.request.user.username, #zámena mien prijalodoslal - zaznamvytvoril
+                        vec = f'<a href="{self.instance.vyplatene.url}">{vec}</a>, hárok ''Krycí list''',
                     )
                 else:
                     raise ValidationError(f"Pole '{name} možno vyplniť až po vygenerovaní súboru '{v_name}'. ")

@@ -22,11 +22,11 @@ class VyplatitAutorskeOdmeny():
     ucetLitFond  = settings.UCET_LITFOND
     ucetFin = settings.UCET_FIN_URAD
 
-    def __init__(self, csv_subory=None, obdobie=None, datum_vyplatenia=None, zoznam_autorov=None): 
+    def __init__(self, csv_subory=None, cislo=None, datum_vyplatenia=None, zoznam_autorov=None): 
 
         self.csv_subory = csv_subory
-        if obdobie:
-            self.obdobie = obdobie
+        if cislo:
+            self.cislo = cislo
         self.datum_vyplatenia = datum_vyplatenia # Ak None, nevygenerujú sa hárky ImportRS/WEBRS
         self.zoznam_autorov = zoznam_autorov    #prázdne pri akcii 'Vytvoriť podklady na vyplatenie autorských odmien pre THS'
         self.kmax = 23 #max počet riadkov s údajmi o autoroch v krycom liste 1
@@ -145,7 +145,7 @@ class VyplatitAutorskeOdmeny():
     #returns self.zoznam_autorov
     def vyplatit_odmeny(self):
         if not self.csv_subory:
-            self.log(messages.ERROR, f"Vyplácanie {self.obdobie} nemá priradený žiadny exportovaný csv súbor s údajmi pre vyplácanie") 
+            self.log(messages.ERROR, f"Vyplácanie {self.cislo} nemá priradený žiadny exportovaný csv súbor s údajmi pre vyplácanie") 
             return None
 
         #Súbor šablóny
@@ -156,7 +156,7 @@ class VyplatitAutorskeOdmeny():
             return None
         ws_template = sablona[0].subor.file.name 
 
-        csv_path = os.path.join(settings.MEDIA_ROOT,settings.RLTS_DIR_NAME, self.obdobie) 
+        csv_path = os.path.join(settings.MEDIA_ROOT,settings.RLTS_DIR_NAME, self.cislo) 
         self.pocet_znakov = {"rs": {}, "webrs":{}}
         self.data={}
 
@@ -272,9 +272,9 @@ class VyplatitAutorskeOdmeny():
         #upraviť vlastnosti dokumentu
         workbook.properties.creator = "DjangoBel, systém na správu autorských zmlúv Encyclopaedie Beliany"
         if self.datum_vyplatenia:
-            workbook.properties.title=f"Vyplácanie autorských honorárov č. {self.obdobie}" 
+            workbook.properties.title=f"Vyplácanie autorských honorárov č. {self.cislo}" 
         else:
-            workbook.properties.title=f"Záznam o platbe autorských honorárov č. {self.obdobie}"
+            workbook.properties.title=f"Záznam o platbe autorských honorárov č. {self.cislo}"
         workbook.properties.created = datetime.now()
         workbook.properties.revision = 1
         workbook.properties.modified = datetime.now()
@@ -335,7 +335,7 @@ class VyplatitAutorskeOdmeny():
 
         # vyplnit harok Krycí list alebo ho vymazať
         if self.datum_vyplatenia:
-            self.kryci_list["A2"].value = self.kryci_list["A2"].value.replace("xx-xxxx", self.obdobie)
+            self.kryci_list["A2"].value = self.kryci_list["A2"].value.replace("xx-xxxx", self.cislo)
             self.kryci_list[f"A3"].value = self.kryci_list[f"A3"].value.replace("xx.xx.xxxx", self.datum_vyplatenia)
             self.kryci_list.print_area = [] #Zrušiť oblasť tlače
         else:
@@ -348,7 +348,7 @@ class VyplatitAutorskeOdmeny():
         else:
             vyplatit["A4"].value = vyplatit["A4"].value.replace("(verzia)","(predbežná verzia)")
         vyplatit.merge_cells('A5:G5')
-        vyplatit["A5"] = f"identifikátor vyplácania {self.obdobie}"
+        vyplatit["A5"] = f"identifikátor vyplácania {self.cislo}"
         vyplatit["A5"].alignment = acenter
 
         vyplatit["A7"] = "Prevody spolu:"
@@ -393,8 +393,8 @@ class VyplatitAutorskeOdmeny():
         vyplatit[f"A{c}"] = "IBAN:"
         vyplatit[f"B{c}"] = VyplatitAutorskeOdmeny.ucetFin
         vyplatit[f"A{d}"] = "VS:"
-        # predpokladáme, ze self.obdobie na tvar yyyy-mmxxx
-        vyplatit[f"B{d}"] = f"1700{self.obdobie[5:7]}{self.obdobie[:4]}"
+        # predpokladáme, ze self.cislo na tvar yyyy-mmxxx
+        vyplatit[f"B{d}"] = f"1700{self.cislo[5:7]}{self.cislo[:4]}"
         vyplatit[f"A{e}"] = "Suma na úhradu:"
         vyplatit[f"B{e}"] = f"=Výpočet!K{sum_row}" if  self.datum_vyplatenia else "Ešte neurčené"
         vyplatit[f"B{e}"].number_format= "0.00"
@@ -426,7 +426,7 @@ class VyplatitAutorskeOdmeny():
             vyplatit[f"A{c}"] = "IBAN:"
             vyplatit[f"B{c}"] = adata.bankovy_kontakt
             vyplatit[f"A{d}"] = "VS:"
-            vyplatit[f"B{d}"] = self.obdobie
+            vyplatit[f"B{d}"] = self.cislo
             vyplatit[f"A{e}"] = "KS:"
             vyplatit[f"B{e}"] = "3014"
             vyplatit[f"A{f}"] = "Suma na úhradu:"
@@ -459,14 +459,14 @@ class VyplatitAutorskeOdmeny():
         #Všetky súbory, ktoré majú byť uložené do DB, musia mať záznam logu, ktorý končí na 'uložené do súboru {fpath}'
         #if self.datum_vyplatenia and not self.negenerovat_subory:
         if self.datum_vyplatenia:
-            fpath = os.path.join(csv_path,f"Vyplatene-{self.obdobie}.xlsx")
+            fpath = os.path.join(csv_path,f"Vyplatene-{self.cislo}.xlsx")
             workbook.save(fpath)
             msg = f"Údaje o vyplácaní boli uložené do súboru {fpath}"
             self.log(messages.SUCCESS, msg)
             #self.db_logger.warning(msg)
 
             # vytvorit csv subory na importovanie
-            fpath = os.path.join(csv_path,f"Import-rs-{self.obdobie}.csv")
+            fpath = os.path.join(csv_path,f"Import-rs-{self.cislo}.csv")
             with open(fpath, "w") as csvfile:
                 csvWriter = csv.writer(csvfile, delimiter=',', quotechar='"')
                 for b, c in zip(self.importrs["b:c"][0], self.importrs["b:c"][1]) :
@@ -474,7 +474,7 @@ class VyplatitAutorskeOdmeny():
             msg = f"Údaje na importovanie do RS boli uložené do súboru {fpath}"
             self.log(messages.SUCCESS, msg)
 
-            fpath = os.path.join(csv_path,f"Import-webrs-{self.obdobie}.csv")
+            fpath = os.path.join(csv_path,f"Import-webrs-{self.cislo}.csv")
             with open(fpath, "w") as csvfile:
                 csvWriter = csv.writer(csvfile, delimiter=',', quotechar='"')
                 for b, c in zip(self.importwebrs["b:c"][0], self.importwebrs["b:c"][1]) :
@@ -482,7 +482,7 @@ class VyplatitAutorskeOdmeny():
             msg = f"Údaje na importovanie do WEBRS boli uložené do súboru {fpath}"
             self.log(messages.SUCCESS, msg)
         else:
-            fpath = os.path.join(csv_path,f"Vyplatit-{self.obdobie}-THS.xlsx")
+            fpath = os.path.join(csv_path,f"Vyplatit-{self.cislo}-THS.xlsx")
             #if not self.negenerovat_subory:
                 #workbook.save(fpath)
                 #msg = f"Údaje o vyplácaní na odoslanie THS boli uložené do súboru {fpath}"
@@ -600,9 +600,9 @@ class VyplatitAutorskeOdmeny():
             self.vypocet.cell(row=ii+1, column=i+1).font = self.fbold
 
         if self.datum_vyplatenia:
-            self.vypocet[f"A{ii+3}"] = f"Výpočet k príkazu na úhradu autorských honorárov č. {self.obdobie} (finálna verzia)"
+            self.vypocet[f"A{ii+3}"] = f"Výpočet k príkazu na úhradu autorských honorárov č. {self.cislo} (finálna verzia)"
         else:
-            self.vypocet[f"A{ii+3}"] = f"Výpočet k príkazu na úhradu autorských honorárov č. {self.obdobie} (predbežná verzia)"
+            self.vypocet[f"A{ii+3}"] = f"Výpočet k príkazu na úhradu autorských honorárov č. {self.cislo} (predbežná verzia)"
         
         return ii+1 #vratit riadok so suctami
 
@@ -661,7 +661,7 @@ class VyplatitAutorskeOdmeny():
         ftitle = Font(name="Arial", bold=True, size='14')
 
         ws.merge_cells(f'A{self.ppos}:H{self.ppos}')
-        ws[f'A{self.ppos}'] = f"Vyplatenie autorského honorára č. {self.obdobie}"
+        ws[f'A{self.ppos}'] = f"Vyplatenie autorského honorára č. {self.cislo}"
         ws[f"A{self.ppos}"].alignment = Alignment(horizontal='center', vertical='center')
         ws.row_dimensions[self.ppos].height = 70
         ws[f"A{self.ppos}"].font = ftitle
@@ -689,7 +689,7 @@ class VyplatitAutorskeOdmeny():
                 }
         
         #self.bb( "Preplatok predchádzajúcich platieb:", preplatok)
-        self.bb( "Honorár za aktuálne obdobie:", honorar)
+        self.bb( "Honorár za aktuálne cislo:", honorar)
         vdata["honorar"] = honorar
         if vyplaca_sa:
             if preplatok > 0:
@@ -722,7 +722,7 @@ class VyplatitAutorskeOdmeny():
                 self.bb( "Vyplatiť:", vyplatit)
                 self.bb( "Nová hodnota preplatku:", 0)
                 adata.preplatok = 0
-                adata._change_reason = 'vyplacanie.py: preplatok znížený na 0 € (vyplácanie %s).'%self.obdobie
+                adata._change_reason = 'vyplacanie.py: preplatok znížený na 0 € (vyplácanie %s).'%self.cislo
                 vdata["lf"] = lf
                 vdata["dan"] = dan
                 vdata["vyplatit"] = vyplatit
@@ -762,7 +762,7 @@ class VyplatitAutorskeOdmeny():
                 self.bb( "Vyplatiť:", 0)
                 self.bb( "Nová hodnota preplatku:", preplatok - honorar)
                 adata.preplatok = preplatok - honorar
-                adata._change_reason = 'vyplacanie.py: preplatok znížený o %0.2f € na %0.2f € (vyplácanie %s).'%(honorar, preplatok - honorar, self.obdobie)
+                adata._change_reason = 'vyplacanie.py: preplatok znížený o %0.2f € na %0.2f € (vyplácanie %s).'%(honorar, preplatok - honorar, self.cislo)
                 #adata.save()
         self.ppos  += 1  
 
@@ -831,7 +831,7 @@ class VyplatitAutorskeOdmeny():
             datum_uhradenia = re.sub(r"([^.]*)[.]([^.]*)[.](.*)", r"\3-\2-\1", self.datum_vyplatenia),
             uhradena_suma = round(vdata['vyplatit'], 2),
             preplatok_pred = round(vdata['preplatok0'], 2) ,
-            obdobie = self.obdobie, 
+            cislo = self.cislo, 
             zmluva = ', '.join(vdata['zmluva']), 
             autor = adata, 
             honorar = vdata['honorar'], 
@@ -899,10 +899,10 @@ class VyplatitAutorskeOdmeny():
         self.ppos  += 1  
 
     def zrusit_vyplacanie(self, za_mesiac):
-        platby = PlatbaAutorskaOdmena.objects.filter(obdobie=za_mesiac)
+        platby = PlatbaAutorskaOdmena.objects.filter(cislo=za_mesiac)
         for platba in platby:
             #vrátit hodnotu preplatku
-            msg = f"Platba za autora {platba.autor.rs_login} za obdobie {za_mesiac} bola odstránená z databázy"
+            msg = f"Platba za autora {platba.autor.rs_login} za {za_mesiac} bola odstránená z databázy"
             vratit = platba.preplatok_pred-platba.preplatok_po
             platba.autor.preplatok += vratit
             if vratit > 0.01:

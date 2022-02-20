@@ -25,6 +25,7 @@ from .models import OsobaAutor, ZmluvaAutor, PlatbaAutorskaOdmena, PlatbaAutorsk
 from .models import AnoNie, SystemovySubor, PersonCommon, OsobaGrafik, ZmluvaGrafik, Zmluva, VytvarnaObjednavkaPlatba
 from .common import VytvoritAutorskuZmluvu, VyplatitAutorskeOdmeny
 from .vyplatitautorske import VyplatitAutorskeOdmeny
+from dennik.forms import nasledujuce_cislo
 
 from .forms import OsobaAutorForm, ZmluvaAutorForm, PlatbaAutorskaSumarForm, OsobaGrafikForm, ZmluvaGrafikForm, VytvarnaObjednavkaPlatbaForm
 
@@ -404,7 +405,7 @@ class PlatbaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
 class PlatbaAutorskaOdmenaAdmin(PlatbaAdmin):
     # autor_link: pridá autora zmluvy do zoznamu, vďaka AdminChangeLinksMixin
     def get_list_display(self, request):
-        return ('platba', 'zmluva', 'autor_link', 'zdanit', 'rezident', 'podpis', 'oznamenie','obdobie') + super(PlatbaAutorskaOdmenaAdmin, self).get_list_display(request)
+        return ('platba', 'zmluva', 'autor_link', 'zdanit', 'rezident', 'podpis', 'oznamenie','cislo') + super(PlatbaAutorskaOdmenaAdmin, self).get_list_display(request)
 
     def zdanit(self, obj):
         return f"{obj.autor.zdanit if obj.autor.zdanit else '-'}"
@@ -427,11 +428,11 @@ class PlatbaAutorskaOdmenaAdmin(PlatbaAdmin):
     rezident.admin_order_field = 'autor__rezident'
 
     def platba(self, obj):
-        return f"{obj.autor.rs_login}-{obj.obdobie}"
+        return f"{obj.autor.rs_login}-{obj.cislo}"
     platba.short_description = 'Platba'
     platba.admin_order_field = 'autor__rs_login'
 
-    search_fields = ['obdobie', "zmluva", "autor__rs_login"]
+    search_fields = ['cislo', "zmluva", "autor__rs_login"]
     actions = [export_selected_objects,]
 
     # zoraďovateľný odkaz na číslo zmluvy
@@ -457,7 +458,7 @@ class VytvarnaObjednavkaPlatbaAdmin(PlatbaAdmin):
     def get_list_display(self, request):
         return ('cislo', 'vytvarna_zmluva_link',) + super(VytvarnaObjednavkaPlatbaAdmin, self).get_list_display(request)
 
-    #search_fields = ['obdobie', "zmluva", "autor__rs_login"]
+    #search_fields = ['cislo', "zmluva", "autor__rs_login"]
 
     # zoraďovateľný odkaz na číslo zmluvy
     # umožnené prostredníctvom AdminChangeLinksMixin
@@ -485,8 +486,8 @@ class PlatbaAutorskaSumarSuborAdmin(admin.StackedInline):
 class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
     form = PlatbaAutorskaSumarForm
     # určiť poradie polí v editovacom formulári
-    fields = ['obdobie', 'vyplatit_ths', 'podklady_odoslane', 'autori_na_vyplatenie', 'datum_uhradenia', 'vyplatene', 'kryci_list_odoslany', 'datum_zalozenia', 'datum_oznamenia', 'import_rs', 'import_webrs', 'datum_importovania']
-    list_display = ['obdobie', 'podklady_odoslane', 'datum_uhradenia', 'kryci_list_odoslany', 'datum_zalozenia', 'datum_oznamenia', 'datum_importovania', 'honorar_rs', 'honorar_webrs', 'honorar_spolu', 'vyplatene_spolu', 'odvod_LF', 'odvedena_dan']
+    fields = ['cislo', 'vyplatit_ths', 'podklady_odoslane', 'autori_na_vyplatenie', 'datum_uhradenia', 'vyplatene', 'kryci_list_odoslany', 'datum_zalozenia', 'datum_oznamenia', 'import_rs', 'import_webrs', 'datum_importovania']
+    list_display = ['cislo', 'podklady_odoslane', 'datum_uhradenia', 'kryci_list_odoslany', 'datum_zalozenia', 'datum_oznamenia', 'datum_importovania', 'honorar_rs', 'honorar_webrs', 'honorar_spolu', 'vyplatene_spolu', 'odvod_LF', 'odvedena_dan']
     actions = ['vytvorit_podklady_pre_THS', 'zaznamenat_platby_do_db', 'zrusit_platbu']
     # pripajanie suborov k objektu: krok 3, inline do XxxAdmin 
     inlines = [PlatbaAutorskaSumarSuborAdmin]
@@ -525,37 +526,37 @@ class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
             if obj.vyplatene and not obj.datum_importovania and "datum_importovania" in fields:
                 fields.remove("datum_importovania")
         else:
-            # V novej platbe povoliť len "obdobie"
-            fields.remove("obdobie")
+            # V novej platbe povoliť len "cislo"
+            fields.remove("cislo")
         return fields
 
     def honorar_spolu(self, sumplatba):
-        platby = PlatbaAutorskaOdmena.objects.filter(obdobie=sumplatba.obdobie)
+        platby = PlatbaAutorskaOdmena.objects.filter(cislo=sumplatba.cislo)
         odmeny = [platba.honorar for platba in platby]
         return sum(odmeny)
 
     def honorar_rs(self, sumplatba):
-        platby = PlatbaAutorskaOdmena.objects.filter(obdobie=sumplatba.obdobie)
+        platby = PlatbaAutorskaOdmena.objects.filter(cislo=sumplatba.cislo)
         odmeny = [platba.honorar_rs for platba in platby]
         return sum(odmeny)
 
     def honorar_webrs(self, sumplatba):
-        platby = PlatbaAutorskaOdmena.objects.filter(obdobie=sumplatba.obdobie)
+        platby = PlatbaAutorskaOdmena.objects.filter(cislo=sumplatba.cislo)
         odmeny = [platba.honorar_webrs for platba in platby]
         return sum(odmeny)
 
     def odvedena_dan(self, sumplatba):
-        platby = PlatbaAutorskaOdmena.objects.filter(obdobie=sumplatba.obdobie)
+        platby = PlatbaAutorskaOdmena.objects.filter(cislo=sumplatba.cislo)
         odmeny = [platba.odvedena_dan for platba in platby]
         return sum(odmeny)
 
     def odvod_LF(self, sumplatba):
-        platby = PlatbaAutorskaOdmena.objects.filter(obdobie=sumplatba.obdobie)
+        platby = PlatbaAutorskaOdmena.objects.filter(cislo=sumplatba.cislo)
         odmeny = [platba.odvod_LF for platba in platby]
         return sum(odmeny)
 
     def vyplatene_spolu(self, sumplatba):
-        platby = PlatbaAutorskaOdmena.objects.filter(obdobie=sumplatba.obdobie)
+        platby = PlatbaAutorskaOdmena.objects.filter(cislo=sumplatba.cislo)
         odmeny = [platba.uhradena_suma for platba in platby]
         return sum(odmeny)
 
@@ -565,7 +566,7 @@ class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
             return
         platba = queryset[0]
         if platba.platba_zaznamenana == AnoNie.ANO:
-            self.message_user(request, f"Platba {platba.obdobie} už bola vložená do databázy s dátumom vyplatenia {platba.datum_uhradenia}. Ak chcete platbu opakovane vložiť do databázy, musíte ju zrušit (odstrániť z databázy) pomocou 'Zrušiť záznam o platbe v databáze'", messages.ERROR)
+            self.message_user(request, f"Platba {platba.cislo} už bola vložená do databázy s dátumom vyplatenia {platba.datum_uhradenia}. Ak chcete platbu opakovane vložiť do databázy, musíte ju zrušit (odstrániť z databázy) pomocou 'Zrušiť záznam o platbe v databáze'", messages.ERROR)
             return
         if not platba.datum_uhradenia:
             self.message_user(request, f"Platba nebola vložená do databázy, lebo nie je zadaný dátum jej vyplatenia THS-kou. ", messages.ERROR)
@@ -584,8 +585,11 @@ class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
             self.message_user(request, f"Vybrať možno len jednu platbu", messages.ERROR)
             return
         platba = queryset[0]
-        if platba.platba_zaznamenana == AnoNie.ANO: 
-            self.message_user(request, f"Platba {platba.obdobie} už bola vložená do databázy s dátumom vyplatenia {platba.datum_uhradenia}. Ak chcete opakovane generovať podklady pre THS, platbu najskôr musíte zrušit (odstrániť z databázy) pomocou akcie 'Zrušiť platbu'", messages.ERROR)
+        if platba.podklady_odoslane: 
+            self.message_user(request, f"Platba {platba.cislo} už bola odoslaná na THS na vyplatenie {platba.podklady_odoslane}, akciu už nemožno použiť.", messages.ERROR)
+            return
+        if platba.platba_zaznamenana == AnoNie.ANO or platba.podklady_odoslane: 
+            self.message_user(request, f"Platba {platba.cislo} už bola vložená do databázy s dátumom vyplatenia {platba.datum_uhradenia}. Akciu už nemožno použiť.", messages.ERROR)
             return
         self.vyplatit_autorske_odmeny(request, platba)
         platba.datum_aktualizacie = timezone.now(),
@@ -604,11 +608,11 @@ class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
         try:
             # ak vytvárame finálny prehľad, platba.datum_uhradenia je vyplnené 
             if platba.datum_uhradenia:
-                vao = VyplatitAutorskeOdmeny(nazvy, platba.obdobie, 
+                vao = VyplatitAutorskeOdmeny(nazvy, platba.cislo, 
                         platba.datum_uhradenia.strftime("%-d.%-m.%Y"),
                         platba.autori_na_vyplatenie.split())
             else:
-                vao = VyplatitAutorskeOdmeny(nazvy, platba.obdobie)
+                vao = VyplatitAutorskeOdmeny(nazvy, platba.cislo)
             vao.vyplatit_odmeny()
             logs = vao.get_logs()
             #status, msg, vytvorene_subory = VyplatitAutorskeOdmeny(platba)
@@ -650,10 +654,10 @@ class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
             return
         platba = queryset[0]
         if platba.platba_zaznamenana == AnoNie.NIE: 
-            self.message_user(request, f"Platbu {platba.obdobie} nemožno zrušiť, lebo ešte nebola vložená do databázy", messages.ERROR)
+            self.message_user(request, f"Platbu {platba.cislo} nemožno zrušiť, lebo ešte nebola vložená do databázy", messages.ERROR)
             return
         vao = VyplatitAutorskeOdmeny()
-        vao.zrusit_vyplacanie(platba.obdobie)
+        vao.zrusit_vyplacanie(platba.cislo)
         platba.datum_uhradenia = None
         platba.datum_importovania = None
         platba.datum_zalozenia = None
@@ -676,14 +680,15 @@ class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
         logs = vao.get_logs()
         for log in logs:
             self.message_user(request, log[1].replace(settings.MEDIA_ROOT,""), log[0])
-        #self.message_user(request, f"Platba {platba.obdobie} bola zrušená", messages.INFO)
+        #self.message_user(request, f"Platba {platba.cislo} bola zrušená", messages.INFO)
     zrusit_platbu.short_description = PlatbaAutorskaSumar.zrusit_platbu_name
     #Oprávnenie na použitie akcie, viazané na 'delete'
     zrusit_platbu.allowed_permissions = ('delete',)
 
     # Nastaviť počiatočnú hodnotu (netreba to spraviť v model)
     def get_changeform_initial_data(self, request):
-        return {'obdobie': datetime.now().strftime('%Y-%m-%d')}
+        #return {'cislo': datetime.now().strftime('%Y-%m-%d')}
+        return {'cislo': nasledujuce_cislo(PlatbaAutorskaSumar)}
 
     # do AdminForm pridať request, aby v jej __init__ bolo request dostupné
     def get_form(self, request, obj=None, **kwargs):

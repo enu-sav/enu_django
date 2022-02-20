@@ -8,7 +8,7 @@ from ipdb import set_trace as trace
 from django.utils.html import format_html
 from django.utils import timezone
 from django.contrib import messages
-from zmluvy.models import ZmluvaAutor, ZmluvaGrafik, VytvarnaObjednavkaPlatba
+from zmluvy.models import ZmluvaAutor, ZmluvaGrafik, VytvarnaObjednavkaPlatba, PlatbaAutorskaSumar
 from uctovnictvo.models import Objednavka, PrijataFaktura, PrispevokNaStravne, DoVP, DoPC, DoBPS
 import re
 from import_export.admin import ImportExportModelAdmin
@@ -24,7 +24,8 @@ typ_dokumentu = {
     PrispevokNaStravne.oznacenie: TypDokumentu.ZMLUVA,
     DoPC.oznacenie: TypDokumentu.DoPC,
     DoVP.oznacenie: TypDokumentu.DoVP,
-    DoBPS.oznacenie: TypDokumentu.DoBPS
+    DoBPS.oznacenie: TypDokumentu.DoBPS,
+    PlatbaAutorskaSumar.oznacenie: TypDokumentu.VYPLACANIE_AH
 }
 
 #zobrazenie histórie

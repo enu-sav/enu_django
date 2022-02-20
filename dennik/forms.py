@@ -5,7 +5,7 @@ from django.utils.html import format_html
 from django import forms
 from ipdb import set_trace as trace
 from .models import Dokument, InOut, TypDokumentu, Formular
-from zmluvy.models import ZmluvaAutor, ZmluvaGrafik, VytvarnaObjednavkaPlatba
+from zmluvy.models import ZmluvaAutor, ZmluvaGrafik, VytvarnaObjednavkaPlatba, PlatbaAutorskaSumar
 from uctovnictvo.models import Objednavka, PrijataFaktura, PrispevokNaStravne, DoVP, DoPC, DoBPS
 from datetime import datetime
 from django.core.exceptions import ValidationError
@@ -22,6 +22,7 @@ triedy = {
     DoPC.oznacenie: DoPC,
     DoVP.oznacenie: DoVP,
     DoBPS.oznacenie: DoBPS,
+    PlatbaAutorskaSumar.oznacenie: PlatbaAutorskaSumar,
 }
 
     #
@@ -42,6 +43,7 @@ def normalizovat_cislo(cislo):
         DoPC.oznacenie.lower(): DoPC.oznacenie,
         DoVP.oznacenie.lower(): DoVP.oznacenie,
         DoBPS.oznacenie.lower(): DoBPS.oznacenie,
+        PlatbaAutorskaSumar.oznacenie.lower(): PlatbaAutorskaSumar.oznacenie,
     }
     aux = parse_cislo(cislo)
     if aux:

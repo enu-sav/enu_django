@@ -18,7 +18,7 @@ def notifikacie_FU():
         termin = date(du.year, du.month,15)+relativedelta(months=1)
         zostava = (termin - date.today()).days
         #http://samba.enu.sav.sk:8000/admin/zmluvy/platbaautorskasumar/14/change/
-        mmm = f'Platbu {platba.obdobie} ({SITE_URL}admin/zmluvy/platbaautorskasumar/{platba.id}/change) treba na finančný úrad oznámiť do {termin.strftime("%d. %m. %Y")}.'
+        mmm = f'Platbu {platba.cislo} ({SITE_URL}admin/zmluvy/platbaautorskasumar/{platba.id}/change) treba na finančný úrad oznámiť do {termin.strftime("%d. %m. %Y")}.'
         if (termin - date.today()) == timedelta(days=12):
             spravy.append(f"{mmm} Zostáva {zostava} dní.")
         elif (termin - date.today()) == timedelta(days=5):
@@ -26,7 +26,7 @@ def notifikacie_FU():
         elif (termin - date.today()) == timedelta(days=1):
             spravy.append(f"{mmm} Zostáva 1 deň.")
         elif (termin - date.today()) < timedelta(days=1):
-            spravy.append = f"Platbu {platba.obdobie} treba na finančný úrad oznámiť ihneď."
+            spravy.append = f"Platbu {platba.cislo} treba na finančný úrad oznámiť ihneď."
         elif (termin - date.today()) < timedelta(days=3):
             spravy.append(f"{mmm} Zostávajú {zostava} dni.")
 
