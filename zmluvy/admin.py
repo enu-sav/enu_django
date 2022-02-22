@@ -405,6 +405,9 @@ class PlatbaAutorskaOdmenaAdmin(PlatbaAdmin):
     # autor_link: pridá autora zmluvy do zoznamu, vďaka AdminChangeLinksMixin
     def get_list_display(self, request):
         return ('platba', 'zmluva', 'autor_link', 'zdanit', 'rezident', 'podpis', 'oznamenie','obdobie') + super(PlatbaAutorskaOdmenaAdmin, self).get_list_display(request)
+    #stránkovanie a 'Zobraziť všetko'
+    list_max_show_all = 10000
+    list_per_page = 50
 
     def zdanit(self, obj):
         return f"{obj.autor.zdanit if obj.autor.zdanit else '-'}"

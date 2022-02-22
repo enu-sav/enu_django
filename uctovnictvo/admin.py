@@ -45,6 +45,9 @@ class ZobrazitZmeny():
             delta = obj.diff_against(obj.prev_record)
             return ", ".join(delta.changed_fields)
         return None
+    #stránkovanie a 'Zobraziť všetko'
+    list_per_page = 50
+    list_max_show_all = 100000
 
 @admin.register(Zdroj)
 class ZdrojAdmin(ZobrazitZmeny, SimpleHistoryAdmin, ImportExportModelAdmin):
