@@ -23,6 +23,7 @@ class TypDokumentu(models.TextChoices):
     DoPC = 'dopc', 'DoPC'
     DoBPS = 'dobps', 'DoBPS'
     HROMADNY = 'hromadny', 'Hromadný dokument'
+    VYPLACANIE_AH = 'vyplacanie_ah', 'Vyplácanie autorských honorárov'
     INY = 'iny', 'Iný'
 
 # Typy šablón na vyplňovanie. Určuje, zoznam povolených tokenov v šablóne

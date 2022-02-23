@@ -9,6 +9,7 @@ from dennik.forms import nasledujuce_cislo
 from django.core.exceptions import ValidationError
 from django.contrib import messages #import messages
 import re
+from datetime import date
 
 # Pridať dodatočné pole popis_zmeny, použije sa ako change_reason v SimpleHistoryAdmin
 class PopisZmeny(forms.ModelForm):
@@ -101,7 +102,7 @@ class ZmluvaForm(PopisZmeny):
                     cislo = cislo,
                     cislopolozky = self.instance.cislo,
                     datum = self.cleaned_data['datum_zverejnenia_CRZ'],
-                    datumvytvorenia = self.cleaned_data['datum_zverejnenia_CRZ'],
+                    datumvytvorenia = date.today(), 
                     typdokumentu = TypDokumentu.AZMLUVA,
                     inout = InOut.ODOSLANY,
                     sposob = SposobDorucenia.WEB,
@@ -174,7 +175,7 @@ class VytvarnaObjednavkaPlatbaForm(forms.ModelForm):
             self.fields[polecislo].help_text = f"Zadajte číslo novej objednávky v tvare {VytvarnaObjednavkaPlatba.oznacenie}-RRRR-NNN. Predvolené číslo '{nasledujuce} bolo určené na základe čísel existujúcich výtvarných objednávok ako nasledujúce v poradí."
             self.initial[polecislo] = nasledujuce
 
-class PlatbaAutorskaSumarForm(PopisZmeny):
+class PlatbaAutorskaSumarForm(forms.ModelForm):
     #inicializácia polí
     def __init__(self, *args, **kwargs):
         # do Admin treba pridať metódu get_form
@@ -183,80 +184,135 @@ class PlatbaAutorskaSumarForm(PopisZmeny):
 
     # Skontrolovať platnost a keď je všetko OK, spraviť záznam do denníka
     def clean(self):
+        anv_name = PlatbaAutorskaSumar._meta.get_field('autori_na_vyplatenie').verbose_name
+        du_name = PlatbaAutorskaSumar._meta.get_field('datum_uhradenia').verbose_name
         po_name = PlatbaAutorskaSumar._meta.get_field('podklady_odoslane').verbose_name
-        nvo_name = PlatbaAutorskaSumar._meta.get_field('na_vyplatenie_odoslane').verbose_name
         klo_name = PlatbaAutorskaSumar._meta.get_field('kryci_list_odoslany').verbose_name
         vt_name = PlatbaAutorskaSumar._meta.get_field('vyplatit_ths').verbose_name
         v_name = PlatbaAutorskaSumar._meta.get_field('vyplatene').verbose_name
+        zp_name = PlatbaAutorskaSumar.zrusit_platbu_name
+        vpt_name = PlatbaAutorskaSumar.vytvorit_podklady_pre_THS_name
+        zpd_name = PlatbaAutorskaSumar.zaznamenat_platby_do_db_name
         try:
-            #kontrola
-            if 'podklady_odoslane' in self.changed_data and ('kryci_list_odoslany' in self.changed_data or 'na_vyplatenie_odoslane' in self.changed_data):
-                raise ValidationError(f"Dátum do '{po_name}' nemožno zadať spolu s '{nvo_name}' a '{klo_name}'.")
+            # ak je platba len vytvorená
+            if 'cislo' in self.changed_data or not self.instance.vyplatit_ths:
+                if 'cislo' in self.changed_data:
+                    messages.warning(self.request, format_html(f"Ak ste tak ešte nespravili, z redakčných systémov exportujte csv súbory s údajmi pre vyplácanie a vložte ich do vytvoreného vyplácania."))
+                messages.warning(self.request, format_html(f"Podklady na vyplatenie autorských honorárov vytvorte akciou <em>{vpt_name}</em>."))
             if 'podklady_odoslane' in self.changed_data:
                 cislo = nasledujuce_cislo(Dokument)
-                vec = f"Podklady na vyplatenie aut. honorárov za {self.instance.obdobie}"
+                vec = f"Podklady na vyplatenie aut. honorárov za {self.instance.cislo}"
                 if self.instance.vyplatit_ths:   # súbor existuje
                     dok = Dokument(
                         cislo = cislo,
-                        datum = self.cleaned_data['podklady_odoslane'],
-                        odosielatel = str(self.instance),
-                        adresat = "Účtovník TSH", 
+                        #datum = self.cleaned_data['podklady_odoslane'],
+                        cislopolozky = self.instance.cislo,
+                        adresat = "Účtovník THS", 
+                        inout = InOut.ODOSLANY,
+                        typdokumentu = TypDokumentu.VYPLACANIE_AH,
+                        datumvytvorenia = date.today(), 
                         vec = f'<a href="{self.instance.vyplatit_ths.url}">{vec}</a>, hárok ''Na vyplatenie''',
+                        #zaznamvytvoril=self.request.user.username, #zámena mien prijalodoslal - zaznamvytvoril
                         prijalodoslal=self.request.user.username,
-                        sposob = SposobDorucenia.MAIL
+                        #sposob = SposobDorucenia.MAIL
                     )
                     dok.save()
-                    messages.warning(self.request, f"Do denníka prijatej a odoslanej pošty bol pridaný záznam č. {cislo} '{vec}'")
+                    messages.warning(self.request, 
+                        format_html(
+                            'Do denníka prijatej a odoslanej pošty bol pridaný záznam č. {}: <em>{}</em>, treba v ňom doplniť údaje o odoslaní.',
+                            mark_safe(f'<a href="/admin/dennik/dokument/{dok.id}/change/">{cislo}</a>'),
+                            vec
+                            )
+                        )
+                    messages.warning(self.request, format_html(f"Po odoslaní na THS týždeň čakajte na informáciu o neúspešných platbách.<br/>Potom v poli '{anv_name}' zmažte <em>nevyplatených autorov</em> (ak boli) a vyplňte pole '{du_name}'.") , messages.WARNING)
                     return self.cleaned_data
                 else:
                     raise ValidationError(f"Pole '{po_name} možno vyplniť až po vygenerovaní súboru '{vt_name}'. ")
-            #na_vyplatenie_odoslane a kryci_list_odoslany možno zaznamenať naraz
-            if 'na_vyplatenie_odoslane' in self.changed_data or 'kryci_list_odoslany' in self.changed_data:
-                nv_dok=None
-                klo_dok=None
-                nv_cislo=None  #čislo dokumentu, treba inkrementovať, ak boli zadané oba dátumy
-                if 'na_vyplatenie_odoslane' in self.changed_data:
-                    nv_vec = f"Finálny prehľad vyplácania aut. honorárov za obdobie {self.instance.obdobie}"
-                    if self.instance.vyplatene:   # súbor existuje
-                        nv_cislo = nasledujuce_cislo(Dokument)
-                        nv_dok = Dokument(
-                            cislo = nv_cislo,
-                            datum = self.cleaned_data['na_vyplatenie_odoslane'],
-                            odosielatel = str(self.instance),
-                            adresat = "Účtovník TSH", 
-                            vec = f'<a href="{self.instance.vyplatene.url}">{nv_vec}</a>", hárok ''Na vyplatenie''',
-                            prijalodoslal=self.request.user.username,
-                            sposob = SposobDorucenia.MAIL
+            if 'datum_uhradenia' in self.changed_data:
+                    messages.warning(self.request, f"Teraz vytvorte finálny prehľad akciou '{zpd_name}'." , messages.WARNING)
+
+            if 'datum_oznamenia' in self.changed_data:
+                cislo = nasledujuce_cislo(Dokument)
+                vec = f"Oznámenie nezdanených autorov na finančnú správu za {self.instance.cislo}"
+                if self.instance.vyplatene:   # súbor existuje
+                    dok = Dokument(
+                        cislo = cislo,
+                        cislopolozky = self.instance.cislo,
+                        adresat = "Finanačná správa",
+                        inout = InOut.ODOSLANY,
+                        typdokumentu = TypDokumentu.VYPLACANIE_AH,
+                        datumvytvorenia = date.today(), 
+                        datum = self.cleaned_data['datum_oznamenia'],
+                        vec = f'<a href="{self.instance.vyplatene.url}">{vec}</a>',
+                        zaznamvytvoril=self.request.user.username, #zámena mien prijalodoslal - zaznamvytvoril
+                        prijalodoslal=self.request.user.username, #zámena mien prijalodoslal - zaznamvytvoril
+                        sposob = SposobDorucenia.WEB,
+                    )
+                else:
+                    raise ValidationError(f"Pole '{name} možno vyplniť až po vygenerovaní súboru '{v_name}'. ")
+                dok.save()
+                messages.warning(self.request, 
+                    format_html(
+                        'Do denníka prijatej a odoslanej pošty bol pridaný záznam č. {}: <em>{}</em>',
+                        mark_safe(f'<a href="/admin/dennik/dokument/{dok.id}/change/">{cislo}</a>'),
+                        vec
                         )
-                    else:
-                        raise ValidationError(f"Pole '{nv_name} možno vyplniť až po vygenerovaní súboru '{v_name}'. ")
-                if 'kryci_list_odoslany' in self.changed_data:
-                    if nv_cislo:
-                        #inkrementovať o 1
-                        rr,cc=re.findall(r"D-([0-9]*)-0*([0-9]*)",nv_cislo)[0]
-                        klo_cislo = "D-%s-%03d"%(rr,int(cc)+1)
-                    else:
-                        klo_cislo = nasledujuce_cislo(Dokument)
-                    klo_vec = f"Krycí list vyplácania aut. honorárov  za obdobie {self.instance.obdobie}"
-                    if self.instance.vyplatene:   # súbor existuje
-                        klo_dok = Dokument(
-                            cislo = klo_cislo,
-                            datum = self.cleaned_data['kryci_list_odoslany'],
-                            odosielatel = str(self.instance),
-                            adresat = "Účtovník TSH", 
-                            vec = f'<a href="{self.instance.vyplatene.url}">{klo_vec}</a>", hárok ''Krycí list''',
-                            prijalodoslal=self.request.user.username,
-                            sposob = SposobDorucenia.IPOSTA
+                    )
+                pass
+
+            if 'datum_importovania' in self.changed_data:
+                cislo = nasledujuce_cislo(Dokument)
+                vec = f"Importovanie údajov o vyplatení do RS/WEBRS za {self.instance.cislo}"
+                if self.instance.vyplatene:   # súbor existuje
+                    dok = Dokument(
+                        cislo = cislo,
+                        cislopolozky = self.instance.cislo,
+                        adresat = "RS/WEBRS",
+                        inout = InOut.ODOSLANY,
+                        typdokumentu = TypDokumentu.VYPLACANIE_AH,
+                        datumvytvorenia = date.today(), 
+                        datum = self.cleaned_data['datum_importovania'],
+                        vec = f'<a href="{self.instance.vyplatene.url}">{vec}</a>"',
+                        zaznamvytvoril=self.request.user.username, #zámena mien prijalodoslal - zaznamvytvoril
+                        prijalodoslal=self.request.user.username, #zámena mien prijalodoslal - zaznamvytvoril
+                        sposob = SposobDorucenia.WEB,
+                    )
+                else:
+                    raise ValidationError(f"Pole '{name} možno vyplniť až po vygenerovaní súboru '{v_name}'. ")
+                dok.save()
+                messages.warning(self.request, 
+                    format_html(
+                        'Do denníka prijatej a odoslanej pošty bol pridaný záznam č. {}: <em>{}</em>',
+                        mark_safe(f'<a href="/admin/dennik/dokument/{dok.id}/change/">{cislo}</a>'),
+                        vec
                         )
-                    else:
-                        raise ValidationError(f"Pole '{klo_name} možno vyplniť až po vygenerovaní súboru '{v_name}'. ")
-                if nv_dok: 
-                    nv_dok.save()
-                    messages.warning(self.request, f"Do denníka prijatej a odoslanej pošty bol pridaný záznam č. {nv_cislo} '{nv_vec}'")
-                if klo_dok: 
-                    klo_dok.save()
-                    messages.warning(self.request, f"Do denníka prijatej a odoslanej pošty bol pridaný záznam č. {klo_cislo} '{klo_vec}'")
-                return self.cleaned_data
+                    )
+
+            if 'kryci_list_odoslany' in self.changed_data:
+                cislo = nasledujuce_cislo(Dokument)
+                vec = f"Podklady na vyplatenie zrážkovej dane a odvodov do fondov za {self.instance.cislo}"
+                if self.instance.vyplatene:   # súbor existuje
+                    dok = Dokument(
+                        cislo = cislo,
+                        cislopolozky = self.instance.cislo,
+                        adresat = "Účtovník THS", 
+                        inout = InOut.ODOSLANY,
+                        typdokumentu = TypDokumentu.VYPLACANIE_AH,
+                        datumvytvorenia = date.today(), 
+                        prijalodoslal=self.request.user.username, #zámena mien prijalodoslal - zaznamvytvoril
+                        vec = f'<a href="{self.instance.vyplatene.url}">{vec}</a>, hárok ''Krycí list''',
+                    )
+                else:
+                    raise ValidationError(f"Pole '{name} možno vyplniť až po vygenerovaní súboru '{v_name}'. ")
+                dok.save()
+                messages.warning(self.request, 
+                    format_html(
+                        'Do denníka prijatej a odoslanej pošty bol pridaný záznam č. {}: <em>{}</em>, treba v ňom doplniť údaje o odoslaní.',
+                        mark_safe(f'<a href="/admin/dennik/dokument/{dok.id}/change/">{cislo}</a>'),
+                        vec
+                        )
+                    )
+            return self.cleaned_data
         except ValidationError as ex:
             raise ex
 

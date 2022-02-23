@@ -217,8 +217,8 @@ class Platba(models.Model):
         abstract = True
 
 class PlatbaAutorskaOdmena(Platba):
-    #obdobie: priečinok, z ktorého bola platba importovaná
-    obdobie = models.CharField("Obdobie", max_length=20)  
+    #cislo: priečinok, z ktorého bola platba importovaná
+    cislo = models.CharField("Obdobie", max_length=20)  
     zmluva = models.CharField("Zmluva", max_length=200)
     #related_name: v admin.py umožní zobrazit platby autora v zozname autorov cez pole platby_link 
     autor = models.ForeignKey(OsobaAutor, on_delete=models.PROTECT, related_name='platby')
@@ -229,7 +229,7 @@ class PlatbaAutorskaOdmena(Platba):
     znaky_webrs = models.DecimalField("Počet znakov (WEBRS)", max_digits=8, decimal_places=2)
     preplatok_po = models.DecimalField("Preplatok po", max_digits=8, decimal_places=2)
     def __str__(self):
-        return f"{self.autor.priezvisko}-{self.obdobie}"
+        return f"{self.autor.priezvisko}-{self.cislo}"
 
 
     # executed after 'save'
@@ -269,16 +269,19 @@ class VytvarnaObjednavkaPlatba(Platba):
 #https://stackoverflow.com/questions/55543232/how-to-upload-multiple-files-from-the-django-admin
 #Vykoná sa len pri vkladaní suborov cez GUI. Pri programovom vytváraní treba cestu nastaviť
 def platba_autorska_sumar_upload_location(instance, filename):
-    dir_name = instance.platba_autorska_sumar.obdobie
+    dir_name = instance.platba_autorska_sumar.cislo
     file_name = filename.replace(" ", "-")
     #Vyplacanie_autorskych_honorarov/2021-02/export_vyplatit_rs-gasparik.csv
     return os.path.join(RLTS_DIR_NAME, dir_name, file_name)
 
 class PlatbaAutorskaSumar(models.Model):
-    #obdobie: priečinok, z ktorého bola platba importovaná
-    datum_uhradenia = models.DateField('Vyplatené THS-kou', 
-            help_text = "Dátum vyplatenia honorárov na základe odoslaných podkladov (oznámený účtárňou THS). <br /><strong>Nasledujúci krok: spustiť akciu 'Vytvoriť finálny prehľad...'</strong>",
-            null=True, blank=True)
+    oznacenie = "AH"
+    # názvy akcií
+    zrusit_platbu_name = "Zrušiť záznam o platbe v databáze"
+    vytvorit_podklady_pre_THS_name = "Vytvoriť podklady na vyplatenie autorských honorárov pre THS"
+    zaznamenat_platby_do_db_name = "Vytvoriť finálny prehľad o vyplácaní a zaznamenať platby do databázy"
+
+    #cislo: priečinok, z ktorého bola platba importovaná
     datum_importovania = models.DateField('Importované do RS/WEBRS', 
             help_text = "Dátum importovania do RS/WEBRS",
             null=True, 
@@ -287,51 +290,50 @@ class PlatbaAutorskaSumar(models.Model):
             help_text = "Dátum založenia hárku <em>Po autoroch</em> do šanonov.",
             null=True, 
             blank=True)
-    datum_oznamenia = models.DateField('Oznámené FS)', 
-            help_text = "Dátum oznámenia nezdanených autorov na finančnú správu (termín: do 15. dňa nasledujýceho mesiaca).",
+    datum_oznamenia = models.DateField('Oznámené FS', 
+            help_text = "Dátum oznámenia výšky zrazenej dane na finančnú správu (termín: do 15. dňa nasledujúceho mesiaca).",
             null=True, 
             blank=True)
     #platba_zaznamenana: nastavované programovo
     platba_zaznamenana = models.CharField("Platba zaznanenaná v DB", max_length=3, choices=AnoNie.choices, default=AnoNie.NIE)
-    obdobie = models.CharField("Identifikátor vyplácania",
+    cislo = models.CharField("Identifikátor vyplácania",
             help_text = "Ako identifikátor vyplácania sa použije dátum jeho vytvorenia",
             max_length=20, 
             null = True
             )
-    vyplatit_ths = models.FileField("Podklady na vyplatenie",
-            help_text = "Súbor generovaný akciou 'Vytvoriť podklady na vyplatenie autorských odmien pre THS'. <br />Súbor obsahuje údaje pre vyplácanie autorských honorárov (hárok <em>Na vyplatenie</em>) a zoznam chýb, ktoré boli pre generovaní zistené (hárok <em>Chyby</em>).<br /> <strong>Definitívnu verziu súboru (len hárku  <em>Na vyplatenie</em>) treba poslať mailom do účtárne THS na vyplatenie.</strong>", 
+    vyplatit_ths = models.FileField("Autorské honoráre",
+            help_text = f"Súbor generovaný akciou '{vytvorit_podklady_pre_THS_name}'. <br />Súbor obsahuje údaje pre vyplácanie autorských honorárov (hárok <em>Na vyplatenie</em>) a zoznam chýb, ktoré boli pre generovaní zistené (hárok <em>Chyby</em>).<br /> <strong>Hárky <em>Na vyplatenie</em> a <em>Krycí list</em> s údajmi na vyplatenie autorských honorárov treba dať na sekretariát na odoslanie do účtárne THS</strong>. V prípade odoselania e-mailom treba odoslať PDF súbor. Následne <strong>vyplňte pole <em> Honoráre – pre THS</em></strong>", 
             upload_to=platba_autorska_sumar_upload_location, 
             null = True, 
             blank = True)
-    podklady_odoslane= models.DateField('Podklady odoslané',
-            help_text = 'Dátum odoslania podkladov na vyplatenie do účtárne THS. Dátum odoslania sa zapíše do <a href="/admin/dennik/dokument/">denníka prijatej a odoslanej pošty</a>.',
+    datum_uhradenia = models.DateField('Vyplatené THS-kou', 
+            help_text = f"Dátum vyplatenia honorárov na základe odoslaných podkladov z poľa <em>{vyplatit_ths.verbose_name}</em> (oznámený účtárňou THS).",
+            null=True, blank=True)
+    podklady_odoslane= models.DateField('Honoráre – pre THS',
+            help_text = f'Dátum odovzdania podkladov z poľa <em>{vyplatit_ths.verbose_name}</em> na vyplatenie autorských honorárov na sekretariát na odoslanie do účtárne THS.',
             null=True, 
             blank=True)
     autori_na_vyplatenie = models.TextField("Vyplácaní autori", 
-            help_text = "Zoznam vyplácaných autorov. Vypĺňa sa automaticky akciou 'Vytvoriť podklady na vyplatenie autorských odmien pre THS'. <br /><strong>Pokiaľ platba autora neprešla, pred vytvorením finálneho prehľadu platieb ho zo zoznamu odstráňte</strong>.", 
+            help_text = f"Zoznam vyplácaných autorov. Vypĺňa sa automaticky akciou '{vytvorit_podklady_pre_THS_name}'. <br /><strong>Pokiaľ platba autora neprešla, pred vytvorením finálneho prehľadu platieb ho zo zoznamu odstráňte</strong>.", 
             null = True,
             blank = True,
             max_length=2500)
     vyplatene = models.FileField("Finálny prehľad",
-            help_text = "Súbor generovaný akciou 'Vytvoriť finálny prehľad o vyplácaní a zaznamenať platby do databázy'.<br /><strong>Hárok <em>Na vyplatenie</em> treba poslať mailom do účtárne THS na vyplatenie</strong><br /><strong>Hárky <em>Na vyplatenie</em> a <em>Krycí list</em> treba vytlačiť a poslať internou poštou THS-ke</strong><br /><strong>Hárok <em>Po autoroch</em> treba vytlačiť a po autoroch založiť so šanonov</strong>.", 
+            help_text = f"Súbor generovaný akciou '{zaznamenat_platby_do_db_name}'.<br /><strong>Hárky <em>Na vyplatenie</em> a <em>Krycí list</em> s údajmi na vyplatenie zrážkovej dane a odvodov do fondov treba dať na sekretariát na odoslanie do účtárne THS</strong>. V prípade odosielania e-mailom treba odoslať PDF súbor. Následne <strong>vyplňte pole <em>Daň – pre THS</em></strong>.<br /><strong>Hárok <em>Po autoroch</em> treba vytlačiť a po autoroch založiť do šanonov</strong>.", 
             upload_to=platba_autorska_sumar_upload_location, 
             null = True, 
             blank = True)
-    na_vyplatenie_odoslane= models.DateField("'Na vyplatenie' odoslané",
-            help_text = 'Dátum odoslania hárku <em>Na vyplatenie</em> do účtárne THS (mailom)</em>. Dátum odoslania sa zapíše do <a href="/admin/dennik/dokument/">denníka prijatej a odoslanej pošty</a>.',
-            null=True, 
-            blank=True)
-    kryci_list_odoslany= models.DateField("'Krycí list' odoslaný",
-            help_text = 'Dátum odoslania hárku <em>Krycí list</em> do účtárne THS (internou poštou)</em>. Dátum odoslania sa zapíše do <a href="/admin/dennik/dokument/">denníka prijatej a odoslanej pošty</a>.',
+    kryci_list_odoslany= models.DateField("Daň – pre THS",
+            help_text = f'Dátum odovzdania podkladov z poľa <em>{vyplatene.verbose_name}</em> na vyplatenie zrážkovej dane a odvodov do fondov na sekretariát na odoslanie do účtárne THS.',
             null=True, 
             blank=True)
     import_rs = models.FileField("Importovať do RS",
-            help_text = "Súbor s údajmi o vyplácaní na importovanie do knižného redakčného systému. Po importovaní vyplniť pole <em>Importované do RS/WEBRS</em>.",
+            help_text = f"Súbor s údajmi o vyplácaní na importovanie do knižného redakčného systému. Po importovaní vyplniť pole <em>{datum_importovania.verbose_name}</em>.",
             upload_to=platba_autorska_sumar_upload_location, 
             null = True, 
             blank = True)
     import_webrs = models.FileField("Importovať do WEBRS",
-            help_text = "Súbor s údajmi o vyplácaní na importovanie do webového redakčného systému. Po importovaní vyplniť pole <em>Importované do RS/WEBRS</em>.",
+            help_text = f"Súbor s údajmi o vyplácaní na importovanie do webového redakčného systému. Po importovaní vyplniť pole <em>{datum_importovania.verbose_name}</em>.",
             upload_to=platba_autorska_sumar_upload_location, 
             null = True, 
             blank = True)
@@ -344,7 +346,7 @@ class PlatbaAutorskaSumar(models.Model):
             ('pas_notif_fs', 'Prijímať notifikácie o termínoch FS'),
         ]
     def __str__(self):
-        return f"Vyplácanie za obdobie {self.obdobie}"
+        return f"Vyplácanie AH za {self.cislo}"
 
 ##https://stackoverflow.com/questions/55543232/how-to-upload-multiple-files-from-the-django-admin
 class PlatbaAutorskaSumarSubor(models.Model):
@@ -352,12 +354,12 @@ class PlatbaAutorskaSumarSubor(models.Model):
     platba_autorska_sumar = models.ForeignKey(PlatbaAutorskaSumar, on_delete=models.CASCADE) 
     file = models.FileField("Súbor",upload_to=platba_autorska_sumar_upload_location, null = True, blank = True)
     class Meta:
-        verbose_name = 'Súbor aut. honorárov'
+        verbose_name = 'Súbor s údajmi o autorských honorároch (exportovaný z RS/WEBRS)'
         verbose_name_plural = 'Súbory aut. honorárov'
     def __str__(self):
         odkial = "webového" if "webrs" in self.file.name else "knižného"
         
-        return f"Exportovaný súbor z {odkial} redakčného systému za obdobie {self.platba_autorska_sumar.obdobie}"
+        return f"Exportovaný súbor z {odkial} redakčného systému z {self.platba_autorska_sumar.cislo}"
 
 def system_file_path(instance, filename):
     return os.path.join(TMPLTS_DIR_NAME, filename)

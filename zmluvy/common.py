@@ -204,10 +204,6 @@ def VytvoritAutorskuZmluvu(zmluva):
     fnames = ", ".join(vytvorene_subory)
     return messages.SUCCESS, f"Súbory zmluvy {zmluva.cislo} boli úspešne vytvorené ({fnames}).", vytvorene_subory
 
-def VyplatitAutorskeOdmeny(platba):
-    os.path.join(settings.RLTS_DIR_NAME, platba.obdobie)
-    pass
-
 def OveritUdajeAutora(autor, testovat_zdanovanie = True):
     #argument moze byt OsobaAutor alebo str
     if isinstance(autor, OsobaAutor):
