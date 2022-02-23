@@ -336,7 +336,7 @@ class VyplatitAutorskeOdmeny():
         # vyplniť hárok Krycí list
         if self.datum_vyplatenia:
             self.kryci_list["A2"].value = self.kryci_list["A2"].value.replace("[[coho]]", "zrážkovej dane a odvodu do fondov")
-            self.kryci_list["A3"].value = self.kryci_list[f"A3"].value.replace("[[xx.xx.xxxx]]", self.datum_vyplatenia.strftime("%-d.%-m.%Y"))
+            self.kryci_list["A3"].value = f"Dátum vyplatenia honorárov: {self.datum_vyplatenia.strftime('%-d.%-m.%Y')}"
         else:
             self.kryci_list["A2"].value = self.kryci_list["A2"].value.replace("[[coho]]", "autorských honorárov") 
         self.kryci_list["A2"].value = self.kryci_list["A2"].value.replace("[[xx-xxxx]]", self.cislo)
@@ -369,7 +369,7 @@ class VyplatitAutorskeOdmeny():
                 cellObj.fill = PatternFill("solid", fgColor="FFFF00")
 
         pos0 = 10   #Pozícia začiatku rozdielnych položiek
-        if self.datum_vyplatenia:
+        if self.datum_vyplatenia:   #Uvedú sa len daň a odvody a za autorov len sumárna tabuľka
             pos = pos0
             #Litfond
             a,b,c,d,e,f = range(pos, pos+6)
@@ -460,7 +460,7 @@ class VyplatitAutorskeOdmeny():
             vyplatit[f"E{pos}"].font = self.fbold
             vyplatit[f"E{pos}"].number_format= "0.00"
             pos += 1
-        else:
+        else:   #podklady pre THS, uvedú sa autori s IBAN
             pos = pos0 
             #nevyplácaní autori
             for i, autor in enumerate(self.suma_preplatok):
@@ -486,6 +486,10 @@ class VyplatitAutorskeOdmeny():
                 vyplatit[f"B{d}"].alignment = aleft
                 vyplatit[f"B{d}"].font = self.fbold
                 pos += 5
+                #zalomiť stranu tak, aby záznam autora sa nerozdelil
+                if (i-7)%9 == 0: #novú stránku najskôr po 7 autoroch, potom po deviatich
+                    page_break = Break(id=pos-1)  # create Break obj
+                    vyplatit.row_breaks.append(page_break)  # insert page break
 
         pos += 1
         a,b,c,d,e,f = range(pos, pos+6)
@@ -875,7 +879,6 @@ class VyplatitAutorskeOdmeny():
         #insert page break
         page_break = Break(id=self.ppos-1)  # create Break obj
         ws.row_breaks.append(page_break)  # insert page break
-        pass
 
     def aktualizovat_db(self, adata, vdata):
         if not self.datum_vyplatenia: return
