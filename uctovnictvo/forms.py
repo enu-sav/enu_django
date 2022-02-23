@@ -292,7 +292,6 @@ class VyplacanieDohodForm(forms.ModelForm):
                 dtype="dopc"
             elif type(dohoda) == DoBPS:
                 dtype="dobps"
-            trace()
             dok = Dokument(
                 cislo = cislo,
                 inout = InOut.ODOSLANY,
