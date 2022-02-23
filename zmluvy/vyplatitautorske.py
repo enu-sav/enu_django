@@ -284,7 +284,7 @@ class VyplatitAutorskeOdmeny():
         if self.zoznam_autorov:
             for autor in list(self.suma_vyplatit.keys()):
                 if not autor in self.zoznam_autorov:
-                    del self.suma_vyplatit[autor]
+                    pass
             pass
 
         # ak autorov na vyplatenie je viac ako na dve strany krycieho listu, niekoho treba vyradiť
@@ -333,27 +333,31 @@ class VyplatitAutorskeOdmeny():
 
         sum_row = self.vyplnit_harok_vypocet()
 
-        # vyplnit harok Krycí list alebo ho vymazať
+        # vyplniť hárok Krycí list
         if self.datum_vyplatenia:
-            self.kryci_list["A2"].value = self.kryci_list["A2"].value.replace("xx-xxxx", self.cislo)
-            self.kryci_list[f"A3"].value = self.kryci_list[f"A3"].value.replace("xx.xx.xxxx", self.datum_vyplatenia)
-            self.kryci_list.print_area = [] #Zrušiť oblasť tlače
+            self.kryci_list["A2"].value = self.kryci_list["A2"].value.replace("[[coho]]", "zrážkovej dane a odvodu do fondov")
+            self.kryci_list["A3"].value = self.kryci_list[f"A3"].value.replace("[[xx.xx.xxxx]]", self.datum_vyplatenia.strftime("%-d.%-m.%Y"))
         else:
-            workbook.remove_sheet(self.kryci_list)
-            pass
+            self.kryci_list["A2"].value = self.kryci_list["A2"].value.replace("[[coho]]", "autorských honorárov") 
+        self.kryci_list["A2"].value = self.kryci_list["A2"].value.replace("[[xx-xxxx]]", self.cislo)
+        self.kryci_list.print_area = [] #Zrušiť oblasť tlače
 
         # vyplnit harok Na vyplatenie
+        # spoločné
         if self.datum_vyplatenia:
-            vyplatit["A4"].value = vyplatit["A4"].value.replace("(verzia)","(finálna verzia)")
+            vyplatit["A4"].value = vyplatit["A4"].value.replace("[[coho]]","zrážkovej dane a odvodu do fondov")
         else:
-            vyplatit["A4"].value = vyplatit["A4"].value.replace("(verzia)","(predbežná verzia)")
+            vyplatit["A4"].value = vyplatit["A4"].value.replace("[[coho]]","autorských honorárov")
         vyplatit.merge_cells('A5:G5')
         vyplatit["A5"] = f"identifikátor vyplácania {self.cislo}"
         vyplatit["A5"].alignment = acenter
 
         vyplatit["A7"] = "Prevody spolu:"
         #vyplatit.merge_cells("B7:G7")
-        vyplatit["B7"] = f"=Výpočet!G{sum_row}" if  self.datum_vyplatenia else "Ešte neurčené"
+        if self.datum_vyplatenia:
+            vyplatit["B7"] = f"=Výpočet!K{sum_row}+Výpočet!I{sum_row}" # daň + odvod
+        else:
+            vyplatit["B7"] = f"=Výpočet!L{sum_row}" # autorské honoráre
         vyplatit[f"B7"].number_format= "0.00"
         vyplatit[f"B7"].alignment = aleft
         vyplatit[f"B7"].font = self.fbold
@@ -364,79 +368,126 @@ class VyplatitAutorskeOdmeny():
             for n, cellObj in enumerate(rowOfCellObjects):
                 cellObj.fill = PatternFill("solid", fgColor="FFFF00")
 
-        #Litfond
-        pos = 10
-        a,b,c,d,e,f = range(pos, pos+6)
-        vyplatit[f"A{a}"] = "Komu:"
-        vyplatit[f"B{a}"] = f"Odvod Lit. fond ({VyplatitAutorskeOdmeny.litfond_odvod} %)"
-        vyplatit[f"A{b}"] = "Názov:"
-        vyplatit[f"B{b}"] = "Literárny fond"
-        vyplatit[f"A{c}"] = "IBAN:"
-        vyplatit[f"B{c}"] = VyplatitAutorskeOdmeny.ucetLitFond
-        vyplatit[f"A{d}"] = "VS:"
-        vyplatit[f"B{d}"] = "2001"
-        vyplatit[f"A{e}"] = "KS:"
-        vyplatit[f"B{e}"] = "558"
-        vyplatit[f"A{f}"] = "Suma na úhradu:"
-        vyplatit[f"B{f}"] = f"=Výpočet!I{sum_row}"  if  self.datum_vyplatenia else "Ešte neurčené"
-        vyplatit[f"B{f}"].number_format= "0.00"
-        vyplatit[f"B{f}"].alignment = aleft
-        vyplatit[f"B{f}"].font = self.fbold
-        pos += 7
-        
-        #daň
-        a,b,c,d,e,f = range(pos, pos+6)
-        vyplatit[f"A{a}"] = "Komu:"
-        vyplatit[f"B{a}"] = "Zrážková daň z odmeny"
-        vyplatit[f"A{b}"] = "Názov:"
-        vyplatit[f"B{b}"] = "Finančná správa"
-        vyplatit[f"A{c}"] = "IBAN:"
-        vyplatit[f"B{c}"] = VyplatitAutorskeOdmeny.ucetFin
-        vyplatit[f"A{d}"] = "VS:"
-        # predpokladáme, ze self.cislo na tvar yyyy-mmxxx
-        vyplatit[f"B{d}"] = f"1700{self.cislo[5:7]}{self.cislo[:4]}"
-        vyplatit[f"A{e}"] = "Suma na úhradu:"
-        vyplatit[f"B{e}"] = f"=Výpočet!K{sum_row}" if  self.datum_vyplatenia else "Ešte neurčené"
-        vyplatit[f"B{e}"].number_format= "0.00"
-        vyplatit[f"B{e}"].alignment = aleft
-        vyplatit[f"B{e}"].font = self.fbold
-        pos += 6
-
-        # Farba pozadia
-        for i, rowOfCellObjects in enumerate(vyplatit['A10':'G21']):
-            for n, cellObj in enumerate(rowOfCellObjects):
-                cellObj.fill = PatternFill("solid", fgColor="FDEADA")
-        
-        #nevyplácaní autori
-        for i, autor in enumerate(self.suma_preplatok):
-            self.import_rs_webrs(autor)
-            self.po_autoroch(autor)
-
-        #vyplácaní autori
-        #pridať dostatočný počet riadkov, zatiaľ máme priestor pre troch autorov
-        for i, autor in enumerate(self.suma_vyplatit):
-            self.import_rs_webrs(autor)
-            self.po_autoroch(autor)
+        pos0 = 10   #Pozícia začiatku rozdielnych položiek
+        if self.datum_vyplatenia:
+            pos = pos0
+            #Litfond
             a,b,c,d,e,f = range(pos, pos+6)
-            adata = OsobaAutor.objects.filter(rs_login=autor)[0]
             vyplatit[f"A{a}"] = "Komu:"
-            vyplatit[f"B{a}"] = "Autor"
+            vyplatit[f"B{a}"] = f"Odvod Lit. fond ({VyplatitAutorskeOdmeny.litfond_odvod} %)"
             vyplatit[f"A{b}"] = "Názov:"
-            vyplatit[f"B{b}"] = self.meno_priezvisko(adata)
+            vyplatit[f"B{b}"] = "Literárny fond"
             vyplatit[f"A{c}"] = "IBAN:"
-            vyplatit[f"B{c}"] = adata.bankovy_kontakt
+            vyplatit[f"B{c}"] = VyplatitAutorskeOdmeny.ucetLitFond
             vyplatit[f"A{d}"] = "VS:"
-            vyplatit[f"B{d}"] = self.cislo
+            vyplatit[f"B{d}"] = "2001"
             vyplatit[f"A{e}"] = "KS:"
-            vyplatit[f"B{e}"] = "3014"
+            vyplatit[f"B{e}"] = "558"
             vyplatit[f"A{f}"] = "Suma na úhradu:"
-            vyplatit[f"B{f}"] = f"=Výpočet!L{i+2}"
+            vyplatit[f"B{f}"] = f"=Výpočet!I{sum_row}"  if  self.datum_vyplatenia else "Ešte neurčené"
             vyplatit[f"B{f}"].number_format= "0.00"
             vyplatit[f"B{f}"].alignment = aleft
             vyplatit[f"B{f}"].font = self.fbold
             pos += 7
+        
+            #daň
+            a,b,c,d,e,f = range(pos, pos+6)
+            vyplatit[f"A{a}"] = "Komu:"
+            vyplatit[f"B{a}"] = "Zrážková daň z odmeny"
+            vyplatit[f"A{b}"] = "Názov:"
+            vyplatit[f"B{b}"] = "Finančná správa"
+            vyplatit[f"A{c}"] = "IBAN:"
+            vyplatit[f"B{c}"] = VyplatitAutorskeOdmeny.ucetFin
+            vyplatit[f"A{d}"] = "VS:"
+            # predpokladáme, ze self.cislo na tvar yyyy-mmxxx
+            vyplatit[f"B{d}"] = f"1700{self.datum_vyplatenia.strftime('%m%Y')}"
+            vyplatit[f"A{e}"] = "Suma na úhradu:"
+            vyplatit[f"B{e}"] = f"=Výpočet!K{sum_row}" if  self.datum_vyplatenia else "Ešte neurčené"
+            vyplatit[f"B{e}"].number_format= "0.00"
+            vyplatit[f"B{e}"].alignment = aleft
+            vyplatit[f"B{e}"].font = self.fbold
 
-        pos += 2
+            # Farba pozadia
+            #for i, rowOfCellObjects in enumerate(vyplatit[f'A{pos0}':'G{pos-2}']):
+                #for n, cellObj in enumerate(rowOfCellObjects):
+                    #cellObj.fill = PatternFill("solid", fgColor="FDEADA")
+            pos += 6
+            #nevyplácaní autori
+            for i, autor in enumerate(self.suma_preplatok):
+                self.import_rs_webrs(autor)
+                self.po_autoroch(autor)
+
+            #prehľad zrážania dane
+            vyplatit.merge_cells(f'A{pos}:E{pos}')
+            vyplatit[f"A{pos}"] = "Prehľad zrážkovej dane a odvodov do fondov dane po autoroch"
+            vyplatit[f"A{pos}"].font = self.fbold
+            pos += 1
+            prehlad = ["Autor", "Vypl. honorár", "Zrazená daň", "Odv. do fondov","Dôvod nezrazenia"]
+            vyplatit.merge_cells(f'A{pos}:B{pos}')
+            vyplatit[f"A{pos}"] = prehlad[0]
+            vyplatit[f"A{pos}"].font = self.fbold
+            vyplatit[f"C{pos}"] = prehlad[1]
+            vyplatit[f"C{pos}"].font = self.fbold
+            vyplatit[f"D{pos}"] = prehlad[2]
+            vyplatit[f"D{pos}"].font = self.fbold
+            vyplatit[f"E{pos}"] = prehlad[3]
+            vyplatit[f"E{pos}"].font = self.fbold
+            vyplatit[f"F{pos}"] = prehlad[4]
+            vyplatit[f"F{pos}"].font = self.fbold
+            pos += 1
+            for i, autor in enumerate(self.suma_vyplatit):
+                if autor in self.zoznam_autorov:
+                    self.import_rs_webrs(autor)
+                    self.po_autoroch(autor)
+                vyplatit.merge_cells(f'A{pos}:B{pos}')
+                vyplatit[f"A{pos}"] = f"=Výpočet!A{i+2}" 
+                vyplatit[f"C{pos}"] = f"=Výpočet!L{i+2}"
+                vyplatit[f"C{pos}"].number_format= "0.00"
+                vyplatit[f"D{pos}"] = f"=Výpočet!K{i+2}"
+                vyplatit[f"D{pos}"].number_format= "0.00"
+                vyplatit[f"E{pos}"] = f"=Výpočet!I{i+2}"
+                vyplatit[f"E{pos}"].number_format= "0.00"
+                vyplatit[f"F{pos}"] = f"Platba neprešla" if self.vypocet[f"M{i+2}"].value else "Nerezident SR" if  self.vypocet[f"D{i+2}"].value!="ano"  else "Dohoda o nezdanení" if self.vypocet[f"C{i+2}"].value=="ano" else ""
+                #vyplatit[f"B{pos}"].alignment = aleft
+                #vyplatit[f"B{d}"].font = self.fbold
+                pos += 1
+            vyplatit[f"A{pos}"] = "Spolu"
+            vyplatit[f"A{pos}"].font = self.fbold
+            vyplatit[f"D{pos}"] = f"=Výpočet!K{i+2+1}"
+            vyplatit[f"D{pos}"].font = self.fbold
+            vyplatit[f"D{pos}"].number_format= "0.00"
+            vyplatit[f"E{pos}"] = f"=Výpočet!I{i+2+1}"
+            vyplatit[f"E{pos}"].font = self.fbold
+            vyplatit[f"E{pos}"].number_format= "0.00"
+            pos += 1
+        else:
+            pos = pos0 
+            #nevyplácaní autori
+            for i, autor in enumerate(self.suma_preplatok):
+                self.import_rs_webrs(autor)
+                self.po_autoroch(autor)
+
+            #vyplácaní autori
+            #pridať dostatočný počet riadkov, zatiaľ máme priestor pre troch autorov
+            for i, autor in enumerate(self.suma_vyplatit):
+                self.import_rs_webrs(autor)
+                self.po_autoroch(autor)
+                a,b,c,d = range(pos, pos+4)
+                adata = OsobaAutor.objects.filter(rs_login=autor)[0]
+                vyplatit[f"A{a}"] = "Autor:"
+                vyplatit[f"B{a}"] = self.meno_priezvisko(adata)
+                vyplatit[f"A{b}"] = "IBAN:"
+                vyplatit[f"B{b}"] = adata.bankovy_kontakt
+                vyplatit[f"A{c}"] = "VS:"
+                vyplatit[f"B{c}"] = self.cislo
+                vyplatit[f"A{d}"] = "Suma na úhradu:"
+                vyplatit[f"B{d}"] = f"=Výpočet!L{i+2}"
+                vyplatit[f"B{d}"].number_format= "0.00"
+                vyplatit[f"B{d}"].alignment = aleft
+                vyplatit[f"B{d}"].font = self.fbold
+                pos += 5
+
+        pos += 1
         a,b,c,d,e,f = range(pos, pos+6)
         vyplatit.merge_cells(f'A{a}:G{a}')
         vyplatit[f"A{a}"] = "Výpočet autorských odmien bol realizovaný softvérovo na základe údajov z redakčného systému Encyclopaedie Beliany"
@@ -448,12 +499,12 @@ class VyplatitAutorskeOdmeny():
 
         #vyplatit[f"A{d}"] = "V Bratislave dňa {}".format(date.today().strftime("%d.%m.%Y"))
         if self.datum_vyplatenia:
-            vyplatit[f"A{d}"] = "V Bratislave dňa {}".format(self.datum_vyplatenia)
+            vyplatit[f"A{d}"] = "V Bratislave dňa {}".format(self.datum_vyplatenia.strftime("%-d.%-m.%Y"))
         else:
             vyplatit[f"A{d}"] = "V Bratislave dňa {}".format(date.today().strftime("%d.%m.%Y"))
         vyplatit[f"A{d}"] = "V Bratislave dňa {}".format(date.today().strftime("%d.%m.%Y"))
         vyplatit[f"E{e}"] = "Ing. Tatiana Šrámková"
-        vyplatit[f"E{f}"] = "vedúca org. zložky EnÚ CSČ SAV"
+        vyplatit[f"E{f}"] = "riaditeľka org. zložky EnÚ SAV"
         vyplatit.print_area = []    #Zrušiť oblasť tlače
 
         #Všetky súbory, ktoré majú byť uložené do DB, musia mať záznam logu, ktorý končí na 'uložené do súboru {fpath}'
@@ -549,7 +600,7 @@ class VyplatitAutorskeOdmeny():
     # vyplnit harok vypocet
     def vyplnit_harok_vypocet(self):
         #hlavicka
-        vypocet_hlavicka = ["Autor", "Zmluvy", "Zmluva o nezdaňovaní", "Rezident SR", "Honorár", "Preplatok", "Honorár – Preplatok", "Odvod LF", "Odvod LF zaokr.", f"{VyplatitAutorskeOdmeny.dan_odvod} % daň", "daň zaokr.", "Vyplatiť"]
+        vypocet_hlavicka = ["Autor", "Zmluvy", "Dohoda o nezdaňovaní", "Rezident SR", "Honorár", "Preplatok", "Honorár – Preplatok", "Odvod LF", "Odvod LF zaokr.", f"{VyplatitAutorskeOdmeny.dan_odvod} % daň", "daň zaokr.", "Vyplatiť", "Poznámka"]
 
         for i, val in enumerate(vypocet_hlavicka):
             self.vypocet.cell(row=1, column=i+1).value = vypocet_hlavicka[i]
@@ -563,8 +614,8 @@ class VyplatitAutorskeOdmeny():
         for i, autor in enumerate(self.suma_vyplatit):
             adata = OsobaAutor.objects.filter(rs_login=autor)[0]
             ii = i+2
-            self.vypocet[f"A{ii}"] = autor
-            self.vypocet[f"B{ii}"] = self.suma_vyplatit[autor][2 ]
+            self.vypocet[f"A{ii}"] = f"{adata.priezvisko}, {adata.meno}"
+            self.vypocet[f"B{ii}"] = self.suma_vyplatit[autor][2]
             self.vypocet[f"B{ii}"].alignment = Alignment(wrapText=True, horizontal='center')
             # Uvádzame, či je podpísaná zmluva o nezdaňovaní, čiže opak adata.zdanit
             self.vypocet[f"C{ii}"] = "ano" if self.zmluva_nezdanit(adata) else "nie"
@@ -578,7 +629,7 @@ class VyplatitAutorskeOdmeny():
             # sa licenčné poplatky zdaňujú v štáte rezidencie. Daň teda neodvádzame.  
             self.vypocet[f"D{ii}"] = "ano" if self.je_rezident(adata) else "nie"
             self.vypocet[f"D{ii}"].alignment = Alignment(wrapText=True, horizontal='center')
-            self.vypocet[f"E{ii}"] = round(self.suma_vyplatit[autor][0],2)
+            self.vypocet[f"E{ii}"] = round(self.suma_vyplatit[autor][0],2) if autor in self.zoznam_autorov else 0
             self.vypocet[f"F{ii}"] = self.suma_vyplatit[autor][1]
             self.vypocet[f"G{ii}"] = f"=E{ii}-F{ii}"
             #self.vypocet[f"H{ii}"] = f"=G{ii}*0.02"
@@ -590,6 +641,7 @@ class VyplatitAutorskeOdmeny():
             self.vypocet[f"J{ii}"] = f'=IF(AND(C{ii}="nie",D{ii}="ano"),(G{ii}-I{ii})*{VyplatitAutorskeOdmeny.dan_odvod/100},0'
             self.vypocet[f"K{ii}"] = f"=ROUND(J{ii},2)"
             self.vypocet[f"L{ii}"] = f"=G{ii}-I{ii}-K{ii}"
+            self.vypocet[f"M{ii}"] = "" if autor in self.zoznam_autorov else "Platba neprešla"
         pass
         self.vypocet[f"A{ii+1}"] = "Na úhradu"
         self.vypocet[f"G{ii+1}"] = f"=SUM(G2:G{ii})"
@@ -600,9 +652,9 @@ class VyplatitAutorskeOdmeny():
             self.vypocet.cell(row=ii+1, column=i+1).font = self.fbold
 
         if self.datum_vyplatenia:
-            self.vypocet[f"A{ii+3}"] = f"Výpočet k príkazu na úhradu autorských honorárov č. {self.cislo} (finálna verzia)"
+            self.vypocet[f"A{ii+3}"] = f"Výpočet k príkazu na úhradu zrážkovej dane a odvodu do fondov č. {self.cislo}"
         else:
-            self.vypocet[f"A{ii+3}"] = f"Výpočet k príkazu na úhradu autorských honorárov č. {self.cislo} (predbežná verzia)"
+            self.vypocet[f"A{ii+3}"] = f"Výpočet k príkazu na úhradu autorských honorárov č. {self.cislo}"
         
         return ii+1 #vratit riadok so suctami
 
@@ -636,7 +688,7 @@ class VyplatitAutorskeOdmeny():
                     ws[f"A{pos}"].value = lname
                     ws[f"A{pos}"].style = "Hyperlink"
                     ws[f"B{pos}"] = link.split("/")[-1]   #nid
-                    ws[f"C{pos}"] = self.datum_vyplatenia
+                    ws[f"C{pos}"] = self.datum_vyplatenia.strftime("%-d.%-m.%Y")
                     pos += 1
             if rstype=="rs":
                 self.rpos = pos
@@ -689,7 +741,7 @@ class VyplatitAutorskeOdmeny():
                 }
         
         #self.bb( "Preplatok predchádzajúcich platieb:", preplatok)
-        self.bb( "Honorár za aktuálne cislo:", honorar)
+        self.bb( "Honorár za aktuálne vyplácanie:", honorar)
         vdata["honorar"] = honorar
         if vyplaca_sa:
             if preplatok > 0:
@@ -757,7 +809,8 @@ class VyplatitAutorskeOdmeny():
                 vdata["lf"] = lf
                 vdata["dan"] = dan
                 vdata["vyplatit"] = vyplatit
-            self.bb( "Dátum vyplatenia:", self.datum_vyplatenia)
+            if self.datum_vyplatenia:
+                self.bb( "Dátum vyplatenia:", self.datum_vyplatenia.strftime("%-d.%-m.%Y"))
         else:
                 self.bb( "Vyplatiť:", 0)
                 self.bb( "Nová hodnota preplatku:", preplatok - honorar)
@@ -828,7 +881,7 @@ class VyplatitAutorskeOdmeny():
         if not self.datum_vyplatenia: return
         adata.save()
         platba = PlatbaAutorskaOdmena.objects.create( 
-            datum_uhradenia = re.sub(r"([^.]*)[.]([^.]*)[.](.*)", r"\3-\2-\1", self.datum_vyplatenia),
+            datum_uhradenia = re.sub(r"([^.]*)[.]([^.]*)[.](.*)", r"\3-\2-\1", self.datum_vyplatenia.strftime("%-d.%-m.%Y")),
             uhradena_suma = round(vdata['vyplatit'], 2),
             preplatok_pred = round(vdata['preplatok0'], 2) ,
             cislo = self.cislo, 

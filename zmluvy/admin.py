@@ -23,7 +23,7 @@ from django.db.models import Sum
 # pripajanie suborov k objektu: krok 1, importovať XxxSubor
 from .models import OsobaAutor, ZmluvaAutor, PlatbaAutorskaOdmena, PlatbaAutorskaSumar, StavZmluvy, PlatbaAutorskaSumarSubor
 from .models import AnoNie, SystemovySubor, PersonCommon, OsobaGrafik, ZmluvaGrafik, Zmluva, VytvarnaObjednavkaPlatba
-from .common import VytvoritAutorskuZmluvu, VyplatitAutorskeOdmeny
+from .common import VytvoritAutorskuZmluvu
 from .vyplatitautorske import VyplatitAutorskeOdmeny
 from dennik.forms import nasledujuce_cislo
 
@@ -565,9 +565,9 @@ class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
             self.message_user(request, f"Vybrať možno len jednu platbu", messages.ERROR)
             return
         platba = queryset[0]
-        if platba.platba_zaznamenana == AnoNie.ANO:
-            self.message_user(request, f"Platba {platba.cislo} už bola vložená do databázy s dátumom vyplatenia {platba.datum_uhradenia}. Ak chcete platbu opakovane vložiť do databázy, musíte ju zrušit (odstrániť z databázy) pomocou 'Zrušiť záznam o platbe v databáze'", messages.ERROR)
-            return
+        #if platba.platba_zaznamenana == AnoNie.ANO:
+            #self.message_user(request, f"Platba {platba.cislo} už bola vložená do databázy s dátumom vyplatenia {platba.datum_uhradenia}. Ak chcete platbu opakovane vložiť do databázy, musíte ju zrušit (odstrániť z databázy) pomocou 'Zrušiť záznam o platbe v databáze'", messages.ERROR)
+            #return
         if not platba.datum_uhradenia:
             self.message_user(request, f"Platba nebola vložená do databázy, lebo nie je zadaný dátum jej vyplatenia THS-kou. ", messages.ERROR)
             return
@@ -609,7 +609,7 @@ class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
             # ak vytvárame finálny prehľad, platba.datum_uhradenia je vyplnené 
             if platba.datum_uhradenia:
                 vao = VyplatitAutorskeOdmeny(nazvy, platba.cislo, 
-                        platba.datum_uhradenia.strftime("%-d.%-m.%Y"),
+                        platba.datum_uhradenia,
                         platba.autori_na_vyplatenie.split())
             else:
                 vao = VyplatitAutorskeOdmeny(nazvy, platba.cislo)
