@@ -645,7 +645,7 @@ class VyplacanieDohodAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAd
         return AdminFormMod
 
 @admin.register(PlatovyVymer)
-class PlatovyVymerAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin):
+class PlatovyVymerAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
     form = PlatovyVymerForm
     list_display = ["mp","cislo_zamestnanca", "zamestnanec_link", "zamestnanie_od", "zapocitane", "datum_postup", "datum_od", "datum_do", "_prax_roky_dni", "_zamestnanie_roky_dni", "tarifny_plat", "osobny_priplatok", "funkcny_priplatok",  "platova_trieda", "platovy_stupen", "suborvymer"]
     # ^: v poli vyhľadávať len od začiatku
@@ -661,7 +661,7 @@ class PlatovyVymerAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
     ]
 
     def get_readonly_fields(self, request, obj=None):
-        if obj.datum_do:
+        if obj and obj.datum_do:
             aux = [f.name for f in PlatovyVymer._meta.get_fields()]
             aux.remove("datum_do")
             return aux
