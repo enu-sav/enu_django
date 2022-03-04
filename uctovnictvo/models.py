@@ -478,7 +478,7 @@ class Zamestnanec(ZamestnanecDohodar):
         verbose_name = "Zamestnanec"
         verbose_name_plural = "Zamestnanci"
     def __str__(self):
-        return f"Z {self.priezvisko}, {self.meno}"
+        return f"{self.priezvisko}, {self.meno}, {self.cislo_zamestnanca}"
 
 class Dohodar(ZamestnanecDohodar):
     history = HistoricalRecords()
@@ -532,7 +532,7 @@ class PlatovyVymer(Klasifikacia):
             null=True)
     platovy_stupen = models.IntegerField("Platový stupeň",
             null=True)
-    uvazok = models.DecimalField("Úväzok (hod/týždeň)", 
+    uvazok = models.DecimalField("Úväzok", 
             help_text = "Zadajte pracovný úväzok týždenne (najviac 37,5 hod)",
             max_digits=8, 
             decimal_places=2, 
