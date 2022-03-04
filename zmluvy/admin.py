@@ -253,7 +253,6 @@ class ZmluvaAdmin():
     def vytvorit_subory_zmluvy(self, request, queryset):
         for zmluva  in queryset:
             if not zmluva.stav_zmluvy or zmluva.stav_zmluvy in (
-                            StavZmluvy.POZIADAVKA,  
                             StavZmluvy.ODOSLANY_DOTAZNIK,  
                             StavZmluvy.VYTVORENA):  
                 #vytvorene_subory: s cestou vzhľadom na MEDIA_ROOT 'AutorskeZmluvy/AdamAnton-1298/AdamAnton-1298.fodt'
@@ -310,7 +309,7 @@ class ZmluvaAutorAdmin(ZmluvaAdmin, AdminChangeLinksMixin, SimpleHistoryAdmin, I
         for f in fields_cur - fields_par:   #pridať rozdiel po jednom
             fields += (f,)
         if obj:
-            if not obj.stav_zmluvy or obj.stav_zmluvy in [StavZmluvy.VYTVORENA, StavZmluvy.POZIADAVKA, StavZmluvy.ODOSLANY_DOTAZNIK]:
+            if not obj.stav_zmluvy or obj.stav_zmluvy in [StavZmluvy.VYTVORENA, StavZmluvy.ODOSLANY_DOTAZNIK]:
                 fields.remove("honorar_ah")
         else:
             # V novej zmluve povoliť (teda pouzit remove) len: 
