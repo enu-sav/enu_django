@@ -178,6 +178,9 @@ class OsobaGrafikAdmin(FyzickaOsobaAdmin, AdminChangeLinksMixin, SimpleHistoryAd
         return None
 
 class ZmluvaAdmin():
+    #stránkovanie a 'Zobraziť všetko'
+    list_max_show_all = 10000
+    list_per_page = 50
     def get_list_display(self, request):
         return ('zmluvna_strana_link', 'stav_zmluvy', 'subor_zmluvy_html', 'subor_zmluvy_crz_html', 'zmluva_odoslana', 'zmluva_vratena',
             'url_zmluvy_html', 'crz_datum', 'datum_pridania', 'datum_aktualizacie')

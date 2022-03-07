@@ -36,6 +36,9 @@ from django.db.models import Sum
 #https://pypi.org/project/django-admin-relation-links/
 from django_admin_relation_links import AdminChangeLinksMixin
 
+#https://pypi.org/project/django-admin-export-action/
+from admin_export_action.admin import export_selected_objects
+
 # Ak sa má v histórii zobraziť zoznam zmien, príslušná admin trieda musí dediť od ZobraziZmeny
 class ZobrazitZmeny():
     # v histórii zobraziť zoznam zmenených polí
@@ -146,6 +149,7 @@ class ZmluvaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, Impo
     form = ZmluvaForm
     list_display = ["cislo", "dodavatel_link", "predmet", "datum_zverejnenia_CRZ", "url_zmluvy_html"]
     search_fields = ["dodavatel__nazov", "cislo", "predmet"]
+    actions = [export_selected_objects]
 
     # zoraďovateľný odkaz na dodávateľa
     # umožnené prostredníctvom AdminChangeLinksMixin
