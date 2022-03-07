@@ -196,7 +196,7 @@ class PrijataFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdm
         if not obj:
             return ["program", "platobny_prikaz", "dane_na_uhradu"]
         elif obj.dane_na_uhradu:
-            nearly_all = ["zdroj", "program", "zakazka", "ekoklas", "cislo", "platobny_prikaz", "doslo_datum"] 
+            nearly_all = ["program", "cislo", "platobny_prikaz", "doslo_datum"] 
             nearly_all += ["splatnost_datum", "predmet", "suma", "mena", "objednavka_zmluva", "dane_na_uhradu"]
             return nearly_all
         elif not obj.platobny_prikaz:   #ešte nebola spustená akcia
