@@ -205,6 +205,9 @@ class ZmluvaAdmin():
                     fields.remove("datum_zverejnenia_CRZ")
                 if "podpisana_subor" in fields:
                     fields.remove("podpisana_subor")
+            elif obj.stav_zmluvy == StavZmluvy.ZVEREJNENA_V_CRZ:
+                if "url_zmluvy" in fields:
+                    fields.remove("url_zmluvy")
             else:
                 pass
                 #fields.remove("zmluvna_strana")
