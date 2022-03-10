@@ -119,7 +119,7 @@ def VytvoritPlatobnyPrikaz(faktura, pouzivatel):
 
     text = text.replace(f"{lt}ekoklas{gt}", faktura.ekoklas.kod)
     text = text.replace(f"{lt}zdroj{gt}", faktura.zdroj.kod)
-    if faktura.zdroj.kod == '111':
+    if faktura.zdroj.kod == '111' or faktura.zdroj.kod == '131L':
         text = text.replace(f"{lt}dph_neuctovat{gt}", "DPH neúčtovať")
     else:
         text = text.replace(f"{lt}dph_neuctovat{gt}", "")

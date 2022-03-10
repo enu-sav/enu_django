@@ -39,6 +39,11 @@ class StavDohody(models.TextChoices):
     PODPISANA_DOHODAROM = "podpisana_dohodarom", "Podpísaná"
     DOKONCENA = "dokoncena", "Dokončená"
 
+class StavVymeru(models.TextChoices):
+    AKTUALNY = "aktualny", "Aktuálny"
+    NEAKTUALNY = "neaktualny", "Neaktuálny"
+    UKONCENY = "ukonceny", "Ukončený PP"
+
 class Poistovna(models.TextChoices):
     VSZP = 'VsZP', 'VšZP'
     DOVERA = "Dovera", 'Dôvera'
@@ -461,15 +466,11 @@ class Zamestnanec(ZamestnanecDohodar):
     cislo_zamestnanca = models.CharField("Číslo zamestnanca", 
             null = True,
             max_length=50)
-    zapocitane_roky = models.IntegerField("Započítané roky",
-            help_text = "Započítané celé roky z predchádzajúcich zamestnaní",
+    zamestnanie_od = models.DateField('1. zamestnanie od',
+            help_text = "Dátum nástupu do 1. zamestnania. Preberá sa zo Softipu, kde sa vypočíta z dátumu nástupu do EnÚ a započítanej praxe",
             blank=True,
             null=True)
-    zapocitane_dni = models.IntegerField("Započítané dni",
-            help_text = "Započítané dni z predchádzajúcich zamestnaní.",
-            blank=True,
-            null=True)
-    zamestnanie_od = models.DateField('Zamestnanie v EnÚ od',
+    zamestnanie_enu_od = models.DateField('Zamestnanie v EnÚ od',
             help_text = "Dátum nástupu do zamestnania v EnÚ.",
             blank=True,
             null=True)
@@ -496,6 +497,11 @@ class PlatovyVymer(Klasifikacia):
     cislo_zamestnanca = models.CharField("Číslo zamestnanca", 
             null = True,
             max_length=50)
+    stav = models.CharField("Stav", 
+            max_length=20, 
+            help_text = "Uveďte, v ktorom stave sa výmer nachádza.",
+            null = True,
+            choices=StavVymeru.choices)
     zamestnanec = models.ForeignKey(Zamestnanec,
             on_delete=models.PROTECT, 
             verbose_name = "Zamestnanec",
@@ -507,10 +513,10 @@ class PlatovyVymer(Klasifikacia):
             null = True, 
             blank = True 
             )
-    datum_od = models.DateField('Dátum od',
+    datum_od = models.DateField('Platný od',
             help_text = "Zadajte dátum začiatku platnosti výmeru",
             null=True)
-    datum_do = models.DateField('Dátum do',
+    datum_do = models.DateField('Platný do',
             help_text = "Nechajte prázdne alebo zadajte dátum ukončenia prac. pomeru. Ak sa pre zamestnanca vytvorí nový výmer, toto pole v predchádzajúcom výmere sa vyplní automaticky, čím sa jeho platnosť ukončí",
             blank=True,
             null=True)
@@ -537,14 +543,6 @@ class PlatovyVymer(Klasifikacia):
             max_digits=8, 
             decimal_places=2, 
             default=0)
-    praxroky = models.IntegerField("Prax (roky)",
-            help_text = "Pole sa vyplňuje automaticky. Ak je pole 'Dátum do' prázdne, tak toto pole obsahuje počet celých rokov praxe do začiatku platnosti tohoto výmeru. Ak je pole 'Dátum do' vyplnené, tak toto pole obsahuje počet celých rokov praxe do konca platnosti tohoto výmeru.",
-            blank=True,
-            null=True)
-    praxdni = models.IntegerField("Prax (dni)",
-            help_text = "Pole sa vyplňuje automaticky. Ak je pole 'Dátum do' prázdne, tak toto pole obsahuje počet dní praxe neúplného posledného roku do začiatku platnosti tohoto výmeru. Ak je pole 'Dátum do' vyplnené, tak toto pole obsahuje počet dní praxe do konca platnosti tohoto výmeru.",
-            blank=True,
-            null=True)
     zamestnanieroky = models.IntegerField("Doba zamestnania v Enú (roky)",
             help_text = "Pole sa vyplňuje automaticky, ak je pole 'Dátum do' vyplnené. Vtedy toto pole obsahuje počet celých rokov zamestnania v EnÚ do konca platnosti tohoto výmeru",
             blank=True,
@@ -553,7 +551,7 @@ class PlatovyVymer(Klasifikacia):
             help_text = "Pole sa vyplňuje automaticky, ak je pole 'Dátum do' vyplnené. Vtedy toto pole obsahuje počet dní zamestnania neúplného posledného roku do konca platnosti tohoto výmeru.",
             blank=True,
             null=True)
-    datum_postup = models.DateField('Dátum pl. postupu',
+    datum_postup = models.DateField('Pl. postup',
             help_text = "Dátum najbližšieho platového postupu. Pole sa vyplňuje automaticky, ak nie je pole 'Dátum do' vyplnené, inak je prázdne",
             blank=True,
             null=True)

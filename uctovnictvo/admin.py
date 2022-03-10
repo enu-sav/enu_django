@@ -9,13 +9,13 @@ from datetime import date, datetime, timedelta
 from ipdb import set_trace as trace
 from .models import EkonomickaKlasifikacia, TypZakazky, Zdroj, Program, Dodavatel, ObjednavkaZmluva, AutorskyHonorar
 from .models import Objednavka, Zmluva, PrijataFaktura, SystemovySubor, Rozhodnutie, PrispevokNaStravne
-from .models import Dohoda, DoVP, DoPC, DoBPS, VyplacanieDohod, AnoNie, PlatovyVymer
+from .models import Dohoda, DoVP, DoPC, DoBPS, VyplacanieDohod, AnoNie, PlatovyVymer, StavVymeru
 from .models import ZamestnanecDohodar, Zamestnanec, Dohodar, StavDohody
 from .common import VytvoritPlatobnyPrikaz, VytvoritSuborDohody, VytvoritSuborObjednavky, leapdays
 from .forms import PrijataFakturaForm, AutorskeZmluvyForm, ObjednavkaForm, ZmluvaForm, PrispevokNaStravneForm
 from .forms import PlatovyVymerForm
 from .forms import DoPCForm, DoVPForm, DoBPSForm, nasledujuce_cislo, VyplacanieDohodForm
-from .rokydni import datum_postupu, vypocet_prax, vypocet_zamestnanie 
+from .rokydni import datum_postupu, vypocet_prax, vypocet_zamestnanie, postup_roky, roky_postupu
 from dennik.models import Dokument, TypDokumentu, InOut
 
 #zobrazenie histórie
@@ -376,10 +376,6 @@ class ZamestnanecDohodar(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExport
         else:
             return "Nie"
     _ztp.short_description = "ZŤP"
-    def _roky_dni(self, obj):
-        return f"{obj.zapocitane_roky}, {obj.zapocitane_dni}".strip()
-    _roky_dni.short_description = "Započítaná prax"
-
 
 @admin.register(Dohodar)
 class Dohodar(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
@@ -405,7 +401,7 @@ class Dohodar(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin)
 
 @admin.register(Zamestnanec)
 class Zamestnanec(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
-    list_display = ("priezvisko", "meno", "cislo_zamestnanca", "zamestnanie_od", "_roky_dni", "rod_priezvisko", "email", "rodne_cislo", "datum_nar", "miesto_nar", "adresa", "_dochodok", "_ztp","poistovna", "cop", "stav")
+    list_display = ("priezvisko", "meno", "cislo_zamestnanca", "zamestnanie_od", "zamestnanie_enu_od", "rod_priezvisko", "email", "rodne_cislo", "datum_nar", "miesto_nar", "adresa", "_dochodok", "_ztp","poistovna", "cop", "stav")
     # ^: v poli vyhľadávať len od začiatku
     search_fields = ["priezvisko", "meno"]
     def adresa(self, obj):
@@ -424,9 +420,6 @@ class Zamestnanec(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAd
         else:
             return "Nie"
     _ztp.short_description = "ZŤP"
-    def _roky_dni(self, obj):
-        return f"{obj.zapocitane_roky}.{obj.zapocitane_dni}".strip()
-    _roky_dni.short_description = "Započítaná prax (roky.dni)"
 
 class DohodaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
     #Polia Dohoda: cislo zmluvna_strana stav_dohody dohoda_odoslana vynimka predmet datum_od datum_do vyplatene subor_dohody sken_dohody
@@ -651,10 +644,10 @@ class VyplacanieDohodAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAd
 @admin.register(PlatovyVymer)
 class PlatovyVymerAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
     form = PlatovyVymerForm
-    list_display = ["mp","zamestnanec_link", "zamestnanie_od", "zapocitane", "datum_postup", "uvazok", "datum_od", "_prax_roky_dni_od", "datum_do", "_prax_roky_dni_do", "_zamestnanie_roky_dni", "_top", "_ts", "suborvymer"]
+    list_display = ["mp","zamestnanec_link", "stav", "zamestnanie_enu_od", "zamestnanie_od", "datum_postup", "_postup_roky", "uvazok", "datum_od", "datum_do", "_zamestnanie_roky_dni", "_top", "_ts", "suborvymer"]
     # ^: v poli vyhľadávať len od začiatku
-    search_fields = ["zamestnanec__meno", "zamestnanec__priezvisko"]
-    actions = ['duplikovat_zaznam']
+    search_fields = ["zamestnanec__meno", "zamestnanec__priezvisko", "^stav"]
+    actions = ['duplikovat_zaznam', export_selected_objects]
 
     # zoraďovateľný odkaz na dodávateľa
     # umožnené prostredníctvom AdminChangeLinksMixin
@@ -670,15 +663,15 @@ class PlatovyVymerAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
             aux.remove("datum_do")
             return aux
         else:
-            return ["praxroky", "praxdni", "zamestnanieroky", "zamestnaniedni", "datum_postup"]
+            return ["zamestnanieroky", "zamestnaniedni", "datum_postup"]
+
+    def zamestnanie_enu_od(self, obj):
+        return obj.zamestnanec.zamestnanie_od.strftime('%d. %m. %Y')
+    zamestnanie_enu_od.short_description = "1. PP od"
 
     def zamestnanie_od(self, obj):
-        return obj.zamestnanec.zamestnanie_od.strftime('%d. %m. %Y')
-    zamestnanie_od.short_description = "Zamestnanie od"
-
-    def zapocitane(self, obj):
-        return f"{obj.zamestnanec.zapocitane_roky}r {obj.zamestnanec.zapocitane_dni}d".strip() 
-    zapocitane.short_description = "Zap. prax"
+        return obj.zamestnanec.zamestnanie_enu_od.strftime('%d. %m. %Y')
+    zamestnanie_od.short_description = "PP v EnÚ od"
 
     def mp(self, obj):
         if obj.zamestnanec:
@@ -694,44 +687,36 @@ class PlatovyVymerAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
         return f"{obj.platova_trieda} / {obj.platovy_stupen}".strip()
     _ts.short_description = "Trieda/stupeň"
 
-    def _prax_roky_dni_od(self, obj):
-        #return f"{obj.praxroky}, {obj.praxdni}".strip()
-        #return f"{obj.praxroky}r {obj.praxdni}d".strip()
-        if obj.datum_od:
-            years, days = vypocet_prax(
-                obj.zamestnanec.zamestnanie_od, 
-                obj.datum_od - timedelta(days=1), 
-                (obj.zamestnanec.zapocitane_roky, obj.zamestnanec.zapocitane_dni)
-                ) 
-            return f"{years}r {days}d".strip()
-    _prax_roky_dni_od.short_description = "Prax k 'D. od'"
-
-    def _prax_roky_dni_do(self, obj):
-        #return f"{obj.praxroky}, {obj.praxdni}".strip()
-        #return f"{obj.praxroky}r {obj.praxdni}d".strip()
-        return f"{obj.praxroky}r {obj.praxdni}d".strip() if obj.praxroky or obj.praxdni else "-"
-    _prax_roky_dni_do.short_description = "Prax k 'D. do'"
+    #zobraziť, po koľký rokoch zamestnania nastane platový postup
+    def _postup_roky(self, obj):
+        if obj.datum_postup:
+            #predchádzajúce roky postupu:
+            rp = postup_roky(obj.zamestnanec.zamestnanie_od, obj.datum_postup) 
+            if obj.platovy_stupen == 14:
+                krok = 0
+            else:
+                krok = roky_postupu[obj.platovy_stupen] - roky_postupu[obj.platovy_stupen-1] 
+            return f"{rp} (krok +{krok})"
+        else:
+            return "-"
+    _postup_roky.short_description = "Postup po rokoch"
 
     def _zamestnanie_roky_dni(self, obj):
-        #return f"{obj.zamestnanieroky}, {obj.zamestnaniedni}".strip()
-        return f"{obj.zamestnanieroky}r {obj.zamestnaniedni}d".strip() if obj.zamestnanieroky or obj.zamestnaniedni else "-"
-    _zamestnanie_roky_dni.short_description = "Zamest. k 'D. do'"
+        if obj.datum_do:
+            zr, zd = vypocet_zamestnanie(obj.zamestnanec.zamestnanie_enu_od, obj.datum_do)
+            return f"{zr}r {zd}d".strip()
+        else:
+            return "-"
+    _zamestnanie_roky_dni.short_description = "PP v EnÚ. k 'Platný do'"
 
     #ukončí platnosť starého výmeru a aktualizuje prax
     def save_model(self, request, obj, form, change):
         if obj.datum_do:    # ukončený prac. pomer, aktualizovať prax
-            # rok praxe sa ráta ako 365 dní, t. j. po odpracovaní 10 rokov sa roky praxe zvýšia o 10 a dni sa nezmenia
-            years, days = vypocet_zamestnanie(obj.zamestnanec.zamestnanie_od, obj.datum_do)
+            years, days = vypocet_zamestnanie(obj.zamestnanec.zamestnanie_enu_od, obj.datum_do)
             obj.zamestnanieroky = years
             obj.zamestnaniedni = days
-            years, days = vypocet_prax(
-                    obj.zamestnanec.zamestnanie_od, 
-                    obj.datum_do, 
-                    (obj.zamestnanec.zapocitane_roky, obj.zamestnanec.zapocitane_dni)
-                    ) 
-            obj.praxroky = years 
-            obj.praxdni = days
             obj.datum_postup = None
+            obj.stav = StavVymeru.UKONCENY
         else:               #vytvorený nový výmer
             # nájsť najnovší starý výmer s nevyplneným poľom datum_do
             query_set = PlatovyVymer.objects.filter(cislo_zamestnanca=obj.cislo_zamestnanca).filter(datum_do__isnull=True)
@@ -742,26 +727,15 @@ class PlatovyVymerAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
                 # ukonciť platnosť starého nastavením datum_do
                 stary.datum_do = obj.datum_od-timedelta(1)
                 # aktualizácia praxe v stary, hodnotu použiť aj v aktuálnom
-                years, days = vypocet_zamestnanie(obj.zamestnanec.zamestnanie_od, stary.datum_do)
+                years, days = vypocet_zamestnanie(obj.zamestnanec.zamestnanie_enu_od, stary.datum_do)
                 stary.zamestnanieroky = years
                 stary.zamestnaniedni = days
-                years, days = vypocet_prax(
-                        obj.zamestnanec.zamestnanie_od, 
-                        stary.datum_do, 
-                        (obj.zamestnanec.zapocitane_roky, obj.zamestnanec.zapocitane_dni)
-                        ) 
-                stary.praxroky = years 
-                stary.praxdni = days
                 stary.datum_postup = None
+                stary.stav = StavVymeru.NEAKTUALNY
                 stary.save()
-                pass
-            dp = datum_postupu(
-                    obj.zamestnanec.zamestnanie_od, 
-                    date.today(), 
-                    (obj.zamestnanec.zapocitane_roky, obj.zamestnanec.zapocitane_dni)
-                    )
-            print("vymer2: ",obj.zamestnanec.zamestnanie_od, obj.zamestnanec.zapocitane_roky, obj.zamestnanec.zapocitane_dni,  dp)
-            obj.datum_postup = dp[1] if dp else None
+            dp = datum_postupu( obj.zamestnanec.zamestnanie_od, obj.datum_od + timedelta(30))
+            obj.datum_postup = dp
+            obj.stav = StavVymeru.AKTUALNY
         super(PlatovyVymerAdmin, self).save_model(request, obj, form, change)
 
     def duplikovat_zaznam(self, request, queryset):
@@ -785,7 +759,6 @@ class PlatovyVymerAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
                 ekoklas = star.ekoklas,
                 zakazka = star.zakazka,
                 zdroj = star.zdroj
-                #polia praxroky, praxdni, zamestnanieroky, zamestnaniedni sa neduplikuju (sú dopĺňané automaticky pri ukladaní) 
             )
         novy.save()
         self.message_user(request, f"Vytvorený bol nový platobný výmer pre {star.zamestnanec}.", messages.SUCCESS)
