@@ -56,7 +56,7 @@ class DokumentAdmin(ZobrazitZmeny,ImportExportModelAdmin):
             return obj.vec
     search_fields = ("cislo","adresat","sposob", "inout", "prijalodoslal", "vec", "naspracovanie")
     vec_html.short_description = "Popis"
-    exclude = ("odosielatel", "url", "prijalodoslal", "datumvytvorenia", "zaznamvytvoril", "poznamka", "typdokumentu")
+    exclude = ("odosielatel", "url", "prijalodoslal", "datumvytvorenia", "zaznamvytvoril", "poznamka")
 
     # do AdminForm pridať request, aby v jej __init__ bolo request dostupné
     def get_form(self, request, obj=None, **kwargs):
@@ -79,7 +79,7 @@ class DokumentAdmin(ZobrazitZmeny,ImportExportModelAdmin):
         if overit_polozku(obj.cislopolozky): #cislo je podľa schémy X-RRRR-NNN
             td_str = parse_cislo(obj.cislopolozky)[0][0]
             obj.typdokumentu = typ_dokumentu[td_str]
-        else:
+        elif not obj.typdokumentu:
             obj.typdokumentu = TypDokumentu.INY
         super().save_model(request, obj, form, change)
 
