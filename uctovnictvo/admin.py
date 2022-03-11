@@ -357,7 +357,8 @@ class SystemovySuborAdmin(ZobrazitZmeny, admin.ModelAdmin):
         else:
             return []
 
-@admin.register(ZamestnanecDohodar)
+#Skryť ZamestnanecDohodar, zobrazujeme Zamestnanec a Dohodar
+#@admin.register(ZamestnanecDohodar)
 class ZamestnanecDohodar(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
     list_display = ("priezvisko", "meno", "rod_priezvisko", "email", "rodne_cislo", "datum_nar", "miesto_nar", "adresa", "_dochodok", "_ztp","poistovna", "cop", "stav")
     # ^: v poli vyhľadávať len od začiatku
