@@ -253,7 +253,7 @@ class PrijataFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdm
             dok = Dokument(
                 cislo = cislo_posta,
                 cislopolozky = nc,
-                #datumvytvorenia = self.cleaned_data['doslo_datum'],
+                datumvytvorenia = date.today(),
                 typdokumentu = TypDokumentu.FAKTURA,
                 inout = InOut.PRIJATY,
                 adresat = stara.adresat(),
@@ -283,6 +283,7 @@ class PrijataFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdm
                 cislo = cislo_posta,
                 cislopolozky = obj.cislo,
                 #datumvytvorenia = self.cleaned_data['doslo_datum'],
+                datumvytvorenia = date.today(),
                 typdokumentu = TypDokumentu.FAKTURA,
                 inout = InOut.PRIJATY,
                 adresat = obj.adresat(),

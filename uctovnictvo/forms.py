@@ -83,7 +83,8 @@ class PrijataFakturaForm(forms.ModelForm):
                 dok = Dokument(
                     cislo = cislo,
                     cislopolozky = self.instance.cislo,
-                    datumvytvorenia = self.cleaned_data['dane_na_uhradu'],
+                    #datumvytvorenia = self.cleaned_data['dane_na_uhradu'],
+                    datumvytvorenia = date.today(),
                     typdokumentu = TypDokumentu.FAKTURA,
                     inout = InOut.ODOSLANY,
                     adresat = "THS",

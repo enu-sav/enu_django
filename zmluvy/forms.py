@@ -54,7 +54,8 @@ class ZmluvaForm(PopisZmeny):
                 dok = Dokument(
                     cislo = cislo,
                     cislopolozky = self.instance.cislo,
-                    datumvytvorenia = self.cleaned_data['zmluva_odoslana'],
+                    #datumvytvorenia = self.cleaned_data['zmluva_odoslana'],
+                    datumvytvorenia = date.today(),
                     typdokumentu = TypDokumentu.AZMLUVA,
                     inout = InOut.ODOSLANY,
                     adresat = self.instance.zmluvna_strana,
@@ -77,7 +78,8 @@ class ZmluvaForm(PopisZmeny):
                 dok = Dokument(
                     cislo = cislo,
                     cislopolozky = self.instance.cislo,
-                    datumvytvorenia = self.cleaned_data['zmluva_vratena'],
+                    #datumvytvorenia = self.cleaned_data['zmluva_vratena'],
+                    datumvytvorenia = date.today(),
                     typdokumentu = TypDokumentu.AZMLUVA,
                     inout = InOut.PRIJATY,
                     adresat = self.instance.zmluvna_strana,
