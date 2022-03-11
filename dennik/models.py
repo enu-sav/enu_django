@@ -46,15 +46,23 @@ class Dokument(models.Model):
     cislo = models.CharField("Číslo", max_length=50)
     cislopolozky = models.CharField("Súvisiaca položka", 
             null = True,
-            help_text = "Ak je to relevantné, uveďte číslo súvisiacej položky v Djangu (autorskej zmluvy, dohody) v tvare X-RRRR-NNN, inak vložte pomlčku '-'.<br />V prípade <strong>prijatej faktúry</strong> najskôr vytvorte novú prijatú faktúru a následne len upravte záznam pošty, ktorý sa tým vytvorí.<br />V prípade <strong>odosielaných dokumentov</strong>, ktoré sa vytvárajú v Djangu, už pre ne môže v tomto denníku existovať záznam. Skontrolujte to, a ak záznam existuje, použite ten.", 
+            help_text = """Ak je to relevantné, uveďte číslo súvisiacej položky v Djangu (zmluvy, dohody), inak vložte pomlčku '-'.<br />
+            V prípade 
+            <ul>
+            <li>  ‣  <strong>prijatej faktúry</strong> najskôr vytvorte novú prijatú faktúru a</li>
+            <li>  ‣  <strong>prijatej podpísanej autorskej zmluvy</strong> od autora najskôr vrátenie zaznamenajte v poli <em>Vrátená
+podpísaná</em> v zmluve</li>
+            </ol>
+            a následne len upravte záznam pošty, ktorý sa tým vytvorí.<br />
+            V prípade <strong>odosielaných dokumentov</strong>, ktoré sa vytvárajú v Djangu, už pre ne môže v tomto denníku existovať záznam. Skontrolujte to, a ak záznam existuje, použite ten.""", 
             max_length=200)
     typdokumentu = models.CharField("Typ dokumentu",
             max_length=20, choices=TypDokumentu.choices, 
-            help_text = "Uveďte typ dokumentu. <strong>Netreba vypĺňať, ak je v poli Súvisiaca položka uvedená položka databázy v tvare X-RRRR-NNN</strong>.",
+            help_text = "Uveďte typ dokumentu. <strong>Netreba vypĺňať, ak je v poli <em>Súvisiaca položka</em> uvedená položka databázy v tvare X-RRRR-NNN</strong>, napr. <em>DoVP-2021-001<em>.",
             blank = True,
             null=True)
     adresat = models.CharField("Odosielateľ / Adresát", 
-            help_text = "Uveďte adresáta. <br />Netreba vypĺňať, ak je v poli Súvisiaca položka uvedená položka databázy v tvare X-RRRR-NNN.<br />Ak už je pole v prípade odosielania dokumentu vopred vyplnené, adresáta ponechajte.",
+            help_text = "Uveďte adresáta. <br /><strong>Netreba vypĺňať, ak je v poli Súvisiaca položka uvedená položka databázy v tvare X-RRRR-NNN</strong>, napr. <em>DoVP-2021-001<em>.",
             blank = True,
             max_length=200)
     inout = models.CharField("Príjem / odoslanie",
