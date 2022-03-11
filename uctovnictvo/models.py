@@ -479,7 +479,7 @@ class Zamestnanec(ZamestnanecDohodar):
         verbose_name = "Zamestnanec"
         verbose_name_plural = "Zamestnanci"
     def __str__(self):
-        return f"{self.priezvisko}, {self.meno}, {self.cislo_zamestnanca}"
+        return f"Z {self.priezvisko}, {self.meno}, {self.cislo_zamestnanca}"
 
 class Dohodar(ZamestnanecDohodar):
     history = HistoricalRecords()
