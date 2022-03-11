@@ -173,8 +173,8 @@ class ZmluvaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, Impo
 #class PrijataFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
 class PrijataFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
     form = PrijataFakturaForm
-    list_display = ["cislo", "objednavka_zmluva_link", "prijata_faktura", "suma", "predmet", "platobny_prikaz", "dane_na_uhradu", "zdroj", "program", "zakazka", "ekoklas"]
-    search_fields = ["^cislo","objednavka_zmluva__dodavatel__nazov", "^zdroj__kod", "^program__kod", "^zakazka__kod", "^ekoklas__kod" ]
+    list_display = ["cislo", "objednavka_zmluva_link", "prijata_faktura", "suma", "predmet", "platobny_prikaz", "dane_na_uhradu", "zdroj", "zakazka", "ekoklas"]
+    search_fields = ["^cislo","objednavka_zmluva__dodavatel__nazov", "^zdroj__kod", "^zakazka__kod", "^ekoklas__kod" ]
 
     # zoraďovateľný odkaz na dodávateľa
     # umožnené prostredníctvom AdminChangeLinksMixin
@@ -234,7 +234,7 @@ class PrijataFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdm
         nc = PrijataFaktura.tp_text if stara.cislo == PrijataFaktura.tp_text else nasledujuce_cislo(PrijataFaktura)
         nova_faktura = PrijataFaktura.objects.create(
                 cislo = nc,
-                program = stara.program,
+                program = Program(kod="nealokovaný"),
                 ekoklas = stara.ekoklas,
                 zakazka = stara.zakazka,
                 zdroj = stara.zdroj,
@@ -321,7 +321,7 @@ class AutorskyHonorarAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAd
     form = AutorskeZmluvyForm
     list_display = ["cislo", "suma", "suma_lf", "suma_dan"]
     # určiť poradie poli v editovacom formulári
-    fields = ["cislo", "suma", "suma_lf", "suma_dan", "zdroj", "program", "zakazka", "ekoklas"]
+    fields = ["cislo", "suma", "suma_lf", "suma_dan", "zdroj", "zakazka", "ekoklas"]
 
     list_totals = [
         ('suma', Sum),
@@ -334,7 +334,7 @@ class PrispevokNaStravneAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistor
     form = PrispevokNaStravneForm
     list_display = ["cislo", "suma_zamestnavatel", "suma_socfond"]
     # určiť poradie poli v editovacom formulári
-    fields = ["cislo", "suma_zamestnavatel", "suma_socfond", "zdroj", "program", "zakazka", "ekoklas" ]
+    fields = ["cislo", "suma_zamestnavatel", "suma_socfond", "zdroj", "zakazka", "ekoklas" ]
 
     list_totals = [
         ('suma_zamestnavatel', Sum),
@@ -429,7 +429,7 @@ class DohodaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, Mode
         #cislo a zmluvna_strana riešime v odvodenej triede
         return ("stav_dohody", "dohoda_odoslana", "_predmet", "datum_od", "datum_do", "vyplatene", "subor_dohody", "sken_dohody", "vynimka")
     def get_readonly_fields(self, request, obj=None):
-        polia_klasif = ["zdroj", "program", "zakazka", "ekoklas"]
+        polia_klasif = ["zdroj", "zakazka", "ekoklas"]
         if not obj:
             return ["subor_dohody","sken_dohody", "dohoda_odoslana", "vyplatene"]
         elif obj.stav_dohody == StavDohody.NOVA or obj.stav_dohody == StavDohody.VYTVORENA: 
@@ -756,7 +756,7 @@ class PlatovyVymerAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
                 platova_trieda = star.platova_trieda,
                 platovy_stupen = star.platovy_stupen,
                 uvazok = star.uvazok,
-                program = star.program,
+                program = Program(kod="nealokovaný"),
                 ekoklas = star.ekoklas,
                 zakazka = star.zakazka,
                 zdroj = star.zdroj
