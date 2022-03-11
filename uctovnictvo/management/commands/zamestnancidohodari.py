@@ -117,6 +117,9 @@ class Command(BaseCommand):
                     continue
                 dd.zmluvna_strana = osoba
                 dd.save()
+                for hh in dd.history.all():
+                    hh.zmluvna_strana = osoba
+                    hh.save()
  
             dopc_set = DoPC.objects.filter(zmluvna_strana=zd)
             for dd in dopc_set:
@@ -124,6 +127,9 @@ class Command(BaseCommand):
                     continue
                 dd.zmluvna_strana = osoba
                 dd.save()
+                for hh in dd.history.all():
+                    hh.zmluvna_strana = osoba
+                    hh.save()
             # zmazať, už nepotrebujeme
             zd.delete()
 
