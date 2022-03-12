@@ -748,7 +748,6 @@ class PlatovyVymerAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
         if star.datum_do:
             self.message_user(request, f"Tento výmer nie je aktuálny. Duplikovať možno len aktuálny výmer.", messages.ERROR)
             return
-        trace()
         novy = PlatovyVymer.objects.create(
                 cislo_zamestnanca = star.cislo_zamestnanca,
                 zamestnanec = star.zamestnanec,
