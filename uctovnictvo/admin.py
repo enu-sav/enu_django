@@ -234,7 +234,7 @@ class PrijataFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdm
         nc = PrijataFaktura.tp_text if stara.cislo == PrijataFaktura.tp_text else nasledujuce_cislo(PrijataFaktura)
         nova_faktura = PrijataFaktura.objects.create(
                 cislo = nc,
-                program = Program(kod="nealokovaný"),
+                program = Program.objects.get(id=4),    #nealokovaný
                 ekoklas = stara.ekoklas,
                 zakazka = stara.zakazka,
                 zdroj = stara.zdroj,
@@ -357,7 +357,8 @@ class SystemovySuborAdmin(ZobrazitZmeny, admin.ModelAdmin):
         else:
             return []
 
-@admin.register(ZamestnanecDohodar)
+#Skryť ZamestnanecDohodar, zobrazujeme Zamestnanec a Dohodar
+#@admin.register(ZamestnanecDohodar)
 class ZamestnanecDohodar(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
     list_display = ("priezvisko", "meno", "rod_priezvisko", "email", "rodne_cislo", "datum_nar", "miesto_nar", "adresa", "_dochodok", "_ztp","poistovna", "cop", "stav")
     # ^: v poli vyhľadávať len od začiatku
@@ -747,6 +748,7 @@ class PlatovyVymerAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
         if star.datum_do:
             self.message_user(request, f"Tento výmer nie je aktuálny. Duplikovať možno len aktuálny výmer.", messages.ERROR)
             return
+        trace()
         novy = PlatovyVymer.objects.create(
                 cislo_zamestnanca = star.cislo_zamestnanca,
                 zamestnanec = star.zamestnanec,
@@ -756,7 +758,7 @@ class PlatovyVymerAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
                 platova_trieda = star.platova_trieda,
                 platovy_stupen = star.platovy_stupen,
                 uvazok = star.uvazok,
-                program = Program(kod="nealokovaný"),
+                program = Program.objects.get(id=4),    #nealokovaný
                 ekoklas = star.ekoklas,
                 zakazka = star.zakazka,
                 zdroj = star.zdroj
