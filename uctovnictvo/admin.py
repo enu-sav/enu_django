@@ -736,7 +736,8 @@ class PlatovyVymerAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
                 stary.stav = StavVymeru.NEAKTUALNY
                 stary.save()
             dp = datum_postupu( obj.zamestnanec.zamestnanie_od, obj.datum_od + timedelta(30))
-            obj.datum_postup = dp
+            #ak ďalší postu už nie je možný, dp je rovné obj.datum_od. Vtedy ho nezobrazovať 
+            obj.datum_postup = dp if dp > obj.datum_od else None
             obj.stav = StavVymeru.AKTUALNY
         super(PlatovyVymerAdmin, self).save_model(request, obj, form, change)
 
