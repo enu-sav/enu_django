@@ -746,9 +746,9 @@ class PlatovyVymerAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
             self.message_user(request, f"Vybrať možno len jeden výmer.", messages.ERROR)
             return
         star = queryset[0]
-        if star.datum_do:
-            self.message_user(request, f"Tento výmer nie je aktuálny. Duplikovať možno len aktuálny výmer.", messages.ERROR)
-            return
+        #if star.datum_do:
+            #self.message_user(request, f"Tento výmer nie je aktuálny. Duplikovať možno len aktuálny výmer.", messages.ERROR)
+            #return
         novy = PlatovyVymer.objects.create(
                 cislo_zamestnanca = star.cislo_zamestnanca,
                 zamestnanec = star.zamestnanec,
