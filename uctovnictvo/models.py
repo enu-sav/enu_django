@@ -14,7 +14,7 @@ from decimal import Decimal
 from beliana.settings import TMPLTS_DIR_NAME, PLATOVE_VYMERY_DIR, DOHODY_DIR, PRIJATEFAKTURY_DIR, PLATOBNE_PRIKAZY_DIR
 from beliana.settings import ODVODY_VYNIMKA, DAN_Z_PRIJMU, OBJEDNAVKY_DIR
 import os,re, datetime
-from datetime import timedelta
+from datetime import timedelta, date
 import numpy as np
 from ipdb import set_trace as trace
 
@@ -112,7 +112,7 @@ class EkonomickaKlasifikacia(models.Model):
             max_length=100)
     history = HistoricalRecords()
     def __str__(self):
-        return f"{self.kod} - {self.nazov}"
+        return f"{self.kod} - {' '.join(self.nazov.split(' ')[:4])}"
     class Meta:
         verbose_name = 'Ekonomická klasifikácia'
         verbose_name_plural = 'Klasifikácia - Ekonomická klasifikácia'
@@ -315,6 +315,19 @@ class PrijataFaktura(Klasifikacia):
     def adresat(self):
         return self.objednavka_zmluva.dodavatel.nazov if self.objednavka_zmluva else ""
 
+    #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
+    def cerpanie_rozpoctu(self, zden):
+        if not self.dane_na_uhradu: return []
+        if self.dane_na_uhradu <zden: return []
+        if self.dane_na_uhradu >= date(zden.year, zden.month+1, zden.day): return []
+        platba = {
+                "nazov":"Faktúra",
+                "suma": self.suma,
+                "zdroj": self.zdroj,
+                "zakazka": self.zakazka,
+                "ekoklas": self.ekoklas
+                }
+        return [platba]
     class Meta:
         verbose_name = 'Prijatá faktúra / trvalá platba'
         verbose_name_plural = 'Faktúry - Prijaté faktúry / trvalé platby'
@@ -556,6 +569,34 @@ class PlatovyVymer(Klasifikacia):
             blank=True,
             null=True)
     history = HistoricalRecords()
+
+    #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
+    def cerpanie_rozpoctu(self, zden):
+        if zden < self.datum_od: return []
+        if self.datum_do and zden > self.datum_do: return []
+        tarifny = {
+                "nazov":"plat tarifný",
+                "suma": -self.tarifny_plat,
+                "zdroj": self.zdroj,
+                "zakazka": self.zakazka,
+                "ekoklas": self.ekoklas
+                }
+        osobny = {
+                "nazov": "plat osobný",
+                "suma": -self.osobny_priplatok,
+                "zdroj": self.zdroj,
+                "zakazka": self.zakazka,
+                "ekoklas": self.ekoklas
+                }
+        funkcny = {
+                "nazov": "plat funkčný",
+                "suma": -self.funkcny_priplatok,
+                "zdroj": self.zdroj,
+                "zakazka": self.zakazka,
+                "ekoklas": self.ekoklas
+                }
+        return [tarifny, osobny, funkcny]
+
     class Meta:
         verbose_name = "Platový výmer"
         verbose_name_plural = "Platové výmery"

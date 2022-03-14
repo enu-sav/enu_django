@@ -1,7 +1,7 @@
 from django.contrib import admin
 
 # Register your models here.
-from .models import Dokument,TypDokumentu, TypFormulara, Formular
+from .models import Dokument,TypDokumentu, TypFormulara, Formular, CerpanieRozpoctu
 from .forms import DokumentForm, FormularForm, overit_polozku, parse_cislo
 from dennik.common import VyplnitAVygenerovat
 from ipdb import set_trace as trace
@@ -9,10 +9,14 @@ from django.utils.html import format_html
 from django.utils import timezone
 from django.contrib import messages
 from zmluvy.models import ZmluvaAutor, ZmluvaGrafik, VytvarnaObjednavkaPlatba, PlatbaAutorskaSumar
-from uctovnictvo.models import Objednavka, PrijataFaktura, PrispevokNaStravne, DoVP, DoPC, DoBPS
+from uctovnictvo.models import Objednavka, PrijataFaktura, PrispevokNaStravne, DoVP, DoPC, DoBPS, PlatovyVymer
 import re
 from import_export.admin import ImportExportModelAdmin
+from datetime import date
+from collections import defaultdict
 
+from admin_totals.admin import ModelAdminTotals
+from django.db.models import Sum
 
 #priradenie typu dokumentu k jeho označeniu v čísle
 typ_dokumentu = {
@@ -133,3 +137,69 @@ class FormularAdmin(ZobrazitZmeny):
                 return AdminForm(*args, **kwargs)
         return AdminFormMod
 
+@admin.register(CerpanieRozpoctu)
+class CerpanieRozpoctuAdmin(ModelAdminTotals):
+    list_display = ["polozka","mesiac","suma","zdroj","zakazka","ekoklas"]
+    #search_fields = ["polozka", "mesiac", "zdroj", "zakazka", "ekoklas"]
+    search_fields = ["polozka", "mesiac", "^zdroj__kod", "zakazka__kod", "ekoklas__kod"]
+    actions = ['generovat2021', "generovat2022"]
+    list_totals = [
+            ('suma', Sum)
+            ]
+
+    def generovat2021(self, request, queryset):
+        self.generovat(request, 2022)
+        pass
+    generovat2021.short_description = f"Generovať prehľad čerpania rozpočtu sa 2021"
+    generovat2021.allowed_permissions = ('change',)
+
+    def generovat2022(self, request, queryset):
+        self.generovat(request, 2022)
+        pass
+    generovat2022.short_description = f"Generovať prehľad čerpania rozpočtu sa 2022"
+    generovat2022.allowed_permissions = ('change',)
+
+    def generovat(self,request,rok):
+        #najskôr všetko zmazať
+        CerpanieRozpoctu.objects.filter(mesiac__isnull=False).delete()
+
+        # 1. deň v mesiaci
+        md1list = [date(rok, mm+1, 1) for mm in range(12)]
+        md1list.append(date(rok+1, 1, 1))
+
+        cerpanie = defaultdict(dict)
+        #PlatovyVymer
+        for pv in PlatovyVymer.objects.filter():
+            for md1 in md1list[:-1]:
+                data = pv.cerpanie_rozpoctu(md1)
+                for item in data:
+                    identif = f"{item['nazov']} {item['zdroj'].kod} {item['zakazka'].kod} {item['ekoklas'].kod}, {md1}"
+                    if not identif in cerpanie:
+                        cerpanie[identif] = item
+                        cerpanie[identif]['md1'] = md1
+                    else:
+                        cerpanie[identif]['suma'] += item['suma']
+
+        #PrijataFaktura
+        for fa in PrijataFaktura.objects.filter():
+            for md1 in md1list[:-1]:
+                data = fa.cerpanie_rozpoctu(md1)
+                for item in data:
+                    identif = f"{item['nazov']} {item['zdroj'].kod} {item['zakazka'].kod} {item['ekoklas'].kod}, {md1}"
+                    if not identif in cerpanie:
+                        cerpanie[identif] = item
+                        cerpanie[identif]['md1'] = md1
+                    else:
+                        cerpanie[identif]['suma'] += item['suma']
+
+        # zapísať do databázy
+        for item in cerpanie:
+            cr = CerpanieRozpoctu (
+                unikatny = item,
+                polozka = cerpanie[item]['nazov'],
+                mesiac = cerpanie[item]['md1'] ,
+                suma = cerpanie[item]['suma'],
+                zdroj = cerpanie[item]['zdroj'],
+                zakazka = cerpanie[item]['zakazka'],
+                ekoklas = cerpanie[item]['ekoklas'],
+                ).save()

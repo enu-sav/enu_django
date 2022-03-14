@@ -4,7 +4,7 @@ from django.utils.safestring import mark_safe
 from django.utils.html import format_html
 from django import forms
 from ipdb import set_trace as trace
-from .models import Dokument, InOut, TypDokumentu, Formular
+from .models import Dokument, InOut, TypDokumentu, Formular, CerpanieRozpoctu
 from zmluvy.models import ZmluvaAutor, ZmluvaGrafik, VytvarnaObjednavkaPlatba, PlatbaAutorskaSumar
 from uctovnictvo.models import Objednavka, PrijataFaktura, PrispevokNaStravne, DoVP, DoPC, DoBPS
 from datetime import datetime

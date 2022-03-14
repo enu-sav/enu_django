@@ -3,6 +3,7 @@ from beliana import settings
 from simple_history.models import HistoricalRecords
 from django.core.exceptions import ValidationError
 from django.core.validators import FileExtensionValidator
+from uctovnictvo.models import Zdroj, TypZakazky, EkonomickaKlasifikacia
 from uctovnictvo.storage import OverwriteStorage
 from ipdb import set_trace as trace
 import re, os
@@ -188,3 +189,50 @@ class Formular(models.Model):
             verbose_name_plural = 'Hromadné dokumenty'
     def __str__(self):
             return(self.subor_nazov)
+ 
+class CerpanieRozpoctu(models.Model):
+    # unikátny identifikátor na rozlíšenie sumy podľa klasifikácie a dátumu
+    unikatny =  models.CharField("Unikátny identifikátor",
+            max_length=80,
+            blank = True,
+            null = True
+    )
+    polozka =  models.CharField("Položka",
+            max_length=80,
+            null = True
+    )
+    mesiac = models.DateField('Mesiac',
+            null = True,
+            blank = True,
+            )
+    suma = models.DecimalField("Suma v EUR", 
+            max_digits=8, 
+            decimal_places=2, 
+            null=True,
+            blank=True)
+
+    zdroj = models.ForeignKey(Zdroj,
+            on_delete=models.PROTECT,
+            related_name='%(class)s_klasifikacia',
+            null=True,
+            blank=True)
+    zakazka = models.ForeignKey(TypZakazky,
+            on_delete=models.PROTECT,
+            verbose_name = "Typ zákazky",
+            related_name='%(class)s_klasifikacia',
+            null=True,
+            blank=True)
+    ekoklas = models.ForeignKey(EkonomickaKlasifikacia,
+            on_delete=models.PROTECT,
+            verbose_name = "Ekonomická klasifikácia",
+            related_name='%(class)s_klasifikacia',
+            null=True,
+            blank=True)
+
+    class Meta:
+            verbose_name = 'Čerpanie rozpočtu'
+            verbose_name_plural = 'Čerpanie rozpočtu'
+    def __str__(self):
+            return(f"{self.polozka}-{self.mesiac}")
+
+
