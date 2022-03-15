@@ -320,8 +320,9 @@ class PrijataFaktura(Klasifikacia):
         if not self.dane_na_uhradu: return []
         if self.dane_na_uhradu <zden: return []
         if self.dane_na_uhradu >= date(zden.year, zden.month+1, zden.day): return []
+        typ = "zmluva" if type(self.objednavka_zmluva) == Zmluva else "objednávka" if type(self.objednavka_zmluva) == Objednavka else "rozhodnutie" 
         platba = {
-                "nazov":"Faktúra",
+                "nazov":f"Faktúra {typ}",
                 "suma": self.suma,
                 "zdroj": self.zdroj,
                 "zakazka": self.zakazka,
@@ -575,27 +576,34 @@ class PlatovyVymer(Klasifikacia):
         if zden < self.datum_od: return []
         if self.datum_do and zden > self.datum_do: return []
         tarifny = {
-                "nazov":"plat tarifný",
+                "nazov":"Plat tarifný",
                 "suma": -self.tarifny_plat,
                 "zdroj": self.zdroj,
                 "zakazka": self.zakazka,
                 "ekoklas": self.ekoklas
                 }
         osobny = {
-                "nazov": "plat osobný",
+                "nazov": "Plat osobný",
                 "suma": -self.osobny_priplatok,
                 "zdroj": self.zdroj,
                 "zakazka": self.zakazka,
                 "ekoklas": self.ekoklas
                 }
         funkcny = {
-                "nazov": "plat funkčný",
+                "nazov": "Plat funkčný",
                 "suma": -self.funkcny_priplatok,
                 "zdroj": self.zdroj,
                 "zakazka": self.zakazka,
                 "ekoklas": self.ekoklas
                 }
-        return [tarifny, osobny, funkcny]
+        odvody = {
+                "nazov": "Plat odvody",
+                "suma": Decimal(0.3495) * (tarifny['suma']+osobny['suma']+funkcny['suma']),
+                "zdroj": self.zdroj,
+                "zakazka": self.zakazka,
+                "ekoklas": EkonomickaKlasifikacia.objects.get(kod="637012")
+                }
+        return [tarifny, osobny, funkcny, odvody]
 
     class Meta:
         verbose_name = "Platový výmer"
