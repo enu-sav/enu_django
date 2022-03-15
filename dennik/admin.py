@@ -18,6 +18,9 @@ from collections import defaultdict
 from admin_totals.admin import ModelAdminTotals
 from django.db.models import Sum
 
+#https://pypi.org/project/django-admin-rangefilter/
+from rangefilter.filters import DateRangeFilter
+
 #priradenie typu dokumentu k jeho označeniu v čísle
 typ_dokumentu = {
     ZmluvaAutor.oznacenie: TypDokumentu.AZMLUVA,
@@ -146,6 +149,9 @@ class CerpanieRozpoctuAdmin(ModelAdminTotals):
     list_totals = [
             ('suma', Sum)
             ]
+    list_filter = (
+        ('mesiac', DateRangeFilter),
+    )
 
     def generovat2021(self, request, queryset):
         self.generovat(request, 2022)
