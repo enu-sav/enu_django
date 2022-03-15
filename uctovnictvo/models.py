@@ -210,10 +210,10 @@ class Objednavka(ObjednavkaZmluva):
 class Rozhodnutie(ObjednavkaZmluva):
     history = HistoricalRecords()
     class Meta:
-        verbose_name = 'Rozhodnutie'
-        verbose_name_plural = 'Faktúry - Rozhodnutia'
+        verbose_name = 'Rozhodnutie / Povolenie'
+        verbose_name_plural = 'Faktúry - Rozhodnutia a povolenia'
     def __str__(self):
-        return f"{self.dodavatel}, rozhodnutie, {self.cislo}"
+        return f"{self.dodavatel} - Ro/Po - {self.cislo}"
 
 class Zmluva(ObjednavkaZmluva):
     url_zmluvy = models.URLField('URL zmluvy', 
