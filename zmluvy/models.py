@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date
 from django.db import models
 from django.utils import timezone
 from django.contrib import messages
@@ -9,6 +9,7 @@ from django.utils.safestring import mark_safe
 from beliana.settings import CONTRACTS_DIR_NAME, RLTS_DIR_NAME, TMPLTS_DIR_NAME, TAX_AGMT_DIR_NAME
 import os,re
 
+from uctovnictvo.models import EkonomickaKlasifikacia, Zdroj, TypZakazky
 
 #záznam histórie
 #https://django-simple-history.readthedocs.io/en/latest/admin.html
@@ -338,6 +339,23 @@ class PlatbaAutorskaSumar(models.Model):
             null = True, 
             blank = True)
     history = HistoricalRecords()
+
+    #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
+    def cerpanie_rozpoctu(self, zden):
+        if not self.datum_uhradenia: return []
+        if self.datum_uhradenia <zden: return []
+        if self.datum_uhradenia >= date(zden.year, zden.month+1, zden.day): return []
+
+        platby = PlatbaAutorskaOdmena.objects.filter(cislo=self.cislo)
+        odmeny = [platba.honorar for platba in platby]
+        platba = {
+                "nazov":f"Honorár autor",
+                "suma": -sum(odmeny),
+                "zdroj": Zdroj.objects.get(kod="111"),
+                "zakazka": TypZakazky.objects.get(kod="11070002 Beliana"),
+                "ekoklas": EkonomickaKlasifikacia.objects.get(kod="637012")
+                }
+        return [platba]
 
     class Meta:
         verbose_name = 'Vyplácanie aut. honorárov'

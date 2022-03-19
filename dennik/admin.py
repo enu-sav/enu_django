@@ -174,7 +174,7 @@ class CerpanieRozpoctuAdmin(ModelAdminTotals):
         md1list.append(date(rok+1, 1, 1))
 
         cerpanie = defaultdict(dict)
-        typy = [PlatovyVymer, PrijataFaktura, DoVP, DoPC]
+        typy = [PlatovyVymer, PrijataFaktura, DoVP, DoPC, PlatbaAutorskaSumar]
         for typ in typy:
             for polozka in typ.objects.filter():
                 for md1 in md1list[:-1]:
