@@ -174,29 +174,18 @@ class CerpanieRozpoctuAdmin(ModelAdminTotals):
         md1list.append(date(rok+1, 1, 1))
 
         cerpanie = defaultdict(dict)
-        #PlatovyVymer
-        for pv in PlatovyVymer.objects.filter():
-            for md1 in md1list[:-1]:
-                data = pv.cerpanie_rozpoctu(md1)
-                for item in data:
-                    identif = f"{item['nazov']} {item['zdroj'].kod} {item['zakazka'].kod} {item['ekoklas'].kod}, {md1}"
-                    if not identif in cerpanie:
-                        cerpanie[identif] = item
-                        cerpanie[identif]['md1'] = md1
-                    else:
-                        cerpanie[identif]['suma'] += item['suma']
-
-        #PrijataFaktura
-        for fa in PrijataFaktura.objects.filter():
-            for md1 in md1list[:-1]:
-                data = fa.cerpanie_rozpoctu(md1)
-                for item in data:
-                    identif = f"{item['nazov']} {item['zdroj'].kod} {item['zakazka'].kod} {item['ekoklas'].kod}, {md1}"
-                    if not identif in cerpanie:
-                        cerpanie[identif] = item
-                        cerpanie[identif]['md1'] = md1
-                    else:
-                        cerpanie[identif]['suma'] += item['suma']
+        typy = [PlatovyVymer, PrijataFaktura, DoVP, DoPC]
+        for typ in typy:
+            for polozka in typ.objects.filter():
+                for md1 in md1list[:-1]:
+                    data = polozka.cerpanie_rozpoctu(md1)
+                    for item in data:
+                        identif = f"{item['nazov']} {item['zdroj'].kod} {item['zakazka'].kod} {item['ekoklas'].kod}, {md1}"
+                        if not identif in cerpanie:
+                            cerpanie[identif] = item
+                            cerpanie[identif]['md1'] = md1
+                        else:
+                            cerpanie[identif]['suma'] += item['suma']
 
         # zapísať do databázy
         for item in cerpanie:

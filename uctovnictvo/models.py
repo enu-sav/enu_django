@@ -689,6 +689,27 @@ class DoVP(Dohoda):
             null = True, blank = True,
             max_length=100)
     history = HistoricalRecords()
+
+    #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
+    def cerpanie_rozpoctu(self, zden):
+        if self.datum_do <zden: return []
+        if self.datum_do >= date(zden.year, zden.month+1, zden.day): return []
+        platba = {
+                "nazov":f"DoVP",
+                "suma": -self.odmena_celkom,
+                "zdroj": self.zdroj,
+                "zakazka": self.zakazka,
+                "ekoklas": self.ekoklas
+                }
+        odvody = {
+                "nazov": "DoVP odvody",
+                "suma": -Decimal(0.3495) * self.odmena_celkom,
+                "zdroj": self.zdroj,
+                "zakazka": self.zakazka,
+                "ekoklas": EkonomickaKlasifikacia.objects.get(kod="637012")
+                }
+        return [platba, odvody]
+ 
     # test platnosti dát
     def clean(self): 
         num_days = (self.datum_do - self.datum_od).days
@@ -743,6 +764,28 @@ class DoPC(Dohoda):
             blank = True,
             null=True)
     history = HistoricalRecords()
+
+    #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
+    def cerpanie_rozpoctu(self, zden):
+        if zden < self.datum_od: return []
+        if self.datum_ukoncenia and zden > self.datum_ukoncenia: return []
+        if zden > self.datum_do: return []
+        platba = {
+                "nazov":f"DoPC",
+                "suma": -self.odmena_mesacne,
+                "zdroj": self.zdroj,
+                "zakazka": self.zakazka,
+                "ekoklas": self.ekoklas
+                }
+        odvody = {
+                "nazov": "DoPC odvody",
+                "suma": -Decimal(0.3495) * self.odmena_mesacne,
+                "zdroj": self.zdroj,
+                "zakazka": self.zakazka,
+                "ekoklas": EkonomickaKlasifikacia.objects.get(kod="637012")
+                }
+        return [platba, odvody]
+
     class Meta:
         verbose_name = 'Dohoda o pracovnej činnosti'
         verbose_name_plural = 'Dohody - Dohody o pracovnej činnosti'
