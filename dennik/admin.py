@@ -3,6 +3,7 @@ from django.contrib import admin
 # Register your models here.
 from .models import Dokument,TypDokumentu, TypFormulara, Formular, CerpanieRozpoctu
 from .forms import DokumentForm, FormularForm, overit_polozku, parse_cislo
+from .export_xlsx import export_as_xlsx
 from dennik.common import VyplnitAVygenerovat
 from ipdb import set_trace as trace
 from django.utils.html import format_html
@@ -145,7 +146,7 @@ class CerpanieRozpoctuAdmin(ModelAdminTotals):
     list_display = ["polozka","mesiac","suma","zdroj","zakazka","ekoklas"]
     #search_fields = ["polozka", "mesiac", "zdroj", "zakazka", "ekoklas"]
     search_fields = ["polozka", "mesiac", "^zdroj__kod", "zakazka__kod", "ekoklas__kod"]
-    actions = ['generovat2021', "generovat2022"]
+    actions = ['generovat2021', "generovat2022", export_as_xlsx]
     list_totals = [
             ('suma', Sum)
             ]
