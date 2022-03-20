@@ -349,11 +349,11 @@ class PlatbaAutorskaSumar(models.Model):
         platby = PlatbaAutorskaOdmena.objects.filter(cislo=self.cislo)
         odmeny = [platba.honorar for platba in platby]
         platba = {
-                "nazov":f"Honorár autor",
+                "nazov":f"Honorár autori",
                 "suma": -sum(odmeny),
                 "zdroj": Zdroj.objects.get(kod="111"),
                 "zakazka": TypZakazky.objects.get(kod="11070002 Beliana"),
-                "ekoklas": EkonomickaKlasifikacia.objects.get(kod="637012")
+                "ekoklas": EkonomickaKlasifikacia.objects.get(kod="633018") #licencie
                 }
         return [platba]
 
