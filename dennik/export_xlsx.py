@@ -1,6 +1,7 @@
 #export_excel.py
 #https://www.djangosnippets.org/snippets/10681/
 #author: PunisherGu
+from ipdb import set_trace as trace
 
 class ExportExcelAction:
     @classmethod
@@ -32,61 +33,55 @@ from django.http import HttpResponse
 from datetime import datetime, date
 #from action_export.export_excel import ExportExcelAction
 from openpyxl.styles import Font
-#from unidecode import unidecode
-
-def style_output_file(file):
-    black_font = Font(color='000000', bold=True)
-    for cell in file["1:1"]:
-        cell.font = black_font
-
-    for column_cells in file.columns:
-        length = max(len((cell.value)) for cell in column_cells)
-        length += 10
-        file.column_dimensions[column_cells[0].column_letter].width = length
-
-    return file
-
-def convert_data_date(value):
-    return value.strftime('%d/%m/%Y')
-
-def convert_boolean_field(value):
-    if value:
-        return 'Yes'
-    return 'No'
+from openpyxl.utils import get_column_letter
+from unidecode import unidecode
+from decimal import Decimal
 
 def export_as_xlsx(self, request, queryset):
     if not request.user.is_staff:
         raise PermissionDenied
     opts = self.model._meta
     field_names = self.list_display
-    #file_name = unidecode(opts.verbose_name)
-    file_name = opts.verbose_name
+    file_name = unidecode(opts.verbose_name).replace(" ","_")
     blank_line = []
     wb = Workbook()
     ws = wb.active
     ws.append(ExportExcelAction.generate_header(self, self.model, field_names))
 
-    for obj in queryset:
-        row = []
-        for field in field_names:
+    #šírla stĺpcov, inicializácia
+    fw = {}
+    for fn in field_names:
+        fw[fn]=len(fn)
+
+    for rr, obj in enumerate(queryset):
+        for cc, field in enumerate(field_names):
             is_admin_field = hasattr(self, field)
             if is_admin_field:
                 value = getattr(self, field)(obj)
+                ws.cell(row=rr+2, column=cc+1).value = value
             else:
                 value = getattr(obj, field)
-                if isinstance(value, datetime) or isinstance(value, date):
-                    value = convert_data_date(value)
-                elif isinstance(value, bool):
-                    value = convert_boolean_field(value)
-            row.append(str(value))
-        ws.append(row)
+                #if isinstance(value, datetime) or isinstance(value, date):
+                if isinstance(value, date):
+                    ws.cell(row=rr+2, column=cc+1).value = value
+                    ws.cell(row=rr+2, column=cc+1).number_format = "DD-MM-YYYY"
+                    if fw[field] < 12: fw[field] = 12 
+                elif type(value) == Decimal:
+                    ws.cell(row=rr+2, column=cc+1).value = value
+                    ws.cell(row=rr+2, column=cc+1).number_format="0.00"
+                    if fw[field] < 12: fw[field] = 12 
+                else:
+                    ws.cell(row=rr+2, column=cc+1).value = str(value)
+                    if fw[field] < len(str(value))+2: fw[field] = len(str(value))+2
 
-    ws = style_output_file(ws)
+    for cc, field in enumerate(field_names):
+        ws.column_dimensions[get_column_letter(cc+1)].width = fw[field]
+
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     response['Content-Disposition'] = f'attachment; filename={file_name}.xlsx'
     wb.save(response)
     return response
-export_as_xlsx.short_description = "Export as xlsx"
+export_as_xlsx.short_description = "Exportovať ako xlsx"
 #----------------------------------------------------------------------------------------------------------------
 #In admin just do:
 #from actions import export_as_xlsx

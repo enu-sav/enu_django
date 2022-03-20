@@ -695,7 +695,7 @@ class DoVP(Dohoda):
         if self.datum_do <zden: return []
         if self.datum_do >= date(zden.year, zden.month+1, zden.day): return []
         platba = {
-                "nazov":f"DoVP",
+                "nazov":f"DoVP odmena",
                 "suma": -self.odmena_celkom,
                 "zdroj": self.zdroj,
                 "zakazka": self.zakazka,
@@ -771,7 +771,7 @@ class DoPC(Dohoda):
         if self.datum_ukoncenia and zden > self.datum_ukoncenia: return []
         if zden > self.datum_do: return []
         platba = {
-                "nazov":f"DoPC",
+                "nazov":f"DoPC odmena",
                 "suma": -self.odmena_mesacne,
                 "zdroj": self.zdroj,
                 "zakazka": self.zakazka,
