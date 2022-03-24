@@ -265,50 +265,71 @@ def platobny_prikaz_upload_location(instance, filename):
     return os.path.join(PLATOBNE_PRIKAZY_DIR, filename)
 def prijata_faktura_upload_location(instance, filename):
     return os.path.join(PRIJATEFAKTURY_DIR, filename)
-class PrijataFaktura(Klasifikacia):
-    oznacenie = "Fa"    #v čísle faktúry, Fa-2021-123
-    tp_text = "trvalá platba"   #text, ktorý sa má použiť namiesto čísla faktúry, ak ide o trvalú platbu
+class PrijataFakturaPravidelnaPlatba(Klasifikacia):
     # Polia
-    cislo = models.CharField("Číslo faktúry", 
+    cislo = models.CharField("Číslo", 
             #help_text: definovaný vo forms
             max_length=50)
     dane_na_uhradu = models.DateField('Dané na úhradu dňa',
-            help_text = 'Zadajte dátum odovzdania podpísaného platobného príkazu faktúry a krycieho listu na sekretariát na odoslanie THS. <br />Vytvorí sa záznam v <a href="/admin/dennik/dokument/">denníku prijatej a odoslanej pošty</a>.',
+            help_text = 'Zadajte dátum odovzdania podpísaného platobného príkazu a krycieho listu na sekretariát na odoslanie THS. <br />Vytvorí sa záznam v <a href="/admin/dennik/dokument/">denníku prijatej a odoslanej pošty</a>.',
             blank=True, null=True)
+    splatnost_datum = models.DateField('Dátum splatnosti',
+            null=True)
+    predmet = models.CharField("Predmet", 
+            max_length=100)
+    suma = models.DecimalField("Suma", 
+            max_digits=8, 
+            decimal_places=2, 
+            null=True)
+    objednavka_zmluva = models.ForeignKey(ObjednavkaZmluva, 
+            null=True, 
+            verbose_name = "Objednávka / zmluva",
+            on_delete=models.PROTECT, 
+            related_name='faktury')    
+    platobny_prikaz = models.FileField("Platobný príkaz pre THS-ku",
+            help_text = "Súbor s platobným príkazom a krycím listom pre THS-ku. Generuje sa akciou 'Vytvoriť platobný príkaz a krycí list pre THS'",
+            upload_to=platobny_prikaz_upload_location, 
+            null = True, blank = True)
+
+    # Koho uviesť ako adresata v denniku
+    def adresat(self):
+        return self.objednavka_zmluva.dodavatel.nazov if self.objednavka_zmluva else ""
+
+    #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
+    def cerpanie_rozpoctu(self, zden):
+        if not self.dane_na_uhradu: return []
+        if self.dane_na_uhradu <zden: return []
+        if self.dane_na_uhradu >= date(zden.year, zden.month+1, zden.day): return []
+        typ = "zmluva" if type(self.objednavka_zmluva) == Zmluva else "objednávka" if type(self.objednavka_zmluva) == Objednavka else "rozhodnutie" 
+        platba = {
+                "nazov":f"Faktúra {typ}",
+                "suma": self.suma,
+                "zdroj": self.zdroj,
+                "zakazka": self.zakazka,
+                "ekoklas": self.ekoklas
+                }
+        return [platba]
+    class Meta:
+        abstract = True
+
+class PrijataFaktura(PrijataFakturaPravidelnaPlatba):
+    oznacenie = "Fa"    #v čísle faktúry, Fa-2021-123
+    # Polia
     dcislo = models.CharField("Dodávateľské číslo faktúry", 
             blank=True, 
             null=True,
             max_length=50)
     doslo_datum = models.DateField('Došlo dňa',
             null=True)
-    splatnost_datum = models.DateField('Dátum splatnosti',
-            null=True)
-    predmet = models.CharField("Predmet faktúry", 
-            help_text = "Zadajte stručný popis, napr. 'Dodávka a inštalácia dátoveho rozvádzača'",
-            max_length=100)
-    suma = models.DecimalField("Suma", 
-            help_text = "Zadajte príjmy ako kladné, výdavky ako záporné číslo",
-            max_digits=8, 
-            decimal_places=2, 
-            null=True)
     mena = models.CharField("Mena", 
             max_length=3, 
             default= Mena.EUR,
             choices=Mena.choices)
-    objednavka_zmluva = models.ForeignKey(ObjednavkaZmluva, 
-            null=True, 
-            verbose_name = "Objednávka / zmluva",
-            on_delete=models.PROTECT, 
-            related_name='faktury')    
     prijata_faktura = models.FileField("Faktúra dodádateľa",
             help_text = "Súbor s faktúrou od dodávateľa",
             upload_to=prijata_faktura_upload_location, 
             blank = True,
             null = True)
-    platobny_prikaz = models.FileField("Platobný príkaz pre THS-ku",
-            help_text = "Súbor s platobným príkazom a krycím listom pre THS-ku. Generuje sa akciou 'Vytvoriť platobný príkaz a krycí list pre THS'",
-            upload_to=platobny_prikaz_upload_location, 
-            null = True, blank = True)
     history = HistoricalRecords()
 
     # Koho uviesť ako adresata v denniku
@@ -331,13 +352,10 @@ class PrijataFaktura(Klasifikacia):
                 }
         return [platba]
     class Meta:
-        verbose_name = 'Prijatá faktúra / trvalá platba'
-        verbose_name_plural = 'Faktúry - Prijaté faktúry / trvalé platby'
+        verbose_name = 'Prijatá faktúra'
+        verbose_name_plural = 'Faktúry - Prijaté faktúry'
     def __str__(self):
-        if self.cislo == PrijataFaktura.tp_text:
-            return f'Trvalá platba k "{self.objednavka_zmluva}" : {self.suma} €'
-        else:
-            return f'Faktúra k "{self.objednavka_zmluva}" : {self.suma} €'
+        return f'Faktúra k "{self.objednavka_zmluva}" : {self.suma} €'
 
 class AutorskyHonorar(Klasifikacia):
     cislo = models.CharField("Číslo platby", max_length=50)
