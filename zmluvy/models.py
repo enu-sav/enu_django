@@ -344,7 +344,8 @@ class PlatbaAutorskaSumar(models.Model):
     def cerpanie_rozpoctu(self, zden):
         if not self.datum_uhradenia: return []
         if self.datum_uhradenia <zden: return []
-        if self.datum_uhradenia >= date(zden.year, zden.month+1, zden.day): return []
+        kdatum =  date(zden.year, zden.month+1, zden.day) if zden.month+1 <= 12 else  date(zden.year+1, zden.month, zden.day)
+        if self.datum_uhradenia >= kdatum: return []
 
         platby = PlatbaAutorskaOdmena.objects.filter(cislo=self.cislo)
         odmeny = [platba.honorar for platba in platby]

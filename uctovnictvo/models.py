@@ -319,7 +319,8 @@ class PrijataFaktura(Klasifikacia):
     def cerpanie_rozpoctu(self, zden):
         if not self.dane_na_uhradu: return []
         if self.dane_na_uhradu <zden: return []
-        if self.dane_na_uhradu >= date(zden.year, zden.month+1, zden.day): return []
+        kdatum =  date(zden.year, zden.month+1, zden.day) if zden.month+1 <= 12 else  date(zden.year+1, zden.month, zden.day)
+        if self.dane_na_uhradu >= kdatum: return []
         typ = "zmluva" if type(self.objednavka_zmluva) == Zmluva else "objednávka" if type(self.objednavka_zmluva) == Objednavka else "rozhodnutie" 
         platba = {
                 "nazov":f"Faktúra {typ}",
@@ -693,7 +694,8 @@ class DoVP(Dohoda):
     #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
     def cerpanie_rozpoctu(self, zden):
         if self.datum_do <zden: return []
-        if self.datum_do >= date(zden.year, zden.month+1, zden.day): return []
+        kdatum =  date(zden.year, zden.month+1, zden.day) if zden.month+1 <= 12 else  date(zden.year+1, zden.month, zden.day)
+        if self.datum_do >= kdatum: return []
         platba = {
                 "nazov":f"DoVP odmena",
                 "suma": -self.odmena_celkom,
