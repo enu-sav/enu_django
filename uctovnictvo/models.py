@@ -1,4 +1,5 @@
 from django.db import models
+
 from django.core.exceptions import ValidationError
 
 #záznam histórie
@@ -18,7 +19,7 @@ from datetime import timedelta, date
 import numpy as np
 from ipdb import set_trace as trace
 
-#acces label: AnoNie('ano').label
+#access label: AnoNie('ano').label
 class AnoNie(models.TextChoices):
     ANO = 'ano', 'Áno'
     NIE = 'nie', 'Nie'
@@ -55,6 +56,9 @@ class TypDochodku(models.TextChoices):
     INVAL_VYSL = 'invalidny_vysl', "invalidný výsluhový"
     VYSLUHOVY = "vysluhovy",  "výsluhový po dovŕšení dôchodkového veku"
     PREDCASNY = "predcasny", "predčasný (poberateľovi zanikne nárok na výplatu predčasného dôchodku)"
+
+class TypPP(models.TextChoices):
+    ZALOHA_EL_ENERGIA = 'zaloha_el_energia', 'Záloha za el. energiu'
 
 class Zdroj(models.Model):
     kod = models.CharField("Kód", 
@@ -98,7 +102,7 @@ class TypZakazky(models.Model):
             max_length=100)
     history = HistoricalRecords()
     def __str__(self):
-        return f"{self.kod} - {self.popis}"
+        return f"{self.kod}"
     class Meta:
         verbose_name = 'Typ zákazky'
         verbose_name_plural = 'Klasifikácia - Typy zákazky'
@@ -275,8 +279,6 @@ class PrijataFakturaPravidelnaPlatba(Klasifikacia):
             blank=True, null=True)
     splatnost_datum = models.DateField('Dátum splatnosti',
             null=True)
-    predmet = models.CharField("Predmet", 
-            max_length=100)
     suma = models.DecimalField("Suma", 
             max_digits=8, 
             decimal_places=2, 
@@ -285,7 +287,7 @@ class PrijataFakturaPravidelnaPlatba(Klasifikacia):
             null=True, 
             verbose_name = "Objednávka / zmluva",
             on_delete=models.PROTECT, 
-            related_name='faktury')    
+            related_name='%(class)s_faktury')    
     platobny_prikaz = models.FileField("Platobný príkaz pre THS-ku",
             help_text = "Súbor s platobným príkazom a krycím listom pre THS-ku. Generuje sa akciou 'Vytvoriť platobný príkaz a krycí list pre THS'",
             upload_to=platobny_prikaz_upload_location, 
@@ -319,6 +321,8 @@ class PrijataFaktura(PrijataFakturaPravidelnaPlatba):
             blank=True, 
             null=True,
             max_length=50)
+    predmet = models.CharField("Predmet", 
+            max_length=100)
     doslo_datum = models.DateField('Došlo dňa',
             null=True)
     mena = models.CharField("Mena", 
@@ -356,6 +360,39 @@ class PrijataFaktura(PrijataFakturaPravidelnaPlatba):
         verbose_name_plural = 'Faktúry - Prijaté faktúry'
     def __str__(self):
         return f'Faktúra k "{self.objednavka_zmluva}" : {self.suma} €'
+
+class PravidelnaPlatba(PrijataFakturaPravidelnaPlatba):
+    oznacenie = "PP"    #v čísle faktúry, Fa-2021-123
+    # Polia
+    history = HistoricalRecords()
+    typ = models.CharField("Typ platby", 
+            max_length=25, 
+            choices=TypPP.choices)
+
+    # Koho uviesť ako adresata v denniku
+    def adresat(self):
+        return self.objednavka_zmluva.dodavatel.nazov if self.objednavka_zmluva else ""
+
+    #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
+    def cerpanie_rozpoctu(self, zden):
+        if not self.dane_na_uhradu: return []
+        if self.dane_na_uhradu <zden: return []
+        kdatum =  date(zden.year, zden.month+1, zden.day) if zden.month+1 <= 12 else  date(zden.year+1, zden.month, zden.day)
+        if self.dane_na_uhradu >= kdatum: return []
+        nazov = "Faktúra záloha" if self.typ == TypPP.ZALOHA_EL_ENERGIA else ""
+        platba = {
+                "nazov":nazov,
+                "suma": self.suma,
+                "zdroj": self.zdroj,
+                "zakazka": self.zakazka,
+                "ekoklas": self.ekoklas
+                }
+        return [platba]
+    class Meta:
+        verbose_name = 'Pravidelná platba'
+        verbose_name_plural = 'Pravidelné platby'
+    def __str__(self):
+        return self.cislo
 
 class AutorskyHonorar(Klasifikacia):
     cislo = models.CharField("Číslo platby", max_length=50)

@@ -10,9 +10,9 @@ from ipdb import set_trace as trace
 from .models import EkonomickaKlasifikacia, TypZakazky, Zdroj, Program, Dodavatel, ObjednavkaZmluva, AutorskyHonorar
 from .models import Objednavka, Zmluva, PrijataFaktura, SystemovySubor, Rozhodnutie, PrispevokNaStravne
 from .models import Dohoda, DoVP, DoPC, DoBPS, VyplacanieDohod, AnoNie, PlatovyVymer, StavVymeru
-from .models import ZamestnanecDohodar, Zamestnanec, Dohodar, StavDohody
+from .models import ZamestnanecDohodar, Zamestnanec, Dohodar, StavDohody, PravidelnaPlatba
 from .common import VytvoritPlatobnyPrikaz, VytvoritSuborDohody, VytvoritSuborObjednavky, leapdays
-from .forms import PrijataFakturaForm, AutorskeZmluvyForm, ObjednavkaForm, ZmluvaForm, PrispevokNaStravneForm
+from .forms import PrijataFakturaForm, AutorskeZmluvyForm, ObjednavkaForm, ZmluvaForm, PrispevokNaStravneForm, PravidelnaPlatbaForm
 from .forms import PlatovyVymerForm
 from .forms import DoPCForm, DoVPForm, DoBPSForm, nasledujuce_cislo, VyplacanieDohodForm
 from .rokydni import datum_postupu, vypocet_prax, vypocet_zamestnanie, postup_roky, roky_postupu
@@ -309,8 +309,109 @@ class PrijataFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdm
                 return AdminForm(*args, **kwargs)
         return AdminFormMod
 
-@admin.register(AutorskyHonorar)
+@admin.register(PravidelnaPlatba)
+#medzi  ModelAdminTotals a ImportExportModelAdmin je konflikt
+#zobrazia sa Import Export tlačidlá alebo súčty
+#class PravidelnaPlatbaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
+class PravidelnaPlatbaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
+    form = PravidelnaPlatbaForm
+    list_display = ["cislo", "typ", "objednavka_zmluva_link", "suma", "platobny_prikaz", "splatnost_datum", "dane_na_uhradu", "zdroj", "zakazka", "ekoklas"]
+    search_fields = ["^cislo","typ", "objednavka_zmluva__dodavatel__nazov", "^zdroj__kod", "^zakazka__kod", "^ekoklas__kod" ]
+    def get_readonly_fields(self, request, obj=None):
+        if obj:
+            return ["objednavka_zmluva", "cislo", "splatnost_datum", "typ", "program", "ekoklas", "zakazka", "zdroj", "platobny_prikaz"]
+        else:
+            return ["dane_na_uhradu", "platobny_prikaz"]
 
+    # zoraďovateľný odkaz na dodávateľa
+    # umožnené prostredníctvom AdminChangeLinksMixin
+    # Vyžaduje, aby ObjednavkaZmluva zmluva bola PolymorphicModel
+    change_links = [
+        ('objednavka_zmluva', {
+            'label': "Objednávka, zmluva, rozhodnutie",
+            'admin_order_field': 'objednavka_zmluva__cislo', # Allow to sort members by the `xxx_link` column
+        })
+    ] 
+    list_totals = [
+        ('suma', Sum),
+    ]
+    actions = ['vytvorit_platobny_prikaz', 'duplikovat_zaznam']
+
+    def vytvorit_platobny_prikaz(self, request, queryset):
+        if len(queryset) != 1:
+            self.message_user(request, f"Vybrať možno len jednu položku", messages.ERROR)
+            return
+        faktura = queryset[0]
+        if faktura.dane_na_uhradu:
+            self.message_user(request, f"Faktúra už bola daná na úhradu, vytváranie platobného príkazu nie je možné", messages.ERROR)
+            return
+        status, msg, vytvoreny_subor = VytvoritPlatobnyPrikaz(faktura, request.user)
+        if status != messages.ERROR:
+            #faktura.dane_na_uhradu = timezone.now()
+            faktura.platobny_prikaz = vytvoreny_subor
+            faktura.save()
+        self.message_user(request, msg, status)
+
+    vytvorit_platobny_prikaz.short_description = "Vytvoriť platobný príkaz a krycí list pre THS"
+    #Oprávnenie na použitie akcie, viazané na 'change'
+    vytvorit_platobny_prikaz.allowed_permissions = ('change',)
+
+    def duplikovat_zaznam(self, request, queryset):
+        if len(queryset) != 1:
+            self.message_user(request, f"Vybrať možno len jednu položku", messages.ERROR)
+            return
+        stara = queryset[0]
+        if not stara.dane_na_uhradu:
+            self.message_user(request, f"Faktúra {stara.cislo} ešte nebola daná na uhradenie. Duplikovať možno len uhradené faktúry.", messages.ERROR)
+            return
+        nc = nasledujuce_cislo(PravidelnaPlatba)
+        nova_faktura = PravidelnaPlatba.objects.create(
+                cislo = nc,
+                program = Program.objects.get(id=4),    #nealokovaný
+                ekoklas = stara.ekoklas,
+                zakazka = stara.zakazka,
+                zdroj = stara.zdroj,
+                predmet = stara.predmet,
+                objednavka_zmluva = stara.objednavka_zmluva
+            )
+        nova_faktura.save()
+        self.message_user(request, f"Vytvorená bola nová faktúra dodávateľa '{nova_faktura.objednavka_zmluva.dodavatel.nazov}' číslo '{nc}', aktualizujte polia", messages.SUCCESS)
+        vec = f"Faktúra {nc}"
+        cislo_posta = nasledujuce_cislo(Dokument)
+        dok = Dokument(
+            cislo = cislo_posta,
+            cislopolozky = nc,
+            datumvytvorenia = date.today(),
+            typdokumentu = TypDokumentu.FAKTURA,
+            inout = InOut.PRIJATY,
+            adresat = stara.adresat(),
+            #vec = f'<a href="{self.instance.platobny_prikaz.url}">{vec}</a>',
+            vec = vec,
+            prijalodoslal=request.user.username, #zámena mien prijalodoslal - zaznamvytvoril
+        )
+        dok.save()
+        messages.warning(request, 
+            format_html(
+                'Do denníka prijatej a odoslanej pošty bol pridaný záznam č. {}: <em>{}</em>, treba v ňom doplniť údaje o prijatí.',
+                mark_safe(f'<a href="/admin/dennik/dokument/{dok.id}/change/">{cislo_posta}</a>'),
+                vec
+                )
+        )
+
+    duplikovat_zaznam.short_description = "Duplikovať faktúru"
+    #Oprávnenie na použitie akcie, viazané na 'change'
+    duplikovat_zaznam.allowed_permissions = ('change',)
+
+    # do AdminForm pridať request, aby v jej __init__ bolo request dostupné
+    def get_form(self, request, obj=None, **kwargs):
+        AdminForm = super(PravidelnaPlatbaAdmin, self).get_form(request, obj, **kwargs)
+        class AdminFormMod(AdminForm):
+            def __new__(cls, *args, **kwargs):
+                kwargs['request'] = request
+                return AdminForm(*args, **kwargs)
+        return AdminFormMod
+
+@admin.register(AutorskyHonorar)
 #class AutorskyHonorarAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
 class AutorskyHonorarAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
     form = AutorskeZmluvyForm
