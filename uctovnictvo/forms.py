@@ -5,7 +5,7 @@ from django.core.exceptions import ValidationError
 from ipdb import set_trace as trace
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
-from .models import PrijataFaktura, Objednavka, PrispevokNaStravne, DoPC, DoVP, DoBPS, PlatovyVymer, VyplacanieDohod, StavDohody, Dohoda, PravidelnaPlatba
+from .models import PrijataFaktura, Objednavka, PrispevokNaStravne, DoPC, DoVP, DoBPS, PlatovyVymer, VyplacanieDohod, StavDohody, Dohoda, PravidelnaPlatba, TypPP
 from dennik.models import Dokument, SposobDorucenia, TypDokumentu, InOut
 from datetime import date, datetime
 import re
@@ -140,13 +140,12 @@ class PravidelnaPlatbaForm(forms.ModelForm):
             else:   #príjem
                 if  self.cleaned_data['suma'] < 0:  self.cleaned_data['suma'] *= -1
             for mesiac in range(self.cleaned_data['splatnost_datum'].month+1, 13):
-                #vyplňa sa: ['zdroj', 'zakazka', 'ekoklas', 'splatnost_datum', 'predmet', 'suma', 'objednavka_zmluva', 'typ']
+                #vyplňa sa: ['zdroj', 'zakazka', 'ekoklas', 'splatnost_datum', 'suma', 'objednavka_zmluva', 'typ']
                 dup = PravidelnaPlatba(
                     zdroj = self.cleaned_data['zdroj'],
                     zakazka = self.cleaned_data['zakazka'],
                     program = self.cleaned_data['program'],
                     ekoklas = self.cleaned_data['ekoklas'],
-                    predmet = self.cleaned_data['predmet'],
                     suma = self.cleaned_data['suma'],
                     typ = self.cleaned_data['typ'],
                     cislo = "%s-%d-%03d"%(PravidelnaPlatba.oznacenie, rok, poradie),
