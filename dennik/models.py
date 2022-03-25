@@ -18,6 +18,7 @@ class TypDokumentu(models.TextChoices):
     VOBJEDNAVKA = 'vobjednavka', 'Výtvarná objednávka'
     OBJEDNAVKA = 'objednavka', 'Objednávka'
     FAKTURA = 'faktura', 'Faktúra'
+    PPLATBA = 'pplatba', 'Pravidelná platba'
     PSTRAVNE = 'pstravne', 'Príspevok na stravné'
     ZMLUVA = 'zmluva', 'Zmluva'
     DoVP = 'dovp', 'DoVP'
@@ -59,11 +60,11 @@ podpísaná</em> v zmluve</li>
             max_length=200)
     typdokumentu = models.CharField("Typ dokumentu",
             max_length=20, choices=TypDokumentu.choices, 
-            help_text = "Uveďte typ dokumentu. <strong>Netreba vypĺňať, ak je v poli <em>Súvisiaca položka</em> uvedená položka databázy v tvare X-RRRR-NNN</strong>, napr. <em>DoVP-2021-001<em>.",
+            help_text = "Uveďte typ dokumentu. <strong>Netreba vypĺňať, ak je v poli <em>Súvisiaca položka</em> uvedená položka databázy v tvare X-RRRR-NNN</strong>, napr. <em>DoVP-2021-001</em>.",
             blank = True,
             null=True)
     adresat = models.CharField("Odosielateľ / Adresát", 
-            help_text = "Uveďte adresáta. <br /><strong>Netreba vypĺňať, ak je v poli Súvisiaca položka uvedená položka databázy v tvare X-RRRR-NNN</strong>, napr. <em>DoVP-2021-001<em>.",
+            help_text = "Uveďte adresáta. <br /><strong>Netreba vypĺňať, ak je v poli Súvisiaca položka uvedená položka databázy v tvare X-RRRR-NNN</strong>, napr. <em>DoVP-2021-001</em>.",
             blank = True,
             max_length=200)
     inout = models.CharField("Príjem / odoslanie",
