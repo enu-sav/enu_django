@@ -341,15 +341,14 @@ class PravidelnaPlatbaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryA
         if len(queryset) != 1:
             self.message_user(request, f"Vybrať možno len jednu položku", messages.ERROR)
             return
-        faktura = queryset[0]
-        if faktura.dane_na_uhradu:
-            self.message_user(request, f"Faktúra už bola daná na úhradu, vytváranie platobného príkazu nie je možné", messages.ERROR)
+        platba = queryset[0]
+        if platba.dane_na_uhradu:
+            self.message_user(request, f"Platba už bola daná na úhradu, vytváranie platobného príkazu nie je možné", messages.ERROR)
             return
-        status, msg, vytvoreny_subor = VytvoritPlatobnyPrikaz(faktura, request.user)
+        status, msg, vytvoreny_subor = VytvoritPlatobnyPrikaz(platba, request.user)
         if status != messages.ERROR:
-            #faktura.dane_na_uhradu = timezone.now()
-            faktura.platobny_prikaz = vytvoreny_subor
-            faktura.save()
+            platba.platobny_prikaz = vytvoreny_subor
+            platba.save()
         self.message_user(request, msg, status)
 
     vytvorit_platobny_prikaz.short_description = "Vytvoriť platobný príkaz a krycí list pre THS"

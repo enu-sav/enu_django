@@ -7,7 +7,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.utils import timezone
 from .models import SystemovySubor, PrijataFaktura, AnoNie, Objednavka, PrijataFaktura, Rozhodnutie, Zmluva
-from .models import DoVP, DoPC, DoBPS, Poistovna, TypDochodku, Mena
+from .models import DoVP, DoPC, DoBPS, Poistovna, TypDochodku, Mena, PravidelnaPlatba, TypPP
 
 from openpyxl import load_workbook
 from openpyxl.styles import Font, Color, colors, Alignment, PatternFill , numbers
@@ -49,6 +49,8 @@ def VytvoritPlatobnyPrikaz(faktura, pouzivatel):
     lt="[["
     gt="]]"
 
+    jePF = type(faktura) == PrijataFaktura
+
     #Načítať súbor šablóny
     nazov_objektu = "Šablóna platobný príkaz"  #Presne takto musí byť objekt pomenovaný
     sablona = SystemovySubor.objects.filter(subor_nazov = nazov_objektu)
@@ -67,7 +69,7 @@ def VytvoritPlatobnyPrikaz(faktura, pouzivatel):
     text = text.replace(f"{lt}nasa_faktura_cislo{gt}", faktura.cislo)
     locale.setlocale(locale.LC_ALL, 'sk_SK.UTF-8')
     if faktura.suma:
-        if faktura.mena == Mena.EUR:
+        if not jePF or faktura.mena == Mena.EUR:
             text = text.replace(f"{lt}DM{gt}", f"{locale_format(-faktura.suma)} €")     # suma je záporná, o formulári chceme kladné
             text = text.replace(f"{lt}CM{gt}", "")
         else:
@@ -90,12 +92,12 @@ def VytvoritPlatobnyPrikaz(faktura, pouzivatel):
     else:
         text = text.replace(f"{lt}adresa3{gt}", faktura.objednavka_zmluva.dodavatel.adresa_stat)
     text = text.replace(f"{lt}dodavatel_faktura{gt}", 
-            faktura.dcislo if faktura.dcislo else "")
+            faktura.dcislo if jePF and faktura.dcislo else "")
     text = text.replace(f"{lt}doslo_dna{gt}", 
-            faktura.doslo_datum.strftime("%d. %m. %Y") if faktura.doslo_datum else "" )
+            faktura.doslo_datum.strftime("%d. %m. %Y") if jePF and faktura.doslo_datum else "" )
     text = text.replace(f"{lt}datum_splatnosti{gt}", 
             faktura.splatnost_datum.strftime("%d. %m. %Y") if faktura.splatnost_datum else "")
-    text = text.replace(f"{lt}predmet_faktury{gt}", faktura.predmet)
+    text = text.replace(f"{lt}predmet_faktury{gt}", faktura.predmet if jePF else TypPP(faktura.typ).label)
     text = text.replace(f"{lt}pouzivatel{gt}", pouzivatel.get_full_name())
 
     if type(faktura.objednavka_zmluva) == Objednavka:
@@ -134,7 +136,7 @@ def VytvoritPlatobnyPrikaz(faktura, pouzivatel):
     opath = os.path.join(settings.PLATOBNE_PRIKAZY_DIR,nazov)
     with open(os.path.join(settings.MEDIA_ROOT,opath), "w") as f:
         f.write(text)
-    return messages.SUCCESS, mark_safe(f"Súbor platobného príkazu faktúry {faktura.cislo} bol úspešne vytvorený ({opath}). Príkaz dajte na podpis. <br />Ak treba, údaje faktúry možno ešte upravovať. Po každej úprave treba vytvoriť nový platobný príkaz opakovaním akcie.<br />Po podpísaní príkaz dajte na sekretariát na odoslanie a vyplňte pole 'Dané na úhradu dňa'."), opath
+    return messages.SUCCESS, mark_safe(f"Súbor platobného príkazu faktúry {faktura.cislo} bol úspešne vytvorený ({opath}). Príkaz dajte na podpis. <br />Ak treba, údaje platby možno ešte upravovať. Po každej úprave treba vytvoriť nový platobný príkaz opakovaním akcie.<br />Po podpísaní príkaz dajte na sekretariát na odoslanie a vyplňte pole 'Dané na úhradu dňa'."), opath
 
 
 # skryt sekciu v dokumente dohody

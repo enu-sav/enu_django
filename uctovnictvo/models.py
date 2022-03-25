@@ -375,10 +375,9 @@ class PravidelnaPlatba(PrijataFakturaPravidelnaPlatba):
 
     #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
     def cerpanie_rozpoctu(self, zden):
-        if not self.dane_na_uhradu: return []
-        if self.dane_na_uhradu <zden: return []
+        if self.splatnost_datum <zden: return []
         kdatum =  date(zden.year, zden.month+1, zden.day) if zden.month+1 <= 12 else  date(zden.year+1, zden.month, zden.day)
-        if self.dane_na_uhradu >= kdatum: return []
+        if self.splatnost_datum >= kdatum: return []
         nazov = "Faktúra záloha" if self.typ == TypPP.ZALOHA_EL_ENERGIA else ""
         platba = {
                 "nazov":nazov,

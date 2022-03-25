@@ -151,12 +151,38 @@ class PravidelnaPlatbaForm(forms.ModelForm):
                     cislo = "%s-%d-%03d"%(PravidelnaPlatba.oznacenie, rok, poradie),
                     splatnost_datum = date(rok, mesiac, self.cleaned_data['splatnost_datum'].day)
                     )
-                #nepovinné
+                #nepovinné pole
                 if 'objednavka_zmluva' in self.changed_data:
                     dup.objednavka_zmluva = self.cleaned_data['objednavka_zmluva']
                 poradie += 1
                 dup.save()
                 pass
+
+        #pole dane_na_uhradu možno vyplniť až po vygenerovani platobného príkazu akciou 
+        #"Vytvoriť platobný príkaz a krycí list pre THS"
+        if 'dane_na_uhradu' in self.changed_data:
+            vec = f"Platobný príkaz na THS {self.instance.cislo} na vyplatenie"
+            cislo = nasledujuce_cislo(Dokument)
+            dok = Dokument(
+                cislo = cislo,
+                cislopolozky = self.instance.cislo,
+                #datumvytvorenia = self.cleaned_data['dane_na_uhradu'],
+                datumvytvorenia = date.today(),
+                typdokumentu = TypDokumentu.PPLATBA,
+                inout = InOut.ODOSLANY,
+                adresat = "THS",
+                vec = f'<a href="{self.instance.platobny_prikaz.url}">{vec}</a>',
+                prijalodoslal=self.request.user.username, #zámena mien prijalodoslal - zaznamvytvoril
+            )
+            dok.save()
+            messages.warning(self.request, 
+                format_html(
+                    'Do denníka prijatej a odoslanej pošty bol pridaný záznam č. {}: <em>{}</em>, treba v ňom doplniť údaje o odoslaní.',
+                    mark_safe(f'<a href="/admin/dennik/dokument/{dok.id}/change/">{cislo}</a>'),
+                    vec
+                    )
+        )
+        return self.cleaned_data
 
 class PrispevokNaStravneForm(forms.ModelForm):
     #inicializácia polí

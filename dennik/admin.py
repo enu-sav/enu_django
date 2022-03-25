@@ -10,7 +10,7 @@ from django.utils.html import format_html
 from django.utils import timezone
 from django.contrib import messages
 from zmluvy.models import ZmluvaAutor, ZmluvaGrafik, VytvarnaObjednavkaPlatba, PlatbaAutorskaSumar
-from uctovnictvo.models import Objednavka, PrijataFaktura, PrispevokNaStravne, DoVP, DoPC, DoBPS, PlatovyVymer
+from uctovnictvo.models import Objednavka, PrijataFaktura, PrispevokNaStravne, DoVP, DoPC, DoBPS, PlatovyVymer, PravidelnaPlatba
 import re
 from import_export.admin import ImportExportModelAdmin
 from datetime import date
@@ -175,7 +175,7 @@ class CerpanieRozpoctuAdmin(ModelAdminTotals):
         md1list.append(date(rok+1, 1, 1))
 
         cerpanie = defaultdict(dict)
-        typy = [PlatovyVymer, PrijataFaktura, DoVP, DoPC, PlatbaAutorskaSumar]
+        typy = [PravidelnaPlatba, PlatovyVymer, PrijataFaktura, DoVP, DoPC, PlatbaAutorskaSumar]
         for typ in typy:
             for polozka in typ.objects.filter():
                 for md1 in md1list[:-1]:
