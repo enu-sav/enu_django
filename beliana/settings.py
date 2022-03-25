@@ -12,6 +12,8 @@ https://docs.djangoproject.com/en/3.1/ref/settings/
 
 import os, dotenv
 from pathlib import Path
+import mimetypes
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -247,3 +249,5 @@ EMAIL_HOST_PASSWORD = os.environ['EMAIL_HOST_PASSWORD']
 # Základné údaje o serveri. Používané pri odosielaní notifikačných mailov
 SITE_URL = "http://samba.enu.sav.sk:8000/"
 SITE_HOST = "samba"
+
+mimetypes.add_type("application/vnd.oasis.opendocument.text", ".fodt", True)
