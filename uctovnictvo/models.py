@@ -651,14 +651,14 @@ class PlatovyVymer(Klasifikacia):
                 "zakazka": self.zakazka,
                 "ekoklas": self.ekoklas
                 }
-        odvody = {
-                "nazov": "Plat odvody",
-                "suma": Decimal(0.3495) * (tarifny['suma']+osobny['suma']+funkcny['suma']),
+        poistne = {
+                "nazov": "Plat poistné",
+                "suma": (Decimal(0.3495) if zden.year < 2022 else Decimal(0.352)) * (tarifny['suma']+osobny['suma']+funkcny['suma']),
                 "zdroj": self.zdroj,
                 "zakazka": self.zakazka,
-                "ekoklas": EkonomickaKlasifikacia.objects.get(kod="637012")
+                "ekoklas": EkonomickaKlasifikacia.objects.get(kod="620")
                 }
-        return [tarifny, osobny, funkcny, odvody]
+        return [tarifny, osobny, funkcny, poistne]
 
     class Meta:
         verbose_name = "Platový výmer"
@@ -757,14 +757,14 @@ class DoVP(Dohoda):
                 "zakazka": self.zakazka,
                 "ekoklas": self.ekoklas
                 }
-        odvody = {
-                "nazov": "DoVP odvody",
+        poistne = {
+                "nazov": "DoVP poistne",
                 "suma": -Decimal(0.3495) * self.odmena_celkom,
                 "zdroj": self.zdroj,
                 "zakazka": self.zakazka,
-                "ekoklas": EkonomickaKlasifikacia.objects.get(kod="637012")
+                "ekoklas": EkonomickaKlasifikacia.objects.get(kod="620")
                 }
-        return [platba, odvody]
+        return [platba, poistne]
  
     # test platnosti dát
     def clean(self): 
@@ -833,14 +833,14 @@ class DoPC(Dohoda):
                 "zakazka": self.zakazka,
                 "ekoklas": self.ekoklas
                 }
-        odvody = {
-                "nazov": "DoPC odvody",
+        poistne = {
+                "nazov": "DoPC poistne",
                 "suma": -Decimal(0.3495) * self.odmena_mesacne,
                 "zdroj": self.zdroj,
                 "zakazka": self.zakazka,
-                "ekoklas": EkonomickaKlasifikacia.objects.get(kod="637012")
+                "ekoklas": EkonomickaKlasifikacia.objects.get(kod="620")
                 }
-        return [platba, odvody]
+        return [platba, poistne]
 
     class Meta:
         verbose_name = 'Dohoda o pracovnej činnosti'
