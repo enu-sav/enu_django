@@ -389,7 +389,7 @@ class PravidelnaPlatba(PrijataFakturaPravidelnaPlatba):
         return [platba]
     class Meta:
         verbose_name = 'Pravidelná platba'
-        verbose_name_plural = 'Pravidelné platby'
+        verbose_name_plural = 'Faktúry - Pravidelné platby'
     def __str__(self):
         return self.cislo
 
@@ -448,7 +448,7 @@ class PrispevokNaStravne(Klasifikacia):
 
     class Meta:
         verbose_name = 'Príspevok na stravné'
-        verbose_name_plural = 'Príspevky na stravné'
+        verbose_name_plural = 'PaM - Príspevky na stravné'
     def __str__(self):
         return f'Príspevok na stravné {self.cislo}'
 
@@ -546,7 +546,7 @@ class Zamestnanec(ZamestnanecDohodar):
     history = HistoricalRecords()
     class Meta:
         verbose_name = "Zamestnanec"
-        verbose_name_plural = "Zamestnanci"
+        verbose_name_plural = "PaM - Zamestnanci"
     def __str__(self):
         return f"Z {self.priezvisko}, {self.meno}, {self.cislo_zamestnanca}"
 
@@ -554,7 +554,7 @@ class Dohodar(ZamestnanecDohodar):
     history = HistoricalRecords()
     class Meta:
         verbose_name = "Dohodár"
-        verbose_name_plural = "Dohodári"
+        verbose_name_plural = "PaM - Dohodári"
     def __str__(self):
         return f"D {self.priezvisko}, {self.meno}"
 
@@ -662,7 +662,7 @@ class PlatovyVymer(Klasifikacia):
 
     class Meta:
         verbose_name = "Platový výmer"
-        verbose_name_plural = "Platové výmery"
+        verbose_name_plural = "PaM - Platové výmery"
     def __str__(self):
         od = self.datum_od.strftime('%d. %m. %Y') if self.datum_od else '--'
         return f"{self.zamestnanec.priezvisko}, {od}"
@@ -776,7 +776,7 @@ class DoVP(Dohoda):
 
     class Meta:
         verbose_name = 'Dohoda o vykonaní práce'
-        verbose_name_plural = 'Dohody - Dohody o vykonaní práce'
+        verbose_name_plural = 'PaM - Dohody o vykonaní práce'
     def __str__(self):
         return f"{self.zmluvna_strana}; {self.cislo}"
 
@@ -799,7 +799,7 @@ class DoBPS(Dohoda):
     history = HistoricalRecords()
     class Meta:
         verbose_name = 'Dohoda o bigádnickej práci študentov'
-        verbose_name_plural = 'Dohody - Dohody o bigádnickej práci študentov'
+        verbose_name_plural = 'PaM - Dohody o bigádnickej práci študentov'
     def __str__(self):
         return f"{self.zmluvna_strana}; {self.cislo}"
 
@@ -844,7 +844,7 @@ class DoPC(Dohoda):
 
     class Meta:
         verbose_name = 'Dohoda o pracovnej činnosti'
-        verbose_name_plural = 'Dohody - Dohody o pracovnej činnosti'
+        verbose_name_plural = 'PaM - Dohody o pracovnej činnosti'
     # test platnosti dát
     def clean(self): 
         if self.hod_mesacne > 40:
@@ -965,5 +965,5 @@ class VyplacanieDohod(models.Model):
 
     class Meta:
         verbose_name = 'Vyplatenie dohody'
-        verbose_name_plural = 'Dohody - Vyplácanie dohôd'
+        verbose_name_plural = 'PaM - Vyplácanie dohôd'
 
