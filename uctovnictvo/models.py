@@ -127,7 +127,9 @@ class PersonCommon(models.Model):
     # IBAN alebo aj kompletný popis s BIC a číslom účtu
     bankovy_kontakt = models.CharField("Bankový kontakt", 
             help_text = "Zadajte IBAN bankového účtu.",
-            max_length=200, null=True)
+            max_length=200, 
+            blank=True,
+            null=True)
     adresa_ulica = models.CharField("Adresa – ulica a číslo domu", max_length=200, null=True, blank=True)
     adresa_mesto = models.CharField("Adresa – PSČ a mesto", max_length=200, null=True)
     adresa_stat = models.CharField("Adresa – štát", max_length=100, null=True)
