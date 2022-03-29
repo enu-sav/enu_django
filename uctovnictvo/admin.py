@@ -7,7 +7,7 @@ from django.utils.safestring import mark_safe
 import re
 from datetime import date, datetime, timedelta
 from ipdb import set_trace as trace
-from .models import EkonomickaKlasifikacia, TypZakazky, Zdroj, Program, Dodavatel, ObjednavkaZmluva, AutorskyHonorar
+from .models import EkonomickaKlasifikacia, TypZakazky, Zdroj, Program, Dodavatel, ObjednavkaZmluva
 from .models import Objednavka, Zmluva, PrijataFaktura, SystemovySubor, Rozhodnutie, PrispevokNaStravne
 from .models import Dohoda, DoVP, DoPC, DoBPS, VyplacanieDohod, AnoNie, PlatovyVymer, StavVymeru
 from .models import ZamestnanecDohodar, Zamestnanec, Dohodar, StavDohody, PravidelnaPlatba
@@ -409,20 +409,6 @@ class PravidelnaPlatbaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryA
                 kwargs['request'] = request
                 return AdminForm(*args, **kwargs)
         return AdminFormMod
-
-@admin.register(AutorskyHonorar)
-#class AutorskyHonorarAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
-class AutorskyHonorarAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
-    form = AutorskeZmluvyForm
-    list_display = ["cislo", "suma", "suma_lf", "suma_dan"]
-    # určiť poradie poli v editovacom formulári
-    fields = ["cislo", "suma", "suma_lf", "suma_dan", "zdroj", "zakazka", "ekoklas"]
-
-    list_totals = [
-        ('suma', Sum),
-        ('suma_lf', Sum),
-        ('suma_dan', Sum),
-    ]
 
 @admin.register(PrispevokNaStravne)
 class PrispevokNaStravneAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):

@@ -395,38 +395,6 @@ class PravidelnaPlatba(PrijataFakturaPravidelnaPlatba):
     def __str__(self):
         return self.cislo
 
-class AutorskyHonorar(Klasifikacia):
-    cislo = models.CharField("Číslo platby", max_length=50)
-    doslo_datum = models.DateField('Vyplatené dňa',
-            blank=True, null=True)
-    suma = models.DecimalField("Vyplatená suma", 
-            help_text = "Zadajte honorár vyplatený autorom ako záporné číslo (stĺpec'Vyplatené spolu' z tabuľky Zmluvy / Vyplácanie aut. honorárov)",
-            max_digits=8, 
-            decimal_places=2, 
-            default=0)
-    suma_lf = models.DecimalField("Odvedená suma Literárnemu fondu",
-            help_text = "Zadajte sumu odvevenú Literárnemu fondu ako záporné číslo (stĺpec'Odvod LF' z tabuľky Zmluvy / Vyplácanie aut. honorárov)",
-            max_digits=8, 
-            decimal_places=2, 
-            default=0)
-    suma_dan = models.DecimalField("Odvedená daň",
-            help_text = "Zadajte daň odvevenú Finančnej správe záporné číslo (stĺpec 'Odvedená daň' z tabuľky Zmluvy / Vyplácanie aut. honorárov)",
-            max_digits=8, 
-            decimal_places=2, 
-            default=0)
-    history = HistoricalRecords()
-
-    # test platnosti dát
-    def clean(self): 
-        if self.suma >= 0 or self.suma_lf > 0 or self.suma_dan > 0:
-            raise ValidationError("Položky 'Vyplatená suma' a 'Odvedená daň' musia byť záporné, položka 'Odvedená suma Literárnemu fondu' musí byť záporná alebo rovná 0")
-
-    class Meta:
-        verbose_name = 'Autorský honorár'
-        verbose_name_plural = 'Autorské honoráre'
-    def __str__(self):
-        return f'Autorské honotáre {self.cislo}'
-
 class PrispevokNaStravne(Klasifikacia):
     oznacenie = "PS"    #v čísle faktúry, FS-2021-123
     cislo = models.CharField("Číslo príspevku (za mesiac)", max_length=50)
