@@ -13,16 +13,14 @@ remote_data_dir=Django/enu_django/data
 remote_dump=$remote_django_dir/dump-$dt.json
 
 # dump database on remote
-ssh $remote "cd $remote_django_dir; ./backup.sh"
+#ssh $remote "cd $remote_django_dir; ./backup.sh"
+#rsync $remote:$remote_dump .
 
 sudo service $curdir stop
-rsync $remote:$remote_dump .
-#rm -rf data
+# synchronizovať súbory
 rsync -avh $remote:$remote_data_dir .
-
-rm -f db.sqlite3
-#./manage.py makemigrations zmluvy
-#./manage.py makemigrations uctovnictvo
+# skopírovať databázu
+scp $remote:$remote_django_dir/db.sqlite3 .
 ./manage.py migrate
-./manage.py loaddata dump-$dt.json
+#./manage.py loaddata dump-$dt.json
 sudo service $curdir start
