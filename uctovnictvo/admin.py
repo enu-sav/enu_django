@@ -319,7 +319,11 @@ class PravidelnaPlatbaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryA
     search_fields = ["^cislo","typ", "objednavka_zmluva__dodavatel__nazov", "^zdroj__kod", "^zakazka__kod", "^ekoklas__kod" ]
     def get_readonly_fields(self, request, obj=None):
         if obj:
-            return ["objednavka_zmluva", "cislo", "splatnost_datum", "typ", "program", "ekoklas", "zakazka", "zdroj", "platobny_prikaz"]
+            #return ["objednavka_zmluva", "cislo", "splatnost_datum", "typ", "program", "ekoklas", "zakazka", "zdroj", "platobny_prikaz"]
+            if obj.platobny_prikaz:
+                return ["objednavka_zmluva", "cislo", "splatnost_datum", "typ", "program", "ekoklas", "platobny_prikaz"]
+            else:
+                return ["objednavka_zmluva", "cislo", "splatnost_datum", "typ", "program", "ekoklas", "platobny_prikaz", "dane_na_uhradu"]
         else:
             return ["dane_na_uhradu", "platobny_prikaz"]
 
@@ -335,7 +339,7 @@ class PravidelnaPlatbaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryA
     list_totals = [
         ('suma', Sum),
     ]
-    actions = ['vytvorit_platobny_prikaz', 'duplikovat_zaznam']
+    actions = ['vytvorit_platobny_prikaz']
 
     def vytvorit_platobny_prikaz(self, request, queryset):
         if len(queryset) != 1:
@@ -354,52 +358,6 @@ class PravidelnaPlatbaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryA
     vytvorit_platobny_prikaz.short_description = "Vytvoriť platobný príkaz a krycí list pre THS"
     #Oprávnenie na použitie akcie, viazané na 'change'
     vytvorit_platobny_prikaz.allowed_permissions = ('change',)
-
-    def duplikovat_zaznam(self, request, queryset):
-        if len(queryset) != 1:
-            self.message_user(request, f"Vybrať možno len jednu položku", messages.ERROR)
-            return
-        stara = queryset[0]
-        if not stara.dane_na_uhradu:
-            self.message_user(request, f"Faktúra {stara.cislo} ešte nebola daná na uhradenie. Duplikovať možno len uhradené faktúry.", messages.ERROR)
-            return
-        nc = nasledujuce_cislo(PravidelnaPlatba)
-        nova_faktura = PravidelnaPlatba.objects.create(
-                cislo = nc,
-                program = Program.objects.get(id=4),    #nealokovaný
-                ekoklas = stara.ekoklas,
-                zakazka = stara.zakazka,
-                zdroj = stara.zdroj,
-                predmet = stara.predmet,
-                objednavka_zmluva = stara.objednavka_zmluva
-            )
-        nova_faktura.save()
-        self.message_user(request, f"Vytvorená bola nová faktúra dodávateľa '{nova_faktura.objednavka_zmluva.dodavatel.nazov}' číslo '{nc}', aktualizujte polia", messages.SUCCESS)
-        vec = f"Faktúra {nc}"
-        cislo_posta = nasledujuce_cislo(Dokument)
-        dok = Dokument(
-            cislo = cislo_posta,
-            cislopolozky = nc,
-            datumvytvorenia = date.today(),
-            typdokumentu = TypDokumentu.FAKTURA,
-            inout = InOut.PRIJATY,
-            adresat = stara.adresat(),
-            #vec = f'<a href="{self.instance.platobny_prikaz.url}">{vec}</a>',
-            vec = vec,
-            prijalodoslal=request.user.username, #zámena mien prijalodoslal - zaznamvytvoril
-        )
-        dok.save()
-        messages.warning(request, 
-            format_html(
-                'Do denníka prijatej a odoslanej pošty bol pridaný záznam č. {}: <em>{}</em>, treba v ňom doplniť údaje o prijatí.',
-                mark_safe(f'<a href="/admin/dennik/dokument/{dok.id}/change/">{cislo_posta}</a>'),
-                vec
-                )
-        )
-
-    duplikovat_zaznam.short_description = "Duplikovať faktúru"
-    #Oprávnenie na použitie akcie, viazané na 'change'
-    duplikovat_zaznam.allowed_permissions = ('change',)
 
     # do AdminForm pridať request, aby v jej __init__ bolo request dostupné
     def get_form(self, request, obj=None, **kwargs):
