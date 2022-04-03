@@ -188,9 +188,10 @@ ADMIN_EXPORT_ACTION = {
 
 #Parametre
 ODVODY_VYNIMKA = 200    #Vyňatá mesačná suma v prípade, ak dohodár (dôchoidca alebo študent) o ňu požiada
-DAN_Z_PRIJMU = 19      #Daň z príjmu, 19 %
-LITFOND_ODVOD = 0      #Odvod Literárnemu fondu, do konda r. 2021 0, inak 2 %
-MIN_VYPLATIT = 15        #minimálna suma v Eur, ktorá sa vypláca
+DAN_Z_PRIJMU = 19       #Daň z príjmu, 19 %
+DPH = 20                #DPH
+LITFOND_ODVOD = 0       #Odvod Literárnemu fondu, do konda r. 2021 0, inak 2 %
+MIN_VYPLATIT = 15       #minimálna suma v Eur, ktorá sa vypláca
 #UCET_ENU = "SK36 8180 0000 0070 0061 8734 - Beliana"    #nahradený
 UCET_ENU = "SK08 8180 0000 0070 0066 7544"
 UCET_LITFOND  = "SK47 0200 0000 0012 2545 9853" 
