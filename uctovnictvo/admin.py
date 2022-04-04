@@ -11,11 +11,13 @@ from .models import EkonomickaKlasifikacia, TypZakazky, Zdroj, Program, Dodavate
 from .models import Objednavka, Zmluva, PrijataFaktura, SystemovySubor, Rozhodnutie, PrispevokNaStravne
 from .models import Dohoda, DoVP, DoPC, DoBPS, VyplacanieDohod, AnoNie, PlatovyVymer, StavVymeru
 from .models import ZamestnanecDohodar, Zamestnanec, Dohodar, StavDohody, PravidelnaPlatba
-from .common import VytvoritPlatobnyPrikaz, VytvoritSuborDohody, VytvoritSuborObjednavky, leapdays
+from .models import Najomnik, NajomnaZmluva, NajomneFaktura, TypPP, TypPN
+from .common import VytvoritPlatobnyPrikaz, VytvoritSuborDohody, VytvoritSuborObjednavky, leapdays, VytvoritKryciList
 from .forms import PrijataFakturaForm, AutorskeZmluvyForm, ObjednavkaForm, ZmluvaForm, PrispevokNaStravneForm, PravidelnaPlatbaForm
-from .forms import PlatovyVymerForm
+from .forms import PlatovyVymerForm, NajomneFakturaForm, NajomnaZmluvaForm
 from .forms import DoPCForm, DoVPForm, DoBPSForm, nasledujuce_cislo, VyplacanieDohodForm
 from .rokydni import datum_postupu, vypocet_prax, vypocet_zamestnanie, postup_roky, roky_postupu
+from beliana.settings import DPH
 from dennik.models import Dokument, TypDokumentu, InOut
 
 #zobrazenie histórie
@@ -362,6 +364,106 @@ class PravidelnaPlatbaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryA
     # do AdminForm pridať request, aby v jej __init__ bolo request dostupné
     def get_form(self, request, obj=None, **kwargs):
         AdminForm = super(PravidelnaPlatbaAdmin, self).get_form(request, obj, **kwargs)
+        class AdminFormMod(AdminForm):
+            def __new__(cls, *args, **kwargs):
+                kwargs['request'] = request
+                return AdminForm(*args, **kwargs)
+        return AdminFormMod
+
+@admin.register(Najomnik)
+class NajomnikAdmin(ZobrazitZmeny, SimpleHistoryAdmin, ImportExportModelAdmin):
+    list_display = ("nazov", "zastupeny", "s_danou", "bankovy_kontakt", "adresa") 
+    search_fields = ("nazov", "zastupeny")
+    def adresa(self, obj):
+        if obj.adresa_mesto:
+            return f"{obj.adresa_ulica} {obj.adresa_mesto}, {obj.adresa_stat}".strip()
+    adresa.short_description = "Adresa"
+
+@admin.register(NajomnaZmluva)
+class NajomnaZmluvaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
+    form = NajomnaZmluvaForm
+    list_display = ("cislo", "orig_cislo", "najomnik_link", "datum_zverejnenia_CRZ", "datum_do", "url_zmluvy_html", "miestnosti", "vymery", "poznamka")
+    search_fields = ("najomnik__nazov", "najomnik__zastupeny")
+
+    # formátovať pole url_zmluvy
+    def url_zmluvy_html(self, obj):
+        if obj.url_zmluvy:
+            return format_html(f'<a href="{obj.url_zmluvy}" target="_blank">pdf</a>')
+        else:
+            return None
+    url_zmluvy_html.short_description = "Zmluva v CRZ"
+
+    change_links = [
+        ('najomnik', {
+            'admin_order_field': 'najomnik__nazov', # Allow to sort members by the column
+        })
+    ]
+
+
+    def orig_cislo(self, obj):
+        parsed = re.findall(f"{NajomnaZmluva.oznacenie}-(....)-(...)", obj.cislo)
+        if parsed:
+            rok, nn = parsed[0]
+            rok = int(rok)
+            nn = int(nn)
+        if rok < 2022:
+            return "%02d/%d"%(nn, rok)
+        else:
+            return "-"
+    orig_cislo.short_description = "Pôv. číslo"
+
+@admin.register(NajomneFaktura)
+class NajomneFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
+    form = NajomneFakturaForm
+    list_display = ("cislo", "cislo_softip", "zmluva_link", "typ", "splatnost_datum", "dane_na_uhradu", "suma", "_dph", "platobny_prikaz")
+    def _dph(self, obj):
+        if obj.typ != TypPN.NAJOMNE or obj.zmluva.najomnik.s_danou == AnoNie.ANO:
+            return round(obj.suma*DPH/100,2)
+        else:
+            return 0
+    #search_fields = ("nazov", "zastupeny")
+    def get_readonly_fields(self, request, obj=None):
+        if not obj:
+            return ["dane_na_uhradu", "cislo_softip", "platobny_prikaz" ]
+        else:
+            if not obj.cislo_softip:
+                #return ["dane_na_uhradu", "platobny_prikaz"]
+                return ["platobny_prikaz"]
+        return ["platobny_prikaz"]
+    actions = ['vytvorit_platobny_prikaz']
+
+    search_fields = ["cislo", "zmluva__cislo", "zmluva__najomnik__nazov"]
+
+    # zoraďovateľný odkaz na dodávateľa
+    change_links = [
+        ('zmluva', {
+            'admin_order_field': 'zmluva__najomnik__nazov', # Allow to sort members by the column
+        })
+    ]
+
+    def vytvorit_platobny_prikaz(self, request, queryset):
+        if len(queryset) != 1:
+            self.message_user(request, f"Vybrať možno len jednu položku", messages.ERROR)
+            return
+        platba = queryset[0]
+        if not platba.cislo_softip:
+            self.message_user(request, f"Faktúra nemá zadané číslo zo Softipu,  vytváranie platobného príkazu nie je možné", messages.ERROR)
+            return
+        if platba.suma < 0: #ak platíme (len vyúčtovanie)
+            status, msg, vytvoreny_subor = VytvoritPlatobnyPrikaz(platba, request.user)
+        else:
+            status, msg, vytvoreny_subor = VytvoritKryciList(platba, request.user)
+        if status != messages.ERROR:
+            platba.platobny_prikaz = vytvoreny_subor
+            platba.save()
+        self.message_user(request, msg, status)
+    vytvorit_platobny_prikaz.short_description = "Vytvoriť krycí list pre THS"
+    #Oprávnenie na použitie akcie, viazané na 'change'
+    vytvorit_platobny_prikaz.allowed_permissions = ('change',)
+
+    # do AdminForm pridať request, aby v jej __init__ bolo request dostupné
+    def get_form(self, request, obj=None, **kwargs):
+        AdminForm = super(NajomneFakturaAdmin, self).get_form(request, obj, **kwargs)
         class AdminFormMod(AdminForm):
             def __new__(cls, *args, **kwargs):
                 kwargs['request'] = request

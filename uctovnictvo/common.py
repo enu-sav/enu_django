@@ -39,7 +39,43 @@ def adresa(osoba):
         return f"{osoba.adresa_ulica}, {osoba.adresa_mesto}, {osoba.adresa_stat}".strip()
     else:
         return f"{osoba.adresa_mesto}, {osoba.adresa_stat}".strip()
-            
+ 
+# pouzivatel: aktualny pouzivatel
+def VytvoritKryciList(platba, pouzivatel):
+    #úvodné testy
+    if not os.path.isdir(settings.PLATOBNE_PRIKAZY_DIR):
+        os.makedirs(settings.PLATOBNE_PRIKAZY_DIR)
+    
+    lt="[["
+    gt="]]"
+
+    #Načítať súbor šablóny
+    nazov_objektu = "Šablóna krycieho listu bez platby"  #Presne takto musí byť objekt pomenovaný
+    sablona = SystemovySubor.objects.filter(subor_nazov = nazov_objektu)
+    if not sablona:
+        return messages.ERROR, f"V systéme nie je definovaný súbor '{nazov_objektu}'.", None
+    nazov_suboru = sablona[0].subor.file.name 
+ 
+    try:
+        with open(nazov_suboru, "r") as f:
+            text = f.read()
+    except:
+        return messages.ERROR, f"Chyba pri vytváraní súboru krycieho listu: chyba pri čítaní šablóny '{nazov_suboru}'", None
+    
+    # vložiť údaje
+    #
+    text = text.replace(f"{lt}softip_faktura_cislo{gt}", platba.cislo_softip)
+    locale.setlocale(locale.LC_ALL, 'sk_SK.UTF-8')
+    text = text.replace(f"{lt}akt_datum{gt}", timezone.now().strftime("%d. %m. %Y"))
+    #ulozit
+    nazov = platba.zmluva.najomnik.nazov
+    if "," in nazov: nazov = nazov[:nazov.find(",")]
+    nazov = f"{nazov}-{platba.cislo}.fodt".replace(' ','-').replace("/","-")
+    opath = os.path.join(settings.PLATOBNE_PRIKAZY_DIR,nazov)
+    with open(os.path.join(settings.MEDIA_ROOT,opath), "w") as f:
+        f.write(text)
+    return messages.SUCCESS, mark_safe(f"Súbor krycieho listu platby {platba.cislo} bol úspešne vytvorený ({opath}). Krycí list dajte na podpis. <br />Ak treba, údaje platby možno ešte upravovať. Po každej úprave treba vytvoriť nový krycí list opakovaním akcie.<br />Po podpísaní krycí list dajte na sekretariát na odoslanie a vyplňte pole 'Dané na vybavenie dňa'."), opath
+ 
 # pouzivatel: aktualny pouzivatel
 def VytvoritPlatobnyPrikaz(faktura, pouzivatel):
     #úvodné testy

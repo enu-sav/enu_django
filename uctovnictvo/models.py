@@ -57,8 +57,15 @@ class TypDochodku(models.TextChoices):
     VYSLUHOVY = "vysluhovy",  "výsluhový po dovŕšení dôchodkového veku"
     PREDCASNY = "predcasny", "predčasný (poberateľovi zanikne nárok na výplatu predčasného dôchodku)"
 
+#typ pravidelnej platby
 class TypPP(models.TextChoices):
     ZALOHA_EL_ENERGIA = 'zaloha_el_energia', 'Záloha za el. energiu'
+
+#typ platby nájomníka
+class TypPN(models.TextChoices):
+    NAJOMNE = 'najomne', 'Nájomné'
+    SLUZBY = 'sluzby', 'Služby spojené s prenájmom'
+    VYUCTOVANIE = 'vyuctovanie', 'Vyúčtovanie služieb'
 
 class Zdroj(models.Model):
     kod = models.CharField("Kód", 
@@ -394,6 +401,132 @@ class PravidelnaPlatba(PrijataFakturaPravidelnaPlatba):
         verbose_name_plural = 'Faktúry - Pravidelné platby'
     def __str__(self):
         return self.cislo
+
+class Najomnik(PersonCommon):
+    nazov = models.CharField("Názov", max_length=200)
+    zastupeny = models.CharField("Zastúpený",
+            max_length=200,
+            blank = True,
+            null = True,
+            )
+    s_danou = models.CharField("Fakturované s daňou",
+            max_length=3,
+            help_text = "Uveďte 'Áno', ak sa nájomníkovi fakturuje nájomné s DPH, inak uveďte 'Nie'. Služby za nájomné sa vždy fakturujú s DPH",
+            null = True,
+            choices=AnoNie.choices)
+    history = HistoricalRecords()
+    class Meta:
+        verbose_name = 'Nájomník'
+        verbose_name_plural = 'Prenájom - Nájomníci'
+    def __str__(self):
+        return self.nazov
+
+
+class NajomnaZmluva(models.Model):
+    oznacenie = "NZ"    #NZ-2021-123
+    cislo = models.CharField("Číslo",
+            #help_text: definovaný vo forms
+            max_length=50)
+    najomnik = models.ForeignKey(Najomnik,
+            on_delete=models.PROTECT,
+            verbose_name = "Nájomník"
+            )
+    url_zmluvy = models.URLField('URL zmluvy',
+            help_text = "Zadajte URL pdf súboru zmluvy zo stránky CRZ.",
+            null=True,
+            blank = True
+            )
+    datum_zverejnenia_CRZ = models.DateField('Platná od',
+            help_text = "Zadajte dátum účinnosti zmluvy (dátum zverejnenia v CRZ + 1 deň).",
+            blank=True, null=True
+            )
+    datum_do = models.DateField('Platná do',
+            help_text = "Nechajte prázdne alebo zadajte dátum ukončenia prenájmu (ukončenia platnosti zmluvy).<br />Po zadaní dátumu sa zmaže obsah polí <em>Miestnosti</em> a <em>Výmera miestností</em>",
+            blank=True,
+            null=True)
+    miestnosti = models.CharField("Miestnosti",
+            help_text = "Zadajte číslo prenajatej miestnosti alebo zoznam čísiel prenajatých miestností oddelených čiarkou",
+            max_length=100,
+            blank = True,
+            null=True
+            )
+    vymery = models.CharField("Výmera miestností",
+            help_text = "Zadajte výmeru prenajatej miestnosti alebo zoznam výmer v poradí podľa poľa <em>Miestnosti</em>",
+            max_length=150,
+            blank = True,
+            null=True
+            )
+    poznamka = models.CharField("Poznámka",
+            max_length=200,
+            null=True,
+            blank=True
+            )
+    history = HistoricalRecords()
+    class Meta:
+        verbose_name = 'Nájomná zmluva',
+        verbose_name_plural = 'Prenájom - Zmluvy'
+        #abstract = True
+    def __str__(self):
+        return f"{self.cislo} - {self.najomnik}"
+
+class NajomneFaktura(Klasifikacia):
+    # Polia
+    oznacenie = "NF"    #NF-2021-123
+    cislo = models.CharField("Číslo",
+            #help_text: definovaný vo forms
+            max_length=50)
+    cislo_softip = models.CharField("Číslo Softip",
+            help_text = "Zadajte číslo faktúry zo Softipu",
+            max_length=25,
+            blank = True,
+            null=True)
+
+    typ = models.CharField("Typ faktúry",
+            max_length=25,
+            choices=TypPN.choices)
+
+    dane_na_uhradu = models.DateField('Dané na vybavenie dňa',
+            help_text = 'Zadajte dátum odovzdania krycieho listu na sekretariát na odoslanie THS. <br />Vytvorí sa záznam v <a href="/admin/dennik/dokument/">denníku prijatej a odoslanej pošty</a>.',
+            blank=True, null=True)
+    splatnost_datum = models.DateField('Dátum splatnosti',
+            help_text = "Zadajte dátum splatnosti 1. platby v aktuálnom roku.<br />Platby sú štvrťročné, po zadaní 1. faktúry (ak nejde o vyúčtovanie) sa doplnia záznamy pre zvyšné faktúry v roku.",
+            null=True)
+    suma = models.DecimalField("Suma bez DPH",
+            help_text = 'Zadajte sumu bez DPH štrvrťročne.<br />Ak sa nájomníkovi účtuje DPH za nájomné, vypočíta sa z tejto sumy. DPH za služby sa účtuje vždy.',
+            max_digits=8,
+            decimal_places=2,
+            null=True)
+    zmluva = models.ForeignKey(NajomnaZmluva,
+            null=True,
+            verbose_name = "Nájomná zmluva",
+            on_delete=models.PROTECT
+            )
+    platobny_prikaz = models.FileField("Krycí list pre THS-ku",
+            help_text = "Súbor s krycím listom pre THS-ku. Generuje sa akciou 'Vytvoriť krycí list pre THS'.<br />Ak treba, v prípade vyúčtovania je súčasťou aj platobný prikaz",
+            upload_to=platobny_prikaz_upload_location,
+            null = True, blank = True)
+
+    # Koho uviesť ako adresata v denniku
+    def adresat(self):
+        return self.objednavka_zmluva.najomnik.nazov if self.objednavka_zmluva else ""
+
+    #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
+    def cerpanie_rozpoctu(self, zden):
+        if not self.splatnost_datum: return []
+        if self.splatnost_datum <zden: return []
+        if self.splatnost_datum >= date(zden.year, zden.month+1, zden.day): return []
+        typ = "prenájom nájomné" if self.typ == TypPN.NAJOMNE else "prenájom služby" if self.typ == TypPN.SLUZBY else "prenájom vyúčtovanie"
+        platba = {
+                "nazov":f"Faktúra {typ}",
+                "suma": self.suma,
+                "zdroj": self.zdroj,
+                "zakazka": self.zakazka,
+                "ekoklas": self.ekoklas
+                }
+        return [platba]
+    class Meta:
+        verbose_name = 'Faktúra za prenájom'
+        verbose_name_plural = 'Prenájom - Faktúry'
 
 class PrispevokNaStravne(Klasifikacia):
     oznacenie = "PS"    #v čísle faktúry, FS-2021-123
