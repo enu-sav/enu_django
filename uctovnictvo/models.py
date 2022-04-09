@@ -127,7 +127,20 @@ class EkonomickaKlasifikacia(models.Model):
     class Meta:
         verbose_name = 'Ekonomická klasifikácia'
         verbose_name_plural = 'Klasifikácia - Ekonomická klasifikácia'
- 
+
+class Cinnost(models.Model):
+    kod = models.CharField("Kód",
+            help_text = "Zadajte kód činnosti",
+            max_length=10)
+    nazov = models.CharField("Názov",
+            help_text = "Zadajte názov činosti",
+            max_length=100)
+    history = HistoricalRecords()
+    def __str__(self):
+        return f"{self.kod} - {' '.join(self.nazov.split(' ')[:4])}"
+    class Meta:
+        verbose_name = 'Činnosť'
+        verbose_name_plural = 'Klasifikácia - Činnosť'
 
 # Abstraktná trieda so všetkými spoločnými poľami, nepoužívaná samostatne
 class PersonCommon(models.Model):
