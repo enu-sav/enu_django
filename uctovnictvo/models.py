@@ -278,6 +278,11 @@ class Klasifikacia(models.Model):
             on_delete=models.PROTECT,
             verbose_name = "Ekonomická klasifikácia",
             related_name='%(class)s_klasifikacia')
+    cinnost = models.ForeignKey(Cinnost,
+            on_delete=models.PROTECT,
+            verbose_name = "Činnosť",
+            default = 1,
+            related_name='%(class)s_klasifikacia')
     poznamka = models.CharField("Poznámka", 
             max_length=200, 
             null=True,
