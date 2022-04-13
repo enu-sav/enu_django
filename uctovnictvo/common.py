@@ -65,6 +65,11 @@ def VytvoritKryciList(platba, pouzivatel):
     # vložiť údaje
     #
     text = text.replace(f"{lt}softip_faktura_cislo{gt}", platba.cislo_softip)
+    text = text.replace(f"{lt}zdroj{gt}", f"{platba.zdroj.kod} ({platba.zdroj.popis})")
+    text = text.replace(f"{lt}zakazka{gt}", f"{platba.zakazka.kod} ({platba.zakazka.popis})")
+    text = text.replace(f"{lt}ekoklas{gt}", f"{platba.ekoklas.kod} ({platba.ekoklas.nazov})")
+    #text = text.replace(f"{lt}cinnost{gt}", f"{platba.cinnost.kod} ({platba.zdroj.popis})")
+    text = text.replace(f"{lt}cinnost{gt}", "") #dočasné, kým sa veci nevyjasnia
     locale.setlocale(locale.LC_ALL, 'sk_SK.UTF-8')
     text = text.replace(f"{lt}akt_datum{gt}", timezone.now().strftime("%d. %m. %Y"))
     #ulozit
