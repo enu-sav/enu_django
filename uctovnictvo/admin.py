@@ -181,7 +181,7 @@ class ZmluvaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, Impo
 class PrijataFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
     form = PrijataFakturaForm
     list_display = ["cislo", "objednavka_zmluva_link", "prijata_faktura", "suma", "predmet", "platobny_prikaz", "dane_na_uhradu", "zdroj", "zakazka", "ekoklas"]
-    search_fields = ["^cislo","objednavka_zmluva__dodavatel__nazov", "^zdroj__kod", "^zakazka__kod", "^ekoklas__kod" ]
+    search_fields = ["^cislo","objednavka_zmluva__dodavatel__nazov", "predmet", "^zdroj__kod", "^zakazka__kod", "^ekoklas__kod" ]
 
     # zoraďovateľný odkaz na dodávateľa
     # umožnené prostredníctvom AdminChangeLinksMixin
@@ -203,7 +203,7 @@ class PrijataFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdm
         if not obj:
             return ["program", "platobny_prikaz", "dane_na_uhradu"]
         elif obj.dane_na_uhradu:
-            nearly_all = ["program", "cislo", "platobny_prikaz", "doslo_datum"] 
+            nearly_all = ["program", "platobny_prikaz", "doslo_datum"] 
             nearly_all += ["splatnost_datum", "predmet", "suma", "mena", "objednavka_zmluva", "dane_na_uhradu"]
             return nearly_all
         elif not obj.platobny_prikaz:   #ešte nebola spustená akcia
