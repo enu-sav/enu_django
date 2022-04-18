@@ -296,7 +296,7 @@ def platobny_prikaz_upload_location(instance, filename):
     return os.path.join(PLATOBNE_PRIKAZY_DIR, filename)
 def prijata_faktura_upload_location(instance, filename):
     return os.path.join(PRIJATEFAKTURY_DIR, filename)
-class PrijataFakturaPravidelnaPlatba(Klasifikacia):
+class FakturaPravidelnaPlatba(Klasifikacia):
     # Polia
     cislo = models.CharField("Číslo", 
             #help_text: definovaný vo forms
@@ -341,7 +341,7 @@ class PrijataFakturaPravidelnaPlatba(Klasifikacia):
     class Meta:
         abstract = True
 
-class PrijataFaktura(PrijataFakturaPravidelnaPlatba):
+class PrijataFaktura(FakturaPravidelnaPlatba):
     oznacenie = "Fa"    #v čísle faktúry, Fa-2021-123
     # Polia
     dcislo = models.CharField("Dodávateľské číslo faktúry", 
@@ -388,7 +388,7 @@ class PrijataFaktura(PrijataFakturaPravidelnaPlatba):
     def __str__(self):
         return f'Faktúra k "{self.objednavka_zmluva}" : {self.suma} €'
 
-class PravidelnaPlatba(PrijataFakturaPravidelnaPlatba):
+class PravidelnaPlatba(FakturaPravidelnaPlatba):
     oznacenie = "PP"    #v čísle faktúry, Fa-2021-123
     # Polia
     history = HistoricalRecords()
