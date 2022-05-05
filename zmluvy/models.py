@@ -298,7 +298,7 @@ class PlatbaAutorskaSumar(models.Model):
     #platba_zaznamenana: nastavované programovo
     platba_zaznamenana = models.CharField("Platba zaznanenaná v DB", max_length=3, choices=AnoNie.choices, default=AnoNie.NIE)
     cislo = models.CharField("Identifikátor vyplácania",
-            help_text = "Ako identifikátor vyplácania sa použije dátum jeho vytvorenia",
+            help_text = "Identifikátor vyplácania v tvare AH-RRRR-NNN",
             max_length=20, 
             null = True
             )
