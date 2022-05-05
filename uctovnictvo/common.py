@@ -167,6 +167,7 @@ def VytvoritPlatobnyPrikaz(faktura, pouzivatel):
     else:
         text = text.replace(f"{lt}dph_neuctovat{gt}", "")
     text = text.replace(f"{lt}program{gt}", faktura.program.kod)
+    text = text.replace(f"{lt}cinnost{gt}", faktura.cinnost.kod)
     text = text.replace(f"{lt}zakazka{gt}", faktura.zakazka.kod)
     text = text.replace(f"{lt}akt_datum{gt}", timezone.now().strftime("%d. %m. %Y"))
     #ulozit
