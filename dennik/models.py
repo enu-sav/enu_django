@@ -27,6 +27,7 @@ class TypDokumentu(models.TextChoices):
     HROMADNY = 'hromadny', 'Hromadný dokument'
     VYPLACANIE_AH = 'vyplacanie_ah', 'Vyplácanie autorských honorárov'
     NAJOMNE = 'najomne', 'Nájomné'
+    PRAVIDELNAPLATBA = 'pravidelnaplatba', 'Pravidelná platba'
     INY = 'iny', 'Iný'
 
 # Typy šablón na vyplňovanie. Určuje, zoznam povolených tokenov v šablóne

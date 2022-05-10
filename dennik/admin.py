@@ -33,7 +33,8 @@ typ_dokumentu = {
     DoPC.oznacenie: TypDokumentu.DoPC,
     DoVP.oznacenie: TypDokumentu.DoVP,
     DoBPS.oznacenie: TypDokumentu.DoBPS,
-    PlatbaAutorskaSumar.oznacenie: TypDokumentu.VYPLACANIE_AH
+    PlatbaAutorskaSumar.oznacenie: TypDokumentu.VYPLACANIE_AH,
+    PravidelnaPlatba.oznacenie: TypDokumentu.PRAVIDELNAPLATBA
 }
 
 #zobrazenie histórie
