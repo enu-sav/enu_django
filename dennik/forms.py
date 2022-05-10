@@ -48,14 +48,14 @@ def normalizovat_cislo(cislo):
         DoBPS.oznacenie.lower(): DoBPS.oznacenie,
         PlatbaAutorskaSumar.oznacenie.lower(): PlatbaAutorskaSumar.oznacenie,
         NajomneFaktura.oznacenie.lower(): NajomneFaktura.oznacenie,
-        PravidelnaPlatba.oznacenie.lower(): PravidelnaPlatba
+        PravidelnaPlatba.oznacenie.lower(): PravidelnaPlatba.oznacenie
     }
     aux = parse_cislo(cislo)
     if aux:
         typ, rok, cislo = aux[0]
         if not typ.lower() in typy:
             raise ValidationError({"cislopolozky": f"Typ položky {typ} v databáze neexistuje. Overte správnosť zápisu."})
-        return "%s-%s-%03d"%(typy[typ.lower()].oznacenie, rok, int(cislo))
+        return "%s-%s-%03d"%(typy[typ.lower()], rok, int(cislo))
     else:
         return cislo
 
