@@ -7,6 +7,7 @@ from ipdb import set_trace as trace
 from .models import Dokument, InOut, TypDokumentu, Formular, CerpanieRozpoctu
 from zmluvy.models import ZmluvaAutor, ZmluvaGrafik, VytvarnaObjednavkaPlatba, PlatbaAutorskaSumar
 from uctovnictvo.models import Objednavka, PrijataFaktura, PrispevokNaStravne, DoVP, DoPC, DoBPS, NajomneFaktura
+from uctovnictvo.models import PravidelnaPlatba
 from datetime import datetime
 from django.core.exceptions import ValidationError
 import re
@@ -24,6 +25,7 @@ triedy = {
     DoBPS.oznacenie: DoBPS,
     PlatbaAutorskaSumar.oznacenie: PlatbaAutorskaSumar,
     NajomneFaktura.oznacenie: NajomneFaktura,
+    PravidelnaPlatba.oznacenie: PravidelnaPlatba
 }
 
     #
