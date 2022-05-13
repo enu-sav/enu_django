@@ -294,9 +294,7 @@ class Klasifikacia(models.Model):
 #Vykoná sa len pri vkladaní suborov cez GUI. Pri programovom vytváraní treba cestu nastaviť
 def platobny_prikaz_upload_location(instance, filename):
     return os.path.join(PLATOBNE_PRIKAZY_DIR, filename)
-def prijata_faktura_upload_location(instance, filename):
-    return os.path.join(PRIJATEFAKTURY_DIR, filename)
-class FakturaPravidelnaPlatba(Klasifikacia):
+class Platba(Klasifikacia):
     # Polia
     cislo = models.CharField("Číslo", 
             #help_text: definovaný vo forms
@@ -310,15 +308,19 @@ class FakturaPravidelnaPlatba(Klasifikacia):
             max_digits=8, 
             decimal_places=2, 
             null=True)
+    platobny_prikaz = models.FileField("Platobný príkaz pre THS-ku",
+            help_text = "Súbor s platobným príkazom a krycím listom pre THS-ku. Generuje sa akciou 'Vytvoriť platobný príkaz a krycí list pre THS'",
+            upload_to=platobny_prikaz_upload_location, 
+            null = True, blank = True)
+    class Meta:
+        abstract = True
+
+class FakturaPravidelnaPlatba(Platba):
     objednavka_zmluva = models.ForeignKey(ObjednavkaZmluva, 
             null=True, 
             verbose_name = "Objednávka / zmluva",
             on_delete=models.PROTECT, 
             related_name='%(class)s_faktury')    
-    platobny_prikaz = models.FileField("Platobný príkaz pre THS-ku",
-            help_text = "Súbor s platobným príkazom a krycím listom pre THS-ku. Generuje sa akciou 'Vytvoriť platobný príkaz a krycí list pre THS'",
-            upload_to=platobny_prikaz_upload_location, 
-            null = True, blank = True)
 
     # Koho uviesť ako adresata v denniku
     def adresat(self):
@@ -341,6 +343,8 @@ class FakturaPravidelnaPlatba(Klasifikacia):
     class Meta:
         abstract = True
 
+def prijata_faktura_upload_location(instance, filename):
+    return os.path.join(PRIJATEFAKTURY_DIR, filename)
 class PrijataFaktura(FakturaPravidelnaPlatba):
     oznacenie = "Fa"    #v čísle faktúry, Fa-2021-123
     # Polia
