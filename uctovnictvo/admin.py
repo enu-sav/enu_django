@@ -12,6 +12,7 @@ from .models import Objednavka, Zmluva, PrijataFaktura, SystemovySubor, Rozhodnu
 from .models import Dohoda, DoVP, DoPC, DoBPS, VyplacanieDohod, AnoNie, PlatovyVymer, StavVymeru
 from .models import ZamestnanecDohodar, Zamestnanec, Dohodar, StavDohody, PravidelnaPlatba
 from .models import Najomnik, NajomnaZmluva, NajomneFaktura, TypPP, TypPN, Cinnost
+from .models import InternyPartner
 from .common import VytvoritPlatobnyPrikaz, VytvoritSuborDohody, VytvoritSuborObjednavky, leapdays, VytvoritKryciList
 from .forms import PrijataFakturaForm, AutorskeZmluvyForm, ObjednavkaForm, ZmluvaForm, PrispevokNaStravneForm, PravidelnaPlatbaForm
 from .forms import PlatovyVymerForm, NajomneFakturaForm, NajomnaZmluvaForm
@@ -79,6 +80,15 @@ class CinnostAdmin(ZobrazitZmeny, SimpleHistoryAdmin, ImportExportModelAdmin):
 @admin.register(Dodavatel)
 class DodavatelAdmin(ZobrazitZmeny, SimpleHistoryAdmin, ImportExportModelAdmin):
     list_display = ("nazov", "s_danou", "bankovy_kontakt", "adresa") 
+    search_fields = ("nazov",)
+    def adresa(self, obj):
+        if obj.adresa_mesto:
+            return f"{obj.adresa_ulica} {obj.adresa_mesto}, {obj.adresa_stat}".strip()
+    adresa.short_description = "Adresa"
+
+@admin.register(InternyPartner)
+class InternyPartnerAdmin(ZobrazitZmeny, SimpleHistoryAdmin, ImportExportModelAdmin):
+    list_display = ("nazov", "bankovy_kontakt", "adresa") 
     search_fields = ("nazov",)
     def adresa(self, obj):
         if obj.adresa_mesto:

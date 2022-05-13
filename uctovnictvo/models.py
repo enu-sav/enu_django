@@ -157,6 +157,15 @@ class PersonCommon(models.Model):
     class Meta:
         abstract = True
 
+class InternyPartner(PersonCommon):
+    nazov = models.CharField("Názov", max_length=200)
+    history = HistoricalRecords()
+    class Meta:
+        verbose_name = 'Interný partner'
+        verbose_name_plural = 'Faktúry - Interní partneri'
+    def __str__(self):
+        return self.nazov
+
 class Dodavatel(PersonCommon):
     nazov = models.CharField("Názov", max_length=200)
     s_danou = models.CharField("Fakturované s daňou", 
@@ -342,6 +351,15 @@ class FakturaPravidelnaPlatba(Platba):
         return [platba]
     class Meta:
         abstract = True
+
+class InternyPrevod(Platba):
+    oznacenie = "IP"    #v čísle faktúry, IP-2021-123
+    partner = models.ForeignKey(InternyPartner,
+            on_delete=models.PROTECT, 
+            verbose_name = "InternyPartner",
+            null = True,
+            related_name='%(class)s_requests_created')  #zabezpečí rozlíšenie modelov Objednavka a PrijataFaktura 
+    history = HistoricalRecords()
 
 def prijata_faktura_upload_location(instance, filename):
     return os.path.join(PRIJATEFAKTURY_DIR, filename)
