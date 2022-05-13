@@ -359,7 +359,20 @@ class InternyPrevod(Platba):
             verbose_name = "InternyPartner",
             null = True,
             related_name='%(class)s_requests_created')  #zabezpečí rozlíšenie modelov Objednavka a PrijataFaktura 
+    doslo_datum = models.DateField('Došlo dňa',
+            null=True)
+    predmet = models.CharField("Predmet", 
+            null = True,
+            max_length=100)
+    na_zaklade = models.CharField("Na základe", 
+            null = True,
+            max_length=100)
     history = HistoricalRecords()
+    class Meta:
+        verbose_name = "Interný prevod",
+        verbose_name_plural = "Faktúry - Interné prevody"
+    def __str__(self):
+        return self.cislo
 
 def prijata_faktura_upload_location(instance, filename):
     return os.path.join(PRIJATEFAKTURY_DIR, filename)

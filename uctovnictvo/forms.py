@@ -5,7 +5,7 @@ from django.core.exceptions import ValidationError
 from ipdb import set_trace as trace
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
-from .models import PrijataFaktura, Objednavka, PrispevokNaStravne, DoPC, DoVP, DoBPS, PlatovyVymer, VyplacanieDohod, StavDohody, Dohoda, PravidelnaPlatba, TypPP
+from .models import PrijataFaktura, Objednavka, PrispevokNaStravne, DoPC, DoVP, DoBPS, PlatovyVymer, VyplacanieDohod, StavDohody, Dohoda, PravidelnaPlatba, TypPP, InternyPrevod
 from .models import Najomnik, NajomnaZmluva, NajomneFaktura, TypPN
 from dennik.models import Dokument, SposobDorucenia, TypDokumentu, InOut
 from datetime import date, datetime
@@ -102,6 +102,87 @@ class PrijataFakturaForm(forms.ModelForm):
             )
         except ValidationError as ex:
             raise ex
+        return self.cleaned_data
+
+class InternyPrevodForm(forms.ModelForm):
+    #inicializácia polí
+    def __init__(self, *args, **kwargs):
+        # do Admin treba pridať metódu get_form
+        self.request = kwargs.pop('request', None)
+        super().__init__(*args, **kwargs)
+        polecislo = "cislo"
+        # Ak je pole readonly, tak sa nenachádza vo fields. Preto testujeme fields aj initial
+        if polecislo in self.fields:
+            if not polecislo in self.initial:
+                nasledujuce = nasledujuce_cislo(InternyPrevod)
+                self.fields[polecislo].help_text = f"Zadajte číslo novej platby v tvare {InternyPrevod.oznacenie}-RRRR-NNN'. Predvolené číslo '{nasledujuce}' bolo určené na základe čísiel existujúcich platieb ako nasledujúce v poradí."
+                self.initial[polecislo] = nasledujuce
+            else:
+                self.fields[polecislo].help_text = f"Číslo platby v tvare {InternyPrevod.oznacenie}-RRRR-NNN."
+        if "splatnost_datum" in self.fields:
+            if not "splatnost_datum" in self.initial:
+                self.fields["splatnost_datum"].help_text = f"Zadajte dátum splatnosti prvého vyplácania (obvykle v januári). Po uložení sa vytvorí záznam pre všetky opakovania pravidelnej platby do konca roka."
+            else:
+                self.fields["splatnost_datum"].help_text = f"Dátum splatnosti"
+
+    # Skontrolovať platnost a keď je všetko OK, spraviť záznam do denníka
+    def clean(self):
+        if 'cislo' in self.changed_data:
+            if not self.cleaned_data['cislo'][:2] == InternyPrevod.oznacenie:
+                raise ValidationError({"cislo": "Nesprávne číslo. Zadajte číslo novej platby v tvare {InternyPrevod.oznacenie}-RRRR-NNN"})
+        #Ak vytvárame novú platbu, doplniť platby do konca roka
+        if 'typ' in self.changed_data:
+            rok, poradie = re.findall(r"-([0-9]+)-([0-9]+)", self.cleaned_data['cislo'])[0]
+            rok = int(rok)
+            poradie = int(poradie) + 1
+            # skontrolovať znamienko
+            if self.cleaned_data['typ'] in [TypPP.ZALOHA_EL_ENERGIA]:   #výdavok
+                if  self.cleaned_data['suma'] > 0:  self.cleaned_data['suma'] *= -1
+            else:   #príjem
+                if  self.cleaned_data['suma'] < 0:  self.cleaned_data['suma'] *= -1
+            for mesiac in range(self.cleaned_data['splatnost_datum'].month+1, 13):
+                #vyplňa sa: ['zdroj', 'zakazka', 'ekoklas', 'splatnost_datum', 'suma', 'objednavka_zmluva', 'typ']
+                dup = InternyPrevod(
+                    zdroj = self.cleaned_data['zdroj'],
+                    zakazka = self.cleaned_data['zakazka'],
+                    program = self.cleaned_data['program'],
+                    ekoklas = self.cleaned_data['ekoklas'],
+                    suma = self.cleaned_data['suma'],
+                    typ = self.cleaned_data['typ'],
+                    cislo = "%s-%d-%03d"%(InternyPrevod.oznacenie, rok, poradie),
+                    splatnost_datum = date(rok, mesiac, self.cleaned_data['splatnost_datum'].day)
+                    )
+                #nepovinné pole
+                if 'objednavka_zmluva' in self.changed_data:
+                    dup.objednavka_zmluva = self.cleaned_data['objednavka_zmluva']
+                poradie += 1
+                dup.save()
+                pass
+
+        #pole dane_na_uhradu možno vyplniť až po vygenerovani platobného príkazu akciou 
+        #"Vytvoriť platobný príkaz a krycí list pre THS"
+        if 'dane_na_uhradu' in self.changed_data:
+            vec = f"Platobný príkaz na THS {self.instance.cislo} na vyplatenie"
+            cislo = nasledujuce_cislo(Dokument)
+            dok = Dokument(
+                cislo = cislo,
+                cislopolozky = self.instance.cislo,
+                #datumvytvorenia = self.cleaned_data['dane_na_uhradu'],
+                datumvytvorenia = date.today(),
+                typdokumentu = TypDokumentu.INTERNYPREVOD,
+                inout = InOut.ODOSLANY,
+                adresat = "THS",
+                vec = f'<a href="{self.instance.platobny_prikaz.url}">{vec}</a>',
+                prijalodoslal=self.request.user.username, #zámena mien prijalodoslal - zaznamvytvoril
+            )
+            dok.save()
+            messages.warning(self.request, 
+                format_html(
+                    'Do denníka prijatej a odoslanej pošty bol pridaný záznam č. {}: <em>{}</em>, treba v ňom doplniť údaje o odoslaní.',
+                    mark_safe(f'<a href="/admin/dennik/dokument/{dok.id}/change/">{cislo}</a>'),
+                    vec
+                    )
+        )
         return self.cleaned_data
 
 class PravidelnaPlatbaForm(forms.ModelForm):

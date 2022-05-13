@@ -10,7 +10,8 @@ from django.utils.html import format_html
 from django.utils import timezone
 from django.contrib import messages
 from zmluvy.models import ZmluvaAutor, ZmluvaGrafik, VytvarnaObjednavkaPlatba, PlatbaAutorskaSumar
-from uctovnictvo.models import Objednavka, PrijataFaktura, PrispevokNaStravne, DoVP, DoPC, DoBPS, PlatovyVymer, PravidelnaPlatba, NajomneFaktura
+from uctovnictvo.models import Objednavka, PrijataFaktura, PrispevokNaStravne, DoVP, DoPC, DoBPS
+from uctovnictvo.models import PlatovyVymer, PravidelnaPlatba, NajomneFaktura, InternyPrevod
 import re
 from import_export.admin import ImportExportModelAdmin
 from datetime import date
@@ -34,7 +35,8 @@ typ_dokumentu = {
     DoVP.oznacenie: TypDokumentu.DoVP,
     DoBPS.oznacenie: TypDokumentu.DoBPS,
     PlatbaAutorskaSumar.oznacenie: TypDokumentu.VYPLACANIE_AH,
-    PravidelnaPlatba.oznacenie: TypDokumentu.PRAVIDELNAPLATBA
+    PravidelnaPlatba.oznacenie: TypDokumentu.PRAVIDELNAPLATBA,
+    InternyPrevod.oznacenie: TypDokumentu.INTERNYPREVOD
 }
 
 #zobrazenie histórie

@@ -12,11 +12,13 @@ from .models import Objednavka, Zmluva, PrijataFaktura, SystemovySubor, Rozhodnu
 from .models import Dohoda, DoVP, DoPC, DoBPS, VyplacanieDohod, AnoNie, PlatovyVymer, StavVymeru
 from .models import ZamestnanecDohodar, Zamestnanec, Dohodar, StavDohody, PravidelnaPlatba
 from .models import Najomnik, NajomnaZmluva, NajomneFaktura, TypPP, TypPN, Cinnost
-from .models import InternyPartner
+from .models import InternyPartner, InternyPrevod
 from .common import VytvoritPlatobnyPrikaz, VytvoritSuborDohody, VytvoritSuborObjednavky, leapdays, VytvoritKryciList
+from .common import VytvoritPlatobnyPrikazIP
 from .forms import PrijataFakturaForm, AutorskeZmluvyForm, ObjednavkaForm, ZmluvaForm, PrispevokNaStravneForm, PravidelnaPlatbaForm
 from .forms import PlatovyVymerForm, NajomneFakturaForm, NajomnaZmluvaForm
 from .forms import DoPCForm, DoVPForm, DoBPSForm, nasledujuce_cislo, VyplacanieDohodForm
+from .forms import InternyPrevodForm
 from .rokydni import datum_postupu, vypocet_prax, vypocet_zamestnanie, postup_roky, roky_postupu
 from beliana.settings import DPH
 from dennik.models import Dokument, TypDokumentu, InOut
@@ -380,6 +382,65 @@ class PravidelnaPlatbaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryA
     # do AdminForm pridať request, aby v jej __init__ bolo request dostupné
     def get_form(self, request, obj=None, **kwargs):
         AdminForm = super(PravidelnaPlatbaAdmin, self).get_form(request, obj, **kwargs)
+        class AdminFormMod(AdminForm):
+            def __new__(cls, *args, **kwargs):
+                kwargs['request'] = request
+                return AdminForm(*args, **kwargs)
+        return AdminFormMod
+
+@admin.register(InternyPrevod)
+#medzi  ModelAdminTotals a ImportExportModelAdmin je konflikt
+#zobrazia sa Import Export tlačidlá alebo súčty
+#class InternyPrevodAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
+class InternyPrevodAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
+    form = InternyPrevodForm
+    list_display = ["cislo", "partner_link", "suma", "predmet", "na_zaklade", "platobny_prikaz", "doslo_datum", "splatnost_datum", "dane_na_uhradu", "zdroj", "zakazka", "ekoklas"]
+    search_fields = ["^cislo", "partner__nazov", "^zdroj__kod", "^zakazka__kod", "^ekoklas__kod" ]
+    def get_readonly_fields(self, request, obj=None):
+        if obj:
+            #return ["objednavka_zmluva", "cislo", "splatnost_datum", "typ", "program", "ekoklas", "zakazka", "zdroj", "platobny_prikaz"]
+            if obj.platobny_prikaz:
+                return ["partner", "cislo", "splatnost_datum", "program", "ekoklas", "platobny_prikaz"]
+            else:
+                return ["partner", "cislo", "splatnost_datum", "program", "ekoklas", "platobny_prikaz", "dane_na_uhradu"]
+        else:
+            return ["dane_na_uhradu", "platobny_prikaz"]
+
+    # zoraďovateľný odkaz na dodávateľa
+    # umožnené prostredníctvom AdminChangeLinksMixin
+    # Vyžaduje, aby ObjednavkaZmluva zmluva bola PolymorphicModel
+    change_links = [
+        ('partner', {
+            'label': "Interný partner",
+            'admin_order_field': 'partner__cislo', # Allow to sort members by the `xxx_link` column
+        })
+    ] 
+    list_totals = [
+        ('suma', Sum),
+    ]
+    actions = ['vytvorit_platobny_prikaz']
+
+    def vytvorit_platobny_prikaz(self, request, queryset):
+        if len(queryset) != 1:
+            self.message_user(request, f"Vybrať možno len jednu položku", messages.ERROR)
+            return
+        platba = queryset[0]
+        if platba.dane_na_uhradu:
+            self.message_user(request, f"Platba už bola daná na úhradu, vytváranie platobného príkazu nie je možné", messages.ERROR)
+            return
+        status, msg, vytvoreny_subor = VytvoritPlatobnyPrikazIP(platba, request.user)
+        if status != messages.ERROR:
+            platba.platobny_prikaz = vytvoreny_subor
+            platba.save()
+        self.message_user(request, msg, status)
+
+    vytvorit_platobny_prikaz.short_description = "Vytvoriť platobný príkaz a krycí list pre THS"
+    #Oprávnenie na použitie akcie, viazané na 'change'
+    vytvorit_platobny_prikaz.allowed_permissions = ('change',)
+
+    # do AdminForm pridať request, aby v jej __init__ bolo request dostupné
+    def get_form(self, request, obj=None, **kwargs):
+        AdminForm = super(InternyPrevodAdmin, self).get_form(request, obj, **kwargs)
         class AdminFormMod(AdminForm):
             def __new__(cls, *args, **kwargs):
                 kwargs['request'] = request

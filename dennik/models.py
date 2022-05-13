@@ -28,6 +28,7 @@ class TypDokumentu(models.TextChoices):
     VYPLACANIE_AH = 'vyplacanie_ah', 'Vyplácanie autorských honorárov'
     NAJOMNE = 'najomne', 'Nájomné'
     PRAVIDELNAPLATBA = 'pravidelnaplatba', 'Pravidelná platba'
+    INTERNYPREVOD = 'internyprevod', 'Interný prevod'
     INY = 'iny', 'Iný'
 
 # Typy šablón na vyplňovanie. Určuje, zoznam povolených tokenov v šablóne

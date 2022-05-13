@@ -82,6 +82,79 @@ def VytvoritKryciList(platba, pouzivatel):
     return messages.SUCCESS, mark_safe(f"Súbor krycieho listu platby {platba.cislo} bol úspešne vytvorený ({opath}). Krycí list dajte na podpis. <br />Ak treba, údaje platby možno ešte upravovať. Po každej úprave treba vytvoriť nový krycí list opakovaním akcie.<br />Po podpísaní krycí list dajte na sekretariát na odoslanie a vyplňte pole 'Dané na vybavenie dňa'."), opath
  
 # pouzivatel: aktualny pouzivatel
+def VytvoritPlatobnyPrikazIP(faktura, pouzivatel):
+    #úvodné testy
+    if not os.path.isdir(settings.PLATOBNE_PRIKAZY_DIR):
+        os.makedirs(settings.PLATOBNE_PRIKAZY_DIR)
+    
+    lt="[["
+    gt="]]"
+
+    #Načítať súbor šablóny
+    nazov_objektu = "Šablóna interný prevod"  #Presne takto musí byť objekt pomenovaný
+    sablona = SystemovySubor.objects.filter(subor_nazov = nazov_objektu)
+    if not sablona:
+        return messages.ERROR, f"V systéme nie je definovaný súbor '{nazov_objektu}'.", None
+    nazov_suboru = sablona[0].subor.file.name 
+ 
+    try:
+        with open(nazov_suboru, "r") as f:
+            text = f.read()
+    except:
+        return messages.ERROR, f"Chyba pri vytváraní súboru platobného príkazu interného prevodu: chyba pri čítaní šablóny '{nazov_suboru}'", None
+    
+    # vložiť údaje
+    #
+    text = text.replace(f"{lt}prevod_cislo{gt}", faktura.cislo)
+    locale.setlocale(locale.LC_ALL, 'sk_SK.UTF-8')
+    if faktura.suma:
+        text = text.replace(f"{lt}DM{gt}", f"{locale_format(-faktura.suma)} €")     # suma je záporná, o formulári chceme kladné
+    else:
+        return messages.ERROR, "Vytváranie príkazu zlyhalo, lebo nebola zadaná suma.", None
+    text = text.replace(f"{lt}prijimatel{gt}", faktura.partner.nazov)
+    # ulica ne nepovinná (malá obec)
+    if faktura.partner.adresa_ulica:
+        text = text.replace(f"{lt}adresa1{gt}", faktura.partner.adresa_ulica)
+    else:
+        text = text.replace(f"{lt}adresa1{gt}", "")
+    if not faktura.partner.adresa_mesto:
+        return messages.ERROR, "Vytváranie príkazu zlyhalo, lebo adresa dodávateľa je nekompletná (mesto).", None
+    else:
+        text = text.replace(f"{lt}adresa2{gt}", faktura.partner.adresa_mesto)
+    if not faktura.partner.adresa_stat:
+        return messages.ERROR, "Vytváranie príkazu zlyhalo, lebo adresa dodávateľa je nekompletná (štát).", None
+    else:
+        text = text.replace(f"{lt}adresa3{gt}", faktura.partner.adresa_stat)
+    text = text.replace(f"{lt}doslo_dna{gt}", faktura.doslo_datum.strftime("%d. %m. %Y"))
+    text = text.replace(f"{lt}datum_splatnosti{gt}", 
+            faktura.splatnost_datum.strftime("%d. %m. %Y") if faktura.splatnost_datum else "")
+    #text = text.replace(f"{lt}predmet_faktury{gt}", faktura.predmet if jePF else TypPP(faktura.typ).label)
+    text = text.replace(f"{lt}pouzivatel{gt}", pouzivatel.get_full_name())
+
+    text = text.replace(f"{lt}ekoklas{gt}", faktura.ekoklas.kod)
+    text = text.replace(f"{lt}zdroj{gt}", faktura.zdroj.kod)
+    if faktura.zdroj.kod == '111' or faktura.zdroj.kod == '131L':
+        text = text.replace(f"{lt}dph_neuctovat{gt}", "DPH neúčtovať")
+    else:
+        text = text.replace(f"{lt}dph_neuctovat{gt}", "")
+    text = text.replace(f"{lt}IBAN{gt}", faktura.partner.bankovy_kontakt)
+    text = text.replace(f"{lt}predmet{gt}", faktura.predmet)
+    text = text.replace(f"{lt}na_zaklade{gt}", faktura.na_zaklade)
+    text = text.replace(f"{lt}program{gt}", faktura.program.kod)
+    text = text.replace(f"{lt}cinnost{gt}", faktura.cinnost.kod)
+    text = text.replace(f"{lt}zakazka{gt}", faktura.zakazka.kod)
+    text = text.replace(f"{lt}akt_datum{gt}", timezone.now().strftime("%d. %m. %Y"))
+    #ulozit
+    #Create directory admin.rs_login if necessary
+    nazov = faktura.partner.nazov
+    if "," in nazov: nazov = nazov[:nazov.find(",")]
+    nazov = f"{nazov}-{faktura.cislo}.fodt".replace(' ','-').replace("/","-")
+    opath = os.path.join(settings.PLATOBNE_PRIKAZY_DIR,nazov)
+    with open(os.path.join(settings.MEDIA_ROOT,opath), "w") as f:
+        f.write(text)
+    return messages.SUCCESS, mark_safe(f"Súbor platobného príkazu internej platby {faktura.cislo} bol úspešne vytvorený ({opath}). Príkaz dajte na podpis. <br />Ak treba, údaje platby možno ešte upravovať. Po každej úprave treba vytvoriť nový platobný príkaz opakovaním akcie.<br />Po podpísaní príkaz dajte na sekretariát na odoslanie a vyplňte pole 'Dané na úhradu dňa'."), opath
+ 
+# pouzivatel: aktualny pouzivatel
 def VytvoritPlatobnyPrikaz(faktura, pouzivatel):
     #úvodné testy
     if not os.path.isdir(settings.PLATOBNE_PRIKAZY_DIR):
