@@ -810,7 +810,7 @@ class PlatovyVymer(Klasifikacia):
         poistne = {
                 "nazov": "Plat poistné",
                 #Dočasne všetci rovnako, treba opraviť
-                "suma": (Decimal(0.3495) if zden.year < 2022 else Decimal(0.352)) * (tarifny['suma']+osobny['suma']+funkcny['suma']),
+                "suma": -(Decimal(0.3495) if zden.year < 2022 else Decimal(0.352)) * (tarifny['suma']+osobny['suma']+funkcny['suma']),
                 "zdroj": self.zdroj,
                 "zakazka": self.zakazka,
                 "ekoklas": EkonomickaKlasifikacia.objects.get(kod="620")
@@ -917,7 +917,7 @@ class DoVP(Dohoda):
         poistne = {
                 "nazov": "DoVP poistne",
                 #Dočasne všetci rovnako, treba opraviť
-                "suma": (Decimal(0.3255) if zden.year < 2022 else Decimal(0.328)) * self.odmena_celkom 
+                "suma": -(Decimal(0.3255) if zden.year < 2022 else Decimal(0.328)) * self.odmena_celkom,
                 "zdroj": self.zdroj,
                 "zakazka": self.zakazka,
                 "ekoklas": EkonomickaKlasifikacia.objects.get(kod="620")
@@ -994,7 +994,7 @@ class DoPC(Dohoda):
         poistne = {
                 "nazov": "DoPC poistne",
                 #Dočasne všetci rovnako, treba opraviť
-                "suma": (Decimal(0.3495) if zden.year < 2022 else Decimal(0.352)) * self.odmena_mesacne 
+                "suma": -(Decimal(0.3495) if zden.year < 2022 else Decimal(0.352)) * self.odmena_mesacne,
                 "zdroj": self.zdroj,
                 "zakazka": self.zakazka,
                 "ekoklas": EkonomickaKlasifikacia.objects.get(kod="620")
