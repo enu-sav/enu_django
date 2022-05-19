@@ -494,8 +494,8 @@ class PlatbaAutorskaSumarSuborAdmin(admin.StackedInline):
 class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
     form = PlatbaAutorskaSumarForm
     # určiť poradie polí v editovacom formulári
-    fields = ['cislo', 'vyplatit_ths', 'podklady_odoslane', 'autori_na_vyplatenie', 'datum_uhradenia', 'vyplatene', 'kryci_list_odoslany', 'datum_zalozenia', 'datum_oznamenia', 'import_rs', 'import_webrs', 'datum_importovania']
-    list_display = ['cislo', 'podklady_odoslane', 'datum_uhradenia', 'kryci_list_odoslany', 'datum_zalozenia', 'datum_oznamenia', 'datum_importovania', 'honorar_rs', 'honorar_webrs', 'honorar_spolu', 'vyplatene_spolu', 'odvod_LF', 'odvedena_dan']
+    fields = ['cislo', 'vyplatit_ths', 'podklady_odoslane', 'autori_na_vyplatenie', 'datum_uhradenia', 'vyplatene', 'kryci_list_odoslany', 'dan_zaplatena', 'datum_zalozenia', 'datum_oznamenia', 'import_rs', 'import_webrs', 'datum_importovania']
+    list_display = ['cislo', 'podklady_odoslane', 'datum_uhradenia', 'kryci_list_odoslany', 'dan_zaplatena', 'datum_zalozenia', 'datum_oznamenia', 'datum_importovania', 'honorar_rs', 'honorar_webrs', 'honorar_spolu', 'vyplatene_spolu', 'odvod_LF', 'odvedena_dan']
     actions = ['vytvorit_podklady_pre_THS', 'zaznamenat_platby_do_db', 'zrusit_platbu']
     # pripajanie suborov k objektu: krok 3, inline do XxxAdmin 
     inlines = [PlatbaAutorskaSumarSuborAdmin]
@@ -524,6 +524,9 @@ class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
             #Pole 'Krycí list' odoslaný:
             if obj.vyplatene and not obj.kryci_list_odoslany and "kryci_list_odoslany" in fields:
                 fields.remove("kryci_list_odoslany")
+            #Pole Založené do šanonov (po autoroch):
+            if obj.vyplatene and not obj.dan_zaplatena and "dan_zaplatena" in fields:
+                fields.remove("dan_zaplatena")
             #Pole Založené do šanonov (po autoroch):
             if obj.vyplatene and not obj.datum_zalozenia and "datum_zalozenia" in fields:
                 fields.remove("datum_zalozenia")
@@ -683,6 +686,7 @@ class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
         platba.import_webrs=None
         platba.podklady_odoslane=None
         platba.kryci_list_odoslany=None
+        platba.dan_zaplatena=None
         pass
         platba.save()
         logs = vao.get_logs()

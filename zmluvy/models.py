@@ -328,6 +328,10 @@ class PlatbaAutorskaSumar(models.Model):
             help_text = f'Dátum odovzdania podkladov z poľa <em>{vyplatene.verbose_name}</em> na vyplatenie zrážkovej dane a odvodov do fondov na sekretariát na odoslanie do účtárne THS.',
             null=True, 
             blank=True)
+    dan_zaplatena= models.DateField("Daň zaplatená dňa",
+            help_text = f'Dátum zaplatenia dane Finančnej správe. Potrebné pri oznamovaní výšky zrazenej dane Finančnej správe.',
+            null=True, 
+            blank=True)
     import_rs = models.FileField("Importovať do RS",
             help_text = f"Súbor s údajmi o vyplácaní na importovanie do knižného redakčného systému. Po importovaní vyplniť pole <em>{datum_importovania.verbose_name}</em>.",
             upload_to=platba_autorska_sumar_upload_location, 
