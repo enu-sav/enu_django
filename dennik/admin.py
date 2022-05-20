@@ -56,7 +56,7 @@ class ZobrazitZmeny(SimpleHistoryAdmin):
 @admin.register(Dokument)
 class DokumentAdmin(ZobrazitZmeny,ImportExportModelAdmin):
     form = DokumentForm
-    list_display = ["cislo", "cislopolozky", "adresat", "typdokumentu", "inout", "datum", "sposob", "naspracovanie", "zaznamvytvoril", "vec_html", "prijalodoslal", "datumvytvorenia"]
+    list_display = ["cislo", "cislopolozky", "adresat", "typdokumentu", "inout", "datum", "sposob", "naspracovanie", "zaznamvytvoril", "vec_html", "suborposta", "prijalodoslal", "datumvytvorenia"]
     # určiť poradie polí v editovacom formulári
     #fields = ["cislo"]
     def vec_html(self, obj):

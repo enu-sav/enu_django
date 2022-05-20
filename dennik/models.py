@@ -46,6 +46,8 @@ class SposobDorucenia(models.TextChoices):
     WEB = 'web', 'Web rozhranie'
 
 # Create your models here.
+def dennik_file_path(instance, filename):
+    return os.path.join(settings.DENNIK_DIR_NAME, filename)
 class Dokument(models.Model):
     oznacenie = "D"    #v čísle dokument, D-2021-123
     cislo = models.CharField("Číslo", max_length=50)
@@ -95,6 +97,13 @@ podpísaná</em> v zmluve</li>
             max_length=50,
             blank = True,
             null = True)
+    suborposta = models.FileField("Súbor s poštou",
+            help_text = "Vložte súbor prijatou / odoslanou poštou (ak nebola súčasťou inej položky)",
+            storage=OverwriteStorage(), 
+            upload_to=dennik_file_path, 
+            null = True, 
+            blank = True 
+            )
     #pozor: prehodené popisy polí prijalodoslal a zaznamvytvoril
     prijalodoslal = models.CharField("Záznam vytvoril", 
             help_text = "Meno používateľa, ktorý záznam v denníku vytvoril (vypĺňané automaticky)",

@@ -234,6 +234,7 @@ PRIJATEFAKTURY_DIR="PrijateFaktury"
 
 #App denniky
 FORM_DIR_NAME="HromadneDokumenty"
+DENNIK_DIR_NAME="DennikSubory"
 
 # Mail
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
