@@ -274,6 +274,7 @@ class PrispevokNaStravneForm(forms.ModelForm):
         self.initial['program'] = 4     #nealokovaný
         self.initial['zakazka'] = 2     #11010001 spol. zák.	Činnosti z prostriedkov SAV - rozpočet 111
         self.initial['ekoklas'] = 108   #642014 Transfery jednotlivcom
+        self.initial['cinnost'] = 2     #1a
         polecislo = "cislo"
         # Ak je pole readonly, tak sa nenachádza vo fields. Preto testujeme fields aj initial
         if polecislo in self.fields:

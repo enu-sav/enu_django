@@ -552,7 +552,7 @@ class PrispevokNaStravneAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistor
     form = PrispevokNaStravneForm
     list_display = ["cislo", "suma_zamestnavatel", "suma_socfond"]
     # určiť poradie poli v editovacom formulári
-    fields = ["cislo", "suma_zamestnavatel", "suma_socfond", "zdroj", "zakazka", "ekoklas" ]
+    fields = ["cislo", "suma_zamestnavatel", "suma_socfond", "zdroj", "zakazka", "ekoklas", "cinnost" ]
 
     list_totals = [
         ('suma_zamestnavatel', Sum),
@@ -560,7 +560,7 @@ class PrispevokNaStravneAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistor
     ]
     def get_readonly_fields(self, request, obj=None):
         if obj:
-            return [ "program", "ekoklas", "zakazka", "zdroj"]
+            return [ "program", "ekoklas", "zakazka", "zdroj", "cinnost"]
         else:
             return []
 

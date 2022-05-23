@@ -290,7 +290,7 @@ class Klasifikacia(models.Model):
     cinnost = models.ForeignKey(Cinnost,
             on_delete=models.PROTECT,
             verbose_name = "Činnosť",
-            default = 1,
+            default = 2,    #Činnosť 1a
             related_name='%(class)s_klasifikacia')
     poznamka = models.CharField("Poznámka", 
             max_length=200, 
