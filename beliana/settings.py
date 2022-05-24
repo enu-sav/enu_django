@@ -231,6 +231,7 @@ PLATOVE_VYMERY_DIR="PlatoveVymery"
 DOHODY_DIR="Dohody"
 OBJEDNAVKY_DIR="Objednavky"
 PRIJATEFAKTURY_DIR="PrijateFaktury"
+STRAVNE_DIR="Stravne"
 
 #App denniky
 FORM_DIR_NAME="HromadneDokumenty"

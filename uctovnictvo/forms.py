@@ -280,10 +280,10 @@ class PrispevokNaStravneForm(forms.ModelForm):
         if polecislo in self.fields:
             if not polecislo in self.initial:
                 nasledujuce = nasledujuce_cislo(PrispevokNaStravne)
-                self.fields[polecislo].help_text = f"Zadajte číslo novej faktúry v tvare {PrispevokNaStravne.oznacenie}-RRRR-NNN. Predvolené číslo '{nasledujuce}' bolo určené na základe čísiel existujúcich faktúr ako nasledujúce v poradí."
+                self.fields[polecislo].help_text = f"Zadajte číslo novej platby v tvare {PrispevokNaStravne.oznacenie}-RRRR-NNN. Predvolené číslo '{nasledujuce}' bolo určené na základe čísiel existujúcich faktúr ako nasledujúce v poradí."
                 self.initial[polecislo] = nasledujuce
             else:
-                self.fields[polecislo].help_text = f"Číslo faktúry v tvare {PrispevokNaStravne.oznacenie}-RRRR-NNN."
+                self.fields[polecislo].help_text = f"Číslo platby v tvare {PrispevokNaStravne.oznacenie}-RRRR-NNN."
 
 class AutorskeZmluvyForm(forms.ModelForm):
     #inicializácia polí

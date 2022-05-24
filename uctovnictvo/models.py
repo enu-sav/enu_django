@@ -13,7 +13,7 @@ from django.utils.safestring import mark_safe
 from decimal import Decimal
 
 from beliana.settings import TMPLTS_DIR_NAME, PLATOVE_VYMERY_DIR, DOHODY_DIR, PRIJATEFAKTURY_DIR, PLATOBNE_PRIKAZY_DIR
-from beliana.settings import ODVODY_VYNIMKA, DAN_Z_PRIJMU, OBJEDNAVKY_DIR
+from beliana.settings import ODVODY_VYNIMKA, DAN_Z_PRIJMU, OBJEDNAVKY_DIR, STRAVNE_DIR
 import os,re, datetime
 from datetime import timedelta, date
 import numpy as np
@@ -49,6 +49,20 @@ class Poistovna(models.TextChoices):
     VSZP = 'VsZP', 'VšZP'
     DOVERA = "Dovera", 'Dôvera'
     UNION = "Union", 'Union'
+
+class Mesiace(models.TextChoices):
+    JANUAR = "januar", "január"
+    FEBRUAR = "februar", "február"
+    MAREC = "marec", "marec"
+    APRIL = "april", "apríl"
+    MAJ = "maj", "máj"
+    JUN = "jun", "jún"
+    JUL = "jul", "júl"
+    AUGUST = "august", "august"
+    SEPTEMBER = "september", "september"
+    OKTOBER = "oktober", "október"
+    NOVEMBER = "november", "november"
+    DECEMBER = "december", "december"
 
 class TypDochodku(models.TextChoices):
     STAROBNY = 'starobny', "starobný"
@@ -581,9 +595,16 @@ class NajomneFaktura(Klasifikacia):
         verbose_name = 'Faktúra za prenájom'
         verbose_name_plural = 'Prenájom - Faktúry'
 
+def prispevok_stravne_upload_location(instance, filename):
+    return os.path.join(STRAVNE_DIR, filename)
 class PrispevokNaStravne(Klasifikacia):
     oznacenie = "PS"    #v čísle faktúry, FS-2021-123
-    cislo = models.CharField("Číslo príspevku (za mesiac)", max_length=50)
+    cislo = models.CharField("Poradové číslo príspevku", max_length=50)
+    za_mesiac = models.CharField("Za mesiac", 
+            max_length=20, 
+            help_text = "Zvoľte mesiac, za ktorý príspevok je. <br />Príspevok za január sa vypláca v decembri predchádzajúceho roku (v čísle príspevku má byť uvedený rok, v ktorom sa príspevok vyplácal).",
+            null = True,
+            choices=Mesiace.choices)
     suma_zamestnavatel = models.DecimalField("Príspevok zamestnávateľa", 
             help_text = "Zadajte celkový príspevok zamestnávateľa (Ek. klas. 642014) ako zápornú hodnotu",
             max_digits=8, 
@@ -595,6 +616,10 @@ class PrispevokNaStravne(Klasifikacia):
             max_digits=8, 
             decimal_places=2, 
             default=0)
+    po_zamestnancoch = models.FileField("Prehľad po zamestnancoch",
+            help_text = "Súbor s mesačným prehľadom príspevkov po zamestnancoch",
+            upload_to=prispevok_stravne_upload_location, 
+            null = True)
     history = HistoricalRecords()
 
     # test platnosti dát
