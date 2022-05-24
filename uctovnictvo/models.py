@@ -771,7 +771,7 @@ class PlatovyVymer(Klasifikacia):
             blank=True,
             null=True)
     tarifny_plat = models.DecimalField("Tarifný plat", 
-            help_text = "Tarifný plat podľa prílohy č. 5 zákona",
+            help_text = "Tarifný plat podľa prílohy č. 5 Zákona č. 553/2003 Z. z. (Zákon o odmeňovaní niektorých zamestnancov pri výkone práce vo verejnom záujme)",
             max_digits=8, 
             decimal_places=2, 
             default=0)
