@@ -584,7 +584,7 @@ class NajomneFaktura(Klasifikacia):
 class PrispevokNaStravne(Klasifikacia):
     oznacenie = "PS"    #v čísle faktúry, FS-2021-123
     cislo = models.CharField("Číslo príspevku (za mesiac)", max_length=50)
-    suma_zamestnavatel = models.DecimalField("Príspevok zamesnávateľa", 
+    suma_zamestnavatel = models.DecimalField("Príspevok zamestnávateľa", 
             help_text = "Zadajte celkový príspevok zamestnávateľa (Ek. klas. 642014) ako zápornú hodnotu",
             max_digits=8, 
             decimal_places=2, 
