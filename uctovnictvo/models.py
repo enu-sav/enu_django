@@ -840,7 +840,7 @@ class PlatovyVymer(Klasifikacia):
         poistne = {
                 "nazov": "Plat poistné",
                 #Dočasne všetci rovnako, treba opraviť
-                "suma": -(Decimal(0.3495) if zden.year < 2022 else Decimal(0.352)) * (tarifny['suma']+osobny['suma']+funkcny['suma']),
+                "suma": (Decimal(0.3495) if zden.year < 2022 else Decimal(0.352)) * (tarifny['suma']+osobny['suma']+funkcny['suma']),
                 "zdroj": self.zdroj,
                 "zakazka": self.zakazka,
                 "ekoklas": EkonomickaKlasifikacia.objects.get(kod="620")
