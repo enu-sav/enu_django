@@ -1,5 +1,6 @@
 from openpyxl import load_workbook
 from ipdb import set_trace as trace
+#from models import TypDochodku
 
 # vráti tabuľku odvodov pre zadanú kategóriu
 #https://www.podnikajte.sk/socialne-a-zdravotne-odvody/odvody-z-dohody-2021
@@ -26,15 +27,15 @@ def TabulkaOdvodov(meno_suboru, zam_doh, typ, rok, vynimka=False):
         if not ws:
             return f"V súbore '{nazov_objektu}' sa nenachádza hárok 'Zamestnanci'."
         #stĺpec v tabulke
-        if typ == "Bezny":   #aka Pravidelný príjem
+        if typ == "Bezny":
             col0 = 2    #B
-        elif typ == "InvDoch30": #aka Nepravidelný príjem
+        elif typ == "InvDoch30":
             col0 = 4    #D
-        elif typ == "InvDoch70": #aka Nepravidelný príjem
+        elif typ == "InvDoch70":
             col0 = 6    #F
-        elif typ == "StarDoch": #aka Nepravidelný príjem
+        elif typ == "StarDoch":
             col0 = 8    #H
-        elif typ == "VyslDoch": #aka Nepravidelný príjem
+        elif typ == "VyslDoch":
             col0 = 10   #J
         else:
             return f"Zadaný neplatný typ zamestnanca {typ}"
@@ -61,8 +62,8 @@ def TabulkaOdvodov(meno_suboru, zam_doh, typ, rok, vynimka=False):
     odvody_prac = {}
 
     for pp in udaje:
-        odvody_zam[pp] = ws.cell(row=udaje[pp], column=col0).value / 100 
-        odvody_prac[pp] = ws.cell(row=udaje[pp], column=col0+1).value / 100
+        odvody_zam[pp] = ws.cell(row=udaje[pp]-1, column=col0).value / 100 
+        odvody_prac[pp] = ws.cell(row=udaje[pp]-1, column=col0+1).value / 100
     return odvody_zam, odvody_prac
 
 # vodmena: vyňatá odmena na základe odvodovej výnimky
@@ -102,8 +103,8 @@ def ZamestnanecOdvodySpolu(meno_suboru, odmena, typ, rok):
     odvody_zam, odvody_prac = ZamestnanecOdvody(meno_suboru, odmena, typ, rok)
     return sum(odvody_zam.values()), sum(odvody_prac.values())
 
-def main():
-    smeno = '/home/milos/Beliana/Django/enu_django-dev/data/Subory/SablonyASubory/OdvodyZamestnanciDohodari.xlsx'
+smeno = '/home/milos/Beliana/Django/enu_django-dev/data/Subory/SablonyASubory/OdvodyZamestnanciDohodari.xlsx'
+def dohodari_test():
     suma = 100
     vodmena = 200
     rok = 2021
@@ -157,6 +158,17 @@ def main():
     print("ruo (360)")
     print(odvody_ruo)
 
+def zamestnanci_test():
+    typy = ["Bezny", "InvDoch30", "InvDoch70", "StarDoch", "VyslDoch"]
+    for typ in typy:
+        odvody_zam, odvody_prac = ZamestnanecOdvodySpolu(smeno, 100, typ, 2021)
+        print("%12s %d %2.2f %2.2f"%(typ, 2021, odvody_zam, odvody_prac))
+
+        odvody_zam, odvody_prac = ZamestnanecOdvodySpolu(smeno, 100, typ, 2022)
+        print("%12s %d %2.2f %2.2f"%(typ, 2022, odvody_zam, odvody_prac))
+
+
     
 if __name__ == "__main__":
-    main()
+    #dohodari_test()
+    zamestnanci_test()
