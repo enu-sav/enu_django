@@ -864,7 +864,7 @@ class VyplacanieDohodAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAd
 @admin.register(PlatovyVymer)
 class PlatovyVymerAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
     form = PlatovyVymerForm
-    list_display = ["mp","zamestnanec_link", "stav", "zamestnanie_enu_od", "zamestnanie_od", "datum_postup", "_postup_roky", "uvazok", "datum_od", "datum_do", "_zamestnanie_roky_dni", "_top", "_ts", "suborvymer"]
+    list_display = ["mp","zamestnanec_link", "stav", "zamestnanie_enu_od", "zamestnanie_od", "aktualna_prax", "datum_postup", "_postup_roky", "uvazok", "datum_od", "datum_do", "_zamestnanie_roky_dni", "_top", "_ts", "suborvymer"]
     # ^: v poli vyhľadávať len od začiatku
     search_fields = ["zamestnanec__meno", "zamestnanec__priezvisko", "^stav"]
     actions = ['duplikovat_zaznam', export_selected_objects]
@@ -892,6 +892,12 @@ class PlatovyVymerAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
     def zamestnanie_od(self, obj):
         return obj.zamestnanec.zamestnanie_enu_od.strftime('%d. %m. %Y')
     zamestnanie_od.short_description = "PP v EnÚ od"
+
+    def aktualna_prax(self, obj):
+        today = date.today()
+        prveho =  date(today.year, today.month, 1)
+        return vypocet_prax(obj.zamestnanec.zamestnanie_od, prveho-timedelta(1))
+    aktualna_prax.short_description = f"Prax k {date(date.today().year, date.today().month, 1).strftime('%d. %m. %Y')}"
 
     def mp(self, obj):
         if obj.zamestnanec:
