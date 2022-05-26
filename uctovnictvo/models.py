@@ -6,7 +6,7 @@ from django.core.exceptions import ValidationError
 #https://django-simple-history.readthedocs.io/en/latest/admin.html
 from simple_history.models import HistoricalRecords
 from uctovnictvo.storage import OverwriteStorage
-from .odvody import DohodarOdvodySpolu
+from .odvody import DohodarOdvodySpolu, ZamestnanecOdvodySpolu
 from .rokydni import mesiace
 from polymorphic.models import PolymorphicModel
 from django.utils.safestring import mark_safe
@@ -66,7 +66,9 @@ class Mesiace(models.TextChoices):
 
 class TypDochodku(models.TextChoices):
     STAROBNY = 'starobny', "starobný"
-    INVALIDNY = 'invalidny', "invalidný"
+    INVALIDNY = 'invalidny', "invalidný (len dohodári)"
+    INVALIDNY30 = 'invalidny30', "invalidný 30 % (len zamestnanci)"
+    INVALIDNY70 = 'invalidny70', "invalidný 70 % (len zamestnanci)"
     INVAL_VYSL = 'invalidny_vysl', "invalidný výsluhový"
     VYSLUHOVY = "vysluhovy",  "výsluhový po dovŕšení dôchodkového veku"
     PREDCASNY = "predcasny", "predčasný (poberateľovi zanikne nárok na výplatu predčasného dôchodku)"
@@ -837,10 +839,20 @@ class PlatovyVymer(Klasifikacia):
                 "zakazka": self.zakazka,
                 "ekoklas": self.ekoklas
                 }
+        #súbor s tabuľku odvodov
+        nazov_objektu = "Odvody zamestnancov a dohodárov"  #Presne takto musí byť objekt pomenovaný
+        objekt = SystemovySubor.objects.filter(subor_nazov = nazov_objektu)
+        if not objekt:
+            return f"V systéme nie je definovaný súbor '{nazov_objektu}'."
+        nazov_suboru = objekt[0].subor.file.name 
+        #Konverzia typu dochodku na pozadovany typ vo funkcii ZamestnanecOdvodySpolu
+        td = self.zamestnanec.typ_doch
+        td_konv = "InvDoch30" if td==TypDochodku.INVALIDNY30 else "InvDoch70" if td== TypDochodku.INVALIDNY70 else "StarDoch" if td==TypDochodku.STAROBNY else "VyslDoch" if td==TypDochodku.INVAL_VYSL else "Bezny"
+        plat = float(tarifny['suma'])+ float(osobny['suma']) + float(funkcny['suma'])
+        odvody, _ = ZamestnanecOdvodySpolu(nazov_suboru, plat, td_konv, zden.year)
         poistne = {
                 "nazov": "Plat poistné",
-                #Dočasne všetci rovnako, treba opraviť
-                "suma": (Decimal(0.3495) if zden.year < 2022 else Decimal(0.352)) * (tarifny['suma']+osobny['suma']+funkcny['suma']),
+                "suma": Decimal(odvody),
                 "zdroj": self.zdroj,
                 "zakazka": self.zakazka,
                 "ekoklas": EkonomickaKlasifikacia.objects.get(kod="620")

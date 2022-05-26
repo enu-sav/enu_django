@@ -202,3 +202,9 @@ class CerpanieRozpoctuAdmin(ModelAdminTotals):
                 zakazka = cerpanie[item]['zakazka'],
                 ekoklas = cerpanie[item]['ekoklas'],
                 ).save()
+
+    # Nemazať  "Pomocná položka", potrebujeme
+    def delete_queryset(self, request, queryset):
+        for qq in queryset:
+            if qq.polozka != "Pomocná položka":
+                qq.delete()
