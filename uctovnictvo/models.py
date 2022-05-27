@@ -816,6 +816,7 @@ class PlatovyVymer(Klasifikacia):
 
     #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
     def cerpanie_rozpoctu(self, zden):
+        if "Michálková" in self.zamestnanec.priezvisko: return []
         if zden < self.datum_od: return []
         if self.datum_do and zden > self.datum_do: return []
         tarifny = {
