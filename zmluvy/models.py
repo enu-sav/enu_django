@@ -55,7 +55,9 @@ def tax_agmt_path(instance, filename):
 
 # nie je nevyhnutne v RS (jaz. redaktor a pod)
 class FyzickaOsoba(PersonCommon):
-    email = models.EmailField("Email", max_length=200, null=True, blank=True)
+    email = models.EmailField("Email", 
+            max_length=200, 
+            null=True) 
     titul_pred_menom = models.CharField("Titul pred menom", max_length=100, null=True, blank=True) #optional
     meno = models.CharField("Meno", max_length=200)
     priezvisko = models.CharField("Priezvisko", max_length=200)
