@@ -644,6 +644,8 @@ class Zamestnanec(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAd
 class DohodaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
     #Polia Dohoda: cislo zmluvna_strana stav_dohody dohoda_odoslana vynimka predmet datum_od datum_do vyplatene subor_dohody sken_dohody
     #Polia Klasifikacia: zdroj program zakazka ekoklas 
+    # skryť vo formulári na úpravu
+    exclude = ["program"]
     def get_list_display(self, request):
         #cislo a zmluvna_strana riešime v odvodenej triede
         return ("stav_dohody", "dohoda_odoslana", "_predmet", "datum_od", "datum_do", "vyplatene", "subor_dohody", "sken_dohody", "vynimka")
@@ -883,6 +885,8 @@ class PlatovyVymerAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
     # ^: v poli vyhľadávať len od začiatku
     search_fields = ["cislo", "zamestnanec__meno", "zamestnanec__priezvisko", "^stav"]
     actions = ['duplikovat_zaznam', export_selected_objects]
+    # skryť vo formulári na úpravu
+    exclude = ["program"]
 
     # zoraďovateľný odkaz na dodávateľa
     # umožnené prostredníctvom AdminChangeLinksMixin

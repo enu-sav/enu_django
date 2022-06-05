@@ -946,7 +946,7 @@ class Dohoda(PolymorphicModel, Klasifikacia):
             related_name='%(class)s_dohoda')  #zabezpečí rozlíšenie modelov DoVP a DoPC
     stav_dohody = models.CharField(max_length=20,
             #help_text = "Z ponuky zvoľte aktuálny stav zmluvy. Autorský honorár môže byť vyplatený len vtedy, keď je v stave 'Platná / Zverejnená v CRZ.",
-            help_text = 'Aktuálny stav dohody, <font color="#aa0000">správne nastaviť každej jeho zmene</font>.',
+            help_text = 'Aktuálny stav dohody, <font color="#aa0000">správne nastaviť po každej jeho zmene</font>.',
             choices=StavDohody.choices, default=StavDohody.NOVA)
     dohoda_odoslana= models.DateField('Dohodárovi na podpis ',
             help_text = 'Dátum odovzdania dohody na sekretariát na odoslanie na podpis (poštou). Vytvorí sa záznam v <a href="/admin/dennik/dokument/">denníku prijatej a odoslanej pošty</a>.',
