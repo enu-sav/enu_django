@@ -923,6 +923,7 @@ class Nepritomnost(models.Model):
             max_length=20, 
             null=True, 
             choices=TypNepritomnosti.choices)
+    history = HistoricalRecords()
     class Meta:
         verbose_name = "Neprítomnosť"
         verbose_name_plural = "PaM - Neprítomnosť"
