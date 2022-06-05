@@ -12,13 +12,13 @@ from .models import Objednavka, Zmluva, PrijataFaktura, SystemovySubor, Rozhodnu
 from .models import Dohoda, DoVP, DoPC, DoBPS, VyplacanieDohod, AnoNie, PlatovyVymer, StavVymeru
 from .models import ZamestnanecDohodar, Zamestnanec, Dohodar, StavDohody, PravidelnaPlatba
 from .models import Najomnik, NajomnaZmluva, NajomneFaktura, TypPP, TypPN, Cinnost
-from .models import InternyPartner, InternyPrevod
+from .models import InternyPartner, InternyPrevod, Nepritomnost
 from .common import VytvoritPlatobnyPrikaz, VytvoritSuborDohody, VytvoritSuborObjednavky, leapdays, VytvoritKryciList
 from .common import VytvoritPlatobnyPrikazIP
 from .forms import PrijataFakturaForm, AutorskeZmluvyForm, ObjednavkaForm, ZmluvaForm, PrispevokNaStravneForm, PravidelnaPlatbaForm
 from .forms import PlatovyVymerForm, NajomneFakturaForm, NajomnaZmluvaForm
 from .forms import DoPCForm, DoVPForm, DoBPSForm, nasledujuce_cislo, VyplacanieDohodForm
-from .forms import InternyPrevodForm
+from .forms import InternyPrevodForm, NepritomnostForm
 from .rokydni import datum_postupu, vypocet_prax, vypocet_zamestnanie, postup_roky, roky_postupu
 from beliana.settings import DPH
 from dennik.models import Dokument, TypDokumentu, InOut
@@ -860,6 +860,21 @@ class VyplacanieDohodAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAd
                 kwargs['request'] = request
                 return AdminForm(*args, **kwargs)
         return AdminFormMod
+
+@admin.register(Nepritomnost)
+class NepritomnostAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
+    form = NepritomnostForm
+    list_display = ["cislo", "nepritomnost_od", "nepritomnost_do", "zamestnanec_link", "nepritomnost_typ"]
+    # ^: v poli vyhľadávať len od začiatku
+    search_fields = ["cislo", "zamestnanec__meno", "zamestnanec__priezvisko", "^nepritomnost_typ"]
+
+    # zoraďovateľný odkaz na dodávateľa
+    # umožnené prostredníctvom AdminChangeLinksMixin
+    change_links = [
+        ('zamestnanec', {
+            'admin_order_field': 'zamestnanec__priezvisko', # Allow to sort members by the column
+        })
+    ]
 
 @admin.register(PlatovyVymer)
 class PlatovyVymerAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):

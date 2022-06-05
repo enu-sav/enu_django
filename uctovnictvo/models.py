@@ -16,6 +16,7 @@ from beliana.settings import TMPLTS_DIR_NAME, PLATOVE_VYMERY_DIR, DOHODY_DIR, PR
 from beliana.settings import ODVODY_VYNIMKA, DAN_Z_PRIJMU, OBJEDNAVKY_DIR, STRAVNE_DIR
 import os,re, datetime
 from datetime import timedelta, date
+from dateutil.relativedelta import relativedelta
 import numpy as np
 from ipdb import set_trace as trace
 
@@ -44,6 +45,13 @@ class StavVymeru(models.TextChoices):
     AKTUALNY = "aktualny", "Aktuálny"
     NEAKTUALNY = "neaktualny", "Neaktuálny"
     UKONCENY = "ukonceny", "Ukončený PP"
+
+class TypNepritomnosti(models.TextChoices):
+    MATERSKA = "materská", "Materská"
+    OCR = "ocr", "OČR"
+    PN = "pn", "PN"
+    DOVOLENKA = "dovolenka", "Dovolenka"
+    NEPLATENE = "neplatene", "Neplatené voľno"
 
 class Poistovna(models.TextChoices):
     VSZP = 'VsZP', 'VšZP'
@@ -818,23 +826,51 @@ class PlatovyVymer(Klasifikacia):
     def cerpanie_rozpoctu(self, zden):
         if zden < self.datum_od: return []
         if self.datum_do and zden > self.datum_do: return []
+
+        #zobrať do úvahy neprítomnosť za daný mesiac
+        qs = Nepritomnost.objects.filter(zamestnanec=self.zamestnanec)
+        qs1 = qs.exclude(nepritomnost_do__lt=zden)  # vylúčiť nevyhovujúce
+        next_month = zden + relativedelta(months=1, day=1)  # 1. deň nasl. mesiaca
+        qs2 = qs1.exclude(nepritomnost_od__gte=next_month)  # vylúčiť nevyhovujúce
+        dni_neprit = 0
+        for nn in qs2:
+            #určiť posledný deň
+            if not nn.nepritomnost_do:  #nie je zadaný
+                if nn.nepritomnost_typ == TypNepritomnosti.MATERSKA: #ak materská, tak koniec mesiaca
+                    posledny=next_month - relativedelta(days=1)
+                else:
+                    posledny=date.today() + relativedelta(days=5) #inak 5 dní od dneška
+            else:
+                posledny = nn.nepritomnost_do 
+
+            # posledny deň obmedziť koncom mesiaca
+            if posledny >= next_month:
+                posledny = next_month - relativedelta(days=1) 
+            prvy = nn.nepritomnost_od if nn.nepritomnost_od>zden else zden
+            if posledny >= prvy: #nenastane v prípade neukončenej neprítomnosti ak nie je materská
+                dni_neprit += (posledny-prvy).days + 1
+        dni_mesiac = (next_month -zden).days
+        koef_prit = (dni_mesiac-dni_neprit)/dni_mesiac  #koeficient pritomnosti
+
+        print("kp", koef_prit)
+        #koef_prit = 1
         tarifny = {
-                "nazov":"Plat tarifný",
-                "suma": -self.tarifny_plat,
+                "nazov":"Plat tarifný plat",
+                "suma": -Decimal(koef_prit*float(self.tarifny_plat)),
                 "zdroj": self.zdroj,
                 "zakazka": self.zakazka,
                 "ekoklas": self.ekoklas
                 }
         osobny = {
-                "nazov": "Plat osobný",
-                "suma": -self.osobny_priplatok,
+                "nazov": "Plat osobný príplatok",
+                "suma": -Decimal(koef_prit*float(self.osobny_priplatok)),
                 "zdroj": self.zdroj,
                 "zakazka": self.zakazka,
                 "ekoklas": self.ekoklas
                 }
         funkcny = {
-                "nazov": "Plat funkčný",
-                "suma": -self.funkcny_priplatok,
+                "nazov": "Plat funkčný príplatok",
+                "suma": -Decimal(koef_prit*float(self.funkcny_priplatok)),
                 "zdroj": self.zdroj,
                 "zakazka": self.zakazka,
                 "ekoklas": self.ekoklas
@@ -851,7 +887,7 @@ class PlatovyVymer(Klasifikacia):
         plat = float(tarifny['suma'])+ float(osobny['suma']) + float(funkcny['suma'])
         odvody, _ = ZamestnanecOdvodySpolu(nazov_suboru, plat, td_konv, zden.year)
         poistne = {
-                "nazov": "Plat poistné",
+                "nazov": "Plat odvody",
                 "suma": Decimal(odvody),
                 "zdroj": self.zdroj,
                 "zakazka": self.zakazka,
@@ -865,6 +901,34 @@ class PlatovyVymer(Klasifikacia):
     def __str__(self):
         od = self.datum_od.strftime('%d. %m. %Y') if self.datum_od else '--'
         return f"{self.zamestnanec.priezvisko}, {od}"
+
+class Nepritomnost(models.Model):
+    oznacenie = "Np"
+    cislo = models.CharField("Číslo", 
+            #help_text: definovaný vo forms
+            null = True,
+            max_length=50)
+    zamestnanec = models.ForeignKey(Zamestnanec,
+            on_delete=models.PROTECT, 
+            verbose_name = "Zamestnanec",
+            related_name='%(class)s_zamestnanec')  #zabezpečí rozlíšenie modelov, keby dačo
+    nepritomnost_od= models.DateField('Neprítomnosť od',
+            help_text = 'Prvý deň neprítomnosti',
+            null=True)
+    nepritomnost_do= models.DateField('Neprítomnosť do',
+            help_text = 'Posledný deň neprítomnosti',
+            blank=True, 
+            null=True)
+    nepritomnost_typ = models.CharField("Typ neprítomnosti",
+            max_length=20, 
+            null=True, 
+            choices=TypNepritomnosti.choices)
+    class Meta:
+        verbose_name = "Neprítomnosť"
+        verbose_name_plural = "PaM - Neprítomnosť"
+    def __str__(self):
+        od = self.nepritomnost_od.strftime('%d. %m. %Y')
+        return f"{self.zamestnanec.priezvisko} od {od}"
 
 # použité len pri vkladané cez admin formulár
 def dohoda_upload_location(instance, filename):
