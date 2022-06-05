@@ -833,8 +833,9 @@ class PlatovyVymer(Klasifikacia):
         qs1 = qs.exclude(nepritomnost_do__lt=zden)  # vylúčiť nevyhovujúce
         next_month = zden + relativedelta(months=1, day=1)  # 1. deň nasl. mesiaca
         qs2 = qs1.exclude(nepritomnost_od__gte=next_month)  # vylúčiť nevyhovujúce
+        qs3 = qs2.exclude(nepritomnost_typ=TypNepritomnosti.DOVOLENKA)  # vylúčiť dovolenky, platí sa v plnej výške
         dni_neprit = 0
-        for nn in qs2:
+        for nn in qs3:
             #určiť posledný deň
             if not nn.nepritomnost_do:  #nie je zadaný
                 if nn.nepritomnost_typ == TypNepritomnosti.MATERSKA: #ak materská, tak koniec mesiaca
@@ -853,7 +854,6 @@ class PlatovyVymer(Klasifikacia):
         dni_mesiac = (next_month -zden).days
         koef_prit = (dni_mesiac-dni_neprit)/dni_mesiac  #koeficient pritomnosti
 
-        print("kp", koef_prit)
         #koef_prit = 1
         tarifny = {
                 "nazov":"Plat tarifný plat",
