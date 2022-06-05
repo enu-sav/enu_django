@@ -582,6 +582,7 @@ class NajomneFaktura(Klasifikacia):
             help_text = "Súbor s krycím listom pre THS-ku. Generuje sa akciou 'Vytvoriť krycí list pre THS'.<br />Ak treba, v prípade vyúčtovania je súčasťou aj platobný prikaz",
             upload_to=platobny_prikaz_upload_location,
             null = True, blank = True)
+    history = HistoricalRecords()
 
     # Koho uviesť ako adresata v denniku
     def adresat(self):
