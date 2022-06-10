@@ -551,6 +551,7 @@ class NajomneFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdm
 class PrispevokNaStravneAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
     form = PrispevokNaStravneForm
     list_display = ["cislo", "za_mesiac", "po_zamestnancoch", "suma_zamestnavatel", "suma_socfond"]
+    search_fields = ["cislo"]
     # určiť poradie poli v editovacom formulári
     fields = ["cislo", "za_mesiac", "suma_zamestnavatel", "suma_socfond", "po_zamestnancoch", "zdroj", "zakazka", "ekoklas", "cinnost" ]
 
