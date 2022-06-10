@@ -637,6 +637,33 @@ class PrispevokNaStravne(Klasifikacia):
     def clean(self): 
         if self.suma_zamestnavatel >= 0 or self.suma_socfond > 0:
             raise ValidationError("Položky 'Príspevok zamestnávateľa' a 'Príspevok zo soc. fondu' musia byť záporné.")
+    #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
+    def cerpanie_rozpoctu(self, zden):
+        if not str(zden.year) in self.cislo: return []
+        if not self.za_mesiac: return []
+        msc= {
+            "januar": 1,
+            "februar": 2,
+            "marec": 3,
+            "april": 4,
+            "maj": 5,
+            "jun": 6,
+            "jul": 7,
+            "august": 8,
+            "september": 9,
+            "oktober": 10,
+            "november": 11,
+            "december": 12
+            }
+        if zden.month != msc[self.za_mesiac]: return [] 
+        platba = {
+                "nazov":f"Stravné",
+                "suma": self.suma_zamestnavatel,
+                "zdroj": self.zdroj,
+                "zakazka": self.zakazka,
+                "ekoklas": self.ekoklas
+                }
+        return [platba]
 
     class Meta:
         verbose_name = 'Príspevok na stravné'
