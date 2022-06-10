@@ -12,13 +12,13 @@ from .models import Objednavka, Zmluva, PrijataFaktura, SystemovySubor, Rozhodnu
 from .models import Dohoda, DoVP, DoPC, DoBPS, VyplacanieDohod, AnoNie, PlatovyVymer, StavVymeru
 from .models import ZamestnanecDohodar, Zamestnanec, Dohodar, StavDohody, PravidelnaPlatba
 from .models import Najomnik, NajomnaZmluva, NajomneFaktura, TypPP, TypPN, Cinnost
-from .models import InternyPartner, InternyPrevod, Nepritomnost
+from .models import InternyPartner, InternyPrevod, Nepritomnost, RozpoctovaPolozka, RozpoctovaPolozkaDotacia
 from .common import VytvoritPlatobnyPrikaz, VytvoritSuborDohody, VytvoritSuborObjednavky, leapdays, VytvoritKryciList
 from .common import VytvoritPlatobnyPrikazIP
 from .forms import PrijataFakturaForm, AutorskeZmluvyForm, ObjednavkaForm, ZmluvaForm, PrispevokNaStravneForm, PravidelnaPlatbaForm
 from .forms import PlatovyVymerForm, NajomneFakturaForm, NajomnaZmluvaForm
 from .forms import DoPCForm, DoVPForm, DoBPSForm, nasledujuce_cislo, VyplacanieDohodForm
-from .forms import InternyPrevodForm, NepritomnostForm
+from .forms import InternyPrevodForm, NepritomnostForm, RozpoctovaPolozkaDotaciaForm
 from .rokydni import datum_postupu, vypocet_prax, vypocet_zamestnanie, postup_roky, roky_postupu
 from beliana.settings import DPH
 from dennik.models import Dokument, TypDokumentu, InOut
@@ -546,6 +546,36 @@ class NajomneFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdm
                 kwargs['request'] = request
                 return AdminForm(*args, **kwargs)
         return AdminFormMod
+
+@admin.register(RozpoctovaPolozka)
+class RozpoctovaPolozkaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
+    list_display = ["cislo", "suma",  "zdroj", "zakazka", "ekoklas", "cinnost" ]
+    search_fields = ["cislo", "^zdroj__kod", "^zakazka__kod", "^ekoklas__kod", "^cinnost__kod" ]
+    exclude = ["program", "poznamka"]
+    list_totals = [
+        ('suma', Sum),
+    ]
+    def get_readonly_fields(self, request, obj=None):
+        return [ "cislo", "suma", "ekoklas", "zakazka", "zdroj", "cinnost"]
+
+@admin.register(RozpoctovaPolozkaDotacia)
+class RozpoctovaPolozkaDotaciaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
+    form = RozpoctovaPolozkaDotaciaForm
+    list_display = ["cislo", "suma",  "rozpoctovapolozka_link", "zdroj", "zakazka", "ekoklas", "cinnost" ]
+    search_fields = ["cislo", "^zdroj__kod", "rozpoctovapolozka__cislo", "^zakazka__kod", "^ekoklas__kod", "^cinnost__kod" ]
+    exclude = ["program", "rozpoctovapolozka"]
+    list_totals = [
+        ('suma', Sum),
+    ]
+    def get_readonly_fields(self, request, obj=None):
+        return [ "cislo", "suma", "ekoklas", "zakazka", "zdroj", "cinnost"] if obj else []
+
+    # zoraďovateľný odkaz na dodávateľa
+    change_links = [
+        ('rozpoctovapolozka', {
+            'admin_order_field': 'rozpoctovapolozka__cislo', # Allow to sort members by the column
+        })
+    ]
 
 @admin.register(PrispevokNaStravne)
 class PrispevokNaStravneAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):

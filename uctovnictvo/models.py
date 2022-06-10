@@ -14,8 +14,8 @@ from decimal import Decimal
 
 from beliana.settings import TMPLTS_DIR_NAME, PLATOVE_VYMERY_DIR, DOHODY_DIR, PRIJATEFAKTURY_DIR, PLATOBNE_PRIKAZY_DIR
 from beliana.settings import ODVODY_VYNIMKA, DAN_Z_PRIJMU, OBJEDNAVKY_DIR, STRAVNE_DIR
-import os,re, datetime
-from datetime import timedelta, date
+import os,re
+from datetime import timedelta, date, datetime
 from dateutil.relativedelta import relativedelta
 import numpy as np
 from ipdb import set_trace as trace
@@ -30,6 +30,19 @@ class Mena(models.TextChoices):
     CZK = 'CZK'
     USD = 'USD'
     GBP = 'GBP'
+
+# Pre triedu classname určí číslo nasledujúceho záznamu v pvare X-2021-NNN
+def nasledujuce_cislo(classname):
+        # zoznam faktúr s číslom "PS-2021-123" zoradený vzostupne
+        ozn_rok = f"{classname.oznacenie}-{datetime.now().year}-"
+        itemlist = classname.objects.filter(cislo__istartswith=ozn_rok).order_by("cislo")
+        if itemlist:
+            latest = itemlist.last().cislo
+            nove_cislo = int(re.findall(f"{ozn_rok}([0-9]+)",latest)[0]) + 1
+            return "%s%03d"%(ozn_rok, nove_cislo)
+        else:
+            #sme v novom roku alebo trieda este nema instanciu
+            return f"{ozn_rok}001"
 
 #ak sa doplni stav pred 'PODPISANA_ENU', treba doplniť test vo funkcii vytvorit_subory_zmluvy
 class StavDohody(models.TextChoices):
@@ -244,7 +257,7 @@ class Objednavka(ObjednavkaZmluva):
             max_length=5000, null=True, blank=True)
     datum_vytvorenia = models.DateField('Dátum vytvorenia',
             help_text = "Zadajte dátum vytvorenia objednávky",
-            default=datetime.datetime.now,
+            default=datetime.now,
             blank=True, null=True)
     subor_objednavky = models.FileField("Súbor objednávky",
             help_text = "Súbor s objednávkou a krycím listom. Generuje sa akciou 'Vytvoriť objednávku'",
@@ -605,6 +618,73 @@ class NajomneFaktura(Klasifikacia):
     class Meta:
         verbose_name = 'Faktúra za prenájom'
         verbose_name_plural = 'Prenájom - Faktúry'
+
+class RozpoctovaPolozka(Klasifikacia):
+    oznacenie = "RP"
+    cislo = models.CharField("Číslo", 
+        #help_text = "Číslo rozpočtovej položky. Nová položka za pridáva len vtedy, keď položka s požadovanou klasifikáciou neexistuje.",  
+        max_length=50)
+    suma = models.DecimalField("Aktuálny súčet dotácií a prevodov",
+            help_text = 'Automaticky vypočítaná položka. Nezohľadňuje prímy a výdavky',
+            max_digits=8,
+            decimal_places=2,
+            null=True)
+    history = HistoricalRecords()
+    class Meta:
+        verbose_name = 'Rozpočtová položka'
+        verbose_name_plural = 'Rozpočet - Rozpočtové položky'
+    def __str__(self):
+        return f'{self.cislo}'
+
+class RozpoctovaPolozkaDotacia(Klasifikacia):
+    oznacenie = "RPD"
+    cislo = models.CharField("Číslo", 
+        #help_text = "Číslo rozpočtovej položky. Nová položka za pridáva len vtedy, keď položka s požadovanou klasifikáciou neexistuje.",  
+        max_length=50)
+    suma = models.DecimalField("Výška dotácie zo ŠR",
+            help_text = 'Suma sa pripočíta k zodpovedajúcej rozpočtovej položke za aktuálny rok. Ak tá ešte neexistuje, vytvorí sa.',
+            max_digits=8,
+            decimal_places=2,
+            null=True)
+    rozpoctovapolozka = models.ForeignKey(RozpoctovaPolozka,
+            on_delete=models.PROTECT, 
+            verbose_name = "Rozpočtová položka",
+            null = True,
+            related_name='%(class)s_rozpoctovapolozka')  #zabezpečí rozlíšenie modelov, keby dačo
+    history = HistoricalRecords()
+
+    def clean(self): 
+        if self.suma < 0:
+            raise ValidationError("Suma musí byť kladná")
+        qs = RozpoctovaPolozka.objects.filter(
+                zdroj=self.zdroj,
+                program=self.program,
+                zakazka=self.zakazka,
+                cinnost=self.cinnost,
+                ekoklas=self.ekoklas
+            )
+        if qs:
+            qs[0].suma += self.suma
+            qs[0].save()
+            self.rozpoctovapolozka = qs[0]
+        else:
+            polozka = RozpoctovaPolozka(
+                cislo = nasledujuce_cislo(RozpoctovaPolozka),
+                zdroj=self.zdroj,
+                program=self.program,
+                zakazka=self.zakazka,
+                cinnost=self.cinnost,
+                ekoklas=self.ekoklas,
+                suma=self.suma,
+                )
+            polozka.save()
+            self.rozpoctovapolozka = polozka
+
+    class Meta:
+        verbose_name = 'Dotácia zo ŠR'
+        verbose_name_plural = 'Rozpočet - dotácie zo ŠR'
+    def __str__(self):
+        return f'{self.cislo}'
 
 def prispevok_stravne_upload_location(instance, filename):
     return os.path.join(STRAVNE_DIR, filename)

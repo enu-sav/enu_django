@@ -5,25 +5,13 @@ from django.core.exceptions import ValidationError
 from ipdb import set_trace as trace
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
+from .models import nasledujuce_cislo
 from .models import PrijataFaktura, Objednavka, PrispevokNaStravne, DoPC, DoVP, DoBPS, PlatovyVymer
 from .models import VyplacanieDohod, StavDohody, Dohoda, PravidelnaPlatba, TypPP, InternyPrevod, Nepritomnost
-from .models import Najomnik, NajomnaZmluva, NajomneFaktura, TypPN
+from .models import Najomnik, NajomnaZmluva, NajomneFaktura, TypPN, RozpoctovaPolozkaDotacia
 from dennik.models import Dokument, SposobDorucenia, TypDokumentu, InOut
 from datetime import date, datetime
 import re
-
-# Pre triedu classname určí číslo nasledujúceho záznamu v pvare X-2021-NNN
-def nasledujuce_cislo(classname):
-        # zoznam faktúr s číslom "PS-2021-123" zoradený vzostupne
-        ozn_rok = f"{classname.oznacenie}-{datetime.now().year}-"
-        itemlist = classname.objects.filter(cislo__istartswith=ozn_rok).order_by("cislo")
-        if itemlist:
-            latest = itemlist.last().cislo
-            nove_cislo = int(re.findall(f"{ozn_rok}([0-9]+)",latest)[0]) + 1
-            return "%s%03d"%(ozn_rok, nove_cislo)
-        else:
-            #sme v novom roku alebo trieda este nema instanciu
-            return f"{ozn_rok}001"
 
 class PopisZmeny(forms.ModelForm):
     popis_zmeny = forms.CharField(widget=forms.TextInput(attrs={'size':80}))
@@ -515,6 +503,18 @@ class NajomneFakturaForm(forms.ModelForm):
         if polecislo in self.fields and not polecislo in self.initial:
             nasledujuce = nasledujuce_cislo(NajomneFaktura)
             self.fields[polecislo].help_text = f"Zadajte číslo platby v tvare {NajomneFaktura.oznacenie}-RRRR-NNN. Predvolené číslo '{nasledujuce}' bolo určené na základe čísel existujúcich platieb ako nasledujúce v poradí."
+            self.initial[polecislo] = nasledujuce
+
+class RozpoctovaPolozkaDotaciaForm(forms.ModelForm):
+    #inicializácia polí
+    def __init__(self, *args, **kwargs):
+        self.request = kwargs.pop('request', None)
+        super().__init__(*args, **kwargs)
+        polecislo = "cislo"
+        # Ak je pole readonly, tak sa nenachádza vo fields. Preto testujeme fields aj initial
+        if polecislo in self.fields and not polecislo in self.initial:
+            nasledujuce = nasledujuce_cislo(RozpoctovaPolozkaDotacia)
+            self.fields[polecislo].help_text = f"Zadajte číslo platby v tvare {RozpoctovaPolozkaDotacia.oznacenie}-RRRR-NNN. Predvolené číslo '{nasledujuce}' bolo určené na základe čísel existujúcich platieb ako nasledujúce v poradí."
             self.initial[polecislo] = nasledujuce
 
     # Skontrolovať platnost a keď je všetko OK, spraviť záznam do denníka
