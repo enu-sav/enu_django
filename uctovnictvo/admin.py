@@ -13,12 +13,13 @@ from .models import Dohoda, DoVP, DoPC, DoBPS, VyplacanieDohod, AnoNie, PlatovyV
 from .models import ZamestnanecDohodar, Zamestnanec, Dohodar, StavDohody, PravidelnaPlatba
 from .models import Najomnik, NajomnaZmluva, NajomneFaktura, TypPP, TypPN, Cinnost
 from .models import InternyPartner, InternyPrevod, Nepritomnost, RozpoctovaPolozka, RozpoctovaPolozkaDotacia
+from .models import RozpoctovaPolozkaPresun
 from .common import VytvoritPlatobnyPrikaz, VytvoritSuborDohody, VytvoritSuborObjednavky, leapdays, VytvoritKryciList
 from .common import VytvoritPlatobnyPrikazIP
 from .forms import PrijataFakturaForm, AutorskeZmluvyForm, ObjednavkaForm, ZmluvaForm, PrispevokNaStravneForm, PravidelnaPlatbaForm
 from .forms import PlatovyVymerForm, NajomneFakturaForm, NajomnaZmluvaForm
 from .forms import DoPCForm, DoVPForm, DoBPSForm, nasledujuce_cislo, VyplacanieDohodForm
-from .forms import InternyPrevodForm, NepritomnostForm, RozpoctovaPolozkaDotaciaForm
+from .forms import InternyPrevodForm, NepritomnostForm, RozpoctovaPolozkaDotaciaForm, RozpoctovaPolozkaPresunForm
 from .rokydni import datum_postupu, vypocet_prax, vypocet_zamestnanie, postup_roky, roky_postupu
 from beliana.settings import DPH
 from dennik.models import Dokument, TypDokumentu, InOut
@@ -570,10 +571,31 @@ class RozpoctovaPolozkaDotaciaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, Simple
     def get_readonly_fields(self, request, obj=None):
         return [ "cislo", "suma", "ekoklas", "zakazka", "zdroj", "cinnost"] if obj else []
 
-    # zoraďovateľný odkaz na dodávateľa
+    # zoraďovateľný odkaz na polozku
     change_links = [
         ('rozpoctovapolozka', {
             'admin_order_field': 'rozpoctovapolozka__cislo', # Allow to sort members by the column
+        })
+    ]
+
+@admin.register(RozpoctovaPolozkaPresun)
+class RozpoctovaPolozkaPresunAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
+    form = RozpoctovaPolozkaPresunForm
+    list_display = ["cislo", "suma",  "zdroj_link", "ciel_link", "dovod"]
+    search_fields = ["cislo", "zdroj__cislo", "ciel__cislo", "dovod"]
+    list_totals = [
+        ('suma', Sum),
+    ]
+    def get_readonly_fields(self, request, obj=None):
+        return [ "cislo", "suma", "zdroj", "ciel"] if obj else []
+
+    # zoraďovateľný odkaz na dodávateľa
+    change_links = [
+        ('zdroj', {
+            'admin_order_field': 'zdroj__cislo', # Allow to sort members by the column
+        }),
+        ('ciel', {
+            'admin_order_field': 'ciel__cislo', # Allow to sort members by the column
         })
     ]
 

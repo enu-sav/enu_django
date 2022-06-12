@@ -12,6 +12,7 @@ from django.contrib import messages
 from zmluvy.models import ZmluvaAutor, ZmluvaGrafik, VytvarnaObjednavkaPlatba, PlatbaAutorskaSumar
 from uctovnictvo.models import Objednavka, PrijataFaktura, PrispevokNaStravne, DoVP, DoPC, DoBPS
 from uctovnictvo.models import PlatovyVymer, PravidelnaPlatba, NajomneFaktura, InternyPrevod
+from uctovnictvo.models import RozpoctovaPolozka
 import re
 from import_export.admin import ImportExportModelAdmin
 from datetime import date
@@ -148,7 +149,7 @@ class FormularAdmin(ZobrazitZmeny):
 class CerpanieRozpoctuAdmin(ModelAdminTotals):
     list_display = ["polozka","mesiac","suma","zdroj","zakazka","ekoklas"]
     #search_fields = ["polozka", "mesiac", "zdroj", "zakazka", "ekoklas"]
-    search_fields = ["polozka", "mesiac", "^zdroj__kod", "zakazka__kod", "ekoklas__kod"]
+    search_fields = ["polozka", "mesiac", "^zdroj__kod", "^zakazka__kod", "^ekoklas__kod"]
     actions = ['generovat2021', "generovat2022", export_as_xlsx]
     list_totals = [
             ('suma', Sum)
@@ -178,7 +179,7 @@ class CerpanieRozpoctuAdmin(ModelAdminTotals):
         md1list.append(date(rok+1, 1, 1))
 
         cerpanie = defaultdict(dict)
-        typy = [PravidelnaPlatba, PlatovyVymer, PrijataFaktura, DoVP, DoPC, PlatbaAutorskaSumar, NajomneFaktura, PrispevokNaStravne]
+        typy = [PravidelnaPlatba, PlatovyVymer, PrijataFaktura, DoVP, DoPC, PlatbaAutorskaSumar, NajomneFaktura, PrispevokNaStravne, RozpoctovaPolozka]
         for typ in typy:
             for polozka in typ.objects.filter():
                 for md1 in md1list[:-1]:
@@ -192,11 +193,12 @@ class CerpanieRozpoctuAdmin(ModelAdminTotals):
                             cerpanie[identif]['suma'] += item['suma']
 
         # zapísať do databázy
+        # Ak ide o Dotáciu, nepriradiť dátum
         for item in cerpanie:
             cr = CerpanieRozpoctu (
                 unikatny = item,
                 polozka = cerpanie[item]['nazov'],
-                mesiac = cerpanie[item]['md1'] ,
+                mesiac = None if "Dotácia" in item else cerpanie[item]['md1'],
                 suma = cerpanie[item]['suma'],
                 zdroj = cerpanie[item]['zdroj'],
                 zakazka = cerpanie[item]['zakazka'],

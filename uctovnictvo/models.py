@@ -630,6 +630,20 @@ class RozpoctovaPolozka(Klasifikacia):
             decimal_places=2,
             null=True)
     history = HistoricalRecords()
+
+    #zarátanie dotácií, v roku len raz, v januári
+    def cerpanie_rozpoctu(self, zden):
+        if not str(zden.year) in self.cislo: return []
+        if zden.month != 1: return []
+        platba = {
+                "nazov":f"Dotácia",
+                "suma": self.suma,
+                "zdroj": self.zdroj,
+                "zakazka": self.zakazka,
+                "ekoklas": self.ekoklas
+                }
+        return [platba]
+
     class Meta:
         verbose_name = 'Rozpočtová položka'
         verbose_name_plural = 'Rozpočet - Rozpočtové položky'
@@ -641,7 +655,7 @@ class RozpoctovaPolozkaDotacia(Klasifikacia):
     cislo = models.CharField("Číslo", 
         #help_text = "Číslo rozpočtovej položky. Nová položka za pridáva len vtedy, keď položka s požadovanou klasifikáciou neexistuje.",  
         max_length=50)
-    suma = models.DecimalField("Výška dotácie zo ŠR",
+    suma = models.DecimalField("Výška dotácie",
             help_text = 'Suma sa pripočíta k zodpovedajúcej rozpočtovej položke za aktuálny rok. Ak tá ešte neexistuje, vytvorí sa.',
             max_digits=8,
             decimal_places=2,
@@ -681,8 +695,48 @@ class RozpoctovaPolozkaDotacia(Klasifikacia):
             self.rozpoctovapolozka = polozka
 
     class Meta:
-        verbose_name = 'Dotácia zo ŠR'
-        verbose_name_plural = 'Rozpočet - dotácie zo ŠR'
+        verbose_name = 'Dotácia'
+        verbose_name_plural = 'Rozpočet - Dotácie'
+    def __str__(self):
+        return f'{self.cislo}'
+
+class RozpoctovaPolozkaPresun(models.Model):
+    oznacenie = "RPP"
+    cislo = models.CharField("Číslo", 
+        #help_text = "Číslo rozpočtovej položky. Nová položka za pridáva len vtedy, keď položka s požadovanou klasifikáciou neexistuje.",  
+        max_length=50)
+    suma = models.DecimalField("Suma na presunutie",
+            help_text = 'Suma sa presunie zo zdrojovej do cieľovej rozpočtovej položky',
+            max_digits=8,
+            decimal_places=2,
+            null=True)
+    zdroj = models.ForeignKey(RozpoctovaPolozka,
+            on_delete=models.PROTECT, 
+            verbose_name = "Z položky",
+            null = True,
+            related_name='%(class)s_zdroj')  #zabezpečí rozlíšenie modelov, keby dačo
+    ciel = models.ForeignKey(RozpoctovaPolozka,
+            help_text = 'Ak cieľová položka ešte neexistuje, vytvorte ju ako dotáciu s 0-ovou výškou.',
+            on_delete=models.PROTECT, 
+            verbose_name = "Do položky",
+            null = True,
+            related_name='%(class)s_ciel')  #zabezpečí rozlíšenie modelov, keby dačo
+    dovod = models.CharField("Dôvod presunu", 
+            max_length=200, 
+            null=True)
+    history = HistoricalRecords()
+
+    def clean(self): 
+        if self.suma < 0:
+            raise ValidationError("Suma musí byť kladná")
+        self.zdroj.suma -= self.suma
+        self.ciel.suma += self.suma
+        self.zdroj.save()
+        self.ciel.save()
+
+    class Meta:
+        verbose_name = 'Presun medzi položkami'
+        verbose_name_plural = 'Rozpočet - Presuny'
     def __str__(self):
         return f'{self.cislo}'
 
