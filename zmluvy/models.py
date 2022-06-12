@@ -353,13 +353,20 @@ class PlatbaAutorskaSumar(models.Model):
         kdatum =  date(zden.year, zden.month+1, zden.day) if zden.month+1 <= 12 else  date(zden.year+1, zden.month, zden.day)
         if self.datum_uhradenia >= kdatum: return []
 
+        if zden.year==2022 and zden.month < 4:
+            zdroj = Zdroj.objects.get(kod="131L")
+            zakazka = TypZakazky.objects.get(kod="131L - Beliana")
+        else:
+            zdroj = Zdroj.objects.get(kod="111")
+            zakazka = TypZakazky.objects.get(kod="11070002 Beliana")
+
         platby = PlatbaAutorskaOdmena.objects.filter(cislo=self.cislo)
         odmeny = [platba.honorar for platba in platby]
         platba = {
-                "nazov":f"Honorár autori",
+                "nazov": "Honorár autori",
                 "suma": -sum(odmeny),
-                "zdroj": Zdroj.objects.get(kod="111"),
-                "zakazka": TypZakazky.objects.get(kod="11070002 Beliana"),
+                "zdroj": zdroj,
+                "zakazka": zakazka,
                 "ekoklas": EkonomickaKlasifikacia.objects.get(kod="633018") #licencie
                 }
         return [platba]
