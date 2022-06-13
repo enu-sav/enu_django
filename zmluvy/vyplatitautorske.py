@@ -361,6 +361,10 @@ class VyplatitAutorskeOdmeny():
         vyplatit[f"B7"].number_format= "0.00"
         vyplatit[f"B7"].alignment = aleft
         vyplatit[f"B7"].font = self.fbold
+        vyplatit["D7"] = "EKRK:"
+        vyplatit["E7"] = "633018"
+        vyplatit[f"E7"].alignment = aleft
+        vyplatit[f"E7"].font = self.fbold
         vyplatit["A8"] = "Z čísla účtu EnÚ:"
         vyplatit["B8"] = VyplatitAutorskeOdmeny.ucetEnÚ
         # Farba pozadia
