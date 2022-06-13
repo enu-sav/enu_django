@@ -619,6 +619,44 @@ class NajomneFaktura(Klasifikacia):
         verbose_name = 'Faktúra za prenájom'
         verbose_name_plural = 'Prenájom - Faktúry'
 
+class PlatbaBezPrikazu(Klasifikacia):
+    oznacenie = "PbP"
+    cislo = models.CharField("Číslo", 
+        #help_text = "Číslo rozpočtovej položky. Nová položka za pridáva len vtedy, keď položka s požadovanou klasifikáciou neexistuje.",  
+        max_length=50)
+    suma = models.DecimalField("Suma",
+            help_text = 'Suma podľa výpisu zo Softipu. výdavky uveďte ako záporné číslo.',
+            max_digits=8,
+            decimal_places=2,
+            null=True)
+    datum_platby = models.DateField('Dátum vyplatenia',
+            help_text = "Dátum realizácie platby podľa výpisu zo Softipu",
+            null=True)
+    predmet = models.CharField("Popis platby", 
+            help_text = "Stručný popis platby podľa výpisu zo Softipu.",
+            max_length=100,
+            null=True)
+    history = HistoricalRecords()
+
+    #zarátanie dotácií, v roku len raz, v januári
+    def cerpanie_rozpoctu(self, zden):
+        if not str(zden.year) in self.cislo: return []
+        if zden.month != 1: return []
+        platba = {
+                "nazov":f"Platba bez príkazu",
+                "suma": self.suma,
+                "zdroj": self.zdroj,
+                "zakazka": self.zakazka,
+                "ekoklas": self.ekoklas
+                }
+        return [platba]
+
+    class Meta:
+        verbose_name = 'Platba bez platobného príkazu'
+        verbose_name_plural = 'Platby bez platobného príkazu'
+    def __str__(self):
+        return f'{self.cislo}'
+
 class RozpoctovaPolozka(Klasifikacia):
     oznacenie = "RP"
     cislo = models.CharField("Číslo", 

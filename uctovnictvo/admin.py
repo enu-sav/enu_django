@@ -13,11 +13,11 @@ from .models import Dohoda, DoVP, DoPC, DoBPS, VyplacanieDohod, AnoNie, PlatovyV
 from .models import ZamestnanecDohodar, Zamestnanec, Dohodar, StavDohody, PravidelnaPlatba
 from .models import Najomnik, NajomnaZmluva, NajomneFaktura, TypPP, TypPN, Cinnost
 from .models import InternyPartner, InternyPrevod, Nepritomnost, RozpoctovaPolozka, RozpoctovaPolozkaDotacia
-from .models import RozpoctovaPolozkaPresun
+from .models import RozpoctovaPolozkaPresun, PlatbaBezPrikazu
 from .common import VytvoritPlatobnyPrikaz, VytvoritSuborDohody, VytvoritSuborObjednavky, leapdays, VytvoritKryciList
 from .common import VytvoritPlatobnyPrikazIP
 from .forms import PrijataFakturaForm, AutorskeZmluvyForm, ObjednavkaForm, ZmluvaForm, PrispevokNaStravneForm, PravidelnaPlatbaForm
-from .forms import PlatovyVymerForm, NajomneFakturaForm, NajomnaZmluvaForm
+from .forms import PlatovyVymerForm, NajomneFakturaForm, NajomnaZmluvaForm, PlatbaBezPrikazuForm
 from .forms import DoPCForm, DoVPForm, DoBPSForm, nasledujuce_cislo, VyplacanieDohodForm
 from .forms import InternyPrevodForm, NepritomnostForm, RozpoctovaPolozkaDotaciaForm, RozpoctovaPolozkaPresunForm
 from .rokydni import datum_postupu, vypocet_prax, vypocet_zamestnanie, postup_roky, roky_postupu
@@ -163,6 +163,42 @@ class RozhodnutieAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin,
             'admin_order_field': 'dodavatel__nazov', # Allow to sort members by the `dodavatel_link` column
         })
     ]
+
+@admin.register(PlatbaBezPrikazu)
+class PlatbaBezPrikazuAdmin(ZobrazitZmeny, SimpleHistoryAdmin):
+    form = PlatbaBezPrikazuForm
+    list_display = ["cislo", "suma", "predmet", "datum_platby", "zdroj", "zakazka", "ekoklas"]
+    search_fields = ["cislo", "predmet", "zdroj__kod", "zakazka__kod", "ekoklas__kod"]
+    exclude = ["program"]
+    actions = ['duplikovat_zaznam']
+
+    def duplikovat_zaznam(self, request, queryset):
+        if len(queryset) != 1:
+            self.message_user(request, f"Vybrať možno len jednu položku", messages.ERROR)
+            return
+        stara = queryset[0]
+        nc = nasledujuce_cislo(PlatbaBezPrikazu)
+        nova_platba = PlatbaBezPrikazu.objects.create(
+                cislo = nc,
+                program = Program.objects.get(id=4),    #nealokovaný
+                ekoklas = stara.ekoklas,
+                zakazka = stara.zakazka,
+                zdroj = stara.zdroj,
+                cinnost = stara.cinnost,
+                predmet = stara.predmet,
+            )
+        nova_platba.save()
+        self.message_user(request, f"Vytvorená bola nová platba číslo '{nc}', aktualizujte polia", messages.SUCCESS)
+
+    duplikovat_zaznam.short_description = "Duplikovať platbu"
+    #Oprávnenie na použitie akcie, viazané na 'change'
+    duplikovat_zaznam.allowed_permissions = ('change',)
+
+    def save_model(self, request, obj, form, change):
+        if 'suma' in form.changed_data:
+            if obj.suma >= 0:
+                messages.add_message(request, messages.WARNING, "Do poľa 'Suma' sa obvykle vkladajú výdavky (záporná suma), vložili ste však 0 alebo kladnú hodnotu sumy. Ak ide o omyl, hodnotu opravte.") 
+        super(PlatbaBezPrikazuAdmin, self).save_model(request, obj, form, change)
 
 @admin.register(Zmluva)
 class ZmluvaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
@@ -318,7 +354,7 @@ class PrijataFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdm
             pass
         if 'suma' in form.changed_data:
             if obj.suma >= 0:
-                messages.add_message(request, messages.WARNING, "Do poľa 'suma' sa obvykle vkladajú výdavky (záporná suma), vložili ste však 0 alebo kladnú hodnotu sumy. Ak ide o omyl, hodnotu opravte.") 
+                messages.add_message(request, messages.WARNING, "Do poľa 'Suma' sa obvykle vkladajú výdavky (záporná suma), vložili ste však 0 alebo kladnú hodnotu sumy. Ak ide o omyl, hodnotu opravte.") 
         super(PrijataFakturaAdmin, self).save_model(request, obj, form, change)
 
     # do AdminForm pridať request, aby v jej __init__ bolo request dostupné
