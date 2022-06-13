@@ -161,13 +161,13 @@ class CerpanieRozpoctuAdmin(ModelAdminTotals):
     def generovat2021(self, request, queryset):
         self.generovat(request, 2021)
         pass
-    generovat2021.short_description = f"Generovať prehľad čerpania rozpočtu sa 2021"
+    generovat2021.short_description = f"Generovať prehľad čerpania rozpočtu za 2021"
     generovat2021.allowed_permissions = ('change',)
 
     def generovat2022(self, request, queryset):
         self.generovat(request, 2022)
         pass
-    generovat2022.short_description = f"Generovať prehľad čerpania rozpočtu sa 2022"
+    generovat2022.short_description = f"Generovať prehľad čerpania rozpočtu za 2022"
     generovat2022.allowed_permissions = ('change',)
 
     def generovat(self,request,rok):
