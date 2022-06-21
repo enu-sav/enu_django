@@ -44,6 +44,14 @@ def nasledujuce_cislo(classname):
             #sme v novom roku alebo trieda este nema instanciu
             return f"{ozn_rok}001"
 
+# nasledujúce číslo Výdavkového pokladničného dokladu
+def nasledujuce_VPD():
+        # zoznam VPD zoradený podľa cislo_VPD vzostupne
+        ozn_rok = f"{Pokladna.oznacenie}-{datetime.now().year}-"
+        qs = Pokladna.objects.filter(cislo__istartswith=ozn_rok)
+        itemlist=qs.exclude(cislo_VPD__isnull=True).order_by("cislo_VPD")
+        return itemlist.last().cislo_VPD+1 if itemlist else 1
+
 #ak sa doplni stav pred 'PODPISANA_ENU', treba doplniť test vo funkcii vytvorit_subory_zmluvy
 class StavDohody(models.TextChoices):
     NOVA = "nova", "Nová"                        #Stav dohody po vytvorení
@@ -65,6 +73,11 @@ class TypNepritomnosti(models.TextChoices):
     PN = "pn", "PN"
     DOVOLENKA = "dovolenka", "Dovolenka"
     NEPLATENE = "neplatene", "Neplatené voľno"
+
+#access label: AnoNie('ano').label
+class TypPokladna(models.TextChoices):
+    DOTACIA = 'dotacia', 'Dotácia'
+    VPD = 'vpd', 'Vystavenie VPD'
 
 class Poistovna(models.TextChoices):
     VSZP = 'VsZP', 'VšZP'
@@ -1433,3 +1446,121 @@ class VyplacanieDohod(models.Model):
         verbose_name = 'Vyplatenie dohody'
         verbose_name_plural = 'PaM - Vyplácanie dohôd'
 
+
+class Pokladna(models.Model):
+    oznacenie = "Po"
+    cislo = models.CharField("Číslo záznamu", 
+        max_length=50)
+    typ_transakcie = models.CharField("Typ transakcie", 
+            max_length=15, 
+            null=True, 
+            choices=TypPokladna.choices
+            )
+    suma = models.DecimalField("Suma",
+            help_text = 'Suma. Dotácia je kladná, suma výdavku je záporná',
+            max_digits=8,
+            decimal_places=2,
+            null=True
+            )
+    datum_transakcie = models.DateField('Dátum transakcie',
+            help_text = "Dátum realizácie platby",
+            null=True
+            )
+    cislo_VPD = models.IntegerField("Poradové číslo VPD",
+            blank = True,
+            null = True
+        )
+    zamestnanec = models.ForeignKey(Zamestnanec,
+            help_text = "Uveďte zamestnanca, ktorého výdavok bol uhradený. V prípade dotácie nechajte prázdne.", 
+            on_delete=models.PROTECT,
+            related_name='%(class)s_pokladna',
+            blank = True,
+            null = True
+            )
+    datum_softip = models.DateField('Dátum Softip',
+            help_text = "Dátum záznamu transakcie do Softipu",
+            blank = True,
+            null=True
+            )
+    popis = models.CharField("Popis platby.", 
+            help_text = "Stručný popis transakcie.",
+            max_length=100,
+            null=True
+            )
+    zdroj = models.ForeignKey(Zdroj,
+            help_text = "V prípade výdavku je pole povinné, v prípade dotácie nechajte prázdne",
+            on_delete=models.PROTECT,
+            related_name='%(class)s_pokladna',
+            blank = True,
+            null = True
+            )
+    zakazka = models.ForeignKey(TypZakazky,
+            on_delete=models.PROTECT,
+            help_text = "V prípade výdavku je pole povinné, v prípade dotácie nechajte prázdne",
+            verbose_name = "Typ zákazky",
+            related_name='%(class)s_pokladna',
+            blank = True,
+            null = True
+            )
+    ekoklas = models.ForeignKey(EkonomickaKlasifikacia,
+            on_delete=models.PROTECT,
+            help_text = "V prípade výdavku je pole povinné, v prípade dotácie nechajte prázdne",
+            verbose_name = "Ekonomická klasifikácia",
+            related_name='%(class)s_pokladna',
+            blank = True,
+            null = True
+            )
+    cinnost = models.ForeignKey(Cinnost,
+            on_delete=models.PROTECT,
+            help_text = "V prípade výdavku je pole povinné, v prípade dotácie nechajte prázdne",
+            verbose_name = "Činnosť",
+            related_name='%(class)s_pokladna',
+            blank = True,
+            null = True
+            )
+    history = HistoricalRecords()
+
+    def clean(self): 
+        chyby={}
+        if self.typ_transakcie == TypPokladna.DOTACIA:
+            if self.suma <= 0:
+                chyby["suma"] = "V prípade dotácie musí byť pole 'Suma' kladné"
+        else:
+            if not self.cislo_VPD:
+                self.cislo_VPD = nasledujuce_VPD()
+            if self.suma >= 0:
+                chyby["suma"] = "V prípade VPD musí byť pole 'Suma' záporné"
+            if not self.zamestnanec:
+                chyby["zamestnanec"] = "V prípade VPD treba pole 'Zamestnanec' vyplniť"
+            if not self.zakazka:
+                chyby["zakazka"] = "V prípade VPD treba pole 'Typ zákazky' vyplniť"
+            if not self.zdroj:
+                chyby["zdroj"] = "V prípade VPD treba pole 'Zdroj' vyplniť"
+            if not self.ekoklas:
+                chyby["ekoklas"] = "V prípade VPD treba pole 'Ekonomická klasifikácia' vyplniť"
+            if not self.cinnost:
+                chyby["cinnost"] = "V prípade VPD treba pole 'Činnosť' vyplniť"
+            pass
+        if chyby:
+            raise ValidationError(chyby)
+
+    #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
+    def cerpanie_rozpoctu(self, zden):
+        if not self.datum_softip: return []
+        if self.datum_softip <zden: return []
+        kdatum =  date(zden.year, zden.month+1, zden.day) if zden.month+1 <= 12 else  date(zden.year+1, zden.month, zden.day)
+        if self.datum_softip >= kdatum: return []
+        platba = {
+                "nazov":f"Pokladňa",
+                "suma": self.suma,
+                "zdroj": self.zdroj,
+                "zakazka": self.zakazka,
+                "ekoklas": self.ekoklas
+                }
+        return [platba]
+
+    class Meta:
+        verbose_name = 'Záznam pokladne'
+        verbose_name_plural = 'Záznamy pokladne'
+    def __str__(self):
+        return f'{self.cislo}'

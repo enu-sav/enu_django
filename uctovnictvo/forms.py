@@ -5,11 +5,11 @@ from django.core.exceptions import ValidationError
 from ipdb import set_trace as trace
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
-from .models import nasledujuce_cislo
+from .models import nasledujuce_cislo, nasledujuce_VPD
 from .models import PrijataFaktura, Objednavka, PrispevokNaStravne, DoPC, DoVP, DoBPS, PlatovyVymer
 from .models import VyplacanieDohod, StavDohody, Dohoda, PravidelnaPlatba, TypPP, InternyPrevod, Nepritomnost
 from .models import Najomnik, NajomnaZmluva, NajomneFaktura, TypPN, RozpoctovaPolozkaDotacia, RozpoctovaPolozkaPresun
-from .models import PlatbaBezPrikazu
+from .models import PlatbaBezPrikazu, Pokladna, TypPokladna
 from dennik.models import Dokument, SposobDorucenia, TypDokumentu, InOut
 from datetime import date, datetime
 import re
@@ -604,4 +604,58 @@ class NajomneFakturaForm(forms.ModelForm):
                     vec
                     )
         )
+        return self.cleaned_data
+
+class PokladnaForm(forms.ModelForm):
+    #inicializácia polí
+    def __init__(self, *args, **kwargs):
+        self.request = kwargs.pop('request', None)
+        super().__init__(*args, **kwargs)
+        #self.initial['zdroj'] = 1       #111
+        #self.initial['program'] = 4     #nealokovaný
+        #self.initial['zakazka'] = 2     #11010001 spol. zák.	Činnosti z prostriedkov SAV - rozpočet 111
+        #self.initial['ekoklas'] = 108   #642014 Transfery jednotlivcom
+        #self.initial['cinnost'] = 2     #1a
+        polecislo = "cislo"
+        # Ak je pole readonly, tak sa nenachádza vo fields. Preto testujeme fields aj initial
+        if polecislo in self.fields:
+            if not polecislo in self.initial:
+                nasledujuce = nasledujuce_cislo(Pokladna)
+                self.fields[polecislo].help_text = f"Zadajte číslo nového záznamu pokladne v tvare {Pokladna.oznacenie}-RRRR-NNN. Predvolené číslo '{nasledujuce}' bolo určené na základe čísiel existujúcich záznamov ako nasledujúce v poradí."
+                self.initial[polecislo] = nasledujuce
+            else:
+                self.fields[polecislo].help_text = f"Číslo záznamu pokladne v tvare {Pokladna.oznacenie}-RRRR-NNN."
+
+        nasledujuce = nasledujuce_VPD()
+        # nasledujúce číslo Výdavkového pokladničného dokladu
+        self.fields["cislo_VPD"].help_text = f"Poradové číslo VPD (výdavkového pokladničného dokladu).<br />Ak necháte prázdne a nejde o dotáciu, <strong>doplní sa nasledujúce číslo '{nasledujuce}'</strong>, ktoré bolo určené na základe čísiel existujúcich VPD ako nasledujúce v poradí."
+
+    # Skontrolovať platnost a prípadne spraviť zmeny
+    def clean(self):
+        if 'cislo' in self.changed_data:
+            if not self.cleaned_data['cislo'][:2] == PrijataFaktura.oznacenie:
+                raise ValidationError({"cislo": "Nesprávne číslo. Zadajte číslo novej faktúry v tvare {PrijataFaktura.oznacenie}-RRRR-NNN"})
+
+        chyby={}
+        if self.cleaned_data["typ_transakcie"] == TypPokladna.DOTACIA:
+            nevyplna_sa = ["cislo_VPD", "zamestnanec", "zdroj", "zakazka", "ekoklas", "cinnost"]
+            opravene = []
+            for pole in nevyplna_sa:
+                if pole in self.changed_data:
+                    self.cleaned_data[pole] = None
+                    opravene.append(self.fields[pole].label)
+            if len(opravene) == 1:
+                messages.warning(self.request, 
+                    format_html(
+                        'Vyplnené boli pole <em>{}</em>, to sa však v prípade dotácie nevypĺňa. Vyplnenie bolo zrušené',
+                        ", ".join(opravene)
+                        )
+                    )
+            elif len(opravene) > 1:
+                messages.warning(self.request, 
+                    format_html(
+                        'Vyplnené boli polia <em>{}</em>, tie sa však v prípade dotácie nevypĺňajú. Vyplnenie bolo zrušené',
+                        ", ".join(opravene)
+                        )
+                    )
         return self.cleaned_data

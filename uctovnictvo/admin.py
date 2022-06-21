@@ -13,13 +13,15 @@ from .models import Dohoda, DoVP, DoPC, DoBPS, VyplacanieDohod, AnoNie, PlatovyV
 from .models import ZamestnanecDohodar, Zamestnanec, Dohodar, StavDohody, PravidelnaPlatba
 from .models import Najomnik, NajomnaZmluva, NajomneFaktura, TypPP, TypPN, Cinnost
 from .models import InternyPartner, InternyPrevod, Nepritomnost, RozpoctovaPolozka, RozpoctovaPolozkaDotacia
-from .models import RozpoctovaPolozkaPresun, PlatbaBezPrikazu
+from .models import RozpoctovaPolozkaPresun, PlatbaBezPrikazu, Pokladna
+from .models import nasledujuce_cislo, nasledujuce_VPD
 from .common import VytvoritPlatobnyPrikaz, VytvoritSuborDohody, VytvoritSuborObjednavky, leapdays, VytvoritKryciList
 from .common import VytvoritPlatobnyPrikazIP
 from .forms import PrijataFakturaForm, AutorskeZmluvyForm, ObjednavkaForm, ZmluvaForm, PrispevokNaStravneForm, PravidelnaPlatbaForm
 from .forms import PlatovyVymerForm, NajomneFakturaForm, NajomnaZmluvaForm, PlatbaBezPrikazuForm
-from .forms import DoPCForm, DoVPForm, DoBPSForm, nasledujuce_cislo, VyplacanieDohodForm
+from .forms import DoPCForm, DoVPForm, DoBPSForm, VyplacanieDohodForm
 from .forms import InternyPrevodForm, NepritomnostForm, RozpoctovaPolozkaDotaciaForm, RozpoctovaPolozkaPresunForm
+from .forms import PokladnaForm
 from .rokydni import datum_postupu, vypocet_prax, vypocet_zamestnanie, postup_roky, roky_postupu
 from beliana.settings import DPH
 from dennik.models import Dokument, TypDokumentu, InOut
@@ -199,6 +201,53 @@ class PlatbaBezPrikazuAdmin(ZobrazitZmeny, SimpleHistoryAdmin):
             if obj.suma >= 0:
                 messages.add_message(request, messages.WARNING, "Do poľa 'Suma' sa obvykle vkladajú výdavky (záporná suma), vložili ste však 0 alebo kladnú hodnotu sumy. Ak ide o omyl, hodnotu opravte.") 
         super(PlatbaBezPrikazuAdmin, self).save_model(request, obj, form, change)
+
+@admin.register(Pokladna)
+class PokladnaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin):
+    form = PokladnaForm
+    list_display = ["cislo", "typ_transakcie", "cislo_VPD", "suma", "zamestnanec", "datum_transakcie", "datum_softip", "popis", "zdroj", "zakazka", "ekoklas", "cinnost"]
+    #search_fields = ["dodavatel__nazov", "cislo", "predmet"]
+    #actions = [export_selected_objects]
+    actions = ['duplikovat_zaznam']
+
+    # zoraďovateľný odkaz na dodávateľa
+    # umožnené prostredníctvom AdminChangeLinksMixin
+    change_links = [
+        ('dodavatel', {
+            'admin_order_field': 'dodavatel__nazov', # Allow to sort members by the `dodavatel_link` column
+        })
+    ]
+
+    # do AdminForm pridať request, aby v jej __init__ bolo request dostupné
+    def get_form(self, request, obj=None, **kwargs):
+        AdminForm = super(PokladnaAdmin, self).get_form(request, obj, **kwargs)
+        class AdminFormMod(AdminForm):
+            def __new__(cls, *args, **kwargs):
+                kwargs['request'] = request
+                return AdminForm(*args, **kwargs)
+        return AdminFormMod
+
+    def duplikovat_zaznam(self, request, queryset):
+        if len(queryset) != 1:
+            self.message_user(request, f"Vybrať možno len jeden výmer.", messages.ERROR)
+            return
+        star = queryset[0]
+        novy = Pokladna.objects.create(
+                cislo = nasledujuce_cislo(Pokladna),
+                typ_transakcie = star.typ_transakcie,
+                zamestnanec = star.zamestnanec,
+                zdroj = star.zdroj,
+                zakazka = star.zakazka,
+                ekoklas = star.ekoklas,
+                cinnost = star.cinnost
+            )
+        novy.save()
+        self.message_user(request, f"Vytvorený bol nový záznam pokladne.", messages.SUCCESS)
+
+    duplikovat_zaznam.short_description = "Duplikovať záznam pokladne"
+    #Oprávnenie na použitie akcie, viazané na 'change'
+    duplikovat_zaznam.allowed_permissions = ('change',)
+
 
 @admin.register(Zmluva)
 class ZmluvaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
