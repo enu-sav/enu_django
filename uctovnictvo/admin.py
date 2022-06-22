@@ -13,10 +13,10 @@ from .models import Dohoda, DoVP, DoPC, DoBPS, VyplacanieDohod, AnoNie, PlatovyV
 from .models import ZamestnanecDohodar, Zamestnanec, Dohodar, StavDohody, PravidelnaPlatba
 from .models import Najomnik, NajomnaZmluva, NajomneFaktura, TypPP, TypPN, Cinnost
 from .models import InternyPartner, InternyPrevod, Nepritomnost, RozpoctovaPolozka, RozpoctovaPolozkaDotacia
-from .models import RozpoctovaPolozkaPresun, PlatbaBezPrikazu, Pokladna
+from .models import RozpoctovaPolozkaPresun, PlatbaBezPrikazu, Pokladna, TypPokladna
 from .models import nasledujuce_cislo, nasledujuce_VPD
 from .common import VytvoritPlatobnyPrikaz, VytvoritSuborDohody, VytvoritSuborObjednavky, leapdays, VytvoritKryciList
-from .common import VytvoritPlatobnyPrikazIP
+from .common import VytvoritPlatobnyPrikazIP, VytvoritSuborVPD
 from .forms import PrijataFakturaForm, AutorskeZmluvyForm, ObjednavkaForm, ZmluvaForm, PrispevokNaStravneForm, PravidelnaPlatbaForm
 from .forms import PlatovyVymerForm, NajomneFakturaForm, NajomnaZmluvaForm, PlatbaBezPrikazuForm
 from .forms import DoPCForm, DoVPForm, DoBPSForm, VyplacanieDohodForm
@@ -205,10 +205,10 @@ class PlatbaBezPrikazuAdmin(ZobrazitZmeny, SimpleHistoryAdmin):
 @admin.register(Pokladna)
 class PokladnaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin):
     form = PokladnaForm
-    list_display = ["cislo", "typ_transakcie", "cislo_VPD", "suma", "zamestnanec", "datum_transakcie", "datum_softip", "popis", "zdroj", "zakazka", "ekoklas", "cinnost"]
+    list_display = ["cislo", "typ_transakcie", "cislo_VPD", "suma", "zamestnanec", "subor_vpd", "datum_transakcie", "datum_softip", "popis", "zdroj", "zakazka", "ekoklas", "cinnost"]
     #search_fields = ["dodavatel__nazov", "cislo", "predmet"]
     #actions = [export_selected_objects]
-    actions = ['duplikovat_zaznam']
+    actions = ['vytvorit_vpd', 'generovat_prehlad', 'duplikovat_zaznam']
 
     # zoraďovateľný odkaz na dodávateľa
     # umožnené prostredníctvom AdminChangeLinksMixin
@@ -217,6 +217,9 @@ class PokladnaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin):
             'admin_order_field': 'dodavatel__nazov', # Allow to sort members by the `dodavatel_link` column
         })
     ]
+
+    def get_readonly_fields(self, request, obj=None):
+        return ["datum_softip"]
 
     # do AdminForm pridať request, aby v jej __init__ bolo request dostupné
     def get_form(self, request, obj=None, **kwargs):
@@ -248,6 +251,31 @@ class PokladnaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin):
     #Oprávnenie na použitie akcie, viazané na 'change'
     duplikovat_zaznam.allowed_permissions = ('change',)
 
+    #generuje prehľad pre ths, queryset je ignorované
+    def generovat_prehlad(self, request, queryset):
+        pass
+
+    generovat_prehlad.short_description = "Vygenerovať prehľad výdavkov pre THS"
+    #Oprávnenie na použitie akcie, viazané na 'change'
+    generovat_prehlad.allowed_permissions = ('change',)
+
+    def vytvorit_vpd(self, request, queryset):
+        if len(queryset) != 1:
+            self.message_user(request, f"Vybrať možno len jednu položku", messages.ERROR)
+            return
+        vpd = queryset[0]
+        if vpd.typ_transakcie == TypPokladna.DOTACIA:
+            self.message_user(request, f"Vybraná položka je dotácia, VPD nemožno vytvoriť.", messages.ERROR)
+            return
+        status, msg, vytvoreny_subor = VytvoritSuborVPD(vpd)
+        if status != messages.ERROR:
+            vpd.subor_vpd = vytvoreny_subor
+            vpd.save()
+        self.message_user(request, msg, status)
+
+    vytvorit_vpd.short_description = "Vytvoriť VPD"
+    #Oprávnenie na použitie akcie, viazané na 'change'
+    vytvorit_vpd.allowed_permissions = ('change',)
 
 @admin.register(Zmluva)
 class ZmluvaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):

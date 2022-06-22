@@ -232,6 +232,7 @@ DOHODY_DIR="Dohody"
 OBJEDNAVKY_DIR="Objednavky"
 PRIJATEFAKTURY_DIR="PrijateFaktury"
 STRAVNE_DIR="Stravne"
+POKLADNA_DIR="Pokladna"
 
 #App denniky
 FORM_DIR_NAME="HromadneDokumenty"

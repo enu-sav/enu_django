@@ -952,7 +952,7 @@ class Zamestnanec(ZamestnanecDohodar):
         verbose_name = "Zamestnanec"
         verbose_name_plural = "PaM - Zamestnanci"
     def __str__(self):
-        return f"Z {self.priezvisko}, {self.meno}, {self.cislo_zamestnanca}"
+        return f"{self.priezvisko}, {self.meno}, {self.cislo_zamestnanca}"
 
 class Dohodar(ZamestnanecDohodar):
     history = HistoricalRecords()
@@ -1447,6 +1447,8 @@ class VyplacanieDohod(models.Model):
         verbose_name_plural = 'PaM - Vyplácanie dohôd'
 
 
+def pokladna_upload_location(instance, filename):
+    return os.path.join(VPD_DIR, filename)
 class Pokladna(models.Model):
     oznacenie = "Po"
     cislo = models.CharField("Číslo záznamu", 
@@ -1463,7 +1465,7 @@ class Pokladna(models.Model):
             null=True
             )
     datum_transakcie = models.DateField('Dátum transakcie',
-            help_text = "Dátum realizácie platby",
+            help_text = "Dátum prijatia dotácie alebo preplatenia výdavku",
             null=True
             )
     cislo_VPD = models.IntegerField("Poradové číslo VPD",
@@ -1477,14 +1479,18 @@ class Pokladna(models.Model):
             blank = True,
             null = True
             )
-    datum_softip = models.DateField('Dátum Softip',
-            help_text = "Dátum záznamu transakcie do Softipu",
+    subor_vpd = models.FileField("Súbor VPD",
+            help_text = "Súbor s VPD. Generuje sa akciou 'Vytvoriť VPD'",
+            upload_to=pokladna_upload_location, 
+            null = True, blank = True)
+    datum_softip = models.DateField('Dátum THS',
+            help_text = "Dátum vygenerovania prehľadu výdavkov pre THS. Vypĺňa sa automaticky akciou 'Vygenerovať prehľad výdavkov pre THS'",
             blank = True,
             null=True
             )
     popis = models.CharField("Popis platby.", 
             help_text = "Stručný popis transakcie.",
-            max_length=100,
+            max_length=30,
             null=True
             )
     zdroj = models.ForeignKey(Zdroj,
