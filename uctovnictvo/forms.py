@@ -359,7 +359,7 @@ class DohodaForm(forms.ModelForm):
             dok.save()
             messages.warning(self.request, f"Sken podpísanej dohody treba vložiť do poľa '{Dohoda.sken_dohody.label}'. Po vypršaní dohody treba spraviť záznam do 'Dohody - Vyplácanie dohôd'")
 
-class DoPCForm(forms.ModelForm):
+class DoPCForm(DohodaForm):
     #inicializácia polí
     def __init__(self, *args, **kwargs):
         # do Admin treba pridať metódu get_form
@@ -399,7 +399,7 @@ class DoVPForm(DohodaForm):
             else:
                 self.fields[polecislo].help_text = f"Číslo faktúry v tvare {DoVP.oznacenie}-RRRR-NNN."
 
-class DoBPSForm(forms.ModelForm):
+class DoBPSForm(DohodaForm):
     #inicializácia polí
     def __init__(self, *args, **kwargs):
         # do Admin treba pridať metódu get_form
