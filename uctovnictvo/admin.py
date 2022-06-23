@@ -203,9 +203,9 @@ class PlatbaBezPrikazuAdmin(ZobrazitZmeny, SimpleHistoryAdmin):
         super(PlatbaBezPrikazuAdmin, self).save_model(request, obj, form, change)
 
 @admin.register(Pokladna)
-class PokladnaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin ):
+class PokladnaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
     form = PokladnaForm
-    list_display = ["cislo", "typ_transakcie", "cislo_VPD", "suma", "zamestnanec", "subor_vpd", "datum_transakcie", "datum_softip", "popis", "zdroj", "zakazka", "ekoklas", "cinnost"]
+    list_display = ["cislo", "typ_transakcie", "cislo_VPD", "suma", "zamestnanec", "subor_vpd", "datum_transakcie", "datum_softip", "popis", "ekoklas", "zdroj", "zakazka", "cinnost"]
     #search_fields = ["dodavatel__nazov", "cislo", "predmet"]
     #actions = [export_selected_objects]
     actions = ['vytvorit_vpd', 'generovat_stranu_PD', 'duplikovat_zaznam']
@@ -216,6 +216,9 @@ class PokladnaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, Im
         ('dodavatel', {
             'admin_order_field': 'dodavatel__nazov', # Allow to sort members by the `dodavatel_link` column
         })
+    ]
+    list_totals = [
+        ('suma', Sum),
     ]
 
     def get_readonly_fields(self, request, obj=None):
