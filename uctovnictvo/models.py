@@ -76,7 +76,7 @@ class TypNepritomnosti(models.TextChoices):
 
 #access label: AnoNie('ano').label
 class TypPokladna(models.TextChoices):
-    DOTACIA = 'dotacia', 'Dotácia'
+    DOTACIA = 'dotacia', 'Príjem do pokladne'
     VPD = 'vpd', 'Vystavenie VPD'
 
 class Poistovna(models.TextChoices):
@@ -1484,13 +1484,18 @@ class Pokladna(models.Model):
             upload_to=pokladna_upload_location, 
             null = True, blank = True)
     datum_softip = models.DateField('Dátum THS',
-            help_text = "Dátum vygenerovania prehľadu výdavkov pre THS. Vypĺňa sa automaticky akciou 'Vygenerovať prehľad výdavkov pre THS'",
+            help_text = "Dátum vytvorenia zoznamu VPD pre THS. Vypĺňa sa automaticky akciou 'vytvoriť zoznam VPD pre THS'",
             blank = True,
             null=True
             )
-    popis = models.CharField("Popis platby.", 
+    popis = models.CharField("Popis platby", 
             help_text = "Stručný popis transakcie.",
             max_length=30,
+            null=True
+            )
+    poznamka = models.CharField("Poznámka", 
+            max_length=60,
+            blank = True,
             null=True
             )
     zdroj = models.ForeignKey(Zdroj,

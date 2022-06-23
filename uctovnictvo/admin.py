@@ -16,7 +16,7 @@ from .models import InternyPartner, InternyPrevod, Nepritomnost, RozpoctovaPoloz
 from .models import RozpoctovaPolozkaPresun, PlatbaBezPrikazu, Pokladna, TypPokladna
 from .models import nasledujuce_cislo, nasledujuce_VPD
 from .common import VytvoritPlatobnyPrikaz, VytvoritSuborDohody, VytvoritSuborObjednavky, leapdays, VytvoritKryciList
-from .common import VytvoritPlatobnyPrikazIP, VytvoritSuborVPD
+from .common import VytvoritPlatobnyPrikazIP, VytvoritSuborVPD, UlozitStranuPK
 from .forms import PrijataFakturaForm, AutorskeZmluvyForm, ObjednavkaForm, ZmluvaForm, PrispevokNaStravneForm, PravidelnaPlatbaForm
 from .forms import PlatovyVymerForm, NajomneFakturaForm, NajomnaZmluvaForm, PlatbaBezPrikazuForm
 from .forms import DoPCForm, DoVPForm, DoBPSForm, VyplacanieDohodForm
@@ -203,12 +203,12 @@ class PlatbaBezPrikazuAdmin(ZobrazitZmeny, SimpleHistoryAdmin):
         super(PlatbaBezPrikazuAdmin, self).save_model(request, obj, form, change)
 
 @admin.register(Pokladna)
-class PokladnaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin):
+class PokladnaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin ):
     form = PokladnaForm
     list_display = ["cislo", "typ_transakcie", "cislo_VPD", "suma", "zamestnanec", "subor_vpd", "datum_transakcie", "datum_softip", "popis", "zdroj", "zakazka", "ekoklas", "cinnost"]
     #search_fields = ["dodavatel__nazov", "cislo", "predmet"]
     #actions = [export_selected_objects]
-    actions = ['vytvorit_vpd', 'generovat_prehlad', 'duplikovat_zaznam']
+    actions = ['vytvorit_vpd', 'generovat_stranu_PD', 'duplikovat_zaznam']
 
     # zoraďovateľný odkaz na dodávateľa
     # umožnené prostredníctvom AdminChangeLinksMixin
@@ -239,6 +239,7 @@ class PokladnaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin):
                 cislo = nasledujuce_cislo(Pokladna),
                 typ_transakcie = star.typ_transakcie,
                 zamestnanec = star.zamestnanec,
+                popis = star.popis,
                 zdroj = star.zdroj,
                 zakazka = star.zakazka,
                 ekoklas = star.ekoklas,
@@ -252,12 +253,58 @@ class PokladnaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin):
     duplikovat_zaznam.allowed_permissions = ('change',)
 
     #generuje prehľad pre ths, queryset je ignorované
-    def generovat_prehlad(self, request, queryset):
-        pass
+    def generovat_stranu_PD(self, request, queryset):
+        if len(queryset) < 2:
+            self.message_user(request, f"Na vytvorenie strany pokladničnej knihy treba vybrať aspoň dve (ľubovolné) položky.", messages.ERROR)
+            return
+        # všetky záznamy, na zistenie počtu už vytvorených strán
+        qs = Pokladna.objects.filter().order_by("datum_transakcie")
+        if not qs:
+            self.message_user(request, f"Žiadne položky na zaznamenanie do PK neboli nájdené.", messages.INFO)
+            return
+        datumy = set()
+        for item in qs:
+            if item.datum_softip:
+                datumy.add(item.datum_softip)
+        strana = len(datumy) + 1
 
-    generovat_prehlad.short_description = "Vygenerovať prehľad výdavkov pre THS"
+        qs = qs.filter(datum_softip__isnull=True).order_by("datum_transakcie")
+        status, msg, media_url = UlozitStranuPK(request, qs, strana)
+        if status ==  messages.ERROR:
+            self.message_user(request, msg, status)
+            return
+
+        self.message_user(request, msg, messages.WARNING)
+        self.message_user(request, f"Odkaz na vytvorený súbor je trvalo dostupný v denníku prijatej a odoslanej pošty. Počet exportovaných položiek: {len(qs)}", messages.INFO)
+
+        vec = f"Strana pokladničnej knihy"
+        cislo_posta = nasledujuce_cislo(Dokument)
+        dok = Dokument(
+            cislo = cislo_posta,
+            cislopolozky = "-",
+            datumvytvorenia = date.today(),
+            typdokumentu = TypDokumentu.POKLADNICNAKNIHA,
+            inout = InOut.ODOSLANY,
+            adresat = "THS",
+            vec = f'<a href="{media_url}">{vec}</a>',
+            prijalodoslal=request.user.username, #zámena mien prijalodoslal - zaznamvytvoril
+        )
+        dok.save()
+        messages.warning(request, 
+            format_html(
+                'Do denníka prijatej a odoslanej pošty bol pridaný záznam č. {}: <em>{}</em>, treba v ňom doplniť údaje o odoslaní.',
+                mark_safe(f'<a href="/admin/dennik/dokument/{dok.id}/change/">{cislo_posta}</a>'),
+                "Pokladničná kniha"
+                )
+        )
+        dnes = date.today()
+        for item in qs:
+            item.datum_softip = dnes 
+            item.save()
+
+    generovat_stranu_PD.short_description = "Vytvoriť stranu pokladničnej knihy"
     #Oprávnenie na použitie akcie, viazané na 'change'
-    generovat_prehlad.allowed_permissions = ('change',)
+    generovat_stranu_PD.allowed_permissions = ('change',)
 
     def vytvorit_vpd(self, request, queryset):
         if len(queryset) != 1:

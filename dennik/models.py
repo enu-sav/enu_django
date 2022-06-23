@@ -29,6 +29,7 @@ class TypDokumentu(models.TextChoices):
     NAJOMNE = 'najomne', 'Nájomné'
     PRAVIDELNAPLATBA = 'pravidelnaplatba', 'Pravidelná platba'
     INTERNYPREVOD = 'internyprevod', 'Interný prevod'
+    POKLADNICNAKNIHA = 'pokladnicnakniha', 'Pokladničná kniha'
     INY = 'iny', 'Iný'
 
 # Typy šablón na vyplňovanie. Určuje, zoznam povolených tokenov v šablóne
