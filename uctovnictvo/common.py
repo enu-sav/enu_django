@@ -564,8 +564,9 @@ def VytvoritSuborVPD(vpd):
     workbook = load_workbook(filename=nazov_suboru)
 
     rok = re.findall(r"%s-([0-9]*).*"%Pokladna.oznacenie, vpd.cislo)[0]
+    cislovpd = f"{vpd.cislo_VPD}/{rok}"
     obj = workbook["VPD"]
-    obj["J2"].value = f"{vpd.cislo_VPD}/{rok}"
+    obj["J2"].value = cislovpd
     obj["H5"].value = vpd.datum_transakcie.strftime("%d. %m. %Y")
     obj["D7"].value = meno_priezvisko(vpd.zamestnanec)
     obj["H10"].value = vpd.suma.copy_abs()
@@ -574,12 +575,19 @@ def VytvoritSuborVPD(vpd):
     obj["C13"].value = vpd.popis
     obj["E21"].value = vpd.cislo
 
+    kl = workbook["Krycí list"]
+    kl["A2"].value = kl["A2"].value.replace("[[xx-xxxx]]", cislovpd) 
+    kl["B10"].value = vpd.zdroj.kod
+    kl["D10"].value = vpd.zakazka.kod
+    kl["G10"].value = vpd.ekoklas.kod
+
     #ulozit
     #Create directory admin.rs_login if necessary
-    nazov = f'{vpd.cislo}.xlsx'
+
+    nazov = f'VPD-{cislovpd}.xlsx'.replace("/","-")
     opath = os.path.join(settings.POKLADNA_DIR,nazov)
     workbook.save(os.path.join(settings.MEDIA_ROOT,opath))
-    return messages.SUCCESS, f"Súbor VPD {vpd.cislo} bol úspešne vytvorený ({opath}).", opath
+    return messages.SUCCESS, f"Súbor {nazov} bol úspešne vytvorený.", opath
 
 def UlozitStranuPK(request, queryset, strana):
     #úvodné testy
