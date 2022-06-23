@@ -48,7 +48,7 @@ def export_as_xlsx(self, request, queryset):
     ws = wb.active
     ws.append(ExportExcelAction.generate_header(self, self.model, field_names))
 
-    #šírla stĺpcov, inicializácia
+    #šírka stĺpcov, inicializácia
     fw = {}
     for fn in field_names:
         fw[fn]=len(fn)

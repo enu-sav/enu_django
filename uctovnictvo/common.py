@@ -6,14 +6,15 @@ from django.utils.safestring import mark_safe
 from django.conf import settings
 from django.contrib import messages
 from django.utils import timezone
+from django.utils.html import format_html
 from .models import SystemovySubor, PrijataFaktura, AnoNie, Objednavka, PrijataFaktura, Rozhodnutie, Zmluva
-from .models import DoVP, DoPC, DoBPS, Poistovna, TypDochodku, Mena, PravidelnaPlatba, TypPP
+from .models import DoVP, DoPC, DoBPS, Poistovna, TypDochodku, Mena, PravidelnaPlatba, TypPP, TypPokladna, Pokladna
 
 from openpyxl import load_workbook
 from openpyxl.styles import Font, Color, colors, Alignment, PatternFill , numbers
 from openpyxl.utils import get_column_letter
 
-import datetime, calendar
+import datetime, calendar, re
 
 def leapdays(datefrom, dateto):
     yearfrom = datefrom.year
@@ -24,6 +25,64 @@ def leapdays(datefrom, dateto):
 
 def locale_format(d):
     return locale.format('%%0.%df' % (-d.as_tuple().exponent), d, grouping=True)
+
+# konvertuje Decimal sumu v tvare XYZ.ab do textoveho retazca
+def decimal2text(num):
+    s = {
+        '0': '',
+        '1': 'sto',
+        '2': 'dvesto',
+        '3': 'tristo',
+        '4': 'štyristo',
+        '5': 'päťsto',
+        '6': 'šesťsto',
+        '7': 'sedemsto',
+        '8': 'osemsto',
+        '9': 'deväťsto',
+    }
+    d = {
+        '0': '',
+        '2': 'dvadsať',
+        '3': 'tridsať',
+        '4': 'štyridsať',
+        '5': 'päťdesiat',
+        '6': 'šesťdesiat',
+        '7': 'sedemdesiat',
+        '8': 'osemdesiat',
+        '9': 'deväťdesiat',
+    }
+    j = {
+        '0': '',
+        '1': 'jeden',
+        '2': 'dva',
+        '3': 'tri',
+        '4': 'štyri',
+        '5': 'päť',
+        '6': 'šesť',
+        '7': 'sedem',
+        '8': 'osem',
+        '9': 'deväť'
+    }
+    dj = {
+        '10': 'desať',
+        '11': 'jedenásť',
+        '12': 'dvanásť',
+        '13': 'trinásť',
+        '14': 'štrnásť',
+        '15': 'pätnásť',
+        '16': 'šestnásť',
+        '17': 'sedemnásť',
+        '18': 'osemnásť',
+        '19': 'devätnásť'
+    }
+    num=num.copy_abs()
+    inum=int(num)
+    nnum = "%03d"%num
+    frac = " EUR %d/100"%(int(100*(num-inum)))
+    if nnum[1] == "1":
+        return s[nnum[0]] + dj[nnum[1:3]] + frac
+    else:
+        return s[nnum[0]] + d[nnum[1]] + j[nnum[2]] + frac
 
 def meno_priezvisko(autor):
     if autor.titul_pred_menom:
@@ -489,3 +548,75 @@ def VytvoritSuborObjednavky(objednavka):
     opath = os.path.join(settings.OBJEDNAVKY_DIR,nazov)
     workbook.save(os.path.join(settings.MEDIA_ROOT,opath))
     return messages.SUCCESS, f"Súbor objednávky {objednavka.cislo} bol úspešne vytvorený ({opath}).", opath
+
+def VytvoritSuborVPD(vpd):
+    #úvodné testy
+    pokladna_dir_path  = os.path.join(settings.MEDIA_ROOT,settings.POKLADNA_DIR)
+    if not os.path.isdir(pokladna_dir_path):
+        os.makedirs(pokladna_dir_path)
+    
+    #Načítať súbor šablóny
+    nazov_objektu = "Šablóna VPD"  #Presne takto musí byť objekt pomenovaný
+    sablona = SystemovySubor.objects.filter(subor_nazov = nazov_objektu)
+    if not sablona:
+        return messages.ERROR, f"V systéme nie je definovaný súbor '{nazov_objektu}'.", None
+    nazov_suboru = sablona[0].subor.file.name 
+    workbook = load_workbook(filename=nazov_suboru)
+
+    rok = re.findall(r"%s-([0-9]*).*"%Pokladna.oznacenie, vpd.cislo)[0]
+    obj = workbook["VPD"]
+    obj["J2"].value = f"{vpd.cislo_VPD}/{rok}"
+    obj["H5"].value = vpd.datum_transakcie.strftime("%d. %m. %Y")
+    obj["D7"].value = meno_priezvisko(vpd.zamestnanec)
+    obj["H10"].value = vpd.suma.copy_abs()
+    #suma textom
+    obj["D11"].value = decimal2text(vpd.suma)
+    obj["C13"].value = vpd.popis
+    obj["E21"].value = vpd.cislo
+
+    #ulozit
+    #Create directory admin.rs_login if necessary
+    nazov = f'{vpd.cislo}.xlsx'
+    opath = os.path.join(settings.POKLADNA_DIR,nazov)
+    workbook.save(os.path.join(settings.MEDIA_ROOT,opath))
+    return messages.SUCCESS, f"Súbor VPD {vpd.cislo} bol úspešne vytvorený ({opath}).", opath
+
+def UlozitStranuPK(request, queryset, strana):
+    #úvodné testy
+    pokladna_dir_path  = os.path.join(settings.MEDIA_ROOT,settings.POKLADNA_DIR)
+    if not os.path.isdir(pokladna_dir_path):
+        os.makedirs(pokladna_dir_path)
+    
+    #Načítať súbor šablóny
+    nazov_objektu = "Pokladničná kniha"  #Presne takto musí byť objekt pomenovaný
+    sablona = SystemovySubor.objects.filter(subor_nazov = nazov_objektu)
+    if not sablona:
+        return messages.ERROR, f"V systéme nie je definovaný súbor '{nazov_objektu}'.", None
+    nazov_suboru = sablona[0].subor.file.name 
+    workbook = load_workbook(filename=nazov_suboru)
+    ws = workbook.active
+    ws[f'I3'].value = strana
+    riadok = 5
+    for item in queryset:
+        ws[f'A{riadok}'].value = item.datum_transakcie.strftime("%d. %m. %Y")
+        ws[f'C{riadok}'].value = item.popis
+        if item.typ_transakcie == TypPokladna.DOTACIA:
+            ws[f'G{riadok}'].value = item.suma
+        else:
+            ws[f'H{riadok}'].value = -item.suma
+            rok = re.findall(r"%s-([0-9]*).*"%Pokladna.oznacenie, item.cislo)[0]
+            ws[f'B{riadok}'].value = f"{item.cislo_VPD}/{rok}"
+        riadok += 1
+    ws[f'A55'].value = f"Vygenerované programom DjangoBel {timezone.now().strftime('%d. %m. %Y')}"
+
+    #ulozit
+    #Create directory admin.rs_login if necessary
+    nazov = f'PK-{timezone.now().strftime("%d-%m-%Y")}.xlsx'
+    opath = os.path.join(settings.POKLADNA_DIR,nazov)
+    workbook.save(os.path.join(settings.MEDIA_ROOT,opath))
+    mpath = os.path.join(settings.MEDIA_URL,opath)
+    msg = format_html(
+        'Vytvorená strana pokladničnej knihy bola uložená do súboru {}.',
+        mark_safe(f'<a href="{mpath}">{nazov}</a>'),
+        )
+    return messages.SUCCESS, msg, mpath
