@@ -37,7 +37,8 @@ typ_dokumentu = {
     DoBPS.oznacenie: TypDokumentu.DoBPS,
     PlatbaAutorskaSumar.oznacenie: TypDokumentu.VYPLACANIE_AH,
     PravidelnaPlatba.oznacenie: TypDokumentu.PRAVIDELNAPLATBA,
-    InternyPrevod.oznacenie: TypDokumentu.INTERNYPREVOD
+    InternyPrevod.oznacenie: TypDokumentu.INTERNYPREVOD,
+    NajomneFaktura.oznacenie: TypDokumentu.NAJOMNE
 }
 
 #zobrazenie histórie
