@@ -76,8 +76,8 @@ class TypNepritomnosti(models.TextChoices):
 
 #access label: AnoNie('ano').label
 class TypPokladna(models.TextChoices):
-    DOTACIA = 'dotacia', 'Príjem do pokladne'
-    VPD = 'vpd', 'Vystavenie VPD'
+    DOTACIA = 'prijem_do_pokladne', 'Príjem do pokladne'
+    VPD = 'vystavenie_vpd', 'Vystavenie VPD'
 
 class Poistovna(models.TextChoices):
     VSZP = 'VsZP', 'VšZP'
@@ -1454,7 +1454,7 @@ class Pokladna(models.Model):
     cislo = models.CharField("Číslo záznamu", 
         max_length=50)
     typ_transakcie = models.CharField("Typ transakcie", 
-            max_length=15, 
+            max_length=25, 
             null=True, 
             choices=TypPokladna.choices
             )
