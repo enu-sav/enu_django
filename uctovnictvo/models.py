@@ -1557,12 +1557,13 @@ class Pokladna(models.Model):
 
     #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
     def cerpanie_rozpoctu(self, zden):
+        if self.typ_transakcie == TypPokladna.DOTACIA: return []
         if not self.datum_softip: return []
         if self.datum_softip <zden: return []
         kdatum =  date(zden.year, zden.month+1, zden.day) if zden.month+1 <= 12 else  date(zden.year+1, zden.month, zden.day)
         if self.datum_softip >= kdatum: return []
         platba = {
-                "nazov":f"Pokladňa",
+                "nazov": "Pokladňa",
                 "suma": self.suma,
                 "zdroj": self.zdroj,
                 "zakazka": self.zakazka,
