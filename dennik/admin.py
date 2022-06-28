@@ -158,6 +158,9 @@ class CerpanieRozpoctuAdmin(ModelAdminTotals):
     list_filter = (
         ('mesiac', DateRangeFilter),
     )
+    #stránkovanie a 'Zobraziť všetko'
+    list_per_page = 50
+    list_max_show_all = 100000
 
     def generovat2021(self, request, queryset):
         self.generovat(request, 2021)
