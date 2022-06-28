@@ -456,7 +456,7 @@ class PrijataFaktura(FakturaPravidelnaPlatba):
     def cerpanie_rozpoctu(self, zden):
         if not self.dane_na_uhradu: return []
         if self.dane_na_uhradu <zden: return []
-        kdatum =  date(zden.year, zden.month+1, zden.day) if zden.month+1 <= 12 else  date(zden.year+1, zden.month, zden.day)
+        kdatum =  date(zden.year, zden.month+1, zden.day) if zden.month+1 <= 12 else  date(zden.year+1, 1, 1)
         if self.dane_na_uhradu >= kdatum: return []
         typ = "zmluva" if type(self.objednavka_zmluva) == Zmluva else "objednávka" if type(self.objednavka_zmluva) == Objednavka else "rozhodnutie" 
         platba = {
@@ -488,7 +488,7 @@ class PravidelnaPlatba(FakturaPravidelnaPlatba):
     #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
     def cerpanie_rozpoctu(self, zden):
         if self.splatnost_datum <zden: return []
-        kdatum =  date(zden.year, zden.month+1, zden.day) if zden.month+1 <= 12 else  date(zden.year+1, zden.month, zden.day)
+        kdatum =  date(zden.year, zden.month+1, zden.day) if zden.month+1 <= 12 else  date(zden.year+1, 1, 1)
         if self.splatnost_datum >= kdatum: return []
         nazov = "Faktúra záloha" if self.typ == TypPP.ZALOHA_EL_ENERGIA else ""
         platba = {
@@ -618,7 +618,9 @@ class NajomneFaktura(Klasifikacia):
     def cerpanie_rozpoctu(self, zden):
         if not self.splatnost_datum: return []
         if self.splatnost_datum <zden: return []
-        if self.splatnost_datum >= date(zden.year, zden.month+1, zden.day): return []
+        #if self.splatnost_datum >= date(zden.year, zden.month+1, zden.day): return []
+        kdatum =  date(zden.year, zden.month+1, zden.day) if zden.month+1 <= 12 else  date(zden.year+1, 1, 1)
+        if self.splatnost_datum >= kdatum: return []
         typ = "prenájom nájomné" if self.typ == TypPN.NAJOMNE else "prenájom služby" if self.typ == TypPN.SLUZBY else "prenájom vyúčtovanie"
         platba = {
                 "nazov":f"Faktúra {typ}",
@@ -1225,7 +1227,7 @@ class DoVP(Dohoda):
     #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
     def cerpanie_rozpoctu(self, zden):
         if self.datum_do <zden: return []
-        kdatum =  date(zden.year, zden.month+1, zden.day) if zden.month+1 <= 12 else  date(zden.year+1, zden.month, zden.day)
+        kdatum =  date(zden.year, zden.month+1, zden.day) if zden.month+1 <= 12 else  date(zden.year+1, 1, 1)
         if self.datum_do >= kdatum: return []
         platba = {
                 "nazov":f"DoVP odmena",
@@ -1560,7 +1562,7 @@ class Pokladna(models.Model):
         if self.typ_transakcie == TypPokladna.DOTACIA: return []
         if not self.datum_softip: return []
         if self.datum_softip <zden: return []
-        kdatum =  date(zden.year, zden.month+1, zden.day) if zden.month+1 <= 12 else  date(zden.year+1, zden.month, zden.day)
+        kdatum =  date(zden.year, zden.month+1, zden.day) if zden.month+1 <= 12 else  date(zden.year+1, 1, 1)
         if self.datum_softip >= kdatum: return []
         platba = {
                 "nazov": "Pokladňa",
