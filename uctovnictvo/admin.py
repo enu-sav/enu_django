@@ -643,11 +643,12 @@ class NajomnaZmluvaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmi
 
     def orig_cislo(self, obj):
         parsed = re.findall(f"{NajomnaZmluva.oznacenie}-(....)-(...)", obj.cislo)
+        rok = None
         if parsed:
             rok, nn = parsed[0]
             rok = int(rok)
             nn = int(nn)
-        if rok < 2022:
+        if rok and rok < 2022:
             return "%02d/%d"%(nn, rok)
         else:
             return "-"
