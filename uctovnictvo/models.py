@@ -570,7 +570,7 @@ class NajomnaZmluva(models.Model):
         verbose_name_plural = 'Prenájom - Zmluvy'
         #abstract = True
     def __str__(self):
-        return f"{self.cislo} - {self.najomnik}"
+        return f"{self.najomnik} - {self.cislo}"
 
 class NajomneFaktura(Klasifikacia):
     # Polia
