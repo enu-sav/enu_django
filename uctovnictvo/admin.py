@@ -859,28 +859,6 @@ class SystemovySuborAdmin(ZobrazitZmeny, admin.ModelAdmin):
         else:
             return []
 
-#Skryť ZamestnanecDohodar, zobrazujeme Zamestnanec a Dohodar
-#@admin.register(ZamestnanecDohodar)
-class _ZamestnanecDohodar(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
-    list_display = ("priezvisko", "meno", "rod_priezvisko", "email", "rodne_cislo", "datum_nar", "miesto_nar", "adresa", "_dochodok", "_ztp","poistovna", "cop", "stav")
-    # ^: v poli vyhľadávať len od začiatku
-    search_fields = ["priezvisko", "meno"]
-    def adresa(self, obj):
-        if obj.adresa_mesto:
-            return f"{obj.adresa_ulica} {obj.adresa_mesto}, {obj.adresa_stat}".strip()
-    def _dochodok(self, obj):
-        if obj.poberatel_doch == AnoNie.ANO:
-            return f"{obj.typ_doch}, {obj.datum_doch}".strip()
-        else:
-            return "Nie"
-    _dochodok.short_description = "Dôchodok"
-    def _ztp(self, obj):
-        if obj.ztp == AnoNie.ANO:
-            return f"Áno, {obj.datum_ztp}".strip()
-        else:
-            return "Nie"
-    _ztp.short_description = "ZŤP"
-
 @admin.register(Dohodar)
 class DohodarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
     list_display = ("priezvisko", "meno", "rod_priezvisko", "email", "rodne_cislo", "datum_nar", "miesto_nar", "adresa", "_dochodok", "_ztp","poistovna", "cop", "stav")
