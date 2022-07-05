@@ -7,6 +7,7 @@ from django.contrib import messages
 from django.utils.translation import ngettext
 from django.conf import settings
 from django.contrib.auth import get_permission_codename
+from django.db.models.functions import Collate
 from simple_history.utils import update_change_reason
 from django.db.models.fields.reverse_related import ManyToOneRel
 import os, re
@@ -41,6 +42,12 @@ from django_admin_relation_links import AdminChangeLinksMixin
 from simple_history.admin import SimpleHistoryAdmin
 
 from import_export.admin import ImportExportModelAdmin
+
+# Zoradiť položky v pulldown menu
+def formfield_for_foreignkey(instance, db_field, request, **kwargs):
+    if db_field.name == "zmluvna_strana":
+        kwargs["queryset"] = OsobaAutor.objects.filter().order_by(Collate('rs_login', 'nocase'))
+    return super(type(instance), instance).formfield_for_foreignkey(db_field, request, **kwargs)
 
 class PersonCommonAdmin():
     def get_list_display(self, request):
@@ -304,6 +311,10 @@ class ZmluvaAutorAdmin(ZmluvaAdmin, AdminChangeLinksMixin, SimpleHistoryAdmin, I
             'admin_order_field': 'zmluvna_strana__rs_login',  # Allow to sort members by `zmluvna_strana_link` column
         })
     ]
+
+    # Zoradiť položky v pulldown menu
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        return formfield_for_foreignkey(self, db_field, request, **kwargs)
 
     #obj is None during the object creation, but set to the object being edited during an edit
     def get_readonly_fields(self, request, obj=None):

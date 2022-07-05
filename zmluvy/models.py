@@ -93,8 +93,6 @@ class FyzickaOsoba(PersonCommon):
 
     class Meta:
         abstract = True
-    def __str__(self):
-        return self.rs_login
 
 #class PartnerOsoba(FyzickaOsoba):
 
@@ -106,8 +104,6 @@ class OsobaAuGaKo(FyzickaOsoba):
     odbor = models.CharField("Odbor", max_length=200, null=True, blank=True)
     #v_RS_od = models.DateField('V RS od', blank=True)
 
-    def __str__(self):
-        return self.rs_login
     class Meta:
         abstract = True
         verbose_name = 'Autor/Garant/Konzultant'
@@ -117,7 +113,7 @@ class OsobaAutor (OsobaAuGaKo):
     preplatok = models.DecimalField("Preplatok", max_digits=8, decimal_places=2, default=0)
     history = HistoricalRecords()
     def __str__(self):
-        return self.rs_login
+        return f"{self.rs_login} A"
     class Meta:
         verbose_name = 'Autor'
         verbose_name_plural = 'Autori'

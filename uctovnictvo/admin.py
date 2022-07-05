@@ -4,6 +4,7 @@ from django.utils import timezone
 from django.contrib import messages
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
+from django.db.models.functions import Collate
 import re
 from datetime import date, datetime, timedelta
 from ipdb import set_trace as trace
@@ -46,6 +47,35 @@ from django_admin_relation_links import AdminChangeLinksMixin
 
 #https://pypi.org/project/django-admin-export-action/
 from admin_export_action.admin import export_selected_objects
+
+# Zoradiť položky v pulldown menu
+def formfield_for_foreignkey(instance, db_field, request, **kwargs):
+    if db_field.name == "najomnik" and instance.model == NajomnaZmluva:
+        kwargs["queryset"] = Najomnik.objects.filter().order_by(Collate('nazov', 'nocase'))
+    if db_field.name == "zmluva" and instance.model == NajomneFaktura:
+        kwargs["queryset"] = NajomnaZmluva.objects.filter().order_by(Collate('najomnik__nazov', 'nocase'))
+    if db_field.name == "dodavatel" and instance.model in [Objednavka, Rozhodnutie, Zmluva]:
+        kwargs["queryset"] = Dodavatel.objects.filter().order_by(Collate('nazov', 'nocase'))
+    if db_field.name == "objednavka_zmluva" and instance.model in [PrijataFaktura, PravidelnaPlatba]:
+        kwargs["queryset"] = ObjednavkaZmluva.objects.filter().order_by(Collate('dodavatel__nazov', 'nocase'))
+    if db_field.name == "zamestnanec" and instance.model in [PlatovyVymer, Nepritomnost, Pokladna]:
+        kwargs["queryset"] = Zamestnanec.objects.filter().order_by(Collate('priezvisko', 'nocase'))
+    if db_field.name == "zmluvna_strana" and instance.model in [DoVP, DoPC, DoBPS]:
+        kwargs["queryset"] = Dohodar.objects.filter().order_by(Collate('priezvisko', 'nocase'))
+    if db_field.name == "dohoda" and instance.model in [VyplacanieDohod]:
+        kwargs["queryset"] = Dohoda.objects.filter().order_by(Collate('zmluvna_strana__priezvisko', 'nocase'))
+
+    if db_field.name == "zdroj":
+        kwargs["queryset"] = Zdroj.objects.filter().order_by('kod')
+    if db_field.name == "program":
+        kwargs["queryset"] = Program.objects.filter().order_by('kod')
+    if db_field.name == "zakazka":
+        kwargs["queryset"] = TypZakazky.objects.filter().order_by('kod')
+    if db_field.name == "cinnost":
+        kwargs["queryset"] = Cinnost.objects.filter().order_by('kod')
+    if db_field.name == "ekoklas":
+        kwargs["queryset"] = EkonomickaKlasifikacia.objects.filter().order_by('kod')
+    return super(type(instance), instance).formfield_for_foreignkey(db_field, request, **kwargs)
 
 # Ak sa má v histórii zobraziť zoznam zmien, príslušná admin trieda musí dediť od ZobraziZmeny
 class ZobrazitZmeny():
@@ -131,6 +161,10 @@ class ObjednavkaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, 
         })
     ]
 
+    # Zoradiť položky v pulldown menu
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        return formfield_for_foreignkey(self, db_field, request, **kwargs)
+
     #obj is None during the object creation, but set to the object being edited during an edit
     def get_readonly_fields(self, request, obj=None):
         return ["cislo"] if obj else []
@@ -165,6 +199,10 @@ class RozhodnutieAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin,
             'admin_order_field': 'dodavatel__nazov', # Allow to sort members by the `dodavatel_link` column
         })
     ]
+    # Zoradiť položky v pulldown menu
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        return formfield_for_foreignkey(self, db_field, request, **kwargs)
+
 
 @admin.register(PlatbaBezPrikazu)
 class PlatbaBezPrikazuAdmin(ZobrazitZmeny, SimpleHistoryAdmin):
@@ -223,6 +261,10 @@ class PokladnaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, Mo
 
     def get_readonly_fields(self, request, obj=None):
         return ["datum_softip"]
+
+    # Zoradiť položky v pulldown menu
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        return formfield_for_foreignkey(self, db_field, request, **kwargs)
 
     # do AdminForm pridať request, aby v jej __init__ bolo request dostupné
     def get_form(self, request, obj=None, **kwargs):
@@ -342,6 +384,10 @@ class ZmluvaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, Impo
         })
     ]
 
+    # Zoradiť položky v pulldown menu
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        return formfield_for_foreignkey(self, db_field, request, **kwargs)
+
     # formátovať pole url_zmluvy
     def url_zmluvy_html(self, obj):
         if obj.url_zmluvy:
@@ -372,6 +418,10 @@ class PrijataFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdm
         ('suma', Sum),
     ]
     actions = ['vytvorit_platobny_prikaz', 'duplikovat_zaznam']
+
+    # Zoradiť položky v pulldown menu
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        return formfield_for_foreignkey(self, db_field, request, **kwargs)
 
     #obj is None during the object creation, but set to the object being edited during an edit
     #"platobny_prikaz" je generovaný, preto je vždy readonly
@@ -525,6 +575,10 @@ class PravidelnaPlatbaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryA
     ]
     actions = ['vytvorit_platobny_prikaz']
 
+    # Zoradiť položky v pulldown menu
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        return formfield_for_foreignkey(self, db_field, request, **kwargs)
+
     def vytvorit_platobny_prikaz(self, request, queryset):
         if len(queryset) != 1:
             self.message_user(request, f"Vybrať možno len jednu položku", messages.ERROR)
@@ -626,6 +680,10 @@ class NajomnaZmluvaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmi
     list_display = ("cislo", "orig_cislo", "najomnik_link", "datum_zverejnenia_CRZ", "datum_do", "url_zmluvy_html", "miestnosti", "vymery", "poznamka")
     search_fields = ("najomnik__nazov", "najomnik__zastupeny")
 
+    # Zoradiť položky v pulldown menu
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        return formfield_for_foreignkey(self, db_field, request, **kwargs)
+
     # formátovať pole url_zmluvy
     def url_zmluvy_html(self, obj):
         if obj.url_zmluvy:
@@ -672,6 +730,11 @@ class NajomneFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdm
                 #return ["dane_na_uhradu", "platobny_prikaz"]
                 return ["platobny_prikaz"]
         return ["platobny_prikaz"]
+
+    # Zoradiť položky v pulldown menu
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        return formfield_for_foreignkey(self, db_field, request, **kwargs)
+
     actions = ['vytvorit_platobny_prikaz']
 
     search_fields = ["cislo", "zmluva__cislo", "zmluva__najomnik__nazov"]
@@ -735,6 +798,10 @@ class RozpoctovaPolozkaDotaciaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, Simple
     def get_readonly_fields(self, request, obj=None):
         return [ "cislo", "suma", "ekoklas", "zakazka", "zdroj", "cinnost"] if obj else []
 
+    # Zoradiť položky v pulldown menu
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        return formfield_for_foreignkey(self, db_field, request, **kwargs)
+
     # zoraďovateľný odkaz na polozku
     change_links = [
         ('rozpoctovapolozka', {
@@ -794,7 +861,7 @@ class SystemovySuborAdmin(ZobrazitZmeny, admin.ModelAdmin):
 
 #Skryť ZamestnanecDohodar, zobrazujeme Zamestnanec a Dohodar
 #@admin.register(ZamestnanecDohodar)
-class ZamestnanecDohodar(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
+class _ZamestnanecDohodar(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
     list_display = ("priezvisko", "meno", "rod_priezvisko", "email", "rodne_cislo", "datum_nar", "miesto_nar", "adresa", "_dochodok", "_ztp","poistovna", "cop", "stav")
     # ^: v poli vyhľadávať len od začiatku
     search_fields = ["priezvisko", "meno"]
@@ -815,7 +882,7 @@ class ZamestnanecDohodar(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExport
     _ztp.short_description = "ZŤP"
 
 @admin.register(Dohodar)
-class Dohodar(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
+class DohodarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
     list_display = ("priezvisko", "meno", "rod_priezvisko", "email", "rodne_cislo", "datum_nar", "miesto_nar", "adresa", "_dochodok", "_ztp","poistovna", "cop", "stav")
     # ^: v poli vyhľadávať len od začiatku
     search_fields = ["priezvisko", "meno"]
@@ -837,7 +904,7 @@ class Dohodar(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin)
 
 
 @admin.register(Zamestnanec)
-class Zamestnanec(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
+class ZamestnanecAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
     list_display = ("priezvisko", "meno", "cislo_zamestnanca", "zamestnanie_od", "zamestnanie_enu_od", "rod_priezvisko", "email", "rodne_cislo", "datum_nar", "miesto_nar", "adresa", "_dochodok", "_ztp","poistovna", "cop", "stav")
     # ^: v poli vyhľadávať len od začiatku
     search_fields = ["priezvisko", "meno"]
@@ -900,8 +967,8 @@ class DohodaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, Mode
 
     # ^: v poli vyhľadávať len od začiatku
     search_fields = ["cislo", "zmluvna_strana__priezvisko"]
-
     actions = ['vytvorit_subor_dohody']
+
     def vytvorit_subor_dohody(self, request, queryset):
         if len(queryset) != 1:
             self.message_user(request, f"Vybrať možno len jednu dohodu", messages.ERROR)
@@ -997,6 +1064,10 @@ class DoBPSAdmin(DohodaAdmin):
                 return AdminForm(*args, **kwargs)
         return AdminFormMod
 
+    # Zoradiť položky v pulldown menu
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        return formfield_for_foreignkey(self, db_field, request, **kwargs)
+
     list_totals = [
         ('odmena_celkom', Sum),
     ]
@@ -1038,6 +1109,10 @@ class DoPCAdmin(DohodaAdmin):
                 return AdminForm(*args, **kwargs)
         return AdminFormMod
 
+    # Zoradiť položky v pulldown menu
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        return formfield_for_foreignkey(self, db_field, request, **kwargs)
+
     list_totals = [
         ('odmena_mesacne', Sum),
     ]
@@ -1061,6 +1136,10 @@ class VyplacanieDohodAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAd
             'admin_order_field': 'dohoda__cislo', # Allow to sort members by the column
         })
     ]
+
+    # Zoradiť položky v pulldown menu
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        return formfield_for_foreignkey(self, db_field, request, **kwargs)
 
     def get_readonly_fields(self, request, obj=None):
         fields = [f.name for f in VyplacanieDohod._meta.get_fields()]
@@ -1094,6 +1173,10 @@ class NepritomnostAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
             'admin_order_field': 'zamestnanec__priezvisko', # Allow to sort members by the column
         })
     ]
+    # Zoradiť položky v pulldown menu
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        return formfield_for_foreignkey(self, db_field, request, **kwargs)
+
 
 @admin.register(PlatovyVymer)
 class PlatovyVymerAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
@@ -1112,6 +1195,10 @@ class PlatovyVymerAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
             'admin_order_field': 'zamestnanec__priezvisko', # Allow to sort members by the column
         })
     ]
+
+    # Zoradiť položky v pulldown menu
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        return formfield_for_foreignkey(self, db_field, request, **kwargs)
 
     def get_readonly_fields(self, request, obj=None):
         if obj and obj.datum_do:

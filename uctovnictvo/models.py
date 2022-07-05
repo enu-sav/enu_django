@@ -954,7 +954,7 @@ class Zamestnanec(ZamestnanecDohodar):
         verbose_name = "Zamestnanec"
         verbose_name_plural = "PaM - Zamestnanci"
     def __str__(self):
-        return f"{self.priezvisko}, {self.meno}, {self.cislo_zamestnanca}"
+        return f"{self.priezvisko}, {self.meno}, Z"
 
 class Dohodar(ZamestnanecDohodar):
     history = HistoricalRecords()
@@ -962,7 +962,7 @@ class Dohodar(ZamestnanecDohodar):
         verbose_name = "Dohodár"
         verbose_name_plural = "PaM - Dohodári"
     def __str__(self):
-        return f"D {self.priezvisko}, {self.meno}"
+        return f"{self.priezvisko}, {self.meno}, D"
 
 def vymer_file_path(instance, filename):
     return os.path.join(PLATOVE_VYMERY_DIR, filename)
