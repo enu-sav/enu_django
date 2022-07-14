@@ -446,7 +446,10 @@ def VytvoritSuborDohody(dohoda):
             text = dohoda_skryt_sekciu(text, 'text:name="DoPC_DoVP_vyhlasenie"')
     # vložiť údaje DoPC
     elif type(dohoda) == DoPC:
-        text = text.replace("[[typ_dohody]]", "o pracovnej činnosti")
+        if dohoda.dodatok_k:
+            text = text.replace("[[typ_dohody]]", f"o pracovnej činnosti (dodatok č.{dohoda.cislo[-1]})")
+        else:
+            text = text.replace("[[typ_dohody]]", "o pracovnej činnosti")
         text = text.replace("[[zakony]]", "§ 223 – § 225 a § 228a")
         text = text.replace("[[odmena]]", f"{dohoda.odmena_mesacne} Eur mesačne")
         text = text.replace("[[rozsah_prace_cas]]", f"{dohoda.hod_mesacne} hodín mesačne")

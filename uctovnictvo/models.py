@@ -1285,6 +1285,13 @@ class DoBPS(Dohoda):
 
 class DoPC(Dohoda):
     oznacenie = "DoPC"
+    dodatok_k = models.ForeignKey('self',
+            help_text = "Ak ide len o dodatok k existujúcej DoVP, zadajte ju v tomto poli.<br />V tomto prípade sa pri ukladaní číslo tohohto dodatku zmení na číslo dohody doplnené o text 'Dodatok'. <br />Ďalší postup vytvárania dodatku je rovnaký ako v prípade DoVP",
+            on_delete=models.PROTECT,
+            related_name='%(class)s_dopc',
+            blank = True,
+            null = True
+            )
     odmena_mesacne = models.DecimalField("Odmena za mesiac",
             help_text = "Dohodnutá mesačná odmena",
             max_digits=8,
@@ -1330,6 +1337,16 @@ class DoPC(Dohoda):
     def clean(self): 
         if self.hod_mesacne > 40:
             raise ValidationError(f"Počet hodín mesačne {hod_mesacne} presahuje maximálny zákonom povolený počet 40.")
+
+        if self.dodatok_k and not "Dodatok" in self.cislo:
+            qs = DoPC.objects.filter(cislo__startswith=self.dodatok_k.cislo).order_by("cislo")
+            #1. položka nie je dodatok, DoPC-2022-001
+            self.cislo = f"{self.dodatok_k.cislo[:13]}-Dodatok-{len(qs)}" 
+            #ukončiť predchádzajúcu
+            qlast = qs.last()
+            qlast.datum_ukoncenia = self.datum_od + timedelta(days = -1) 
+            qlast.save()
+
     def __str__(self):
         return f"{self.zmluvna_strana}; {self.cislo}"
 

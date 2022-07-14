@@ -4,7 +4,7 @@ from django.utils import timezone
 from django.contrib import messages
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
-from django.db.models.functions import Collate
+from django.db.models.functions import Collate, Length
 import re
 from datetime import date, datetime, timedelta
 from ipdb import set_trace as trace
@@ -62,6 +62,10 @@ def formfield_for_foreignkey(instance, db_field, request, **kwargs):
         kwargs["queryset"] = Zamestnanec.objects.filter().order_by(Collate('priezvisko', 'nocase'))
     if db_field.name == "zmluvna_strana" and instance.model in [DoVP, DoPC, DoBPS]:
         kwargs["queryset"] = Dohodar.objects.filter().order_by(Collate('priezvisko', 'nocase'))
+
+    if db_field.name == "dodatok_k" and instance.model in [DoPC]:
+        kwargs["queryset"] = DoPC.objects.annotate(text_len=Length('cislo')).filter(text_len__lte=15).order_by(Collate('zmluvna_strana__priezvisko', 'nocase'))
+
     if db_field.name == "dohoda" and instance.model in [VyplacanieDohod]:
         kwargs["queryset"] = Dohoda.objects.filter().order_by(Collate('zmluvna_strana__priezvisko', 'nocase'))
 
