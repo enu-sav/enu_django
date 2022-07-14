@@ -242,6 +242,33 @@ class PlatbaBezPrikazuAdmin(ZobrazitZmeny, SimpleHistoryAdmin):
         if 'suma' in form.changed_data:
             if obj.suma >= 0:
                 messages.add_message(request, messages.WARNING, "Do poľa 'Suma' sa obvykle vkladajú výdavky (záporná suma), vložili ste však 0 alebo kladnú hodnotu sumy. Ak ide o omyl, hodnotu opravte.") 
+
+        #Ak ide o Prídel do sociálneho fondu - 637016 - vytvoriť položku SF
+        if obj.ekoklas == EkonomickaKlasifikacia.objects.get(kod="637016"):
+            qs = PlatbaBezPrikazu.objects.filter(cislo = obj.cislo)
+            if not qs:
+                sf = SocialnyFond(
+                    cislo = nasledujuce_cislo(SocialnyFond),
+                    suma = -obj.suma,
+                    datum_platby = obj.datum_platby,
+                    predmet = f"{obj.cislo} - {obj.predmet}"
+                )
+                sf.save()
+                messages.warning(request, 
+                    format_html(
+                        'Pridaná bola položka sociálneho fondu č. <em>{}</em>.',
+                        mark_safe(f'<a href="/admin/uctovnictvo/socialnyfond/{sf.id}/change/">{sf.cislo}</a>'),
+                        )
+                )
+            else:
+                qs = SocialnyFond.objects.filter(predmet__startswith = obj.cislo)
+                messages.warning(request, 
+                    format_html(
+                        'Ak treba, upravte aj položku Sociálneho fondu č. <em>{}</em>.',
+                        mark_safe(f'<a href="/admin/uctovnictvo/socialnyfond/{qs[0].id}/change/">{qs[0].cislo}</a>'),
+                        )
+                )
+
         super(PlatbaBezPrikazuAdmin, self).save_model(request, obj, form, change)
 
 @admin.register(Pokladna)
@@ -1298,8 +1325,6 @@ class PlatovyVymerAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
     duplikovat_zaznam.short_description = "Duplikovať platobný výmer"
     #Oprávnenie na použitie akcie, viazané na 'change'
     duplikovat_zaznam.allowed_permissions = ('change',)
-
-
 
 @admin.register(SocialnyFond)
 class SocialnyFondAdmin(ZobrazitZmeny, SimpleHistoryAdmin, ImportExportModelAdmin):
