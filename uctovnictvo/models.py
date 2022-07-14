@@ -640,7 +640,7 @@ class PlatbaBezPrikazu(Klasifikacia):
         #help_text = "Číslo rozpočtovej položky. Nová položka za pridáva len vtedy, keď položka s požadovanou klasifikáciou neexistuje.",  
         max_length=50)
     suma = models.DecimalField("Suma",
-            help_text = 'Suma podľa výpisu zo Softipu. výdavky uveďte ako záporné číslo.',
+            help_text = 'Suma podľa výpisu zo Softipu. Výdavky uveďte ako záporné číslo.',
             max_digits=8,
             decimal_places=2,
             null=True)
@@ -1612,5 +1612,29 @@ class Pokladna(models.Model):
     class Meta:
         verbose_name = 'Záznam pokladne'
         verbose_name_plural = 'Záznamy pokladne'
+    def __str__(self):
+        return f'{self.cislo}'
+
+class SocialnyFond(models.Model):
+    oznacenie = "SF"
+    cislo = models.CharField("Číslo", 
+            null = True,
+            max_length=50)
+    suma = models.DecimalField("Suma",
+            help_text = 'Príjmy uveďte ako kladné číslo, výdavky uveďte ako záporné číslo.',
+            max_digits=8,
+            decimal_places=2,
+            null=True)
+    datum_platby = models.DateField('Dátum operácie',
+            help_text = "Dátum realizácie operácie",
+            null=True)
+    predmet = models.CharField("Popis operácie", 
+            help_text = "Stručný popis operácie.",
+            max_length=100,
+            null=True)
+    history = HistoricalRecords()
+    class Meta:
+        verbose_name = 'Operácia na účte sociálneho fondu'
+        verbose_name_plural = 'Sociálny fond'
     def __str__(self):
         return f'{self.cislo}'

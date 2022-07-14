@@ -15,14 +15,14 @@ from .models import ZamestnanecDohodar, Zamestnanec, Dohodar, StavDohody, Pravid
 from .models import Najomnik, NajomnaZmluva, NajomneFaktura, TypPP, TypPN, Cinnost
 from .models import InternyPartner, InternyPrevod, Nepritomnost, RozpoctovaPolozka, RozpoctovaPolozkaDotacia
 from .models import RozpoctovaPolozkaPresun, PlatbaBezPrikazu, Pokladna, TypPokladna
-from .models import nasledujuce_cislo, nasledujuce_VPD
+from .models import nasledujuce_cislo, nasledujuce_VPD, SocialnyFond
 from .common import VytvoritPlatobnyPrikaz, VytvoritSuborDohody, VytvoritSuborObjednavky, leapdays, VytvoritKryciList
 from .common import VytvoritPlatobnyPrikazIP, VytvoritSuborVPD, UlozitStranuPK
 from .forms import PrijataFakturaForm, AutorskeZmluvyForm, ObjednavkaForm, ZmluvaForm, PrispevokNaStravneForm, PravidelnaPlatbaForm
 from .forms import PlatovyVymerForm, NajomneFakturaForm, NajomnaZmluvaForm, PlatbaBezPrikazuForm
 from .forms import DoPCForm, DoVPForm, DoBPSForm, VyplacanieDohodForm
 from .forms import InternyPrevodForm, NepritomnostForm, RozpoctovaPolozkaDotaciaForm, RozpoctovaPolozkaPresunForm
-from .forms import PokladnaForm
+from .forms import PokladnaForm, SocialnyFondForm
 from .rokydni import datum_postupu, vypocet_prax, vypocet_zamestnanie, postup_roky, roky_postupu
 from beliana.settings import DPH
 from dennik.models import Dokument, TypDokumentu, InOut
@@ -1300,3 +1300,10 @@ class PlatovyVymerAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
     duplikovat_zaznam.allowed_permissions = ('change',)
 
 
+
+@admin.register(SocialnyFond)
+class SocialnyFondAdmin(ZobrazitZmeny, SimpleHistoryAdmin, ImportExportModelAdmin):
+    form = SocialnyFondForm
+    list_display = ["cislo", "suma", "datum_platby", "predmet"]
+    # ^: v poli vyhľadávať len od začiatku
+    search_fields = ["cislo", "predmet"]
