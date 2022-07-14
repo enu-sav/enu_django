@@ -1236,10 +1236,21 @@ class DoVP(Dohoda):
                 "zakazka": self.zakazka,
                 "ekoklas": self.ekoklas
                 }
+
+        nazov_objektu = "Odvody zamestnancov a dohodárov"  #Presne takto musí byť objekt pomenovaný
+        objekt = SystemovySubor.objects.filter(subor_nazov = nazov_objektu)
+        if not objekt:
+            return f"V systéme nie je definovaný súbor '{nazov_objektu}'."
+        nazov_suboru = objekt[0].subor.file.name 
+        td = self.zmluvna_strana.typ_doch
+        td_konv = "StarDoch" if td==TypDochodku.STAROBNY else "InvDoch" if td== TypDochodku.INVALIDNY else "StarDoch" if td==TypDochodku.STAROBNY else "DoVP"
+        odvody, _ = DohodarOdvodySpolu(nazov_suboru, float(self.odmena_celkom), td_konv, zden.year, ODVODY_VYNIMKA if self.vynimka == AnoNie.ANO else 0)
+        trace()
         poistne = {
                 "nazov": "DoVP poistne",
                 #Dočasne všetci rovnako, treba opraviť
-                "suma": -(Decimal(0.3255) if zden.year < 2022 else Decimal(0.328)) * self.odmena_celkom,
+                #"suma": -(Decimal(0.3255) if zden.year < 2022 else Decimal(0.328)) * self.odmena_celkom,
+                "suma": -odvody,
                 "zdroj": self.zdroj,
                 "zakazka": self.zakazka,
                 "ekoklas": EkonomickaKlasifikacia.objects.get(kod="620")
