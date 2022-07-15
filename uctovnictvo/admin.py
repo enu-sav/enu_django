@@ -879,6 +879,34 @@ class PrispevokNaStravneAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistor
         else:
             return []
 
+    def save_model(self, request, obj, form, change):
+        #Ak ide o novú platbu, vytvoriť položku SF
+        qs = PrispevokNaStravne.objects.filter(cislo = obj.cislo)
+        if not qs:
+            sf = SocialnyFond(
+                cislo = nasledujuce_cislo(SocialnyFond),
+                suma = obj.suma_socfond,
+                datum_platby = date.today(),
+                predmet = f'{obj.cislo} - {"príspevok na stravné" if obj.suma_socfond < 0 else "preplatok za stravné"} za {obj.za_mesiac}'
+            )
+            sf.save()
+            messages.warning(request, 
+                format_html(
+                    'Pridaná bola položka sociálneho fondu č. <em>{}</em>.',
+                    mark_safe(f'<a href="/admin/uctovnictvo/socialnyfond/{sf.id}/change/">{sf.cislo}</a>'),
+                    )
+            )
+        else:
+            qs = SocialnyFond.objects.filter(predmet__startswith = obj.cislo)
+            messages.warning(request, 
+                format_html(
+                    'Ak treba, upravte aj položku Sociálneho fondu č. <em>{}</em>.',
+                    mark_safe(f'<a href="/admin/uctovnictvo/socialnyfond/{qs[0].id}/change/">{qs[0].cislo}</a>'),
+                    )
+            )
+
+        super(PrispevokNaStravneAdmin, self).save_model(request, obj, form, change)
+
 @admin.register(SystemovySubor)
 class SystemovySuborAdmin(ZobrazitZmeny, admin.ModelAdmin):
     list_display = ("subor_nazov", "subor_popis", "subor")

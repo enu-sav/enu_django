@@ -72,6 +72,7 @@ class TypNepritomnosti(models.TextChoices):
     OCR = "ocr", "OČR"
     PN = "pn", "PN"
     DOVOLENKA = "dovolenka", "Dovolenka"
+    DOVOLENKA2 = "dovolenka2", "Poldeň dovolenky"
     NEPLATENE = "neplatene", "Neplatené voľno"
 
 #access label: AnoNie('ano').label
@@ -804,26 +805,27 @@ class PrispevokNaStravne(Klasifikacia):
             null = True,
             choices=Mesiace.choices)
     suma_zamestnavatel = models.DecimalField("Príspevok zamestnávateľa", 
-            help_text = "Zadajte celkový príspevok zamestnávateľa (Ek. klas. 642014) ako zápornú hodnotu",
+            help_text = "Príspevok zamestnávateľa (Ek. klas. 642014) na stravné.<br />Ak ide o vyplatenie zamestnancovi, uveďte zápornú hodnotu, ak ide o zrážku, tak kladnú hodnotu.",
             max_digits=8, 
             decimal_places=2, 
             default=0)
     # Položka suma_socfond nemá Ek. klasifikáciu, soc. fond nie sú peniaze EnÚ
     suma_socfond = models.DecimalField("Príspevok zo soc. fondu", 
-            help_text = "Zadajte celkový príspevok zo sociálneho fondu ako zápornú hodnotu1",
+            help_text = "Príspevok zo sociálneho fondu (Ek. klas. 642014) na stravné.<br />Ak ide o vyplatenie zamestnancovi, uveďte zápornú hodnotu, ak ide o zrážku, tak kladnú hodnotu.<br />Vytvorením Príspevku na stravné sa automaticky vytvorí položka sociálneho fondu.",
             max_digits=8, 
             decimal_places=2, 
             default=0)
     po_zamestnancoch = models.FileField("Prehľad po zamestnancoch",
-            help_text = "Súbor s mesačným prehľadom príspevkov po zamestnancoch",
+            help_text = "Súbor s mesačným prehľadom príspevkov na stravné po zamestnancoch",
             upload_to=prispevok_stravne_upload_location, 
             null = True)
     history = HistoricalRecords()
 
     # test platnosti dát
     def clean(self): 
-        if self.suma_zamestnavatel >= 0 or self.suma_socfond > 0:
-            raise ValidationError("Položky 'Príspevok zamestnávateľa' a 'Príspevok zo soc. fondu' musia byť záporné.")
+        if self.suma_zamestnavatel * self.suma_socfond <= 0:
+            raise ValidationError("Položky 'Príspevok zamestnávateľa' a 'Príspevok zo soc. fondu' musia byť buď len kladné alebo len záporné.")
+
     #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
     def cerpanie_rozpoctu(self, zden):
         if not str(zden.year) in self.cislo: return []
