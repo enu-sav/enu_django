@@ -423,12 +423,6 @@ class PlatovyVymerForm(PopisZmeny):
     #inicializácia polí
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        polecislo = "cislo"
-        # Ak je pole readonly, tak sa nenachádza vo fields. Preto testujeme fields aj initial
-        if polecislo in self.fields and not polecislo in self.initial:
-            nasledujuce = nasledujuce_cislo(PlatovyVymer)
-            self.fields[polecislo].help_text = f"Zadajte číslo platového výmeru v tvare {PlatovyVymer.oznacenie}-RRRR-NNN. Predvolené číslo '{nasledujuce}' bolo určené na základe čísel existujúcich vymerov ako nasledujúce v poradí."
-            self.initial[polecislo] = nasledujuce
         self.initial['zdroj'] = 1       #111
         self.initial['program'] = 4     #nealokovaný
         self.initial['zakazka'] = 2     #11010001 spol. zák.

@@ -10,7 +10,7 @@ from datetime import date, datetime, timedelta
 from ipdb import set_trace as trace
 from .models import EkonomickaKlasifikacia, TypZakazky, Zdroj, Program, Dodavatel, ObjednavkaZmluva
 from .models import Objednavka, Zmluva, PrijataFaktura, SystemovySubor, Rozhodnutie, PrispevokNaStravne
-from .models import Dohoda, DoVP, DoPC, DoBPS, VyplacanieDohod, AnoNie, PlatovyVymer, StavVymeru
+from .models import Dohoda, DoVP, DoPC, DoBPS, VyplacanieDohod, AnoNie, PlatovyVymer
 from .models import ZamestnanecDohodar, Zamestnanec, Dohodar, StavDohody, PravidelnaPlatba
 from .models import Najomnik, NajomnaZmluva, NajomneFaktura, TypPP, TypPN, Cinnost
 from .models import InternyPartner, InternyPrevod, Nepritomnost, RozpoctovaPolozka, RozpoctovaPolozkaDotacia
@@ -1302,7 +1302,6 @@ class PlatovyVymerAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
             obj.zamestnanieroky = years
             obj.zamestnaniedni = days
             obj.datum_postup = None
-            obj.stav = StavVymeru.UKONCENY
         else:               #vytvorený nový výmer
             # nájsť starý výmer platný k obj.datum_od
             #Výmery, ktorých platnosť začala pred obj.datum_od
@@ -1331,7 +1330,6 @@ class PlatovyVymerAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
                     dp = datum_postupu( obj.zamestnanec.zamestnanie_od, obj.datum_od + timedelta(30))
                     #ak ďalší postu už nie je možný, dp je rovné obj.datum_od. Vtedy ho nezobrazovať 
                     obj.datum_postup = dp if dp > obj.datum_od else None
-                    obj.stav = StavVymeru.AKTUALNY
                 # ukonciť/skrátiť platnosť starého nastavením datum_do
                 stary.datum_do = obj.datum_od-timedelta(1)
                 # aktualizácia praxe v stary, hodnotu použiť aj v aktuálnom
@@ -1339,7 +1337,6 @@ class PlatovyVymerAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
                 stary.zamestnanieroky = years
                 stary.zamestnaniedni = days
                 stary.datum_postup = None
-                stary.stav = StavVymeru.NEAKTUALNY
                 stary.save()
         super(PlatovyVymerAdmin, self).save_model(request, obj, form, change)
 

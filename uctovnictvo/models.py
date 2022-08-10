@@ -62,11 +62,6 @@ class StavDohody(models.TextChoices):
     PODPISANA_DOHODAROM = "podpisana_dohodarom", "Podpísaná"
     DOKONCENA = "dokoncena", "Dokončená"
 
-class StavVymeru(models.TextChoices):
-    AKTUALNY = "aktualny", "Aktuálny"
-    NEAKTUALNY = "neaktualny", "Neaktuálny"
-    UKONCENY = "ukonceny", "Ukončený PP"
-
 class TypNepritomnosti(models.TextChoices):
     MATERSKA = "materská", "Materská"
     OCR = "ocr", "OČR"
@@ -972,18 +967,13 @@ def vymer_file_path(instance, filename):
 #Polymorphic umožní, aby DoVP a PrijataFaktura mohli použiť ObjednavkaZmluva ako ForeignKey
 class PlatovyVymer(Klasifikacia):
     oznacenie = "PaM"
-    cislo = models.CharField("Číslo", 
-            #help_text: definovaný vo forms
+    cislo = models.CharField("Číslo výmeru", 
+            help_text = "Uveďte číslo výmeru podľa THS",
             null = True,
             max_length=50)
     cislo_zamestnanca = models.CharField("Číslo zamestnanca", 
             null = True,
             max_length=50)
-    stav = models.CharField("Stav", 
-            max_length=20, 
-            help_text = "Uveďte, v ktorom stave sa výmer nachádza.",
-            null = True,
-            choices=StavVymeru.choices)
     zamestnanec = models.ForeignKey(Zamestnanec,
             on_delete=models.PROTECT, 
             verbose_name = "Zamestnanec",
