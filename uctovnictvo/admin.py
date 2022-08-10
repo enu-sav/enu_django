@@ -1218,9 +1218,9 @@ class NepritomnostAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
 @admin.register(PlatovyVymer)
 class PlatovyVymerAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
     form = PlatovyVymerForm
-    list_display = ["cislo", "mp","zamestnanec_link", "stav", "zamestnanie_enu_od", "zamestnanie_od", "aktualna_prax", "datum_postup", "_postup_roky", "uvazok", "datum_od", "datum_do", "_zamestnanie_roky_dni", "_top", "_ts", "suborvymer"]
+    list_display = ["cislo", "mp","zamestnanec_link", "zamestnanie_enu_od", "zamestnanie_od", "aktualna_prax", "datum_postup", "_postup_roky", "uvazok", "datum_od", "datum_do", "_zamestnanie_roky_dni", "_top", "_ts", "suborvymer"]
     # ^: v poli vyhľadávať len od začiatku
-    search_fields = ["cislo", "zamestnanec__meno", "zamestnanec__priezvisko", "^stav"]
+    search_fields = ["cislo", "zamestnanec__meno", "zamestnanec__priezvisko"]
     actions = ['duplikovat_zaznam', export_selected_objects]
     # skryť vo formulári na úpravu
     exclude = ["program"]
@@ -1304,13 +1304,35 @@ class PlatovyVymerAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
             obj.datum_postup = None
             obj.stav = StavVymeru.UKONCENY
         else:               #vytvorený nový výmer
-            # nájsť najnovší starý výmer s nevyplneným poľom datum_do
-            query_set = PlatovyVymer.objects.filter(cislo_zamestnanca=obj.cislo_zamestnanca).filter(datum_do__isnull=True)
-            #Vylúčiť aktuálny objekt
-            qset = [q for q in query_set if q != obj] 
-            if qset:
-                stary = qset[0]
-                # ukonciť platnosť starého nastavením datum_do
+            # nájsť starý výmer platný k obj.datum_od
+            #Výmery, ktorých platnosť začala pred obj.datum_od
+            qs = PlatovyVymer.objects.filter(cislo_zamestnanca=obj.cislo_zamestnanca).filter(datum_od__lt=obj.datum_od)
+            #Vylúčiť výmery, ktorých platnosť skončila pre obj.datum_od
+            qs1 = qs.filter(datum_do__lt=obj.datum_od)
+            #vylúčiť qs1 z qs
+            qs2 = []
+            for vymer in qs:
+                if not vymer in qs1:
+                    qs2.append(vymer)
+            if not qs2: # Pridávame prvý výmer nového zamestnanca
+                dp = datum_postupu( obj.zamestnanec.zamestnanie_od, obj.datum_od + timedelta(30))
+                #ak ďalší postu už nie je možný, dp je rovné obj.datum_od. Vtedy ho nezobrazovať 
+                obj.datum_postup = dp if dp > obj.datum_od else None
+            else:
+                stary = qs2[0]
+                # aktualizácia obj na zaklade udajov v stary
+                if stary.datum_do:
+                    obj.datum_do = stary.datum_do
+                    years, days = vypocet_zamestnanie(obj.zamestnanec.zamestnanie_enu_od, obj.datum_do)
+                    obj.zamestnanieroky = years
+                    obj.zamestnaniedni = days
+                    obj.datum_postup = None
+                else:
+                    dp = datum_postupu( obj.zamestnanec.zamestnanie_od, obj.datum_od + timedelta(30))
+                    #ak ďalší postu už nie je možný, dp je rovné obj.datum_od. Vtedy ho nezobrazovať 
+                    obj.datum_postup = dp if dp > obj.datum_od else None
+                    obj.stav = StavVymeru.AKTUALNY
+                # ukonciť/skrátiť platnosť starého nastavením datum_do
                 stary.datum_do = obj.datum_od-timedelta(1)
                 # aktualizácia praxe v stary, hodnotu použiť aj v aktuálnom
                 years, days = vypocet_zamestnanie(obj.zamestnanec.zamestnanie_enu_od, stary.datum_do)
@@ -1319,10 +1341,6 @@ class PlatovyVymerAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
                 stary.datum_postup = None
                 stary.stav = StavVymeru.NEAKTUALNY
                 stary.save()
-            dp = datum_postupu( obj.zamestnanec.zamestnanie_od, obj.datum_od + timedelta(30))
-            #ak ďalší postu už nie je možný, dp je rovné obj.datum_od. Vtedy ho nezobrazovať 
-            obj.datum_postup = dp if dp > obj.datum_od else None
-            obj.stav = StavVymeru.AKTUALNY
         super(PlatovyVymerAdmin, self).save_model(request, obj, form, change)
 
     def duplikovat_zaznam(self, request, queryset):
