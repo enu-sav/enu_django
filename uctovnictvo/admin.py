@@ -1218,7 +1218,7 @@ class NepritomnostAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
 @admin.register(PlatovyVymer)
 class PlatovyVymerAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
     form = PlatovyVymerForm
-    list_display = ["cislo", "mp","zamestnanec_link", "zamestnanie_enu_od", "zamestnanie_od", "aktualna_prax", "datum_postup", "_postup_roky", "uvazok", "datum_od", "datum_do", "_zamestnanie_roky_dni", "_top", "_ts", "suborvymer"]
+    list_display = ["cislo", "mp","zamestnanec_link", "zamestnanie_enu_od", "stav_vymeru","zamestnanie_od", "aktualna_prax", "datum_postup", "_postup_roky", "uvazok", "datum_od", "datum_do", "_zamestnanie_roky_dni", "_top", "_ts", "suborvymer"]
     # ^: v poli vyhľadávať len od začiatku
     search_fields = ["cislo", "zamestnanec__meno", "zamestnanec__priezvisko"]
     actions = ['duplikovat_zaznam', export_selected_objects]
@@ -1244,6 +1244,18 @@ class PlatovyVymerAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
             return aux
         else:
             return ["zamestnanieroky", "zamestnaniedni", "datum_postup"]
+
+    def stav_vymeru(self, obj):
+        today = date.today()
+        if obj.datum_do and obj.datum_do <= today:
+            return "Ukončený"
+        if obj.datum_od and obj.datum_od > today:
+            return "Plánovaný"
+        if obj.datum_od and obj.datum_od <= today and (not obj.datum_do or obj.datum_do > today):
+            return "Aktívny"
+        return "-"
+        return obj.zamestnanec.zamestnanie_od.strftime('%d. %m. %Y')
+    stav_vymeru.short_description = "Stav výmer"
 
     def zamestnanie_enu_od(self, obj):
         return obj.zamestnanec.zamestnanie_od.strftime('%d. %m. %Y')
