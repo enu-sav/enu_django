@@ -1255,7 +1255,7 @@ class PlatovyVymerAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
             return "Aktívny"
         return "-"
         return obj.zamestnanec.zamestnanie_od.strftime('%d. %m. %Y')
-    stav_vymeru.short_description = "Stav výmer"
+    stav_vymeru.short_description = "Stav výmeru"
 
     def zamestnanie_enu_od(self, obj):
         return obj.zamestnanec.zamestnanie_od.strftime('%d. %m. %Y')
