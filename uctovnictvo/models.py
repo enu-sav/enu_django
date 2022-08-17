@@ -1214,14 +1214,14 @@ class PrispevokNaRekreaciu(Klasifikacia):
 
     #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
     def cerpanie_rozpoctu(self, zden):
-        if self.typ_transakcie == TypPokladna.DOTACIA: return []
-        if not self.datum_softip: return []
-        if self.datum_softip <zden: return []
-        kdatum =  date(zden.year, zden.month+1, zden.day) if zden.month+1 <= 12 else  date(zden.year+1, 1, 1)
-        if self.datum_softip >= kdatum: return []
+        qs = PrispevokNaRekreaciu.objects.filter(vyplatene_v_obdobi = "%02d/%d"%(zden.month, zden.year))
+        suma = 0
+        for q in qs:
+            suma += q.prispevok
+        if not suma: return []
         platba = {
                 "nazov": "Príspevok na rekreáciu",
-                "suma": self.prispevok,
+                "suma": suma,
                 "zdroj": self.zdroj,
                 "zakazka": self.zakazka,
                 "ekoklas": self.ekoklas

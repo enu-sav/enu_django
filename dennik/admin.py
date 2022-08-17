@@ -12,7 +12,7 @@ from django.contrib import messages
 from zmluvy.models import ZmluvaAutor, ZmluvaGrafik, VytvarnaObjednavkaPlatba, PlatbaAutorskaSumar
 from uctovnictvo.models import Objednavka, PrijataFaktura, PrispevokNaStravne, DoVP, DoPC, DoBPS
 from uctovnictvo.models import PlatovyVymer, PravidelnaPlatba, NajomneFaktura, InternyPrevod
-from uctovnictvo.models import RozpoctovaPolozka, PlatbaBezPrikazu, Pokladna
+from uctovnictvo.models import RozpoctovaPolozka, PlatbaBezPrikazu, Pokladna, PrispevokNaRekreaciu
 import re
 from import_export.admin import ImportExportModelAdmin
 from datetime import date
@@ -38,7 +38,8 @@ typ_dokumentu = {
     PlatbaAutorskaSumar.oznacenie: TypDokumentu.VYPLACANIE_AH,
     PravidelnaPlatba.oznacenie: TypDokumentu.PRAVIDELNAPLATBA,
     InternyPrevod.oznacenie: TypDokumentu.INTERNYPREVOD,
-    NajomneFaktura.oznacenie: TypDokumentu.NAJOMNE
+    NajomneFaktura.oznacenie: TypDokumentu.NAJOMNE,
+    PrispevokNaRekreaciu: TypDokumentu.REKREACIA 
 }
 
 #zobrazenie histórie
@@ -183,7 +184,7 @@ class CerpanieRozpoctuAdmin(ModelAdminTotals):
         md1list.append(date(rok+1, 1, 1))
 
         cerpanie = defaultdict(dict)
-        typy = [PravidelnaPlatba, PlatovyVymer, PrijataFaktura, DoVP, DoPC, PlatbaAutorskaSumar, NajomneFaktura, PrispevokNaStravne, RozpoctovaPolozka, PlatbaBezPrikazu, Pokladna]
+        typy = [PravidelnaPlatba, PlatovyVymer, PrijataFaktura, DoVP, DoPC, PlatbaAutorskaSumar, NajomneFaktura, PrispevokNaStravne, RozpoctovaPolozka, PlatbaBezPrikazu, Pokladna, PrispevokNaRekreaciu]
         for typ in typy:
             for polozka in typ.objects.filter():
                 for md1 in md1list[:-1]:

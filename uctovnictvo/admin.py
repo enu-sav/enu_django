@@ -1220,8 +1220,6 @@ class PrispevokNaRekreaciuAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHist
     list_display = ["cislo", "datum", "subor_ziadost", "subor_vyuctovanie", "zamestnanec_link", "prispevok", "subor_kl"]
     # ^: v poli vyhľadávať len od začiatku
     search_fields = ["cislo", "zamestnanec__meno", "zamestnanec__priezvisko"]
-    # skryť vo formulári na úpravu
-    #exclude = ["zdroj", "cinnost", "ekoklas", "program", "zakazka"]
 
     # zoraďovateľný odkaz na dodávateľa
     # umožnené prostredníctvom AdminChangeLinksMixin
