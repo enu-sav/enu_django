@@ -442,7 +442,7 @@ class PrispevokNaRekreaciuForm(forms.ModelForm):
         self.initial['zdroj'] = 1       #111
         self.initial['program'] = 4     #nealokovaný
         self.initial['zakazka'] = 2     #11010001 spol. zák.
-        self.initial['ekoklas'] = 18    #611 - Tarifný plat, osobný plat, základný plat, funkčný plat, hodnostný plat, plat, vrátane ich náhrad
+        self.initial['ekoklas'] = 83    #637006 - náhrady
         polecislo = "cislo"
         # Ak je pole readonly, tak sa nenachádza vo fields. Preto testujeme fields aj initial
         if polecislo in self.fields and not polecislo in self.initial:
