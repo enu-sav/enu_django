@@ -233,6 +233,7 @@ OBJEDNAVKY_DIR="Objednavky"
 PRIJATEFAKTURY_DIR="PrijateFaktury"
 STRAVNE_DIR="Stravne"
 POKLADNA_DIR="Pokladna"
+REKREACIA_DIR="PrispevokNaRekreaciu"
 
 #App denniky
 FORM_DIR_NAME="HromadneDokumenty"

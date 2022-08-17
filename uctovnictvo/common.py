@@ -9,6 +9,7 @@ from django.utils import timezone
 from django.utils.html import format_html
 from .models import SystemovySubor, PrijataFaktura, AnoNie, Objednavka, PrijataFaktura, Rozhodnutie, Zmluva
 from .models import DoVP, DoPC, DoBPS, Poistovna, TypDochodku, Mena, PravidelnaPlatba, TypPP, TypPokladna, Pokladna
+from .models import NajomneFaktura, PrispevokNaRekreaciu
 
 from openpyxl import load_workbook
 from openpyxl.styles import Font, Color, colors, Alignment, PatternFill , numbers
@@ -123,22 +124,29 @@ def VytvoritKryciList(platba, pouzivatel):
     
     # vložiť údaje
     #
-    text = text.replace(f"{lt}softip_faktura_cislo{gt}", platba.cislo_softip)
+    if type(platba) == NajomneFaktura:
+        text = text.replace(f"{lt}popis{gt}", f"Platba č. {platba.cislo_softip}")
+        nazov = platba.zmluva.najomnik.nazov
+        meno_pola = "Dané na vybavenie dňa"
+    elif type(platba) ==  PrispevokNaRekreaciu:
+        text = text.replace(f"{lt}popis{gt}", f"Príspevok na rekreáciu,  {meno_priezvisko(platba.zamestnanec)}, {platba.vyplatene_v_obdobi}")
+        nazov = platba.zamestnanec.priezvisko
+        meno_pola = 'Dátum odoslania KL'
+    else:
+        text = text.replace(f"{lt}popis{gt}", "")
     text = text.replace(f"{lt}zdroj{gt}", f"{platba.zdroj.kod} ({platba.zdroj.popis})")
     text = text.replace(f"{lt}zakazka{gt}", f"{platba.zakazka.kod} ({platba.zakazka.popis})")
     text = text.replace(f"{lt}ekoklas{gt}", f"{platba.ekoklas.kod} ({platba.ekoklas.nazov})")
-    #text = text.replace(f"{lt}cinnost{gt}", f"{platba.cinnost.kod} ({platba.zdroj.popis})")
-    text = text.replace(f"{lt}cinnost{gt}", "") #dočasné, kým sa veci nevyjasnia
+    text = text.replace(f"{lt}cinnost{gt}", f"{platba.cinnost.kod} ({platba.cinnost.nazov})")
     locale.setlocale(locale.LC_ALL, 'sk_SK.UTF-8')
     text = text.replace(f"{lt}akt_datum{gt}", timezone.now().strftime("%d. %m. %Y"))
     #ulozit
-    nazov = platba.zmluva.najomnik.nazov
     if "," in nazov: nazov = nazov[:nazov.find(",")]
     nazov = f"{nazov}-{platba.cislo}.fodt".replace(' ','-').replace("/","-")
     opath = os.path.join(settings.PLATOBNE_PRIKAZY_DIR,nazov)
     with open(os.path.join(settings.MEDIA_ROOT,opath), "w") as f:
         f.write(text)
-    return messages.SUCCESS, mark_safe(f"Súbor krycieho listu platby {platba.cislo} bol úspešne vytvorený ({opath}). Krycí list dajte na podpis. <br />Ak treba, údaje platby možno ešte upravovať. Po každej úprave treba vytvoriť nový krycí list opakovaním akcie.<br />Po podpísaní krycí list dajte na sekretariát na odoslanie a vyplňte pole 'Dané na vybavenie dňa'."), opath
+    return messages.SUCCESS, mark_safe(f"Súbor krycieho listu platby {platba.cislo} bol úspešne vytvorený ({opath}). Krycí list dajte na podpis. <br />Ak treba, údaje platby možno ešte upravovať. Po každej úprave treba vytvoriť nový krycí list opakovaním akcie.<br />Po podpísaní krycí list dajte na sekretariát na odoslanie a vyplňte pole '{meno_pola}'."), opath
  
 # pouzivatel: aktualny pouzivatel
 def VytvoritPlatobnyPrikazIP(faktura, pouzivatel):

@@ -13,7 +13,7 @@ from django.utils.safestring import mark_safe
 from decimal import Decimal
 
 from beliana.settings import TMPLTS_DIR_NAME, PLATOVE_VYMERY_DIR, DOHODY_DIR, PRIJATEFAKTURY_DIR, PLATOBNE_PRIKAZY_DIR
-from beliana.settings import ODVODY_VYNIMKA, DAN_Z_PRIJMU, OBJEDNAVKY_DIR, STRAVNE_DIR
+from beliana.settings import ODVODY_VYNIMKA, DAN_Z_PRIJMU, OBJEDNAVKY_DIR, STRAVNE_DIR, REKREACIA_DIR
 import os,re
 from datetime import timedelta, date, datetime
 from dateutil.relativedelta import relativedelta
@@ -1137,6 +1137,102 @@ class Nepritomnost(models.Model):
     def __str__(self):
         od = self.nepritomnost_od.strftime('%d. %m. %Y')
         return f"{self.zamestnanec.priezvisko} od {od}"
+
+def rekreacia_upload_location(instance, filename):
+    return os.path.join(REKREACIA_DIR, filename)
+class PrispevokNaRekreaciu(Klasifikacia):
+    oznacenie = "PnR"
+    cislo = models.CharField("Číslo", 
+            #help_text: definovaný vo forms
+            null = True,
+            max_length=50)
+    datum = models.DateField('Dátum prijatia žiadosti',
+            help_text = "Dátum prijatia žiadosti",
+            null=True
+            )
+    zamestnanec = models.ForeignKey(Zamestnanec,
+            on_delete=models.PROTECT, 
+            verbose_name = "Zamestnanec",
+            related_name='%(class)s_zamestnanec')  #zabezpečí rozlíšenie modelov, keby dačo
+    subor_ziadost = models.FileField("Žiadosť o príspevok",
+            help_text = "Súbor so žiadosťou o príspevok (doručený zamestnancom).<br />Po zadaní sa vytvorí záznam v Denníku.",
+            upload_to=rekreacia_upload_location
+            )
+    subor_vyuctovanie = models.FileField("Vyúčtovanie príspevku",
+            help_text = "Súbor s vyúčtovaním príspevku (doručený mzdovou účtárňou).<br />Po zadaní sa vytvorí záznam v Denníku.",
+            upload_to=rekreacia_upload_location,
+            blank=True, 
+            null=True
+            )
+    prispevok = models.DecimalField("Príspevok na vyplatenie", 
+            help_text = "Výška príspevku na rekreáciu určená mzdovou účtárňou (záporné číslo).",
+            max_digits=8, 
+            decimal_places=2, 
+            blank=True, 
+            null=True,
+            default=0)
+    vyplatene_v_obdobi = models.CharField("Vyplatené v", 
+            help_text = "Uveďte obdobie vyplatenia podľa vyúčtovania v tvare MM/RRRR (napr. 07/2022)",
+            null = True,
+            blank=True, 
+            max_length=10)
+    subor_kl = models.FileField("Krycí list",
+            help_text = "Súbor s krycím listom.<br />Generuje sa akciou <em>Vytvoriť krycí list</em> po vyplnení položky <em>Príspevok na vyplatenie</em>",
+            upload_to=rekreacia_upload_location,
+            blank=True, 
+            null=True
+            )
+    datum_kl = models.DateField('Dátum odoslania KL',
+            help_text = "Dátum odoslania krycieho listu.<br />Po zadaní sa vytvorí záznam v Denníku.",
+            blank=True, 
+            null=True
+            )
+
+    @staticmethod
+    def check_vyplatene_v(value):
+        return re.findall(r"[0-9][0-9]/[0-9][0-9][0-9][0-9]", value)
+
+
+    def clean(self): 
+        if self.prispevok > 0:
+            raise ValidationError("Suma príspevku musí byť záporná")
+        if self.subor_vyuctovanie and not self.prispevok:
+            raise ValidationError("Ak je vložený súbor s vyúčtovaním, treba vyplniť aj položky 'Príspevok na vyplatenie'")
+
+        if not self.subor_vyuctovanie and self.prispevok:
+            raise ValidationError("Ak je vyplnená položka 'Príspevok na vyplatenie', treba vložiť súbor s vyúčtovaním.")
+
+        if not self.subor_vyuctovanie and self.vyplatene_v_obdobi:
+            raise ValidationError("Ak je vyplnená položka 'Príspevok na vyplatenie', treba vyplniť aj pole 'Vyplatené v'.")
+
+        if not self.subor_vyuctovanie and self.vyplatene_v_obdobi:
+            raise ValidationError("Ak je vyplnená položka 'Vyplatené v', treba vložiť súbor s vyúčtovaním.")
+
+        if self.vyplatene_v_obdobi:
+            if not PrispevokNaRekreaciu.check_vyplatene_v(self.vyplatene_v_obdobi):
+                raise ValidationError("Údaj v poli 'Vyplatené v' musí byť v tvare MM/RRRR (napr. 07/2022)")
+
+    #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
+    def cerpanie_rozpoctu(self, zden):
+        if self.typ_transakcie == TypPokladna.DOTACIA: return []
+        if not self.datum_softip: return []
+        if self.datum_softip <zden: return []
+        kdatum =  date(zden.year, zden.month+1, zden.day) if zden.month+1 <= 12 else  date(zden.year+1, 1, 1)
+        if self.datum_softip >= kdatum: return []
+        platba = {
+                "nazov": "Príspevok na rekreáciu",
+                "suma": self.prispevok,
+                "zdroj": self.zdroj,
+                "zakazka": self.zakazka,
+                "ekoklas": self.ekoklas
+                }
+        return [platba]
+
+    class Meta:
+        verbose_name = "Príspevok na rekreáciu"
+        verbose_name_plural = "PaM - Príspevky na rekreáciu"
+    def __str__(self):
+        return f"{self.zamestnanec.priezvisko}"
 
 # použité len pri vkladané cez admin formulár
 def dohoda_upload_location(instance, filename):
