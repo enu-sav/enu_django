@@ -494,7 +494,7 @@ class PrispevokNaRekreaciuForm(forms.ModelForm):
                     datumvytvorenia = date.today(),
                     typdokumentu = TypDokumentu.REKREACIA,
                     inout = InOut.ODOSLANY,
-                    adresat = "THS",
+                    adresat = "PaM",
                     vec = vec,
                     prijalodoslal=self.request.user.username, #zámena mien prijalodoslal - zaznamvytvoril
                 )
@@ -516,7 +516,7 @@ class PrispevokNaRekreaciuForm(forms.ModelForm):
                     datumvytvorenia = date.today(),
                     typdokumentu = TypDokumentu.REKREACIA,
                     inout = InOut.PRIJATY,
-                    adresat = "THS",
+                    adresat = "PaM",
                     vec = f'<a href="/admin/uctovnictvo/prispevoknarekreaciu/{self.instance.id}">{vec}</a>',
                     prijalodoslal=self.request.user.username, #zámena mien prijalodoslal - zaznamvytvoril
                 )
@@ -538,7 +538,7 @@ class PrispevokNaRekreaciuForm(forms.ModelForm):
                     datumvytvorenia = date.today(),
                     typdokumentu = TypDokumentu.REKREACIA,
                     inout = InOut.ODOSLANY,
-                    adresat = "THS",
+                    adresat = "PaM",
                     vec = f'<a href="/admin/uctovnictvo/prispevoknarekreaciu/{self.instance.id}">{vec}</a>',
                     prijalodoslal=self.request.user.username, #zámena mien prijalodoslal - zaznamvytvoril
                 )
