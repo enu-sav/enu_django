@@ -39,7 +39,7 @@ typ_dokumentu = {
     PravidelnaPlatba.oznacenie: TypDokumentu.PRAVIDELNAPLATBA,
     InternyPrevod.oznacenie: TypDokumentu.INTERNYPREVOD,
     NajomneFaktura.oznacenie: TypDokumentu.NAJOMNE,
-    PrispevokNaRekreaciu: TypDokumentu.REKREACIA 
+    PrispevokNaRekreaciu.oznacenie: TypDokumentu.REKREACIA 
 }
 
 #zobrazenie histórie
