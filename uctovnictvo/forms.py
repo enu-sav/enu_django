@@ -316,7 +316,13 @@ class DohodaForm(forms.ModelForm):
                         prijalodoslal=self.request.user.username, #zámena mien prijalodoslal - zaznamvytvoril
                     )
                     dok.save()
-                    messages.warning(self.request, f"Do denníka prijatej a odoslanej pošty bol pridaný záznam č. {cislo} '{vec}'")
+                    messages.warning(self.request, 
+                        format_html(
+                            'Do denníka prijatej a odoslanej pošty bol pridaný záznam č. {}: <em>{}</em>, treba v ňom doplniť údaje o prijatí.',
+                            mark_safe(f'<a href="/admin/dennik/dokument/{dok.id}/change/">{cislo}</a>'),
+                            vec
+                            )
+                    )
                     return self.cleaned_data
                 elif not self.instance.subor_dohody:
                     raise ValidationError({"stav_dohody":f"Stav dohody možno zmeniť na '{StavDohody.ODOSLANA_DOHODAROVI.label}' až po vygenerovaní súboru dohody akciou 'Vytvoriť súbor dohody' a po jej podpísaní vedením EnÚ."})
@@ -605,7 +611,13 @@ class VyplacanieDohodForm(forms.ModelForm):
                 cislopolozky = dohoda.cislo
             )
             dok.save()
-            messages.warning(self.request, f"Do denníka prijatej a odoslanej pošty bol pridaný záznam č. {cislo} '{vec}'")
+            messages.warning(self.request, 
+                format_html(
+                    'Do denníka prijatej a odoslanej pošty bol pridaný záznam č. {}: <em>{}</em>, treba v ňom doplniť údaje o prijatí.',
+                    mark_safe(f'<a href="/admin/dennik/dokument/{dok.id}/change/">{cislo}</a>'),
+                    vec
+                    )
+            )
             return self.cleaned_data
         except ValidationError as ex:
             raise ex
