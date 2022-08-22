@@ -1270,7 +1270,7 @@ class Dohoda(PolymorphicModel, Klasifikacia):
             null=True)
     #Vypĺňa sa pri vytvorení vyplácania, pri opakovanej platbe obsahuje dátum za každú platbu
     vyplatene = models.CharField("Vyplatené", 
-            help_text = "Dátum odoslania podkladov na vyplatenie, vypĺňa sa automaticky",
+            help_text = "Dátum odoslania podkladov na vyplatenie, vypĺňa sa automaticky pri vyplnení položky 'PAM Vyplatenie dohody'",
             null = True, blank = True,
             max_length=200)
     subor_dohody = models.FileField("Vygenerovaná dohoda",

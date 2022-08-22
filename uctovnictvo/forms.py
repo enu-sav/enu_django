@@ -358,7 +358,7 @@ class DohodaForm(forms.ModelForm):
                 prijalodoslal=self.request.user.username, #zámena mien prijalodoslal - zaznamvytvoril
             )
             dok.save()
-            messages.warning(self.request, f"Sken podpísanej dohody treba vložiť do poľa 'Skenovaná dohoda'. Po vypršaní platnosti dohody treba spraviť záznam do 'Dohody - Vyplácanie dohôd'")
+            messages.warning(self.request, f"Sken podpísanej dohody treba vložiť do poľa 'Skenovaná dohoda'. Po vypršaní platnosti dohody treba spraviť záznam do 'PaM - Vyplácanie dohôd'")
 
 class DoPCForm(DohodaForm):
     #inicializácia polí
