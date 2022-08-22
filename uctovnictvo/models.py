@@ -1556,7 +1556,7 @@ class VyplacanieDohod(models.Model):
             td = "InvDoch"
 
         vyplatena_odmena = float(self.vyplatena_odmena)
-        odvody_zam, odvody_prac = DohodarOdvodySpolu(nazov_suboru, vyplatena_odmena, td, vynimka_suma) 
+        odvody_zam, odvody_prac = DohodarOdvodySpolu(nazov_suboru, vyplatena_odmena, td, self.dohoda.datum_od.year, vynimka_suma) 
         self.poistne_zamestnavatel = odvody_zam
         self.poistne_dohodar = odvody_prac
         self.dan_dohodar = (vyplatena_odmena - self.poistne_dohodar) * DAN_Z_PRIJMU / 100
