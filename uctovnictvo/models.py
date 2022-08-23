@@ -799,13 +799,13 @@ class PrispevokNaStravne(Klasifikacia):
             help_text = "Zvoľte mesiac, za ktorý príspevok je. <br />Príspevok za január sa vypláca v decembri predchádzajúceho roku (v čísle príspevku má byť uvedený rok, v ktorom sa príspevok vyplácal).",
             null = True,
             choices=Mesiace.choices)
-    suma_zamestnavatel = models.DecimalField("Príspevok zamestnávateľa", 
+    suma_zamestnavatel = models.DecimalField("Príspevok (zrážka) zamestnávateľ", 
             help_text = "Príspevok zamestnávateľa (Ek. klas. 642014) na stravné.<br />Ak ide o vyplatenie zamestnancovi, uveďte zápornú hodnotu, ak ide o zrážku, tak kladnú hodnotu.",
             max_digits=8, 
             decimal_places=2, 
             default=0)
     # Položka suma_socfond nemá Ek. klasifikáciu, soc. fond nie sú peniaze EnÚ
-    suma_socfond = models.DecimalField("Príspevok zo soc. fondu", 
+    suma_socfond = models.DecimalField("Príspevok (zrážka) soc. fond", 
             help_text = "Príspevok zo sociálneho fondu (Ek. klas. 642014) na stravné.<br />Ak ide o vyplatenie zamestnancovi, uveďte zápornú hodnotu, ak ide o zrážku, tak kladnú hodnotu.<br />Vytvorením Príspevku na stravné sa automaticky vytvorí položka sociálneho fondu.",
             max_digits=8, 
             decimal_places=2, 
