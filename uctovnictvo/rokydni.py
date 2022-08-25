@@ -148,16 +148,16 @@ def prac_dni(od, do = None):
         mp = date(od.year+1 if od.month==12 else od.year, 1 if od.month==12 else od.month+1, 1)
         return np.busday_count(m1, mp, holidays=sviatky)
 
-#Výpočet koeficientu odpracovaných dní pri neúplne odpracovanom mesiaci
-#vzorec: koef = počet odpracovaných dní / počet pracovných dní v mesiaci
-def koef_odprac_dni(od, do):
+#Výpočet koeficientu neodpracovaných dní pri neúplne odpracovanom mesiaci
+#vzorec: koef = počet neodpracovaných dní / počet pracovných dní v mesiaci
+#Koeficient je pre daný mesiac aditívny, možno opakovane odčítať od 1
+def koef_neodprac_dni(od, do):
     '''
     od: začiatok neprítomnosti
     do: koniec neprítomnosti (vrátane)
     od, do: očakávame, že sú len v jednom mesiaci
     '''
-    za_mesiac = prac_dni(od)
-    return round((za_mesiac-prac_dni(od, do))/za_mesiac,4)
+    return round(prac_dni(od, do)/prac_dni(od), 4)
 
 def main():
     fr,to,yy,dd=range(4)
