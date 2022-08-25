@@ -148,6 +148,20 @@ def prac_dni(od, do = None):
         mp = date(od.year+1 if od.month==12 else od.year, 1 if od.month==12 else od.month+1, 1)
         return np.busday_count(m1, mp, holidays=sviatky)
 
+def prekryv_dni(mesiac, od, do):
+    from collections import namedtuple
+    Range = namedtuple('Range', ['start', 'end'])
+    m1 = date(mesiac.year,mesiac.month,1)
+    mp = date(mesiac.year+1 if mesiac.month==12 else mesiac.year, 1 if mesiac.month==12 else mesiac.month+1, 1) - timedelta(days=1)
+    r1 = Range(start=m1, end=mp)
+    r2 = Range(start=od, end=do)
+    latest_start = max(r1.start, r2.start)
+    earliest_end = min(r1.end, r2.end)
+    delta = (earliest_end - latest_start).days + 1
+    overlap = max(0, delta)
+    return overlap
+    
+
 #Výpočet koeficientu neodpracovaných dní pri neúplne odpracovanom mesiaci
 #vzorec: koef = počet neodpracovaných dní / počet pracovných dní v mesiaci
 #Koeficient je pre daný mesiac aditívny, možno opakovane odčítať od 1
@@ -276,8 +290,22 @@ def main():
         print(tdate, "PN    %d %d"%(zac,kon), prac_dni(tdate+timedelta(days=zac), date(tdate.year, tdate.month+1, 1) - timedelta(days=1+kon)))
         #print(tdate, "PN    %d %d"%(zac,0), prac_dni(tdate+timedelta(days=zac), date(tdate.year, tdate.month+1, 1) - timedelta(days=1)))
         #print(tdate, "PN    %d %d"%(0,kon), prac_dni(tdate, date(tdate.year, tdate.month+1, 1) - timedelta(days=1+kon)))
-        print(tdate, "Koef  %d %d"%(zac,kon), koef_odprac_dni(tdate+timedelta(days=zac), date(tdate.year, tdate.month+1, 1) - timedelta(days=1+kon)))
+        print(tdate, "Koef  %d %d"%(zac,kon), koef_neodprac_dni(tdate+timedelta(days=zac), date(tdate.year, tdate.month+1, 1) - timedelta(days=1+kon)))
         print()
+
+    print("Prekryv dní")
+    print(0, prekryv_dni(date(2022,4,5), date(2022,3,25),date(2022,3,27)))  #xxXX
+    print(0, prekryv_dni(date(2022,4,5), date(2022,3,25),date(2022,3,31)))  #xxXX
+    print(1, prekryv_dni(date(2022,4,5), date(2022,3,25),date(2022,4,1)))   #xxXX
+    print(2, prekryv_dni(date(2022,4,5), date(2022,3,25),date(2022,4,2)))
+    print(1, prekryv_dni(date(2022,4,5), date(2022,4,2), date(2022,4,2)))
+    print(3, prekryv_dni(date(2022,4,5), date(2022,4,2), date(2022,4,4)))
+    print(3, prekryv_dni(date(2022,4,5), date(2022,4,2), date(2022,4,2)+timedelta(days=2)))
+    print(7, prekryv_dni(date(2022,4,5), date(2022,4,2)+timedelta(days=3), date(2022,4,9)+timedelta(days=2)))
+    print(3, prekryv_dni(date(2022,4,5), date(2022,4,28), date(2022,4,30)))
+    print(3, prekryv_dni(date(2022,4,5), date(2022,4,28), date(2022,5,1)))
+    print(3, prekryv_dni(date(2022,4,5), date(2022,4,28), date(2022,5,5)))
+    print(30, prekryv_dni(date(2022,4,5), date(2022,3,28), date(2022,5,5)))
 
 if __name__ == "__main__":
     main()
