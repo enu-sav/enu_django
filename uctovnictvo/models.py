@@ -7,7 +7,7 @@ from django.core.exceptions import ValidationError
 from simple_history.models import HistoricalRecords
 from uctovnictvo.storage import OverwriteStorage
 from .odvody import DohodarOdvodySpolu, ZamestnanecOdvodySpolu
-from .rokydni import mesiace
+from .rokydni import mesiace, koef_neodprac_dni
 from polymorphic.models import PolymorphicModel
 from django.utils.safestring import mark_safe
 from decimal import Decimal
@@ -1040,8 +1040,8 @@ class PlatovyVymer(Klasifikacia):
         next_month = zden + relativedelta(months=1, day=1)  # 1. deň nasl. mesiaca
         qs2 = qs1.exclude(nepritomnost_od__gte=next_month)  # vylúčiť nevyhovujúce
         qs3 = qs2.exclude(nepritomnost_typ=TypNepritomnosti.DOVOLENKA)  # vylúčiť dovolenky, platí sa v plnej výške
-        dni_neprit = 0
-        for nn in qs3:
+        koef_prit = 1
+        for nn in qs3:  #môže byť viac neprítomností za mesiac
             #určiť posledný deň
             if not nn.nepritomnost_do:  #nie je zadaný
                 if nn.nepritomnost_typ == TypNepritomnosti.MATERSKA: #ak materská, tak koniec mesiaca
@@ -1055,29 +1055,25 @@ class PlatovyVymer(Klasifikacia):
             if posledny >= next_month:
                 posledny = next_month - relativedelta(days=1) 
             prvy = nn.nepritomnost_od if nn.nepritomnost_od>zden else zden
-            if posledny >= prvy: #nenastane v prípade neukončenej neprítomnosti ak nie je materská
-                dni_neprit += (posledny-prvy).days + 1
-        dni_mesiac = (next_month -zden).days
-        koef_prit = (dni_mesiac-dni_neprit)/dni_mesiac  #koeficient pritomnosti
+            koef_prit -= koef_neodprac_dni(prvy, posledny)
 
-        koef_prit = 1
         tarifny = {
                 "nazov":"Plat tarifný plat",
-                "suma": -Decimal(koef_prit*float(self.tarifny_plat)),
+                "suma": -Decimal(round(koef_prit*float(self.tarifny_plat),2)),
                 "zdroj": self.zdroj,
                 "zakazka": self.zakazka,
                 "ekoklas": self.ekoklas
                 }
         osobny = {
                 "nazov": "Plat osobný príplatok",
-                "suma": -Decimal(koef_prit*float(self.osobny_priplatok)),
+                "suma": -Decimal(round(koef_prit*float(self.osobny_priplatok),2)),
                 "zdroj": self.zdroj,
                 "zakazka": self.zakazka,
                 "ekoklas": self.ekoklas
                 }
         funkcny = {
                 "nazov": "Plat funkčný príplatok",
-                "suma": -Decimal(koef_prit*float(self.funkcny_priplatok)),
+                "suma": -Decimal(round(koef_prit*float(self.funkcny_priplatok),2)),
                 "zdroj": self.zdroj,
                 "zakazka": self.zakazka,
                 "ekoklas": self.ekoklas
@@ -1091,15 +1087,20 @@ class PlatovyVymer(Klasifikacia):
         #Konverzia typu dochodku na pozadovany typ vo funkcii ZamestnanecOdvodySpolu
         td = self.zamestnanec.typ_doch
         td_konv = "InvDoch30" if td==TypDochodku.INVALIDNY30 else "InvDoch70" if td== TypDochodku.INVALIDNY70 else "StarDoch" if td==TypDochodku.STAROBNY else "VyslDoch" if td==TypDochodku.INVAL_VYSL else "Bezny"
-        plat = float(tarifny['suma'])+ float(osobny['suma']) + float(funkcny['suma'])
-        odvody, _ = ZamestnanecOdvodySpolu(nazov_suboru, plat, td_konv, zden.year)
+        hruba_mzda = koef_prit * (float(self.tarifny_plat) + float(self.osobny_priplatok) + float(self.funkcny_priplatok))
+        odvody, _ = ZamestnanecOdvodySpolu(nazov_suboru, hruba_mzda, td_konv, zden.year)
         poistne = {
                 "nazov": "Plat odvody",
-                "suma": Decimal(odvody),
+                "suma": Decimal(round(odvody,2)),
                 "zdroj": self.zdroj,
                 "zakazka": self.zakazka,
                 "ekoklas": EkonomickaKlasifikacia.objects.get(kod="620")
                 }
+        if koef_prit < 1:
+            #trace()
+            pass
+        #kvoli kontrole (porovnať s údajmi v Softipe)
+        #print(self.zamestnanec.priezvisko, zden, round(hruba_mzda,2))
         return [tarifny, osobny, funkcny, poistne]
 
     class Meta:
