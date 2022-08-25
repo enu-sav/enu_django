@@ -196,6 +196,8 @@ class CerpanieRozpoctuAdmin(ModelAdminTotals):
                             cerpanie[identif]['md1'] = md1
                         else:
                             cerpanie[identif]['suma'] += item['suma']
+                        if 'poznamka' in  item:
+                            messages.warning(request, format_html(item['poznamka']))
 
         # zapísať do databázy
         # Ak ide o Dotáciu, nepriradiť dátum
