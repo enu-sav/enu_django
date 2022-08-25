@@ -1060,7 +1060,7 @@ class PlatovyVymer(Klasifikacia):
         dni_mesiac = (next_month -zden).days
         koef_prit = (dni_mesiac-dni_neprit)/dni_mesiac  #koeficient pritomnosti
 
-        #koef_prit = 1
+        koef_prit = 1
         tarifny = {
                 "nazov":"Plat tarifný plat",
                 "suma": -Decimal(koef_prit*float(self.tarifny_plat)),

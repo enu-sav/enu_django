@@ -2,7 +2,9 @@
 from datetime import date, timedelta, datetime
 from dateutil.relativedelta import relativedelta
 from ipdb import set_trace as trace
+import holidays
 import re
+import numpy as np
 
 mesiace = ["január", "február", "marec", "apríl", "máj", "jún", "júl", "august", "september", "október", "november", "december"]
 roky_postupu = [0, 2, 4, 6, 9, 12, 15, 18, 21, 24, 28, 32, 36, 40]
@@ -118,7 +120,7 @@ class DvaDatumy():
             years = self.druhy.year - self.prvy.year
             aux = date(self.druhy.year, self.prvy.month, self.prvy.day)
             if self.druhy >= aux:
-                days = (self.druhy - aux).days
+                days = (self.druhy - aux).days 
                 #print(3,self.prvy, aux, self.druhy,  years, days)
             else:
                 years -= 1
@@ -126,6 +128,36 @@ class DvaDatumy():
                 days = (self.druhy - aux1).days
                 #print(4,self.prvy, aux1, self.druhy,  years, days)
         return years, days
+
+#vypočítať počet pracovných dní
+#od, do: očakávame, že sú len v jednom mesiaci
+#do: vrátane
+#do: aj nie je zadané, rátame za celý mesiac
+def prac_dni(od, do = None):
+    #Vygenerovať sviatky za aktuálny rok
+    _sviatky = holidays.SK()
+    _ = od in _sviatky #vlastné generovanie za aktuálny rok
+    sviatky = [sv.isoformat() for sv in _sviatky.keys()]
+    #print(sviatky)
+    #Pracovné dni v mesiaci
+    if do:
+        #print(od,do)
+        return np.busday_count(od, do + timedelta(days=1), holidays=sviatky)
+    else:
+        m1 = date(od.year,od.month,1)
+        mp = date(od.year+1 if od.month==12 else od.year, 1 if od.month==12 else od.month+1, 1)
+        return np.busday_count(m1, mp, holidays=sviatky)
+
+#Výpočet koeficientu odpracovaných dní pri neúplne odpracovanom mesiaci
+#vzorec: koef = počet odpracovaných dní / počet pracovných dní v mesiaci
+def koef_odprac_dni(od, do):
+    '''
+    od: začiatok neprítomnosti
+    do: koniec neprítomnosti (vrátane)
+    od, do: očakávame, že sú len v jednom mesiaci
+    '''
+    za_mesiac = prac_dni(od)
+    return round((za_mesiac-prac_dni(od, do))/za_mesiac,4)
 
 def main():
     fr,to,yy,dd=range(4)
@@ -232,6 +264,20 @@ def main():
                 d021.dpostup >= d021.druhy  #Rozhodujúci dátum postupu dpostup k tt[1] nesmie byť menší ako tt[1] ('druhy')
               )
         print(fmt%val)
+
+    print()
+    print("Pracovné dni")
+    months = [date(2022,1,1), date(2022,2,1), date(2022,3,1), date(2022,4,1), date(2022,5,1), date(2022,6,1), date(2022,7,1), date(2022,8,1), date(2022,9,1), date(2022,10,1), date(2022,11,1)]
+    #months = [date(2022,4,1), date(2022,5,1), date(2022,6,1), date(2022,7,1), date(2022,8,1), date(2022,9,1), date(2022,10,1), date(2022,11,1)]
+    zac=7
+    kon=7
+    for tdate in months:
+        print(tdate, "za mesiac", prac_dni(tdate))
+        print(tdate, "PN    %d %d"%(zac,kon), prac_dni(tdate+timedelta(days=zac), date(tdate.year, tdate.month+1, 1) - timedelta(days=1+kon)))
+        #print(tdate, "PN    %d %d"%(zac,0), prac_dni(tdate+timedelta(days=zac), date(tdate.year, tdate.month+1, 1) - timedelta(days=1)))
+        #print(tdate, "PN    %d %d"%(0,kon), prac_dni(tdate, date(tdate.year, tdate.month+1, 1) - timedelta(days=1+kon)))
+        print(tdate, "Koef  %d %d"%(zac,kon), koef_odprac_dni(tdate+timedelta(days=zac), date(tdate.year, tdate.month+1, 1) - timedelta(days=1+kon)))
+        print()
 
 if __name__ == "__main__":
     main()
