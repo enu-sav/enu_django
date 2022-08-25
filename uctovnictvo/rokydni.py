@@ -157,7 +157,7 @@ def koef_neodprac_dni(od, do):
     do: koniec neprítomnosti (vrátane)
     od, do: očakávame, že sú len v jednom mesiaci
     '''
-    return round(prac_dni(od, do)/prac_dni(od), 4)
+    return prac_dni(od, do)/prac_dni(od)
 
 def main():
     fr,to,yy,dd=range(4)
