@@ -1070,7 +1070,7 @@ class PlatovyVymer(Klasifikacia):
             if nn.nepritomnost_typ == TypNepritomnosti.PN:
                 pn1 += prekryv_dni(zden, nn.nepritomnost_od, nn.nepritomnost_od+timedelta(days=2))
                 #Dni 4 až 10, 80%
-                pn2 += prekryv_dni(zden, nn.nepritomnost_od+timedelta(days=3), nn.nepritomnost_od+timedelta(days=9))
+                pn2 += prekryv_dni(zden, nn.nepritomnost_od+timedelta(days=3), min(nn.nepritomnost_od+timedelta(days=9), posledny))
 
         tarifny = {
                 "nazov":"Plat tarifný plat",
