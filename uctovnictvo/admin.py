@@ -698,7 +698,7 @@ class InternyPrevodAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmi
 
 @admin.register(Najomnik)
 class NajomnikAdmin(ZobrazitZmeny, SimpleHistoryAdmin, ImportExportModelAdmin):
-    list_display = ("nazov", "zastupeny", "s_danou", "bankovy_kontakt", "adresa") 
+    list_display = ("nazov", "zastupeny", "bankovy_kontakt", "adresa") 
     search_fields = ("nazov", "zastupeny")
     def adresa(self, obj):
         if obj.adresa_mesto:
@@ -746,12 +746,8 @@ class NajomnaZmluvaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmi
 @admin.register(NajomneFaktura)
 class NajomneFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
     form = NajomneFakturaForm
-    list_display = ("cislo", "cislo_softip", "zmluva_link", "typ", "splatnost_datum", "dane_na_uhradu", "suma", "_dph", "dan", "platobny_prikaz")
-    def _dph(self, obj):
-        if obj.typ != TypPN.NAJOMNE or obj.zmluva.najomnik.s_danou == AnoNie.ANO:
-            return round(obj.suma*DPH/100,2)
-        else:
-            return 0
+    list_display = ("cislo", "cislo_softip", "zmluva_link", "typ", "splatnost_datum", "dane_na_uhradu", "suma", "dan", "platobny_prikaz")
+
     #search_fields = ("nazov", "zastupeny")
     def get_readonly_fields(self, request, obj=None):
         if not obj:

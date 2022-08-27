@@ -510,11 +510,6 @@ class Najomnik(PersonCommon):
             blank = True,
             null = True,
             )
-    s_danou = models.CharField("Fakturované s daňou",
-            max_length=3,
-            help_text = "Uveďte 'Áno', ak sa nájomníkovi fakturuje nájomné s DPH, inak uveďte 'Nie'. Služby za nájomné sa vždy fakturujú s DPH",
-            null = True,
-            choices=AnoNie.choices)
     history = HistoricalRecords()
     class Meta:
         verbose_name = 'Nájomník'
