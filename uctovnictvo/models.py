@@ -597,6 +597,12 @@ class NajomneFaktura(Klasifikacia):
             max_digits=8,
             decimal_places=2,
             null=True)
+    dan = models.DecimalField("DPH",
+            help_text = 'Zadajte sumu DPH štrvrťročne.<br />V prípade zmlúv uzavretých 07/2022 a neskôr sa DPH neúčtuje.',
+            max_digits=8,
+            decimal_places=2,
+            default=0,
+            null=True)
     zmluva = models.ForeignKey(NajomnaZmluva,
             null=True,
             verbose_name = "Nájomná zmluva",

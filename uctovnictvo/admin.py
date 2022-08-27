@@ -746,7 +746,7 @@ class NajomnaZmluvaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmi
 @admin.register(NajomneFaktura)
 class NajomneFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
     form = NajomneFakturaForm
-    list_display = ("cislo", "cislo_softip", "zmluva_link", "typ", "splatnost_datum", "dane_na_uhradu", "suma", "_dph", "platobny_prikaz")
+    list_display = ("cislo", "cislo_softip", "zmluva_link", "typ", "splatnost_datum", "dane_na_uhradu", "suma", "_dph", "dan", "platobny_prikaz")
     def _dph(self, obj):
         if obj.typ != TypPN.NAJOMNE or obj.zmluva.najomnik.s_danou == AnoNie.ANO:
             return round(obj.suma*DPH/100,2)
