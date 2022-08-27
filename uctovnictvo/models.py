@@ -381,20 +381,6 @@ class FakturaPravidelnaPlatba(Platba):
     def adresat(self):
         return self.objednavka_zmluva.dodavatel.nazov if self.objednavka_zmluva else ""
 
-    #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
-    def cerpanie_rozpoctu(self, zden):
-        if not self.dane_na_uhradu: return []
-        if self.dane_na_uhradu <zden: return []
-        if self.dane_na_uhradu >= date(zden.year, zden.month+1, zden.day): return []
-        typ = "zmluva" if type(self.objednavka_zmluva) == Zmluva else "objednávka" if type(self.objednavka_zmluva) == Objednavka else "rozhodnutie" 
-        platba = {
-                "nazov":f"Faktúra {typ}",
-                "suma": self.suma,
-                "zdroj": self.zdroj,
-                "zakazka": self.zakazka,
-                "ekoklas": self.ekoklas
-                }
-        return [platba]
     class Meta:
         abstract = True
 
@@ -414,6 +400,24 @@ class InternyPrevod(Platba):
             null = True,
             max_length=100)
     history = HistoricalRecords()
+
+    #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
+    def cerpanie_rozpoctu(self, zden):
+        if not self.doslo_datum: return []
+        if self.doslo_datum <zden: return []
+        kdatum =  date(zden.year, zden.month+1, zden.day) if zden.month+1 <= 12 else  date(zden.year+1, 1, 1)
+        if self.doslo_datum >= kdatum: return []
+        platba = {
+                "nazov":f"Interný prevod",
+                "suma": self.suma,
+                "datum": self.doslo_datum,
+                "cislo": self.cislo,
+                "subjekt": self.partner.nazov,
+                "zdroj": self.zdroj,
+                "zakazka": self.zakazka,
+                "ekoklas": self.ekoklas
+                }
+        return [platba]
     class Meta:
         verbose_name = "Interný prevod",
         verbose_name_plural = "Faktúry - Interné prevody"
@@ -444,10 +448,6 @@ class PrijataFaktura(FakturaPravidelnaPlatba):
             null = True)
     history = HistoricalRecords()
 
-    # Koho uviesť ako adresata v denniku
-    def adresat(self):
-        return self.objednavka_zmluva.dodavatel.nazov if self.objednavka_zmluva else ""
-
     #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
     def cerpanie_rozpoctu(self, zden):
         if not self.dane_na_uhradu: return []
@@ -458,6 +458,9 @@ class PrijataFaktura(FakturaPravidelnaPlatba):
         platba = {
                 "nazov":f"Faktúra {typ}",
                 "suma": self.suma,
+                "datum": self.dane_na_uhradu,
+                "cislo": self.cislo,
+                "subjekt": self.adresat(),
                 "zdroj": self.zdroj,
                 "zakazka": self.zakazka,
                 "ekoklas": self.ekoklas
@@ -477,10 +480,6 @@ class PravidelnaPlatba(FakturaPravidelnaPlatba):
             max_length=25, 
             choices=TypPP.choices)
 
-    # Koho uviesť ako adresata v denniku
-    def adresat(self):
-        return self.objednavka_zmluva.dodavatel.nazov if self.objednavka_zmluva else ""
-
     #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
     def cerpanie_rozpoctu(self, zden):
         if self.splatnost_datum <zden: return []
@@ -490,6 +489,9 @@ class PravidelnaPlatba(FakturaPravidelnaPlatba):
         platba = {
                 "nazov":nazov,
                 "suma": self.suma,
+                "datum": self.dane_na_uhradu,
+                "subjekt": f"{self.adresat()}, (za {zden.year}/{zden.month})", 
+                "cislo": self.cislo,
                 "zdroj": self.zdroj,
                 "zakazka": self.zakazka,
                 "ekoklas": self.ekoklas
@@ -621,6 +623,9 @@ class NajomneFaktura(Klasifikacia):
         platba = {
                 "nazov":f"Faktúra {typ}",
                 "suma": self.suma,
+                "datum": self.dane_na_uhradu,
+                "subjekt": f"{self.zmluva.najomnik.nazov}, (za {zden.year}/{zden.month})", 
+                "cislo": self.cislo,
                 "zdroj": self.zdroj,
                 "zakazka": self.zakazka,
                 "ekoklas": self.ekoklas
@@ -656,6 +661,9 @@ class PlatbaBezPrikazu(Klasifikacia):
         platba = {
                 "nazov":f"Platba bez príkazu",
                 "suma": self.suma,
+                "datum": self.datum_platby,
+                "subjekt": self.predmet,
+                "cislo": self.cislo,
                 "zdroj": self.zdroj,
                 "zakazka": self.zakazka,
                 "ekoklas": self.ekoklas
@@ -843,6 +851,9 @@ class PrispevokNaStravne(Klasifikacia):
         platba = {
                 "nazov":f"Stravné",
                 "suma": self.suma_zamestnavatel,
+                "datum": zden,
+                "subjekt": "Zamestnanci",
+                "cislo": self.cislo,
                 "zdroj": self.zdroj,
                 "zakazka": self.zakazka,
                 "ekoklas": self.ekoklas
@@ -1077,6 +1088,9 @@ class PlatovyVymer(Klasifikacia):
                 "suma": -round(Decimal(koef_prit*float(self.tarifny_plat)),2),
                 "zdroj": self.zdroj,
                 "zakazka": self.zakazka,
+                "datum": zden if zden < date.today() else None,
+                "subjekt": f"{self.zamestnanec.priezvisko}, {self.zamestnanec.meno}, (za {zden.year}/{zden.month})", 
+                "cislo": self.cislo if self.cislo else "-",
                 "ekoklas": self.ekoklas
                 }
         osobny = {
@@ -1084,6 +1098,9 @@ class PlatovyVymer(Klasifikacia):
                 "suma": -round(Decimal(koef_prit*float(self.osobny_priplatok)),2),
                 "zdroj": self.zdroj,
                 "zakazka": self.zakazka,
+                "datum": zden if zden < date.today() else None,
+                "subjekt": f"{self.zamestnanec.priezvisko}, {self.zamestnanec.meno}, (za {zden.year}/{zden.month})", 
+                "cislo": self.cislo if self.cislo else "-",
                 "ekoklas": self.ekoklas
                 }
         funkcny = {
@@ -1091,6 +1108,9 @@ class PlatovyVymer(Klasifikacia):
                 "suma": -round(Decimal(koef_prit*float(self.funkcny_priplatok)),2),
                 "zdroj": self.zdroj,
                 "zakazka": self.zakazka,
+                "datum": zden if zden < date.today() else None,
+                "subjekt": f"{self.zamestnanec.priezvisko}, {self.zamestnanec.meno}, (za {zden.year}/{zden.month})", 
+                "cislo": self.cislo if self.cislo else "-",
                 "ekoklas": self.ekoklas
                 }
         pn = None
@@ -1101,6 +1121,9 @@ class PlatovyVymer(Klasifikacia):
                     "suma": -round(Decimal((pn1*PN1+pn2*PN2)*denny_vz/100),2),
                     "zdroj": self.zdroj,
                     "zakazka": self.zakazka,
+                    "datum": zden if zden < date.today() else None,
+                    "subjekt": f"{self.zamestnanec.priezvisko}, {self.zamestnanec.meno}, (za {zden.year}/{zden.month})", 
+                    "cislo": self.cislo if self.cislo else "-",
                     "ekoklas": EkonomickaKlasifikacia.objects.get(kod="640")
                     }
             if "približne" in text_vz:
@@ -1119,9 +1142,12 @@ class PlatovyVymer(Klasifikacia):
         odvody, _ = ZamestnanecOdvodySpolu(nazov_suboru, hruba_mzda, td_konv, zden.year)
         poistne = {
                 "nazov": "Plat odvody",
-                "suma": round(Decimal(odvody),2),
+                "suma": -round(Decimal(odvody),2),
                 "zdroj": self.zdroj,
                 "zakazka": self.zakazka,
+                "datum": zden if zden < date.today() else None,
+                "subjekt": f"{self.zamestnanec.priezvisko}, {self.zamestnanec.meno}, (za {zden.year}/{zden.month})", 
+                "cislo": self.cislo if self.cislo else "-",
                 "ekoklas": EkonomickaKlasifikacia.objects.get(kod="620")
                 }
         if koef_prit < 1:
@@ -1264,6 +1290,9 @@ class PrispevokNaRekreaciu(Klasifikacia):
         platba = {
                 "nazov": "Príspevok na rekreáciu",
                 "suma": suma,
+                "datum": self.datum,
+                "subjekt": f"{self.zamestnanec.priezvisko}, {self.zamestnanec.meno}", 
+                "cislo": self.cislo,
                 "zdroj": self.zdroj,
                 "zakazka": self.zakazka,
                 "ekoklas": self.ekoklas
@@ -1361,7 +1390,10 @@ class DoVP(Dohoda):
         if self.datum_do >= kdatum: return []
         platba = {
                 "nazov":f"DoVP odmena",
-                "suma": -self.odmena_celkom,
+                "suma": -Decimal(self.odmena_celkom),
+                "datum": zden,
+                "subjekt": f"{self.zmluvna_strana.priezvisko}, {self.zmluvna_strana.meno}", 
+                "cislo": self.cislo,
                 "zdroj": self.zdroj,
                 "zakazka": self.zakazka,
                 "ekoklas": self.ekoklas
@@ -1379,7 +1411,10 @@ class DoVP(Dohoda):
                 "nazov": "DoVP poistne",
                 #Dočasne všetci rovnako, treba opraviť
                 #"suma": -(Decimal(0.3255) if zden.year < 2022 else Decimal(0.328)) * self.odmena_celkom,
-                "suma": -odvody,
+                "suma": -Decimal(odvody),
+                "datum": zden,
+                "subjekt": f"{self.zmluvna_strana.priezvisko}, {self.zmluvna_strana.meno}", 
+                "cislo": self.cislo,
                 "zdroj": self.zdroj,
                 "zakazka": self.zakazka,
                 "ekoklas": EkonomickaKlasifikacia.objects.get(kod="620")
@@ -1455,7 +1490,10 @@ class DoPC(Dohoda):
         if zden > self.datum_do: return []
         platba = {
                 "nazov":f"DoPC odmena",
-                "suma": -self.odmena_mesacne,
+                "suma": -Decimal(self.odmena_mesacne),
+                "datum": zden,
+                "subjekt": f"{self.zmluvna_strana.priezvisko}, {self.zmluvna_strana.meno}", 
+                "cislo": self.cislo,
                 "zdroj": self.zdroj,
                 "zakazka": self.zakazka,
                 "ekoklas": self.ekoklas
@@ -1472,7 +1510,10 @@ class DoPC(Dohoda):
                 "nazov": "DoPC poistne",
                 #Dočasne všetci rovnako, treba opraviť
                 #"suma": -(Decimal(0.3495) if zden.year < 2022 else Decimal(0.352)) * self.odmena_mesacne,
-                "suma": -odvody,
+                "suma": -Decimal(odvody),
+                "datum": zden,
+                "subjekt": f"{self.zmluvna_strana.priezvisko}, {self.zmluvna_strana.meno}", 
+                "cislo": self.cislo,
                 "zdroj": self.zdroj,
                 "zakazka": self.zakazka,
                 "ekoklas": EkonomickaKlasifikacia.objects.get(kod="620")
@@ -1733,6 +1774,9 @@ class Pokladna(models.Model):
         platba = {
                 "nazov": "Pokladňa",
                 "suma": self.suma,
+                "datum": self.datum_transakcie,
+                "subjekt": f"{self.zamestnanec.priezvisko}, {self.zamestnanec.meno}", 
+                "cislo": self.cislo,
                 "zdroj": self.zdroj,
                 "zakazka": self.zakazka,
                 "ekoklas": self.ekoklas

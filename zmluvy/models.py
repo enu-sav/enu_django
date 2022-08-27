@@ -361,6 +361,9 @@ class PlatbaAutorskaSumar(models.Model):
         platba = {
                 "nazov": "Honorár autori",
                 "suma": -sum(odmeny),
+                "datum": self.datum_uhradenia if self.datum_uhradenia else self.datum_importovania,
+                "subjekt": "Autori",
+                "cislo": self.cislo,
                 "zdroj": zdroj,
                 "zakazka": zakazka,
                 "ekoklas": EkonomickaKlasifikacia.objects.get(kod="633018") #licencie

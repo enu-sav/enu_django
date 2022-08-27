@@ -21,6 +21,12 @@ from collections import defaultdict
 from admin_totals.admin import ModelAdminTotals
 from django.db.models import Sum
 
+from openpyxl import Workbook
+from openpyxl.styles import Font
+from openpyxl.utils import get_column_letter
+from django.http import HttpResponse
+from decimal import Decimal
+
 #https://pypi.org/project/django-admin-rangefilter/
 from rangefilter.filters import DateRangeFilter
 
@@ -170,27 +176,63 @@ class CerpanieRozpoctuAdmin(ModelAdminTotals):
     generovat2021.allowed_permissions = ('change',)
 
     def generovat2022(self, request, queryset):
-        self.generovat(request, 2022)
+        return self.generovat(request, 2022)
         pass
     generovat2022.short_description = f"Generovať prehľad čerpania rozpočtu za 2022"
     generovat2022.allowed_permissions = ('change',)
 
     def generovat(self,request,rok):
+        def zapisat_riadok(ws, fw, riadok, polozky, header=False):
+            for cc, value in enumerate(polozky):
+                print(cc,value)
+                ws.cell(row=riadok, column = cc+1).value = value 
+                if isinstance(value, date):
+                    ws.cell(row=riadok, column=cc+1).value = value
+                    ws.cell(row=riadok, column=cc+1).number_format = "DD-MM-YYYY"
+                    if not cc in fw: fw[cc] = 0
+                    if fw[cc] < 12: fw[cc] = 12 
+                elif type(value) == Decimal:
+                    ws.cell(row=riadok, column=cc+1).value = value
+                    ws.cell(row=riadok, column=cc+1).number_format="0.00"
+                    if not cc in fw: fw[cc] = 0
+                    if fw[cc] < 12: fw[cc] = 12 
+                else:
+                    ws.cell(row=riadok, column=cc+1).value = str(value)
+                    if not cc in fw: fw[cc] = 0
+                    if fw[cc] < len(str(value))+2: fw[cc] = len(str(value))+2
+    
         #najskôr všetko zmazať
         CerpanieRozpoctu.objects.filter(mesiac__isnull=False).delete()
+
+        #Vytvoriť workbook
+        file_name = f"Cerpanie_rozpoctu_{rok}-{date.today().isoformat()}"
+        wb = Workbook()
+        ws_prehlad = wb.active
+        ws_prehlad.title = "Prehľad"
+        ws_polozky = wb.create_sheet(title="Položky")
 
         # 1. deň v mesiaci
         md1list = [date(rok, mm+1, 1) for mm in range(12)]
         md1list.append(date(rok+1, 1, 1))
 
         cerpanie = defaultdict(dict)
-        typy = [PravidelnaPlatba, PlatovyVymer, PrijataFaktura, DoVP, DoPC, PlatbaAutorskaSumar, NajomneFaktura, PrispevokNaStravne, RozpoctovaPolozka, PlatbaBezPrikazu, Pokladna, PrispevokNaRekreaciu]
+        nazvy = ["Názov", "Suma", "Subjekt", "Dátum", "Číslo", "Zdroj", "Zákazka", "Klasifikácia"]
+        fw = {}
+        zapisat_riadok(ws_polozky, fw, 1, nazvy, header=True)
+        riadok=2
+        #for fn in enumerate(nazvy): fw[fn[0]]=len(fn[1])
+
+        typy = [PravidelnaPlatba, PlatovyVymer, PrijataFaktura, DoVP, DoPC, PlatbaAutorskaSumar, NajomneFaktura, PrispevokNaStravne, RozpoctovaPolozka, PlatbaBezPrikazu, Pokladna, PrispevokNaRekreaciu,InternyPrevod]
         for typ in typy:
             for polozka in typ.objects.filter():
                 for md1 in md1list[:-1]:
                     data = polozka.cerpanie_rozpoctu(md1)
                     for item in data:
                         identif = f"{item['nazov']} {item['zdroj'].kod} {item['zakazka'].kod} {item['ekoklas'].kod}, {md1}"
+                        polozky = [item['nazov'], item['suma'], item['subjekt'] if "subjekt" in item else "", item['datum'] if "datum" in item else "", item['cislo'], item['zdroj'].kod, item['zakazka'].kod, item['ekoklas'].kod]
+                        zapisat_riadok(ws_polozky, fw, riadok, polozky)
+                        riadok +=1
+
                         if not identif in cerpanie:
                             cerpanie[identif] = item
                             cerpanie[identif]['md1'] = md1
@@ -198,8 +240,14 @@ class CerpanieRozpoctuAdmin(ModelAdminTotals):
                             cerpanie[identif]['suma'] += item['suma']
                         if 'poznamka' in  item:
                             messages.warning(request, format_html(item['poznamka']))
+        for cc in fw:
+            ws_polozky.column_dimensions[get_column_letter(cc+1)].width = fw[cc]
 
-        # zapísať do databázy
+        # zapísať do databázy a do ws_prehlad
+        nazvy = ["Názov", "Suma", "Zdroj", "Zákazka", "Klasifikácia"]
+        fw = {}
+        zapisat_riadok(ws_prehlad, fw, 1, nazvy, header=True)
+        riadok=2
         # Ak ide o Dotáciu, nepriradiť dátum
         for item in cerpanie:
             cr = CerpanieRozpoctu (
@@ -211,6 +259,17 @@ class CerpanieRozpoctuAdmin(ModelAdminTotals):
                 zakazka = cerpanie[item]['zakazka'],
                 ekoklas = cerpanie[item]['ekoklas'],
                 ).save()
+            polozky = [cerpanie[item]['nazov'], cerpanie[item]['suma'], cerpanie[item]['zdroj'].kod, cerpanie[item]['zakazka'].kod, cerpanie[item]['ekoklas'].kod]
+            zapisat_riadok(ws_prehlad, fw, riadok, polozky)
+            riadok +=1
+        for cc in fw:
+            ws_prehlad.column_dimensions[get_column_letter(cc+1)].width = fw[cc]
+
+        #Uložiť a zobraziť 
+        response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response['Content-Disposition'] = f'attachment; filename={file_name}.xlsx'
+        wb.save(response)
+        return response
 
     # Nemazať  "Pomocná položka", potrebujeme
     def delete_queryset(self, request, queryset):
