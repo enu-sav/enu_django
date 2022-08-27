@@ -748,7 +748,9 @@ class NajomneFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdm
     form = NajomneFakturaForm
     list_display = ("cislo", "cislo_softip", "zmluva_link", "typ", "splatnost_datum", "dane_na_uhradu", "suma", "dan", "platobny_prikaz")
 
-    #search_fields = ("nazov", "zastupeny")
+    #Vyhľadávanie podľa 'typ' nefunguje
+    search_fields = ("zmluva")
+    #search_fields = ("zmluva", "typ")
     def get_readonly_fields(self, request, obj=None):
         if not obj:
             return ["dane_na_uhradu", "cislo_softip", "platobny_prikaz" ]
