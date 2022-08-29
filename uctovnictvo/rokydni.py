@@ -130,6 +130,7 @@ class DvaDatumy():
         return years, days
 
 #vypočítať počet pracovných dní
+#sviatky sa ignorujú
 #od, do: očakávame, že sú len v jednom mesiaci
 #do: vrátane
 #do: aj nie je zadané, rátame za celý mesiac
@@ -142,11 +143,13 @@ def prac_dni(od, do = None):
     #Pracovné dni v mesiaci
     if do:
         #print(od,do)
-        return np.busday_count(od, do + timedelta(days=1), holidays=sviatky)
+        return np.busday_count(od, do + timedelta(days=1))
+        #return np.busday_count(od, do + timedelta(days=1), holidays=sviatky)
     else:
         m1 = date(od.year,od.month,1)
         mp = date(od.year+1 if od.month==12 else od.year, 1 if od.month==12 else od.month+1, 1)
-        return np.busday_count(m1, mp, holidays=sviatky)
+        return np.busday_count(m1, mp)
+        #return np.busday_count(m1, mp, holidays=sviatky)
 
 def prekryv_dni(mesiac, od, do):
     from collections import namedtuple
@@ -164,6 +167,7 @@ def prekryv_dni(mesiac, od, do):
 
 #Výpočet koeficientu neodpracovaných dní pri neúplne odpracovanom mesiaci
 #vzorec: koef = počet neodpracovaných dní / počet pracovných dní v mesiaci
+#sviatky sa ignoruju
 #Koeficient je pre daný mesiac aditívny, možno opakovane odčítať od 1
 def koef_neodprac_dni(od, do):
     '''
