@@ -244,7 +244,7 @@ class CerpanieRozpoctuAdmin(ModelAdminTotals):
             ws_polozky.column_dimensions[get_column_letter(cc+1)].width = fw[cc]
 
         # zapísať do databázy a do ws_prehlad
-        nazvy = ["Názov", "Suma", "Zdroj", "Zákazka", "Klasifikácia"]
+        nazvy = ["Názov", "Mesiac", "Suma", "Zdroj", "Zákazka", "Klasifikácia"]
         fw = {}
         zapisat_riadok(ws_prehlad, fw, 1, nazvy, header=True)
         riadok=2
@@ -259,7 +259,7 @@ class CerpanieRozpoctuAdmin(ModelAdminTotals):
                 zakazka = cerpanie[item]['zakazka'],
                 ekoklas = cerpanie[item]['ekoklas'],
                 ).save()
-            polozky = [cerpanie[item]['nazov'], cerpanie[item]['suma'], cerpanie[item]['zdroj'].kod, cerpanie[item]['zakazka'].kod, cerpanie[item]['ekoklas'].kod]
+            polozky = [cerpanie[item]['nazov'], cerpanie[item]['md1'], cerpanie[item]['suma'], cerpanie[item]['zdroj'].kod, cerpanie[item]['zakazka'].kod, cerpanie[item]['ekoklas'].kod]
             zapisat_riadok(ws_prehlad, fw, riadok, polozky)
             riadok +=1
         for cc in fw:
