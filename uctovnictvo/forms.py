@@ -669,6 +669,10 @@ class NajomneFakturaForm(forms.ModelForm):
             nasledujuce = nasledujuce_cislo(NajomneFaktura)
             self.fields[polecislo].help_text = f"Zadajte číslo platby v tvare {NajomneFaktura.oznacenie}-RRRR-NNN. Predvolené číslo '{nasledujuce}' bolo určené na základe čísel existujúcich platieb ako nasledujúce v poradí."
             self.initial[polecislo] = nasledujuce
+        self.initial['zdroj'] = 3       #42 - Iné vlastné zdroje 
+        self.initial['program'] = 4     #nealokovaný
+        self.initial['zakazka'] = 8     #42002200 - Prenájom priestorov, zákl. služby, fotovoltaika,
+        self.initial['ekoklas'] = 12    #223001 - Za predaj výrobkov, tovarov a služieb
 
     # Skontrolovať platnost a keď je všetko OK, spraviť záznam do denníka
     def clean(self):
@@ -676,35 +680,34 @@ class NajomneFakturaForm(forms.ModelForm):
             if not self.cleaned_data['cislo'][:2] == NajomneFaktura.oznacenie:
                 raise ValidationError({"cislo": "Nesprávne číslo. Zadajte číslo novej platby v tvare {NajomneFaktura.oznacenie}-RRRR-NNN"})
         #Ak vytvárame novú platbu, doplniť platby do konca roka
-        if 'typ' in self.changed_data:
+        #if 'typ' in self.changed_data:
             # skontrolovať znamienko
-            if self.cleaned_data['typ'] == TypPN.VYUCTOVANIE:   #ide o príjem
-                return self.cleaned_data
+            #if self.cleaned_data['typ'] == TypPN.VYUCTOVANIE:   #ide o príjem
+                #return self.cleaned_data
 
-            if  self.cleaned_data['suma'] < 0:  self.cleaned_data['suma'] *= -1
+            #if  self.cleaned_data['suma'] < 0:  self.cleaned_data['suma'] *= -1
 
-            rok, poradie = re.findall(r"-([0-9]+)-([0-9]+)", self.cleaned_data['cislo'])[0]
-            rok = int(rok)
-            poradie = int(poradie) + 1
+            #rok, poradie = re.findall(r"-([0-9]+)-([0-9]+)", self.cleaned_data['cislo'])[0]
+            #rok = int(rok)
+            #poradie = int(poradie) + 1
             #doplniť platby štvrťročne
             #začiatočný mesiac doplnených platieb
-            zmesiac = ((self.cleaned_data['splatnost_datum'].month-1)//3+1)*3 + 1
-            for mesiac in range(zmesiac, 13, 3):
-                #vyplňa sa: ['zdroj', 'zakazka', 'ekoklas', 'splatnost_datum', 'suma', 'objednavka_zmluva', 'typ']
-                dup = NajomneFaktura(
-                    zdroj = self.cleaned_data['zdroj'],
-                    zakazka = self.cleaned_data['zakazka'],
-                    program = self.cleaned_data['program'],
-                    ekoklas = self.cleaned_data['ekoklas'],
-                    suma = self.cleaned_data['suma'],
-                    typ = self.cleaned_data['typ'],
-                    cislo = "%s-%d-%03d"%(NajomneFaktura.oznacenie, rok, poradie),
-                    splatnost_datum = date(rok, mesiac, self.cleaned_data['splatnost_datum'].day),
-                    zmluva = self.cleaned_data['zmluva']
-                    )
-                poradie += 1
-                dup.save()
-                pass
+            #zmesiac = ((self.cleaned_data['splatnost_datum'].month-1)//3+1)*3 + 1
+            #for mesiac in range(zmesiac, 13, 3):
+                #vypĺňa sa: ['zdroj', 'zakazka', 'ekoklas', 'splatnost_datum', 'suma', 'objednavka_zmluva', 'typ']
+                #dup = NajomneFaktura(
+                    #zdroj = self.cleaned_data['zdroj'],
+                    #zakazka = self.cleaned_data['zakazka'],
+                    #program = self.cleaned_data['program'],
+                    #ekoklas = self.cleaned_data['ekoklas'],
+                    #suma = self.cleaned_data['suma'],
+                    #typ = self.cleaned_data['typ'],
+                    #cislo = "%s-%d-%03d"%(NajomneFaktura.oznacenie, rok, poradie),
+                    #splatnost_datum = date(rok, mesiac, self.cleaned_data['splatnost_datum'].day),
+                    #zmluva = self.cleaned_data['zmluva']
+                    #)
+                #poradie += 1
+                #dup.save()
 
         #pole dane_na_uhradu možno vyplniť až po vygenerovani platobného príkazu akciou 
         #"Vytvoriť platobný príkaz a krycí list pre THS"

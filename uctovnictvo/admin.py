@@ -753,7 +753,7 @@ class NajomneFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdm
     #search_fields = ("zmluva", "typ")
     def get_readonly_fields(self, request, obj=None):
         if not obj:
-            return ["dane_na_uhradu", "cislo_softip", "platobny_prikaz" ]
+            return ["dane_na_uhradu", "platobny_prikaz" ]
         else:
             if not obj.cislo_softip:
                 #return ["dane_na_uhradu", "platobny_prikaz"]
