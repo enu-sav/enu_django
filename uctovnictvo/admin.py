@@ -211,7 +211,7 @@ class RozhodnutieAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin,
 @admin.register(PlatbaBezPrikazu)
 class PlatbaBezPrikazuAdmin(ZobrazitZmeny, SimpleHistoryAdmin):
     form = PlatbaBezPrikazuForm
-    list_display = ["cislo", "suma", "predmet", "datum_platby", "zdroj", "zakazka", "ekoklas"]
+    list_display = ["cislo", "suma", "predmet", "datum_platby", "subor", "zdroj", "zakazka", "ekoklas"]
     search_fields = ["cislo", "predmet", "zdroj__kod", "zakazka__kod", "ekoklas__kod"]
     exclude = ["program"]
     actions = ['duplikovat_zaznam']

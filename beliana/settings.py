@@ -228,6 +228,7 @@ RLTS_DIR = os.path.join(MEDIA_ROOT,RLTS_DIR_NAME)
 
 # App Uctovnictvo
 # pripojí sa za MEDIA_ROOT
+BEZ_PRIKAZU_DIR="BezPrikazu"
 PLATOBNE_PRIKAZY_DIR="PlatobnePrikazy"
 PLATOVE_VYMERY_DIR="PlatoveVymery"
 DOHODY_DIR="Dohody"

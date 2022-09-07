@@ -13,7 +13,8 @@ from django.utils.safestring import mark_safe
 from decimal import Decimal
 
 from beliana.settings import TMPLTS_DIR_NAME, PLATOVE_VYMERY_DIR, DOHODY_DIR, PRIJATEFAKTURY_DIR, PLATOBNE_PRIKAZY_DIR
-from beliana.settings import ODVODY_VYNIMKA, DAN_Z_PRIJMU, OBJEDNAVKY_DIR, STRAVNE_DIR, REKREACIA_DIR, PN1, PN2
+from beliana.settings import ODVODY_VYNIMKA, DAN_Z_PRIJMU, OBJEDNAVKY_DIR, STRAVNE_DIR, REKREACIA_DIR
+from beliana.settings import PN1, PN2, BEZ_PRIKAZU_DIR
 import os,re
 from datetime import timedelta, date, datetime
 from dateutil.relativedelta import relativedelta
@@ -636,6 +637,8 @@ class NajomneFaktura(Klasifikacia):
         verbose_name = 'Faktúra za prenájom'
         verbose_name_plural = 'Prenájom - Faktúry'
 
+def bezprikazu_file_path(instance, filename):
+    return os.path.join(BEZ_PRIKAZU_DIR, filename)
 class PlatbaBezPrikazu(Klasifikacia):
     oznacenie = "PbP"
     cislo = models.CharField("Číslo", 
@@ -653,6 +656,12 @@ class PlatbaBezPrikazu(Klasifikacia):
             help_text = "Stručný popis platby podľa výpisu zo Softipu.",
             max_length=100,
             null=True)
+    subor = models.FileField("Priložený súbor",
+            storage=OverwriteStorage(), 
+            upload_to=bezprikazu_file_path, 
+            null = True, 
+            blank = True 
+            )
     history = HistoricalRecords()
 
     #zarátanie dotácií, v roku len raz, v januári
