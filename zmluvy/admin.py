@@ -344,7 +344,7 @@ class ZmluvaAutorAdmin(ZmluvaAdmin, AdminChangeLinksMixin, SimpleHistoryAdmin, I
         return AdminFormMod
 
     def VytvoritZmluvu(self, zmluva):
-        return VytvoritAutorskuZmluvu(zmluva)
+        return VytvoritAutorskuZmluvu(zmluva, "Šablóna autorskej zmluvy")  #Presne takto musí byť šablóna označená
 
 @admin.register(ZmluvaGrafik)
 class ZmluvaGrafikAdmin(ZmluvaAdmin, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
@@ -400,7 +400,7 @@ class ZmluvaGrafikAdmin(ZmluvaAdmin, AdminChangeLinksMixin, SimpleHistoryAdmin, 
         return AdminFormMod
 
     def VytvoritZmluvu(self, zmluva):
-        return VytvoritVytvarnuZmluvu(zmluva)
+        return VytvoritAutorskuZmluvu(zmluva, "Šablóna výtvarnej zmluvy")  #Presne takto musí byť šablóna označená
 
 class PlatbaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
     # autor_link: pridá autora zmluvy do zoznamu, vďaka AdminChangeLinksMixin

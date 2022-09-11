@@ -86,7 +86,7 @@ def num2text(num):
     num=str(num)
     return s[num[0]] + d[num[1]]
 
-def VytvoritAutorskuZmluvu(zmluva):
+def VytvoritAutorskuZmluvu(zmluva, nazov_sablony):
     #úvodné testy
     if not os.path.isdir(settings.CONTRACTS_DIR):
         return messages.ERROR, f"Chyba pri vytváraní súborov zmluvy: neexistuje priečinok '{settings.CONTRACTS_DIR}'", None
@@ -122,10 +122,9 @@ def VytvoritAutorskuZmluvu(zmluva):
             kaddr = f"{autor.koresp_adresa_institucia}, {kaddr}"
 
     #Načítať súbor šablóny
-    nazov_objektu = "Šablóna autorskej zmluvy"  #Presne takto mysí byť objekt pomenovaný
-    sablona = SystemovySubor.objects.filter(subor_nazov = nazov_objektu)
+    sablona = SystemovySubor.objects.filter(subor_nazov = nazov_sablony)
     if not sablona:
-        return messages.ERROR, f"V systéme nie je definovaný súbor '{nazov_objektu}'.", None
+        return messages.ERROR, f"V systéme nie je definovaný súbor '{nazov_sablony}'.", None
     nazov_suboru = sablona[0].subor.file.name 
  
     try:
@@ -139,9 +138,17 @@ def VytvoritAutorskuZmluvu(zmluva):
     # zmluva na podpis s kompletnými údajmi
     sablona = sablona.replace(f"{lt}cislozmluvy{gt}", zmluva.cislo)
     sablona = sablona.replace(f"{lt}menopriezvisko{gt}", mp)
-    sablona = sablona.replace(f"{lt}odbor{gt}", autor.odbor)
-    sablona = sablona.replace(f"{lt}odmenanum{gt}", str(zmluva.honorar_ah).replace(".",","))
-    sablona = sablona.replace(f"{lt}odmenatext{gt}", num2text(zmluva.honorar_ah))
+    if isinstance(autor, OsobaAutor):
+        sablona = sablona.replace(f"{lt}odbor{gt}", autor.odbor)
+        sablona = sablona.replace(f"{lt}odmenanum{gt}", str(zmluva.honorar_ah).replace(".",","))
+        sablona = sablona.replace(f"{lt}odmenatext{gt}", num2text(zmluva.honorar_ah))
+        if autor.posobisko:
+            sablona = sablona.replace(f"{lt}posobisko{gt}", autor.posobisko)
+        else:
+            sablona = sablona.replace(f"{lt}posobisko{gt}", "")
+    else:
+        sablona = sablona.replace(f"{lt}odbor{gt}", "neuvádza sa")
+        sablona = sablona.replace(f"{lt}posobisko{gt}", "neuvádza sa")
     sablona = sablona.replace(f"{lt}dnesnydatum{gt}", timezone.now().strftime("%d. %m. %Y").replace(' 0',' '))
     sablona_crz = sablona # zmluva pre CRZ
 
@@ -164,10 +171,6 @@ def VytvoritAutorskuZmluvu(zmluva):
             'text:name="OblastDohoda" text:display="none">')
 
 
-    if autor.posobisko:
-        sablona = sablona.replace(f"{lt}posobisko{gt}", autor.posobisko)
-    else:
-        sablona = sablona.replace(f"{lt}posobisko{gt}", "")
     sablona = sablona.replace(f"{lt}zdanit{gt}", autor.zdanit)
     sablona = sablona.replace(f"{lt}rezident{gt}", autor.rezident)
 
@@ -187,7 +190,10 @@ def VytvoritAutorskuZmluvu(zmluva):
 
     #ulozit
     #Create directory admin.rs_login if necessary
-    auxname = f"{autor.rs_login}-{zmluva.cislo.replace('/','-')}"
+    if isinstance(autor, OsobaAutor):
+        auxname = f"{autor.rs_login}-{zmluva.cislo.replace('/','-')}"
+    else:
+        auxname = f"{autor.meno}-{zmluva.cislo.replace('/','-')}"
     odir = os.path.join(settings.CONTRACTS_DIR,auxname)
     if not os.path.isdir(odir):
         os.makedirs(odir)
@@ -205,29 +211,22 @@ def VytvoritAutorskuZmluvu(zmluva):
     return messages.SUCCESS, f"Súbory zmluvy {zmluva.cislo} boli úspešne vytvorené ({fnames}).", vytvorene_subory
 
 def OveritUdajeAutora(autor, testovat_zdanovanie = True):
-    #argument moze byt OsobaAutor alebo str
-    if isinstance(autor, OsobaAutor):
-        adata = autor
-    else:
-        adata = OsobaAutor.objects.filter(rs_login=autor)
-        if not adata:
-            return f"Autor {login} neexistuje"
-        adata = adata[0]
     chyby = ""
-    if not adata.meno: chyby = f"{chyby} meno,"
-    if not adata.priezvisko: chyby = f"{chyby} priezvisko,"
-    if not adata.rodne_cislo: chyby = f"{chyby} rodné číslo,"
-    if not adata.bankovy_kontakt: chyby = f"{chyby} bankový kontakt,"
-    if not adata.adresa_mesto: chyby = f"{chyby} PSČ a mesto,"
+    if not autor.meno: chyby = f"{chyby} meno,"
+    if not autor.priezvisko: chyby = f"{chyby} priezvisko,"
+    if not autor.rodne_cislo: chyby = f"{chyby} rodné číslo,"
+    if not autor.bankovy_kontakt: chyby = f"{chyby} bankový kontakt,"
+    if not autor.adresa_mesto: chyby = f"{chyby} PSČ a mesto,"
     # ulica sa netestuje, môže byť nezadaná
-    #if not adata.adresa_ulica: chyby = f"{chyby} ulica,"
-    if not adata.adresa_stat: chyby = f"{chyby} štát,"
-    if not adata.odbor: chyby = f"{chyby} odbor"
+    #if not autor.adresa_ulica: chyby = f"{chyby} ulica,"
+    if not autor.adresa_stat: chyby = f"{chyby} štát,"
+    if isinstance(autor, OsobaAutor):
+        if not autor.odbor: chyby = f"{chyby} odbor"
     if testovat_zdanovanie:
-        if not adata.zdanit and adata.rezident == AnoNie.ANO: 
+        if not autor.zdanit and autor.rezident == AnoNie.ANO: 
             chyby = f"{chyby} údaj o zdaňovaní,"
-        elif adata.zdanit == AnoNie.NIE and adata.rezident == AnoNie.ANO:
-            if not adata.datum_dohoda_podpis: chyby = f"{chyby} dátum podpisu dohody o nezdaňovaní,"
-            if not adata.dohodasubor: chyby = f"{chyby} súbor s textom dohody o nezdaňovaní,"
-        if not adata.rezident: chyby = f"{chyby} daňový rezident SR,"
+        elif autor.zdanit == AnoNie.NIE and autor.rezident == AnoNie.ANO:
+            if not autor.datum_dohoda_podpis: chyby = f"{chyby} dátum podpisu dohody o nezdaňovaní,"
+            if not autor.dohodasubor: chyby = f"{chyby} súbor s textom dohody o nezdaňovaní,"
+        if not autor.rezident: chyby = f"{chyby} daňový rezident SR,"
     return chyby.strip(" ").strip(",")
