@@ -96,13 +96,13 @@ def VytvoritAutorskuZmluvu(zmluva, nazov_sablony):
     gt="&gt;"
     autor = zmluva.zmluvna_strana
     chyba_login = OveritUdajeAutora(autor, testovat_zdanovanie=False)
-    if chyba_login:
-        return messages.ERROR, f"Chyba pri vytváraní súborov zmluvy, údaje autora {autor.rs_login} sú nekompletné (chýba {chyba_login}).", None
-    if not valid_iban(autor.bankovy_kontakt):
-        return messages.ERROR, f"Chyba pri vytváraní súborov, IBAN autora {autor.rs_login} je nesprávny.", None
-    if not valid_rodne_cislo(autor.rodne_cislo):
-        return messages.ERROR, f"Chyba pri vytváraní súborov, rodné číslo autora {autor.rs_login} je nesprávne.", None
     mp = f"{autor.meno} {autor.priezvisko}"
+    if chyba_login:
+        return messages.ERROR, f"Chyba pri vytváraní súborov zmluvy, údaje autora {mp} sú nekompletné (chýba {chyba_login}).", None
+    if not valid_iban(autor.bankovy_kontakt):
+        return messages.ERROR, f"Chyba pri vytváraní súborov, IBAN autora {mp} je nesprávny.", None
+    if not valid_rodne_cislo(autor.rodne_cislo):
+        return messages.ERROR, f"Chyba pri vytváraní súborov, rodné číslo autora {mp} je nesprávne.", None
     if autor.titul_pred_menom:
         mp = f"{autor.titul_pred_menom} {mp}"
     if autor.titul_za_menom:
@@ -217,6 +217,7 @@ def OveritUdajeAutora(autor, testovat_zdanovanie = True):
     if not autor.rodne_cislo: chyby = f"{chyby} rodné číslo,"
     if not autor.bankovy_kontakt: chyby = f"{chyby} bankový kontakt,"
     if not autor.adresa_mesto: chyby = f"{chyby} PSČ a mesto,"
+    if not autor.email: chyby = f"{chyby} email,"
     # ulica sa netestuje, môže byť nezadaná
     #if not autor.adresa_ulica: chyby = f"{chyby} ulica,"
     if not autor.adresa_stat: chyby = f"{chyby} štát,"
