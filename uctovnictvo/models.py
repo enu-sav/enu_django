@@ -1071,7 +1071,7 @@ class PlatovyVymer(Klasifikacia):
         pn1 = 0         #počet dní práceneschopnosti v dňoch 1-3
         pn2 = 0         #počet dní práceneschopnosti v dňoch 4-10
         for nn in qs3:  #môže byť viac neprítomností za mesiac
-            #určiť posledný deň
+            #určiť virtuálny posledný deň v prípade neukončenej neprítomnosti
             if not nn.nepritomnost_do:  #nie je zadaný
                 if nn.nepritomnost_typ == TypNepritomnosti.MATERSKA: #ak materská, tak koniec mesiaca
                     posledny=next_month - relativedelta(days=1)
@@ -1084,7 +1084,9 @@ class PlatovyVymer(Klasifikacia):
             if posledny >= next_month:
                 posledny = next_month - relativedelta(days=1) 
             prvy = nn.nepritomnost_od if nn.nepritomnost_od>zden else zden
-            koef_prit -= koef_neodprac_dni(prvy, posledny)
+            # ak prvy >= posledny, tak ide o mesiac nasledujúci po virtuálnom ukoncení PN. 
+            if prvy < posledny:
+                koef_prit -= koef_neodprac_dni(prvy, posledny)
 
             #Nahrady mzdy, PN
             #Prvé 3 dni, 55%
@@ -1166,10 +1168,8 @@ class PlatovyVymer(Klasifikacia):
 
         #kvoli kontrole (porovnať s údajmi v Softipe)
         if pn:
-            print(self.zamestnanec.priezvisko, zden, round(hruba_mzda,2), pn["suma"])
             return [tarifny, osobny, funkcny, poistne, pn]
         else:
-            print(self.zamestnanec.priezvisko, zden, round(hruba_mzda,2))
             return [tarifny, osobny, funkcny, poistne]
 
     def urcit_VZ(self, mesiac):
