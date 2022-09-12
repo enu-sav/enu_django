@@ -24,7 +24,7 @@ from django.db.models import Sum
 # pripajanie suborov k objektu: krok 1, importovať XxxSubor
 from .models import OsobaAutor, ZmluvaAutor, PlatbaAutorskaOdmena, PlatbaAutorskaSumar, StavZmluvy, PlatbaAutorskaSumarSubor
 from .models import AnoNie, SystemovySubor, PersonCommon, OsobaGrafik, ZmluvaGrafik, Zmluva, VytvarnaObjednavkaPlatba
-from .common import VytvoritAutorskuZmluvu
+from .common import VytvoritAutorskuZmluvu, VytvoritVytvarnuObjednavku
 from .vyplatitautorske import VyplatitAutorskeOdmeny
 from dennik.forms import nasledujuce_cislo
 
@@ -475,7 +475,7 @@ class VytvarnaObjednavkaPlatbaAdmin(PlatbaAdmin):
     form = VytvarnaObjednavkaPlatbaForm
     # autor_link: pridá autora zmluvy do zoznamu, vďaka AdminChangeLinksMixin
     def get_list_display(self, request):
-        return ('cislo', 'vytvarna_zmluva_link',) + super(VytvarnaObjednavkaPlatbaAdmin, self).get_list_display(request)
+        return ('cislo', 'vytvarna_zmluva_link', 'subor_objednavky') + super(VytvarnaObjednavkaPlatbaAdmin, self).get_list_display(request)
 
     #search_fields = ['cislo', "zmluva", "autor__rs_login"]
 
@@ -487,6 +487,8 @@ class VytvarnaObjednavkaPlatbaAdmin(PlatbaAdmin):
         }),
     ]
 
+    actions = ['vytvorit_objednavku']
+
     #obj is None during the object creation, but set to the object being edited during an edit
     #predpokladá sa, že hodnoty sa importujú skriptom a že neskôr sa už neupravujú
     def get_readonly_fields(self, request, obj=None):
@@ -495,6 +497,25 @@ class VytvarnaObjednavkaPlatbaAdmin(PlatbaAdmin):
             return ['vytvarna_zmluva', 'datum_uhradenia', 'honorar', 'odvod_LF', 'odvedena_dan', 'uhradena_suma']
         else:
             return vsetky - {"vytvarna_zmluva", "datum_objednavky", "objednane_polozky", "cislo"}
+
+    def vytvorit_objednavku(self, request, queryset):
+        if len(queryset) != 1:
+            self.message_user(request, f"Vybrať možno len jednu objednávku", messages.ERROR)
+            return
+        objednavka = queryset[0]
+        #vytvorene_subory: s cestou vzhľadom na MEDIA_ROOT 'AutorskeZmluvy/AdamAnton-1298/AdamAnton-1298.fodt'
+        status, msg, subor = VytvoritVytvarnuObjednavku(objednavka, request.user)
+        if status != messages.ERROR:
+            objednavka.datum_aktualizacie = timezone.now(),
+            objednavka.subor_objednavky=subor
+            objednavka.save()
+            self.message_user(request, msg, status)
+            self.message_user(request, f"Vytvorenú objednávku odošlite grafikovi.", messages.WARNING)
+        else:
+            self.message_user(request, f"Súbor objednávky {objednavka.cislo} nebol vytvorený: {msg}'", messages.ERROR)
+    vytvorit_objednavku.short_description = f"Vytvoriť súbor objednávky"
+    #Oprávnenie na použitie akcie, viazané na 'change'
+    vytvorit_objednavku.allowed_permissions = ('change',)
 
 # pripajanie suborov k objektu: krok 2, vytvoriť XxxSuborAdmin
 # musí byť pred krokom 3

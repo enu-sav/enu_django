@@ -7,6 +7,11 @@ from django.contrib import messages
 from ipdb import set_trace as trace
 from .models import SystemovySubor, OsobaAutor, AnoNie
  
+from openpyxl import load_workbook
+from openpyxl.styles import Font, Color, colors, Alignment, PatternFill , numbers
+from openpyxl.utils import get_column_letter
+from datetime import date
+
 # test platnosti IBAN
 #https://rosettacode.org/wiki/IBAN#Python
 def valid_iban(iban):
@@ -193,7 +198,7 @@ def VytvoritAutorskuZmluvu(zmluva, nazov_sablony):
     if isinstance(autor, OsobaAutor):
         auxname = f"{autor.rs_login}-{zmluva.cislo.replace('/','-')}"
     else:
-        auxname = f"{autor.meno}-{zmluva.cislo.replace('/','-')}"
+        auxname = f"{autor.priezvisko}-{zmluva.cislo.replace('/','-')}"
     odir = os.path.join(settings.CONTRACTS_DIR,auxname)
     if not os.path.isdir(odir):
         os.makedirs(odir)
@@ -231,3 +236,73 @@ def OveritUdajeAutora(autor, testovat_zdanovanie = True):
             if not autor.dohodasubor: chyby = f"{chyby} súbor s textom dohody o nezdaňovaní,"
         if not autor.rezident: chyby = f"{chyby} daňový rezident SR,"
     return chyby.strip(" ").strip(",")
+
+def VytvoritVytvarnuObjednavku(objednavka, pouzivatel):
+    pass
+
+    #úvodné testy
+    if not os.path.isdir(settings.CONTRACTS_DIR):
+        return messages.ERROR, f"Chyba pri vytváraní súborov zmluvy: neexistuje priečinok '{settings.CONTRACTS_DIR}'", None
+
+    #kontrola položiek
+    polozky = [sp.strip() for sp in objednavka.objednane_polozky.split("\n")]
+    for nn, polozka in enumerate(polozky):
+        if len(re.findall(";", polozka)) != 3:
+            return messages.ERROR, f"riadok {nn+1} v zozname položiek má nesprávny počet polí/bodkočiarok ({polozka})'", None
+
+    autor = objednavka.vytvarna_zmluva.zmluvna_strana
+    mp = f"{autor.meno} {autor.priezvisko}"
+    if autor.titul_pred_menom:
+        mp = f"{autor.titul_pred_menom} {mp}"
+    if autor.titul_za_menom:
+        mp = f"{mp}, {autor.titul_za_menom}"
+    
+    #Načítať súbor šablóny
+    nazov_objektu = "Výtvarná objednávka"  #Presne takto musí byť objekt pomenovaný
+    sablona = SystemovySubor.objects.filter(subor_nazov = nazov_objektu)
+    if not sablona:
+        return messages.ERROR, f"V systéme nie je definovaný súbor '{nazov_objektu}'.", None
+    nazov_suboru = sablona[0].subor.file.name 
+    workbook = load_workbook(filename=nazov_suboru)
+
+    obj = workbook["Objednávka"]
+    obj["A5"].value = obj["A5"].value.replace("[[redaktor]]",pouzivatel.get_full_name())
+    obj["A6"].value = obj["A6"].value.replace("[[redaktor_email]]",pouzivatel.email)
+    obj["A8"].value = obj["A8"].value.replace("[[autor]]",mp)
+    obj["A9"].value = obj["A9"].value.replace("[[cislo]]",objednavka.cislo)
+    obj["A10"].value = obj["A9"].value.replace("[[zmluva]]",objednavka.vytvarna_zmluva.cislo)
+    obj["A28"].value = obj["A28"].value.replace("[[redaktor]]",pouzivatel.get_full_name())
+    obj["A28"].value = obj["A28"].value.replace("[[dnes]]", date.today().strftime("%d.%m.%Y"))
+
+    #položky
+    prvy_riadok = 14 #prvy riadok tabulky
+    pocet_riadkov = 13
+    if len(polozky) > pocet_riadkov:
+            return messages.ERROR, f"zoznam položiek má príliš veľa riadkov ({len(polozky)}, maximálny počet je {pocet_riadkov}.)'", None
+
+    for rr, polozka in enumerate(polozky):
+        riadok = prvy_riadok+rr
+        prvky = polozka.split(";")
+        obj.cell(row=riadok, column=1).value = rr+1
+        obj.cell(row=riadok, column=2).value = prvky[0]
+        obj.cell(row=riadok, column=4).value = prvky[1]
+        val3 = float(prvky[2].strip().replace(",","."))
+        obj.cell(row=riadok, column=6).value = val3
+        obj.cell(row=riadok, column=6).number_format= "0.00"
+        val4 = float(prvky[3].strip().replace(",","."))
+        obj.cell(row=riadok, column=7).value = val4
+        obj.cell(row=riadok, column=7).number_format= "0.00"
+        obj[f"H{riadok}"] = f"=F{riadok}*G{riadok}"
+
+    fbold = Font(name="Times New Roman", bold=True)
+    obj[f'B{riadok+1}'].value = "Spolu"
+    obj[f'B{riadok+1}'].font = fbold
+    obj[f'H{riadok+1}'] = f"=SUM(H{prvy_riadok}:H{riadok})"
+    obj[f'H{riadok+1}'].font = fbold
+
+    #ulozit
+    #Create directory admin.rs_login if necessary
+    nazov = f'{objednavka.cislo}-{autor.priezvisko}.xlsx'
+    opath = os.path.join(settings.OBJEDNAVKY_DIR,nazov)
+    workbook.save(os.path.join(settings.MEDIA_ROOT,opath))
+    return messages.SUCCESS, f"Súbor objednávky {objednavka.cislo} bol úspešne vytvorený ({opath}).", opath
