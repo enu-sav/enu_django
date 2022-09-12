@@ -423,7 +423,7 @@ class VyplatitAutorskeOdmeny():
 
             #prehľad zrážania dane
             vyplatit.merge_cells(f'A{pos}:E{pos}')
-            vyplatit[f"A{pos}"] = "Prehľad zrážkovej dane a odvodov do fondov dane po autoroch"
+            vyplatit[f"A{pos}"] = "Prehľad zrážkovej dane a odvodov do fondov po autoroch"
             vyplatit[f"A{pos}"].font = self.fbold
             pos += 1
             prehlad = ["Autor", "Vypl. honorár", "Zrazená daň", "Odv. do fondov","Dôvod nezrazenia"]
@@ -497,22 +497,18 @@ class VyplatitAutorskeOdmeny():
 
         pos += 1
         a,b,c,d,e,f = range(pos, pos+6)
-        vyplatit.merge_cells(f'A{a}:G{a}')
-        vyplatit[f"A{a}"] = "Výpočet autorských odmien bol realizovaný softvérovo na základe údajov z redakčného systému Encyclopaedie Beliany"
-        vyplatit[f"A{a}"].alignment = Alignment(wrapText=True, horizontal='left')
-        vyplatit.row_dimensions[a].height = 30
-        #vyplatit[f"A{a}"] = "Spracovala:"
-        #vyplatit[f"B{a}"] = "M. Sekeráková"
-        #vyplatit[f"B{b}"] = "sekretariát EnÚ CSČ SAV"
-
-        #vyplatit[f"A{d}"] = "V Bratislave dňa {}".format(date.today().strftime("%d.%m.%Y"))
         if self.datum_vyplatenia:
-            vyplatit[f"A{d}"] = "V Bratislave dňa {}".format(self.datum_vyplatenia.strftime("%-d.%-m.%Y"))
+            vyplatit[f"A{a}"] = "V Bratislave dňa {}".format(date.today().strftime("%d.%m.%Y"))
+            vyplatit[f"E{a}"] = "Ing. Tatiana Šrámková"
+            vyplatit[f"E{b}"] = "riaditeľka org. zložky EnÚ SAV"
         else:
+            vyplatit.merge_cells(f'A{a}:G{a}')
+            vyplatit[f"A{a}"] = "Výpočet autorských odmien bol realizovaný softvérovo na základe údajov z redakčného systému Encyclopaedie Beliany"
+            vyplatit[f"A{a}"].alignment = Alignment(wrapText=True, horizontal='left')
+            vyplatit.row_dimensions[a].height = 30
             vyplatit[f"A{d}"] = "V Bratislave dňa {}".format(date.today().strftime("%d.%m.%Y"))
-        vyplatit[f"A{d}"] = "V Bratislave dňa {}".format(date.today().strftime("%d.%m.%Y"))
-        vyplatit[f"E{e}"] = "Ing. Tatiana Šrámková"
-        vyplatit[f"E{f}"] = "riaditeľka org. zložky EnÚ SAV"
+            vyplatit[f"E{d}"] = "Ing. Tatiana Šrámková"
+            vyplatit[f"E{e}"] = "riaditeľka org. zložky EnÚ SAV"
         vyplatit.print_area = []    #Zrušiť oblasť tlače
 
         #Všetky súbory, ktoré majú byť uložené do DB, musia mať záznam logu, ktorý končí na 'uložené do súboru {fpath}'

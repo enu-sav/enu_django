@@ -62,8 +62,8 @@ def TabulkaOdvodov(meno_suboru, zam_doh, typ, rok, vynimka=False):
     odvody_prac = {}
 
     for pp in udaje:
-        odvody_zam[pp] = ws.cell(row=udaje[pp]-1, column=col0).value / 100 
-        odvody_prac[pp] = ws.cell(row=udaje[pp]-1, column=col0+1).value / 100
+        odvody_zam[pp] = ws.cell(row=udaje[pp], column=col0).value / 100 
+        odvody_prac[pp] = ws.cell(row=udaje[pp], column=col0+1).value / 100
     return odvody_zam, odvody_prac
 
 # vodmena: vyňatá odmena na základe odvodovej výnimky
@@ -107,34 +107,37 @@ smeno = '/home/milos/Beliana/Django/enu_django-dev/data/Subory/SablonyASubory/Od
 def dohodari_test():
     suma = 100
     vodmena = 200
-    rok = 2021
+    rok = 2022
 
-    print("DoPC 100 (34.95, 13.4) ", DohodarOdvodySpolu(smeno, suma, "DoPC", rok, 0))
-    print("DoVP 100 (32.55, 11.0)", DohodarOdvodySpolu(smeno, suma, "DoVP", rok, 0))
-    print("DoBPS 100 (22.55, 7.0)", DohodarOdvodySpolu(smeno, suma, "DoBPS", rok, 0))
-    print("InvDoch 100 (22.55, 7.0)", DohodarOdvodySpolu(smeno, suma, "StarDoch", rok, 0))
-    print("StarDoch 100 (19.55, 4.0)", DohodarOdvodySpolu(smeno, suma, "InvDoch", rok, 0))
+    print(f"Testy pre rok {rok}")
     print()
 
-    print("DoPC 100 (34.95, 13.4)", DohodarOdvodySpolu(smeno, suma, "DoPC", rok, 200))
-    print("DoVP 100 (32.55, 11.0)", DohodarOdvodySpolu(smeno, suma, "DoVP", rok, 200))
-    print("DoBPS 100 (1.6, 0.0)", DohodarOdvodySpolu(smeno, suma, "DoBPS", rok, 200))
-    print("StarDoch 100 (1.6, 0.0)", DohodarOdvodySpolu(smeno, suma, "StarDoch", rok, 200))
-    print("InvDoch 100 (1.6, 0.0)", DohodarOdvodySpolu(smeno, suma, "InvDoch", rok, 200))
+    print("DoPC 100 (35.2, 13.4) ", DohodarOdvodySpolu(smeno, suma, "DoPC", rok, 0))
+    print("DoVP 100 (32.8, 11.0)", DohodarOdvodySpolu(smeno, suma, "DoVP", rok, 0))
+    print("DoBPS 100 (22.8, 7.0)", DohodarOdvodySpolu(smeno, suma, "DoBPS", rok, 0))
+    print("StarDoch 100 (19.8, 4.0)", DohodarOdvodySpolu(smeno, suma, "StarDoch", rok, 0))
+    print("InvDoch 100 (22.8, 7.0)", DohodarOdvodySpolu(smeno, suma, "InvDoch", rok, 0))
     print()
 
-    print("DoPC 200 (69.9, 26.8)", DohodarOdvodySpolu(smeno, 2*suma, "DoPC", rok, 200))
-    print("DoVP 200 (65.1, 22.0)", DohodarOdvodySpolu(smeno, 2*suma, "DoVP", rok, 200))
-    print("DoBPS 200 (1.6, 0.0)", DohodarOdvodySpolu(smeno, 2*suma, "DoBPS", rok, 200))
-    print("StarDoch 200 (1.6, 0.0)", DohodarOdvodySpolu(smeno, 2*suma, "StarDoch", rok, 200))
-    print("InvDoch 200 (1.6, 0.0)", DohodarOdvodySpolu(smeno, 2*suma, "InvDoch", rok, 200))
+    print("DoPC 100 (35.2, 13.4)", DohodarOdvodySpolu(smeno, suma, "DoPC", rok, 200))
+    print("DoVP 100 (32.8, 11.0)", DohodarOdvodySpolu(smeno, suma, "DoVP", rok, 200))
+    print("DoBPS 100 (1.05, 0.0)", DohodarOdvodySpolu(smeno, suma, "DoBPS", rok, 200))
+    print("StarDoch 100 (1.05, 0.0)", DohodarOdvodySpolu(smeno, suma, "StarDoch", rok, 200))
+    print("InvDoch 100 (1.05, 0.0)", DohodarOdvodySpolu(smeno, suma, "InvDoch", rok, 200))
     print()
 
-    print("DoPC 300 (104.85, 40.2)", DohodarOdvodySpolu(smeno, 3*suma, "DoPC", rok, 200))
-    print("DoVP 300 (97.65, 33.0)", DohodarOdvodySpolu(smeno, 3*suma, "DoVP", rok, 200))
-    print("DoBPS 300 (24.15, 7.0)", DohodarOdvodySpolu(smeno, 3*suma, "DoBPS", rok, 200))
-    print("StarDoch 300 (21.15, 4.0)", DohodarOdvodySpolu(smeno, 3*suma, "StarDoch", rok, 200))
-    print("InvDoch 300 (24.15, 7.0)", DohodarOdvodySpolu(smeno, 3*suma, "InvDoch", rok, 200))
+    print("DoPC 200 (70.2, 26.8)", DohodarOdvodySpolu(smeno, 2*suma, "DoPC", rok, 200))
+    print("DoVP 200 (65.6, 22.0)", DohodarOdvodySpolu(smeno, 2*suma, "DoVP", rok, 200))
+    print("DoBPS 200 (2.1, 0.0)", DohodarOdvodySpolu(smeno, 2*suma, "DoBPS", rok, 200))
+    print("StarDoch 200 (2.1, 0.0)", DohodarOdvodySpolu(smeno, 2*suma, "StarDoch", rok, 200))
+    print("InvDoch 200 (2.1, 0.0)", DohodarOdvodySpolu(smeno, 2*suma, "InvDoch", rok, 200))
+    print()
+
+    print("DoPC 300 (105.4, 40.2)", DohodarOdvodySpolu(smeno, 3*suma, "DoPC", rok, 200))
+    print("DoVP 300 (98.4, 33.0)", DohodarOdvodySpolu(smeno, 3*suma, "DoVP", rok, 200))
+    print("DoBPS 300 (24.9, 7.0)", DohodarOdvodySpolu(smeno, 3*suma, "DoBPS", rok, 200))
+    print("StarDoch 300 (21.9, 4.0)", DohodarOdvodySpolu(smeno, 3*suma, "StarDoch", rok, 200))
+    print("InvDoch 300 (24.9, 7.0)", DohodarOdvodySpolu(smeno, 3*suma, "InvDoch", rok, 200))
 
     #Test podľa výpisu p. Madolovej
     odvody_nit, _ = ZamestnanecOdvody(smeno, 851, "StarDoch", 2021)
@@ -164,11 +167,12 @@ def zamestnanci_test():
         odvody_zam, odvody_prac = ZamestnanecOdvodySpolu(smeno, 100, typ, 2021)
         print("%12s %d %2.2f %2.2f"%(typ, 2021, odvody_zam, odvody_prac))
 
+    for typ in typy:
         odvody_zam, odvody_prac = ZamestnanecOdvodySpolu(smeno, 100, typ, 2022)
         print("%12s %d %2.2f %2.2f"%(typ, 2022, odvody_zam, odvody_prac))
 
 
     
 if __name__ == "__main__":
-    #dohodari_test()
+    dohodari_test()
     zamestnanci_test()

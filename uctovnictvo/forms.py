@@ -5,11 +5,12 @@ from django.core.exceptions import ValidationError
 from ipdb import set_trace as trace
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
-from .models import nasledujuce_cislo
+from .models import nasledujuce_cislo, nasledujuce_VPD
 from .models import PrijataFaktura, Objednavka, PrispevokNaStravne, DoPC, DoVP, DoBPS, PlatovyVymer
 from .models import VyplacanieDohod, StavDohody, Dohoda, PravidelnaPlatba, TypPP, InternyPrevod, Nepritomnost
 from .models import Najomnik, NajomnaZmluva, NajomneFaktura, TypPN, RozpoctovaPolozkaDotacia, RozpoctovaPolozkaPresun
-from .models import PlatbaBezPrikazu
+from .models import PlatbaBezPrikazu, Pokladna, TypPokladna, SocialnyFond, PrispevokNaRekreaciu
+from .common import meno_priezvisko
 from dennik.models import Dokument, SposobDorucenia, TypDokumentu, InOut
 from datetime import date, datetime
 import re
@@ -315,7 +316,13 @@ class DohodaForm(forms.ModelForm):
                         prijalodoslal=self.request.user.username, #zámena mien prijalodoslal - zaznamvytvoril
                     )
                     dok.save()
-                    messages.warning(self.request, f"Do denníka prijatej a odoslanej pošty bol pridaný záznam č. {cislo} '{vec}'")
+                    messages.warning(self.request, 
+                        format_html(
+                            'Do denníka prijatej a odoslanej pošty bol pridaný záznam č. {}: <em>{}</em>, treba v ňom doplniť údaje o prijatí.',
+                            mark_safe(f'<a href="/admin/dennik/dokument/{dok.id}/change/">{cislo}</a>'),
+                            vec
+                            )
+                    )
                     return self.cleaned_data
                 elif not self.instance.subor_dohody:
                     raise ValidationError({"stav_dohody":f"Stav dohody možno zmeniť na '{StavDohody.ODOSLANA_DOHODAROVI.label}' až po vygenerovaní súboru dohody akciou 'Vytvoriť súbor dohody' a po jej podpísaní vedením EnÚ."})
@@ -357,7 +364,7 @@ class DohodaForm(forms.ModelForm):
                 prijalodoslal=self.request.user.username, #zámena mien prijalodoslal - zaznamvytvoril
             )
             dok.save()
-            messages.warning(self.request, f"Sken podpísanej dohody treba vložiť do poľa '{Dohoda.sken_dohody.label}'. Po vypršaní dohody treba spraviť záznam do 'Dohody - Vyplácanie dohôd'")
+            messages.warning(self.request, f"Sken podpísanej dohody treba vložiť do poľa 'Skenovaná dohoda'. Po vypršaní platnosti dohody treba spraviť záznam do 'PaM - Vyplácanie dohôd'")
 
 class DoPCForm(DohodaForm):
     #inicializácia polí
@@ -423,13 +430,8 @@ class PlatovyVymerForm(PopisZmeny):
     #inicializácia polí
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        polecislo = "cislo"
-        # Ak je pole readonly, tak sa nenachádza vo fields. Preto testujeme fields aj initial
-        if polecislo in self.fields and not polecislo in self.initial:
-            nasledujuce = nasledujuce_cislo(PlatovyVymer)
-            self.fields[polecislo].help_text = f"Zadajte číslo platového výmeru v tvare {PlatovyVymer.oznacenie}-RRRR-NNN. Predvolené číslo '{nasledujuce}' bolo určené na základe čísel existujúcich vymerov ako nasledujúce v poradí."
-            self.initial[polecislo] = nasledujuce
         self.initial['zdroj'] = 1       #111
+        self.initial['cinnost'] = 2     #Hlavná činnosť 26/1a
         self.initial['program'] = 4     #nealokovaný
         self.initial['zakazka'] = 2     #11010001 spol. zák.
         self.initial['ekoklas'] = 18    #611 - Tarifný plat, osobný plat, základný plat, funkčný plat, hodnostný plat, plat, vrátane ich náhrad
@@ -437,6 +439,126 @@ class PlatovyVymerForm(PopisZmeny):
         model = PlatovyVymer
         fields = "__all__"
         field_order = ["cislo_zamestnanca", "zamestnanec", "suborvymer", "datum_od", "datum_do", "tarifny_plat", "osobny_priplatok", "funkcny_priplatok", "platova_trieda", "platovy_stupen", "datum_postup", "zamestnanieroky", "zamestnaniedni", "popis_zmeny"]
+
+class PrispevokNaRekreaciuForm(forms.ModelForm):
+    #inicializácia polí
+    def __init__(self, *args, **kwargs):
+        self.request = kwargs.pop('request', None)
+        super().__init__(*args, **kwargs)
+        self.initial['zdroj'] = 1       #111
+        self.initial['program'] = 4     #nealokovaný
+        self.initial['zakazka'] = 2     #11010001 spol. zák.
+        self.initial['ekoklas'] = 83    #637006 - náhrady
+        polecislo = "cislo"
+        # Ak je pole readonly, tak sa nenachádza vo fields. Preto testujeme fields aj initial
+        if polecislo in self.fields and not polecislo in self.initial:
+            nasledujuce = nasledujuce_cislo(PrispevokNaRekreaciu)
+            self.fields[polecislo].help_text = f"Zadajte číslo žiadosti o príspevok na rekreáciu v tvare {PrispevokNaRekreaciu.oznacenie}-RRRR-NNN. Predvolené číslo '{nasledujuce}' bolo určené na základe čísel existujúcich záznamov ako nasledujúce v poradí."
+            self.initial[polecislo] = nasledujuce
+    class Meta:
+        model = PrispevokNaRekreaciu
+        fields = "__all__"
+
+    # Skontrolovať platnost a keď je všetko OK, spraviť záznam do denníka
+    def clean(self):
+        if 'cislo' in self.changed_data:
+            if not self.cleaned_data['cislo'][:3] == PrispevokNaRekreaciu.oznacenie:
+                raise ValidationError({"cislo": "Nesprávne číslo. Zadajte číslo novej žiadosti v tvare {PrispevokNaRekreaciu.oznacenie}-RRRR-NNN"})
+        try:
+            #pole dane_na_uhradu možno vyplniť až po vygenerovani platobného príkazu akciou 
+            #"Vytvoriť platobný príkaz a krycí list pre THS"
+            if 'subor_ziadost' in self.changed_data:
+                vec = f"Žiadosť o príspevok na rekreáciu"
+                cislo = nasledujuce_cislo(Dokument)
+                dok = Dokument(
+                    cislo = cislo,
+                    datum = self.cleaned_data["datum"],
+                    cislopolozky = self.cleaned_data['cislo'],
+                    #datumvytvorenia = self.cleaned_data['dane_na_uhradu'],
+                    datumvytvorenia = date.today(),
+                    typdokumentu = TypDokumentu.REKREACIA,
+                    inout = InOut.PRIJATY,
+                    adresat = meno_priezvisko(self.cleaned_data['zamestnanec']),
+                    #vec = f'<a href="{self.instance.subor_ziadost.url}">{vec}</a>',
+                    vec = vec,
+                    prijalodoslal=self.request.user.username, #zámena mien prijalodoslal - zaznamvytvoril
+                )
+                dok.save()
+                messages.warning(self.request, 
+                    format_html(
+                        'Do denníka prijatej a odoslanej pošty bol pridaný záznam č. {}: <em>{}</em>, treba v ňom doplniť údaje o prijatí.',
+                        mark_safe(f'<a href="/admin/dennik/dokument/{dok.id}/change/">{cislo}</a>'),
+                        vec
+                        )
+                )
+                vec = f"Príspevok na rekreáciu {self.cleaned_data['zamestnanec'].priezvisko} - vyúčtovanie"
+                cislo = nasledujuce_cislo(Dokument)
+                dok = Dokument(
+                    cislo = cislo,
+                    cislopolozky = self.cleaned_data['cislo'],
+                    #datumvytvorenia = self.cleaned_data['dane_na_uhradu'],
+                    datumvytvorenia = date.today(),
+                    typdokumentu = TypDokumentu.REKREACIA,
+                    inout = InOut.ODOSLANY,
+                    adresat = "PaM",
+                    vec = vec,
+                    prijalodoslal=self.request.user.username, #zámena mien prijalodoslal - zaznamvytvoril
+                )
+                dok.save()
+                messages.warning(self.request, 
+                    format_html(
+                        'Do denníka prijatej a odoslanej pošty bol pridaný záznam č. {}: <em>{}</em>, treba v ňom doplniť údaje o odoslaní.',
+                        mark_safe(f'<a href="/admin/dennik/dokument/{dok.id}/change/">{cislo}</a>'),
+                        vec
+                        )
+                )
+            if 'subor_vyuctovanie' in self.changed_data and "prispevok" in self.changed_data and self.cleaned_data['prispevok'] < 0 and "vyplatene_v_obdobi" in self.changed_data and PrispevokNaRekreaciu.check_vyplatene_v(self.cleaned_data["vyplatene_v_obdobi"]):
+                vec = f"Príspevok na rekreáciu {self.cleaned_data['zamestnanec'].priezvisko} - vyúčtovanie"
+                cislo = nasledujuce_cislo(Dokument)
+                dok = Dokument(
+                    cislo = cislo,
+                    cislopolozky = self.cleaned_data['cislo'],
+                    #datumvytvorenia = self.cleaned_data['dane_na_uhradu'],
+                    datumvytvorenia = date.today(),
+                    typdokumentu = TypDokumentu.REKREACIA,
+                    inout = InOut.PRIJATY,
+                    adresat = "PaM",
+                    vec = f'<a href="/admin/uctovnictvo/prispevoknarekreaciu/{self.instance.id}">{vec}</a>',
+                    prijalodoslal=self.request.user.username, #zámena mien prijalodoslal - zaznamvytvoril
+                )
+                dok.save()
+                messages.warning(self.request, 
+                    format_html(
+                        'Do denníka prijatej a odoslanej pošty bol pridaný záznam č. {}: <em>{}</em>, treba v ňom doplniť údaje o prijatí.',
+                        mark_safe(f'<a href="/admin/dennik/dokument/{dok.id}/change/">{cislo}</a>'),
+                        vec
+                        )
+                )
+            if 'datum_kl' in self.changed_data:
+                vec = f"Príspevok na rekreáciu {self.cleaned_data['zamestnanec'].priezvisko} - krycí list"
+                cislo = nasledujuce_cislo(Dokument)
+                dok = Dokument(
+                    cislo = cislo,
+                    cislopolozky = self.cleaned_data['cislo'],
+                    #datumvytvorenia = self.cleaned_data['dane_na_uhradu'],
+                    datumvytvorenia = date.today(),
+                    typdokumentu = TypDokumentu.REKREACIA,
+                    inout = InOut.ODOSLANY,
+                    adresat = "PaM",
+                    vec = f'<a href="/admin/uctovnictvo/prispevoknarekreaciu/{self.instance.id}">{vec}</a>',
+                    prijalodoslal=self.request.user.username, #zámena mien prijalodoslal - zaznamvytvoril
+                )
+                dok.save()
+                messages.warning(self.request, 
+                    format_html(
+                        'Do denníka prijatej a odoslanej pošty bol pridaný záznam č. {}: <em>{}</em>, treba v ňom doplniť údaje o odoslaní.',
+                        mark_safe(f'<a href="/admin/dennik/dokument/{dok.id}/change/">{cislo}</a>'),
+                        vec
+                        )
+                )
+        except ValidationError as ex:
+            raise ex
+        return self.cleaned_data
 
 class NepritomnostForm(forms.ModelForm):
     #inicializácia polí
@@ -489,7 +611,13 @@ class VyplacanieDohodForm(forms.ModelForm):
                 cislopolozky = dohoda.cislo
             )
             dok.save()
-            messages.warning(self.request, f"Do denníka prijatej a odoslanej pošty bol pridaný záznam č. {cislo} '{vec}'")
+            messages.warning(self.request, 
+                format_html(
+                    'Do denníka prijatej a odoslanej pošty bol pridaný záznam č. {}: <em>{}</em>, treba v ňom doplniť údaje o prijatí.',
+                    mark_safe(f'<a href="/admin/dennik/dokument/{dok.id}/change/">{cislo}</a>'),
+                    vec
+                    )
+            )
             return self.cleaned_data
         except ValidationError as ex:
             raise ex
@@ -541,6 +669,10 @@ class NajomneFakturaForm(forms.ModelForm):
             nasledujuce = nasledujuce_cislo(NajomneFaktura)
             self.fields[polecislo].help_text = f"Zadajte číslo platby v tvare {NajomneFaktura.oznacenie}-RRRR-NNN. Predvolené číslo '{nasledujuce}' bolo určené na základe čísel existujúcich platieb ako nasledujúce v poradí."
             self.initial[polecislo] = nasledujuce
+        self.initial['zdroj'] = 3       #42 - Iné vlastné zdroje 
+        self.initial['program'] = 4     #nealokovaný
+        self.initial['zakazka'] = 8     #42002200 - Prenájom priestorov, zákl. služby, fotovoltaika,
+        self.initial['ekoklas'] = 12    #223001 - Za predaj výrobkov, tovarov a služieb
 
     # Skontrolovať platnost a keď je všetko OK, spraviť záznam do denníka
     def clean(self):
@@ -548,35 +680,34 @@ class NajomneFakturaForm(forms.ModelForm):
             if not self.cleaned_data['cislo'][:2] == NajomneFaktura.oznacenie:
                 raise ValidationError({"cislo": "Nesprávne číslo. Zadajte číslo novej platby v tvare {NajomneFaktura.oznacenie}-RRRR-NNN"})
         #Ak vytvárame novú platbu, doplniť platby do konca roka
-        if 'typ' in self.changed_data:
+        #if 'typ' in self.changed_data:
             # skontrolovať znamienko
-            if self.cleaned_data['typ'] == TypPN.VYUCTOVANIE:   #ide o príjem
-                return self.cleaned_data
+            #if self.cleaned_data['typ'] == TypPN.VYUCTOVANIE:   #ide o príjem
+                #return self.cleaned_data
 
-            if  self.cleaned_data['suma'] < 0:  self.cleaned_data['suma'] *= -1
+            #if  self.cleaned_data['suma'] < 0:  self.cleaned_data['suma'] *= -1
 
-            rok, poradie = re.findall(r"-([0-9]+)-([0-9]+)", self.cleaned_data['cislo'])[0]
-            rok = int(rok)
-            poradie = int(poradie) + 1
+            #rok, poradie = re.findall(r"-([0-9]+)-([0-9]+)", self.cleaned_data['cislo'])[0]
+            #rok = int(rok)
+            #poradie = int(poradie) + 1
             #doplniť platby štvrťročne
             #začiatočný mesiac doplnených platieb
-            zmesiac = ((self.cleaned_data['splatnost_datum'].month-1)//3+1)*3 + 1
-            for mesiac in range(zmesiac, 13, 3):
-                #vyplňa sa: ['zdroj', 'zakazka', 'ekoklas', 'splatnost_datum', 'suma', 'objednavka_zmluva', 'typ']
-                dup = NajomneFaktura(
-                    zdroj = self.cleaned_data['zdroj'],
-                    zakazka = self.cleaned_data['zakazka'],
-                    program = self.cleaned_data['program'],
-                    ekoklas = self.cleaned_data['ekoklas'],
-                    suma = self.cleaned_data['suma'],
-                    typ = self.cleaned_data['typ'],
-                    cislo = "%s-%d-%03d"%(NajomneFaktura.oznacenie, rok, poradie),
-                    splatnost_datum = date(rok, mesiac, self.cleaned_data['splatnost_datum'].day),
-                    zmluva = self.cleaned_data['zmluva']
-                    )
-                poradie += 1
-                dup.save()
-                pass
+            #zmesiac = ((self.cleaned_data['splatnost_datum'].month-1)//3+1)*3 + 1
+            #for mesiac in range(zmesiac, 13, 3):
+                #vypĺňa sa: ['zdroj', 'zakazka', 'ekoklas', 'splatnost_datum', 'suma', 'objednavka_zmluva', 'typ']
+                #dup = NajomneFaktura(
+                    #zdroj = self.cleaned_data['zdroj'],
+                    #zakazka = self.cleaned_data['zakazka'],
+                    #program = self.cleaned_data['program'],
+                    #ekoklas = self.cleaned_data['ekoklas'],
+                    #suma = self.cleaned_data['suma'],
+                    #typ = self.cleaned_data['typ'],
+                    #cislo = "%s-%d-%03d"%(NajomneFaktura.oznacenie, rok, poradie),
+                    #splatnost_datum = date(rok, mesiac, self.cleaned_data['splatnost_datum'].day),
+                    #zmluva = self.cleaned_data['zmluva']
+                    #)
+                #poradie += 1
+                #dup.save()
 
         #pole dane_na_uhradu možno vyplniť až po vygenerovani platobného príkazu akciou 
         #"Vytvoriť platobný príkaz a krycí list pre THS"
@@ -605,3 +736,68 @@ class NajomneFakturaForm(forms.ModelForm):
                     )
         )
         return self.cleaned_data
+
+class PokladnaForm(forms.ModelForm):
+    #inicializácia polí
+    def __init__(self, *args, **kwargs):
+        self.request = kwargs.pop('request', None)
+        super().__init__(*args, **kwargs)
+        #self.initial['zdroj'] = 1       #111
+        #self.initial['program'] = 4     #nealokovaný
+        #self.initial['zakazka'] = 2     #11010001 spol. zák.	Činnosti z prostriedkov SAV - rozpočet 111
+        #self.initial['ekoklas'] = 108   #642014 Transfery jednotlivcom
+        #self.initial['cinnost'] = 2     #1a
+        polecislo = "cislo"
+        # Ak je pole readonly, tak sa nenachádza vo fields. Preto testujeme fields aj initial
+        if polecislo in self.fields:
+            if not polecislo in self.initial:
+                nasledujuce = nasledujuce_cislo(Pokladna)
+                self.fields[polecislo].help_text = f"Zadajte číslo nového záznamu pokladne v tvare {Pokladna.oznacenie}-RRRR-NNN. Predvolené číslo '{nasledujuce}' bolo určené na základe čísiel existujúcich záznamov ako nasledujúce v poradí."
+                self.initial[polecislo] = nasledujuce
+            else:
+                self.fields[polecislo].help_text = f"Číslo záznamu pokladne v tvare {Pokladna.oznacenie}-RRRR-NNN."
+
+        nasledujuce = nasledujuce_VPD()
+        # nasledujúce číslo Výdavkového pokladničného dokladu
+        self.fields["cislo_VPD"].help_text = f"Poradové číslo VPD (výdavkového pokladničného dokladu).<br />Ak necháte prázdne a nejde o dotáciu, <strong>doplní sa nasledujúce číslo '{nasledujuce}'</strong>, ktoré bolo určené na základe čísiel existujúcich VPD ako nasledujúce v poradí."
+
+    # Skontrolovať platnost a prípadne spraviť zmeny
+    def clean(self):
+        if 'cislo' in self.changed_data:
+            if not self.cleaned_data['cislo'][:2] == PrijataFaktura.oznacenie:
+                raise ValidationError({"cislo": "Nesprávne číslo. Zadajte číslo novej faktúry v tvare {PrijataFaktura.oznacenie}-RRRR-NNN"})
+
+        chyby={}
+        if self.cleaned_data["typ_transakcie"] == TypPokladna.DOTACIA:
+            nevyplna_sa = ["cislo_VPD", "zamestnanec", "zdroj", "zakazka", "ekoklas", "cinnost"]
+            opravene = []
+            for pole in nevyplna_sa:
+                if pole in self.changed_data:
+                    self.cleaned_data[pole] = None
+                    opravene.append(self.fields[pole].label)
+            if len(opravene) == 1:
+                messages.warning(self.request, 
+                    format_html(
+                        'Vyplnené boli pole <em>{}</em>, to sa však v prípade dotácie nevypĺňa. Vyplnenie bolo zrušené',
+                        ", ".join(opravene)
+                        )
+                    )
+            elif len(opravene) > 1:
+                messages.warning(self.request, 
+                    format_html(
+                        'Vyplnené boli polia <em>{}</em>, tie sa však v prípade dotácie nevypĺňajú. Vyplnenie bolo zrušené',
+                        ", ".join(opravene)
+                        )
+                    )
+        return self.cleaned_data
+
+class SocialnyFondForm(forms.ModelForm):
+    #inicializácia polí
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        polecislo = "cislo"
+        # Ak je pole readonly, tak sa nenachádza vo fields. Preto testujeme fields aj initial
+        if polecislo in self.fields and not polecislo in self.initial:
+            nasledujuce = nasledujuce_cislo(SocialnyFond)
+            self.fields[polecislo].help_text = f"Zadajte číslo novej položky v tvare {SocialnyFond.oznacenie}-RRRR-NNN. Predvolené číslo '{nasledujuce}' bolo určené na základe čísel existujúcich položiek ako nasledujúce v poradí."
+            self.initial[polecislo] = nasledujuce

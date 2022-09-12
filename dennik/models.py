@@ -29,6 +29,8 @@ class TypDokumentu(models.TextChoices):
     NAJOMNE = 'najomne', 'Nájomné'
     PRAVIDELNAPLATBA = 'pravidelnaplatba', 'Pravidelná platba'
     INTERNYPREVOD = 'internyprevod', 'Interný prevod'
+    POKLADNICNAKNIHA = 'pokladnicnakniha', 'Pokladničná kniha'
+    REKREACIA = 'rekreacia', 'Príspevok na rekreáciu'
     INY = 'iny', 'Iný'
 
 # Typy šablón na vyplňovanie. Určuje, zoznam povolených tokenov v šablóne
@@ -90,7 +92,7 @@ podpísaná</em> v zmluve</li>
             help_text = "Zvoľte spôsob, akým bol dokument prijatý/doručený",
             max_length=20, choices=SposobDorucenia.choices, null=True)
     vec = models.CharField("Popis", 
-            help_text = "Stručne popíšte obsah, napr. 'Podpísaná zmluva'",
+            help_text = "Stručne popíšte obsah, napr. 'Podpísaná zmluva'. Ak je pole predvyplnené, netreba ho meniť.",
             max_length=200)
     naspracovanie = models.CharField("Na spracovanie", 
             help_text = "<strong>Ak ide o prijatý dokument</strong>, uveďte meno osoby, ktorej bol daný na vybavenie. Pri odosielanom dokumente vypĺňať netreba.",

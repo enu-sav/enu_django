@@ -196,6 +196,8 @@ MIN_VYPLATIT = 15       #minimálna suma v Eur, ktorá sa vypláca
 UCET_ENU = "SK08 8180 0000 0070 0066 7544"
 UCET_LITFOND  = "SK47 0200 0000 0012 2545 9853" 
 UCET_FIN_URAD = "SK61 8180 5002 6780 2710 3305"
+PN1= 55                 #náhrada mzdy za prvé 3 dni PN-ky
+PN2= 80                 #náhrada mzdy za dni 3 - 1- PN-ky
 
 #Predvolené zobrazenie dátumu v admin
 from django.conf.locale.sk import formats as sk_formats
@@ -226,12 +228,15 @@ RLTS_DIR = os.path.join(MEDIA_ROOT,RLTS_DIR_NAME)
 
 # App Uctovnictvo
 # pripojí sa za MEDIA_ROOT
+BEZ_PRIKAZU_DIR="BezPrikazu"
 PLATOBNE_PRIKAZY_DIR="PlatobnePrikazy"
 PLATOVE_VYMERY_DIR="PlatoveVymery"
 DOHODY_DIR="Dohody"
 OBJEDNAVKY_DIR="Objednavky"
 PRIJATEFAKTURY_DIR="PrijateFaktury"
 STRAVNE_DIR="Stravne"
+POKLADNA_DIR="Pokladna"
+REKREACIA_DIR="PrispevokNaRekreaciu"
 
 #App denniky
 FORM_DIR_NAME="HromadneDokumenty"

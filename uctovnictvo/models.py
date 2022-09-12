@@ -7,13 +7,14 @@ from django.core.exceptions import ValidationError
 from simple_history.models import HistoricalRecords
 from uctovnictvo.storage import OverwriteStorage
 from .odvody import DohodarOdvodySpolu, ZamestnanecOdvodySpolu
-from .rokydni import mesiace
+from .rokydni import mesiace, koef_neodprac_dni, prekryv_dni
 from polymorphic.models import PolymorphicModel
 from django.utils.safestring import mark_safe
 from decimal import Decimal
 
 from beliana.settings import TMPLTS_DIR_NAME, PLATOVE_VYMERY_DIR, DOHODY_DIR, PRIJATEFAKTURY_DIR, PLATOBNE_PRIKAZY_DIR
-from beliana.settings import ODVODY_VYNIMKA, DAN_Z_PRIJMU, OBJEDNAVKY_DIR, STRAVNE_DIR
+from beliana.settings import ODVODY_VYNIMKA, DAN_Z_PRIJMU, OBJEDNAVKY_DIR, STRAVNE_DIR, REKREACIA_DIR
+from beliana.settings import PN1, PN2, BEZ_PRIKAZU_DIR
 import os,re
 from datetime import timedelta, date, datetime
 from dateutil.relativedelta import relativedelta
@@ -44,6 +45,14 @@ def nasledujuce_cislo(classname):
             #sme v novom roku alebo trieda este nema instanciu
             return f"{ozn_rok}001"
 
+# nasledujúce číslo Výdavkového pokladničného dokladu
+def nasledujuce_VPD():
+        # zoznam VPD zoradený podľa cislo_VPD vzostupne
+        ozn_rok = f"{Pokladna.oznacenie}-{datetime.now().year}-"
+        qs = Pokladna.objects.filter(cislo__istartswith=ozn_rok)
+        itemlist=qs.exclude(cislo_VPD__isnull=True).order_by("cislo_VPD")
+        return itemlist.last().cislo_VPD+1 if itemlist else 1
+
 #ak sa doplni stav pred 'PODPISANA_ENU', treba doplniť test vo funkcii vytvorit_subory_zmluvy
 class StavDohody(models.TextChoices):
     NOVA = "nova", "Nová"                        #Stav dohody po vytvorení
@@ -54,17 +63,18 @@ class StavDohody(models.TextChoices):
     PODPISANA_DOHODAROM = "podpisana_dohodarom", "Podpísaná"
     DOKONCENA = "dokoncena", "Dokončená"
 
-class StavVymeru(models.TextChoices):
-    AKTUALNY = "aktualny", "Aktuálny"
-    NEAKTUALNY = "neaktualny", "Neaktuálny"
-    UKONCENY = "ukonceny", "Ukončený PP"
-
 class TypNepritomnosti(models.TextChoices):
     MATERSKA = "materská", "Materská"
     OCR = "ocr", "OČR"
     PN = "pn", "PN"
     DOVOLENKA = "dovolenka", "Dovolenka"
+    DOVOLENKA2 = "dovolenka2", "Poldeň dovolenky"
     NEPLATENE = "neplatene", "Neplatené voľno"
+
+#access label: AnoNie('ano').label
+class TypPokladna(models.TextChoices):
+    DOTACIA = 'prijem_do_pokladne', 'Príjem do pokladne'
+    VPD = 'vystavenie_vpd', 'Vystavenie VPD'
 
 class Poistovna(models.TextChoices):
     VSZP = 'VsZP', 'VšZP'
@@ -372,20 +382,6 @@ class FakturaPravidelnaPlatba(Platba):
     def adresat(self):
         return self.objednavka_zmluva.dodavatel.nazov if self.objednavka_zmluva else ""
 
-    #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
-    def cerpanie_rozpoctu(self, zden):
-        if not self.dane_na_uhradu: return []
-        if self.dane_na_uhradu <zden: return []
-        if self.dane_na_uhradu >= date(zden.year, zden.month+1, zden.day): return []
-        typ = "zmluva" if type(self.objednavka_zmluva) == Zmluva else "objednávka" if type(self.objednavka_zmluva) == Objednavka else "rozhodnutie" 
-        platba = {
-                "nazov":f"Faktúra {typ}",
-                "suma": self.suma,
-                "zdroj": self.zdroj,
-                "zakazka": self.zakazka,
-                "ekoklas": self.ekoklas
-                }
-        return [platba]
     class Meta:
         abstract = True
 
@@ -405,6 +401,24 @@ class InternyPrevod(Platba):
             null = True,
             max_length=100)
     history = HistoricalRecords()
+
+    #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
+    def cerpanie_rozpoctu(self, zden):
+        if not self.doslo_datum: return []
+        if self.doslo_datum <zden: return []
+        kdatum =  date(zden.year, zden.month+1, zden.day) if zden.month+1 <= 12 else  date(zden.year+1, 1, 1)
+        if self.doslo_datum >= kdatum: return []
+        platba = {
+                "nazov":f"Interný prevod",
+                "suma": self.suma,
+                "datum": self.doslo_datum,
+                "cislo": self.cislo,
+                "subjekt": self.partner.nazov,
+                "zdroj": self.zdroj,
+                "zakazka": self.zakazka,
+                "ekoklas": self.ekoklas
+                }
+        return [platba]
     class Meta:
         verbose_name = "Interný prevod",
         verbose_name_plural = "Faktúry - Interné prevody"
@@ -435,20 +449,19 @@ class PrijataFaktura(FakturaPravidelnaPlatba):
             null = True)
     history = HistoricalRecords()
 
-    # Koho uviesť ako adresata v denniku
-    def adresat(self):
-        return self.objednavka_zmluva.dodavatel.nazov if self.objednavka_zmluva else ""
-
     #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
     def cerpanie_rozpoctu(self, zden):
         if not self.dane_na_uhradu: return []
         if self.dane_na_uhradu <zden: return []
-        kdatum =  date(zden.year, zden.month+1, zden.day) if zden.month+1 <= 12 else  date(zden.year+1, zden.month, zden.day)
+        kdatum =  date(zden.year, zden.month+1, zden.day) if zden.month+1 <= 12 else  date(zden.year+1, 1, 1)
         if self.dane_na_uhradu >= kdatum: return []
         typ = "zmluva" if type(self.objednavka_zmluva) == Zmluva else "objednávka" if type(self.objednavka_zmluva) == Objednavka else "rozhodnutie" 
         platba = {
                 "nazov":f"Faktúra {typ}",
                 "suma": self.suma,
+                "datum": self.dane_na_uhradu,
+                "cislo": self.cislo,
+                "subjekt": self.adresat(),
                 "zdroj": self.zdroj,
                 "zakazka": self.zakazka,
                 "ekoklas": self.ekoklas
@@ -468,19 +481,18 @@ class PravidelnaPlatba(FakturaPravidelnaPlatba):
             max_length=25, 
             choices=TypPP.choices)
 
-    # Koho uviesť ako adresata v denniku
-    def adresat(self):
-        return self.objednavka_zmluva.dodavatel.nazov if self.objednavka_zmluva else ""
-
     #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
     def cerpanie_rozpoctu(self, zden):
         if self.splatnost_datum <zden: return []
-        kdatum =  date(zden.year, zden.month+1, zden.day) if zden.month+1 <= 12 else  date(zden.year+1, zden.month, zden.day)
+        kdatum =  date(zden.year, zden.month+1, zden.day) if zden.month+1 <= 12 else  date(zden.year+1, 1, 1)
         if self.splatnost_datum >= kdatum: return []
         nazov = "Faktúra záloha" if self.typ == TypPP.ZALOHA_EL_ENERGIA else ""
         platba = {
                 "nazov":nazov,
                 "suma": self.suma,
+                "datum": self.dane_na_uhradu,
+                "subjekt": f"{self.adresat()}, (za {zden.year}/{zden.month})", 
+                "cislo": self.cislo,
                 "zdroj": self.zdroj,
                 "zakazka": self.zakazka,
                 "ekoklas": self.ekoklas
@@ -499,11 +511,6 @@ class Najomnik(PersonCommon):
             blank = True,
             null = True,
             )
-    s_danou = models.CharField("Fakturované s daňou",
-            max_length=3,
-            help_text = "Uveďte 'Áno', ak sa nájomníkovi fakturuje nájomné s DPH, inak uveďte 'Nie'. Služby za nájomné sa vždy fakturujú s DPH",
-            null = True,
-            choices=AnoNie.choices)
     history = HistoricalRecords()
     class Meta:
         verbose_name = 'Nájomník'
@@ -557,7 +564,7 @@ class NajomnaZmluva(models.Model):
         verbose_name_plural = 'Prenájom - Zmluvy'
         #abstract = True
     def __str__(self):
-        return f"{self.cislo} - {self.najomnik}"
+        return f"{self.najomnik} - {self.cislo}"
 
 class NajomneFaktura(Klasifikacia):
     # Polia
@@ -586,6 +593,12 @@ class NajomneFaktura(Klasifikacia):
             max_digits=8,
             decimal_places=2,
             null=True)
+    dan = models.DecimalField("DPH",
+            help_text = 'Zadajte sumu DPH štrvrťročne.<br />V prípade zmlúv uzavretých 07/2022 a neskôr sa DPH neúčtuje.',
+            max_digits=8,
+            decimal_places=2,
+            default=0,
+            null=True)
     zmluva = models.ForeignKey(NajomnaZmluva,
             null=True,
             verbose_name = "Nájomná zmluva",
@@ -605,11 +618,16 @@ class NajomneFaktura(Klasifikacia):
     def cerpanie_rozpoctu(self, zden):
         if not self.splatnost_datum: return []
         if self.splatnost_datum <zden: return []
-        if self.splatnost_datum >= date(zden.year, zden.month+1, zden.day): return []
+        #if self.splatnost_datum >= date(zden.year, zden.month+1, zden.day): return []
+        kdatum =  date(zden.year, zden.month+1, zden.day) if zden.month+1 <= 12 else  date(zden.year+1, 1, 1)
+        if self.splatnost_datum >= kdatum: return []
         typ = "prenájom nájomné" if self.typ == TypPN.NAJOMNE else "prenájom služby" if self.typ == TypPN.SLUZBY else "prenájom vyúčtovanie"
         platba = {
                 "nazov":f"Faktúra {typ}",
                 "suma": self.suma,
+                "datum": self.dane_na_uhradu,
+                "subjekt": f"{self.zmluva.najomnik.nazov}, (za {zden.year}/{zden.month})", 
+                "cislo": self.cislo,
                 "zdroj": self.zdroj,
                 "zakazka": self.zakazka,
                 "ekoklas": self.ekoklas
@@ -619,13 +637,15 @@ class NajomneFaktura(Klasifikacia):
         verbose_name = 'Faktúra za prenájom'
         verbose_name_plural = 'Prenájom - Faktúry'
 
+def bezprikazu_file_path(instance, filename):
+    return os.path.join(BEZ_PRIKAZU_DIR, filename)
 class PlatbaBezPrikazu(Klasifikacia):
     oznacenie = "PbP"
     cislo = models.CharField("Číslo", 
         #help_text = "Číslo rozpočtovej položky. Nová položka za pridáva len vtedy, keď položka s požadovanou klasifikáciou neexistuje.",  
         max_length=50)
     suma = models.DecimalField("Suma",
-            help_text = 'Suma podľa výpisu zo Softipu. výdavky uveďte ako záporné číslo.',
+            help_text = 'Suma podľa výpisu zo Softipu. Výdavky uveďte ako záporné číslo.',
             max_digits=8,
             decimal_places=2,
             null=True)
@@ -636,6 +656,12 @@ class PlatbaBezPrikazu(Klasifikacia):
             help_text = "Stručný popis platby podľa výpisu zo Softipu.",
             max_length=100,
             null=True)
+    subor = models.FileField("Priložený súbor",
+            storage=OverwriteStorage(), 
+            upload_to=bezprikazu_file_path, 
+            null = True, 
+            blank = True 
+            )
     history = HistoricalRecords()
 
     #zarátanie dotácií, v roku len raz, v januári
@@ -645,6 +671,9 @@ class PlatbaBezPrikazu(Klasifikacia):
         platba = {
                 "nazov":f"Platba bez príkazu",
                 "suma": self.suma,
+                "datum": self.datum_platby,
+                "subjekt": self.predmet,
+                "cislo": self.cislo,
                 "zdroj": self.zdroj,
                 "zakazka": self.zakazka,
                 "ekoklas": self.ekoklas
@@ -788,27 +817,28 @@ class PrispevokNaStravne(Klasifikacia):
             help_text = "Zvoľte mesiac, za ktorý príspevok je. <br />Príspevok za január sa vypláca v decembri predchádzajúceho roku (v čísle príspevku má byť uvedený rok, v ktorom sa príspevok vyplácal).",
             null = True,
             choices=Mesiace.choices)
-    suma_zamestnavatel = models.DecimalField("Príspevok zamestnávateľa", 
-            help_text = "Zadajte celkový príspevok zamestnávateľa (Ek. klas. 642014) ako zápornú hodnotu",
+    suma_zamestnavatel = models.DecimalField("Príspevok (zrážka) zamestnávateľ", 
+            help_text = "Príspevok zamestnávateľa (Ek. klas. 642014) na stravné.<br />Ak ide o vyplatenie zamestnancovi, uveďte zápornú hodnotu, ak ide o zrážku, tak kladnú hodnotu.",
             max_digits=8, 
             decimal_places=2, 
             default=0)
     # Položka suma_socfond nemá Ek. klasifikáciu, soc. fond nie sú peniaze EnÚ
-    suma_socfond = models.DecimalField("Príspevok zo soc. fondu", 
-            help_text = "Zadajte celkový príspevok zo sociálneho fondu ako zápornú hodnotu1",
+    suma_socfond = models.DecimalField("Príspevok (zrážka) soc. fond", 
+            help_text = "Príspevok zo sociálneho fondu (Ek. klas. 642014) na stravné.<br />Ak ide o vyplatenie zamestnancovi, uveďte zápornú hodnotu, ak ide o zrážku, tak kladnú hodnotu.<br />Vytvorením Príspevku na stravné sa automaticky vytvorí položka sociálneho fondu.",
             max_digits=8, 
             decimal_places=2, 
             default=0)
     po_zamestnancoch = models.FileField("Prehľad po zamestnancoch",
-            help_text = "Súbor s mesačným prehľadom príspevkov po zamestnancoch",
+            help_text = "Súbor s mesačným prehľadom príspevkov na stravné po zamestnancoch",
             upload_to=prispevok_stravne_upload_location, 
             null = True)
     history = HistoricalRecords()
 
     # test platnosti dát
     def clean(self): 
-        if self.suma_zamestnavatel >= 0 or self.suma_socfond > 0:
-            raise ValidationError("Položky 'Príspevok zamestnávateľa' a 'Príspevok zo soc. fondu' musia byť záporné.")
+        if self.suma_zamestnavatel * self.suma_socfond <= 0:
+            raise ValidationError("Položky 'Príspevok zamestnávateľa' a 'Príspevok zo soc. fondu' musia byť buď len kladné alebo len záporné.")
+
     #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
     def cerpanie_rozpoctu(self, zden):
         if not str(zden.year) in self.cislo: return []
@@ -831,6 +861,9 @@ class PrispevokNaStravne(Klasifikacia):
         platba = {
                 "nazov":f"Stravné",
                 "suma": self.suma_zamestnavatel,
+                "datum": zden,
+                "subjekt": "Zamestnanci",
+                "cislo": self.cislo,
                 "zdroj": self.zdroj,
                 "zakazka": self.zakazka,
                 "ekoklas": self.ekoklas
@@ -934,12 +967,17 @@ class Zamestnanec(ZamestnanecDohodar):
             help_text = "Dátum nástupu do zamestnania v EnÚ.",
             blank=True,
             null=True)
+    vymeriavaci_zaklad = models.TextField("Denný vymeriavací základ", 
+            help_text = "Zadajte po riadkoch denný vymeriavací základ podľa Softipu (PaM > PAM - Personalistika a Mzdy > Mzdy > Nemocenské dávky > Denný VZ €.<br />v tvare 'RRRR/MM suma (napr. '2022/02 30,4986').<br />Treba zadať len za mesiace, za ktoré má zamestnanec nárok na náhradu mzdy. Na chýbajúce údaje sa upozorní pri výpočte čerpania rozpočtu.", 
+            max_length=500,
+            blank=True,
+            null=True)
     history = HistoricalRecords()
     class Meta:
         verbose_name = "Zamestnanec"
         verbose_name_plural = "PaM - Zamestnanci"
     def __str__(self):
-        return f"Z {self.priezvisko}, {self.meno}, {self.cislo_zamestnanca}"
+        return f"{self.priezvisko}, {self.meno}, Z"
 
 class Dohodar(ZamestnanecDohodar):
     history = HistoricalRecords()
@@ -947,7 +985,7 @@ class Dohodar(ZamestnanecDohodar):
         verbose_name = "Dohodár"
         verbose_name_plural = "PaM - Dohodári"
     def __str__(self):
-        return f"D {self.priezvisko}, {self.meno}"
+        return f"{self.priezvisko}, {self.meno}, D"
 
 def vymer_file_path(instance, filename):
     return os.path.join(PLATOVE_VYMERY_DIR, filename)
@@ -955,18 +993,13 @@ def vymer_file_path(instance, filename):
 #Polymorphic umožní, aby DoVP a PrijataFaktura mohli použiť ObjednavkaZmluva ako ForeignKey
 class PlatovyVymer(Klasifikacia):
     oznacenie = "PaM"
-    cislo = models.CharField("Číslo", 
-            #help_text: definovaný vo forms
+    cislo = models.CharField("Číslo výmeru", 
+            help_text = "Uveďte číslo výmeru podľa THS",
             null = True,
             max_length=50)
     cislo_zamestnanca = models.CharField("Číslo zamestnanca", 
             null = True,
             max_length=50)
-    stav = models.CharField("Stav", 
-            max_length=20, 
-            help_text = "Uveďte, v ktorom stave sa výmer nachádza.",
-            null = True,
-            choices=StavVymeru.choices)
     zamestnanec = models.ForeignKey(Zamestnanec,
             on_delete=models.PROTECT, 
             verbose_name = "Zamestnanec",
@@ -1033,8 +1066,11 @@ class PlatovyVymer(Klasifikacia):
         next_month = zden + relativedelta(months=1, day=1)  # 1. deň nasl. mesiaca
         qs2 = qs1.exclude(nepritomnost_od__gte=next_month)  # vylúčiť nevyhovujúce
         qs3 = qs2.exclude(nepritomnost_typ=TypNepritomnosti.DOVOLENKA)  # vylúčiť dovolenky, platí sa v plnej výške
-        dni_neprit = 0
-        for nn in qs3:
+        qs3 = qs3.exclude(nepritomnost_typ=TypNepritomnosti.DOVOLENKA2)  # vylúčiť dovolenky, platí sa v plnej výške
+        koef_prit = 1   #znižuje sa v prípase neprítomnosti
+        pn1 = 0         #počet dní práceneschopnosti v dňoch 1-3
+        pn2 = 0         #počet dní práceneschopnosti v dňoch 4-10
+        for nn in qs3:  #môže byť viac neprítomností za mesiac
             #určiť posledný deň
             if not nn.nepritomnost_do:  #nie je zadaný
                 if nn.nepritomnost_typ == TypNepritomnosti.MATERSKA: #ak materská, tak koniec mesiaca
@@ -1048,33 +1084,60 @@ class PlatovyVymer(Klasifikacia):
             if posledny >= next_month:
                 posledny = next_month - relativedelta(days=1) 
             prvy = nn.nepritomnost_od if nn.nepritomnost_od>zden else zden
-            if posledny >= prvy: #nenastane v prípade neukončenej neprítomnosti ak nie je materská
-                dni_neprit += (posledny-prvy).days + 1
-        dni_mesiac = (next_month -zden).days
-        koef_prit = (dni_mesiac-dni_neprit)/dni_mesiac  #koeficient pritomnosti
+            koef_prit -= koef_neodprac_dni(prvy, posledny)
 
-        #koef_prit = 1
+            #Nahrady mzdy, PN
+            #Prvé 3 dni, 55%
+            if nn.nepritomnost_typ == TypNepritomnosti.PN:
+                pn1 += prekryv_dni(zden, nn.nepritomnost_od, nn.nepritomnost_od+timedelta(days=2))
+                #Dni 4 až 10, 80%
+                pn2 += prekryv_dni(zden, nn.nepritomnost_od+timedelta(days=3), min(nn.nepritomnost_od+timedelta(days=9), posledny))
+
         tarifny = {
                 "nazov":"Plat tarifný plat",
-                "suma": -Decimal(koef_prit*float(self.tarifny_plat)),
+                "suma": -round(Decimal(koef_prit*float(self.tarifny_plat)),2),
                 "zdroj": self.zdroj,
                 "zakazka": self.zakazka,
+                "datum": zden if zden < date.today() else None,
+                "subjekt": f"{self.zamestnanec.priezvisko}, {self.zamestnanec.meno}, (za {zden.year}/{zden.month})", 
+                "cislo": self.cislo if self.cislo else "-",
                 "ekoklas": self.ekoklas
                 }
         osobny = {
                 "nazov": "Plat osobný príplatok",
-                "suma": -Decimal(koef_prit*float(self.osobny_priplatok)),
+                "suma": -round(Decimal(koef_prit*float(self.osobny_priplatok)),2),
                 "zdroj": self.zdroj,
                 "zakazka": self.zakazka,
+                "datum": zden if zden < date.today() else None,
+                "subjekt": f"{self.zamestnanec.priezvisko}, {self.zamestnanec.meno}, (za {zden.year}/{zden.month})", 
+                "cislo": self.cislo if self.cislo else "-",
                 "ekoklas": self.ekoklas
                 }
         funkcny = {
                 "nazov": "Plat funkčný príplatok",
-                "suma": -Decimal(koef_prit*float(self.funkcny_priplatok)),
+                "suma": -round(Decimal(koef_prit*float(self.funkcny_priplatok)),2),
                 "zdroj": self.zdroj,
                 "zakazka": self.zakazka,
+                "datum": zden if zden < date.today() else None,
+                "subjekt": f"{self.zamestnanec.priezvisko}, {self.zamestnanec.meno}, (za {zden.year}/{zden.month})", 
+                "cislo": self.cislo if self.cislo else "-",
                 "ekoklas": self.ekoklas
                 }
+        pn = None
+        if pn1 or pn2:
+            denny_vz, text_vz = self.urcit_VZ(zden)
+            pn = {
+                    "nazov": text_vz,
+                    "suma": -round(Decimal((pn1*PN1+pn2*PN2)*denny_vz/100),2),
+                    "zdroj": self.zdroj,
+                    "zakazka": self.zakazka,
+                    "datum": zden if zden < date.today() else None,
+                    "subjekt": f"{self.zamestnanec.priezvisko}, {self.zamestnanec.meno}, (za {zden.year}/{zden.month})", 
+                    "cislo": self.cislo if self.cislo else "-",
+                    "ekoklas": EkonomickaKlasifikacia.objects.get(kod="640")
+                    }
+            if "približne" in text_vz:
+                pn["poznamka"] = f"V platovom výmere pre zamestnanca {self.zamestnanec} treba doplniť denný vymeriavací základ za mesiac {zden.year}/{zden.month}."
         #súbor s tabuľku odvodov
         nazov_objektu = "Odvody zamestnancov a dohodárov"  #Presne takto musí byť objekt pomenovaný
         objekt = SystemovySubor.objects.filter(subor_nazov = nazov_objektu)
@@ -1084,16 +1147,38 @@ class PlatovyVymer(Klasifikacia):
         #Konverzia typu dochodku na pozadovany typ vo funkcii ZamestnanecOdvodySpolu
         td = self.zamestnanec.typ_doch
         td_konv = "InvDoch30" if td==TypDochodku.INVALIDNY30 else "InvDoch70" if td== TypDochodku.INVALIDNY70 else "StarDoch" if td==TypDochodku.STAROBNY else "VyslDoch" if td==TypDochodku.INVAL_VYSL else "Bezny"
-        plat = float(tarifny['suma'])+ float(osobny['suma']) + float(funkcny['suma'])
-        odvody, _ = ZamestnanecOdvodySpolu(nazov_suboru, plat, td_konv, zden.year)
+        tabulkovy_plat = float(self.tarifny_plat) + float(self.osobny_priplatok) + float(self.funkcny_priplatok)
+        hruba_mzda = koef_prit * tabulkovy_plat
+        odvody, _ = ZamestnanecOdvodySpolu(nazov_suboru, hruba_mzda, td_konv, zden.year)
         poistne = {
                 "nazov": "Plat odvody",
-                "suma": Decimal(odvody),
+                "suma": -round(Decimal(odvody),2),
                 "zdroj": self.zdroj,
                 "zakazka": self.zakazka,
+                "datum": zden if zden < date.today() else None,
+                "subjekt": f"{self.zamestnanec.priezvisko}, {self.zamestnanec.meno}, (za {zden.year}/{zden.month})", 
+                "cislo": self.cislo if self.cislo else "-",
                 "ekoklas": EkonomickaKlasifikacia.objects.get(kod="620")
                 }
-        return [tarifny, osobny, funkcny, poistne]
+        if koef_prit < 1:
+            #trace()
+            pass
+
+        #kvoli kontrole (porovnať s údajmi v Softipe)
+        if pn:
+            print(self.zamestnanec.priezvisko, zden, round(hruba_mzda,2), pn["suma"])
+            return [tarifny, osobny, funkcny, poistne, pn]
+        else:
+            print(self.zamestnanec.priezvisko, zden, round(hruba_mzda,2))
+            return [tarifny, osobny, funkcny, poistne]
+
+    def urcit_VZ(self, mesiac):
+        tabulkovy_plat = float(self.tarifny_plat) + float(self.osobny_priplatok) + float(self.funkcny_priplatok)
+        if self.zamestnanec.vymeriavaci_zaklad:
+            vz = re.findall(r"%s/0*%s ([0-9,]*)"%(mesiac.year, mesiac.month), self.zamestnanec.vymeriavaci_zaklad)
+            if vz:
+                return float(vz[0].replace(",",".")), "Náhrada mzdy - PN"
+        return 12*tabulkovy_plat/365, "Náhrada mzdy - PN (približne)"
 
     class Meta:
         verbose_name = "Platový výmer"
@@ -1131,6 +1216,105 @@ class Nepritomnost(models.Model):
         od = self.nepritomnost_od.strftime('%d. %m. %Y')
         return f"{self.zamestnanec.priezvisko} od {od}"
 
+def rekreacia_upload_location(instance, filename):
+    return os.path.join(REKREACIA_DIR, filename)
+class PrispevokNaRekreaciu(Klasifikacia):
+    oznacenie = "PnR"
+    cislo = models.CharField("Číslo", 
+            #help_text: definovaný vo forms
+            null = True,
+            max_length=50)
+    datum = models.DateField('Dátum prijatia žiadosti',
+            help_text = "Dátum prijatia žiadosti",
+            null=True
+            )
+    zamestnanec = models.ForeignKey(Zamestnanec,
+            on_delete=models.PROTECT, 
+            verbose_name = "Zamestnanec",
+            related_name='%(class)s_zamestnanec')  #zabezpečí rozlíšenie modelov, keby dačo
+    subor_ziadost = models.FileField("Žiadosť o príspevok",
+            help_text = "Súbor so žiadosťou o príspevok (doručený zamestnancom).<br />Po zadaní sa vytvorí záznam v Denníku.",
+            upload_to=rekreacia_upload_location
+            )
+    subor_vyuctovanie = models.FileField("Vyúčtovanie príspevku",
+            help_text = "Súbor s vyúčtovaním príspevku (doručený mzdovou účtárňou).<br />Po zadaní sa vytvorí záznam v Denníku.",
+            upload_to=rekreacia_upload_location,
+            blank=True, 
+            null=True
+            )
+    prispevok = models.DecimalField("Príspevok na vyplatenie", 
+            help_text = "Výška príspevku na rekreáciu určená mzdovou účtárňou (záporné číslo).",
+            max_digits=8, 
+            decimal_places=2, 
+            blank=True, 
+            null=True,
+            default=0)
+    vyplatene_v_obdobi = models.CharField("Vyplatené v", 
+            help_text = "Uveďte obdobie vyplatenia podľa vyúčtovania v tvare MM/RRRR (napr. 07/2022)",
+            null = True,
+            blank=True, 
+            max_length=10)
+    subor_kl = models.FileField("Krycí list",
+            help_text = "Súbor s krycím listom.<br />Generuje sa akciou <em>Vytvoriť krycí list</em> po vyplnení položky <em>Príspevok na vyplatenie</em>",
+            upload_to=rekreacia_upload_location,
+            blank=True, 
+            null=True
+            )
+    datum_kl = models.DateField('Dátum odoslania KL',
+            help_text = "Dátum odoslania krycieho listu.<br />Po zadaní sa vytvorí záznam v Denníku.",
+            blank=True, 
+            null=True
+            )
+
+    @staticmethod
+    def check_vyplatene_v(value):
+        return re.findall(r"[0-9][0-9]/[0-9][0-9][0-9][0-9]", value)
+
+
+    def clean(self): 
+        if self.prispevok > 0:
+            raise ValidationError("Suma príspevku musí byť záporná")
+        if self.subor_vyuctovanie and not self.prispevok:
+            raise ValidationError("Ak je vložený súbor s vyúčtovaním, treba vyplniť aj položky 'Príspevok na vyplatenie'")
+
+        if not self.subor_vyuctovanie and self.prispevok:
+            raise ValidationError("Ak je vyplnená položka 'Príspevok na vyplatenie', treba vložiť súbor s vyúčtovaním.")
+
+        if not self.subor_vyuctovanie and self.vyplatene_v_obdobi:
+            raise ValidationError("Ak je vyplnená položka 'Príspevok na vyplatenie', treba vyplniť aj pole 'Vyplatené v'.")
+
+        if not self.subor_vyuctovanie and self.vyplatene_v_obdobi:
+            raise ValidationError("Ak je vyplnená položka 'Vyplatené v', treba vložiť súbor s vyúčtovaním.")
+
+        if self.vyplatene_v_obdobi:
+            if not PrispevokNaRekreaciu.check_vyplatene_v(self.vyplatene_v_obdobi):
+                raise ValidationError("Údaj v poli 'Vyplatené v' musí byť v tvare MM/RRRR (napr. 07/2022)")
+
+    #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
+    def cerpanie_rozpoctu(self, zden):
+        qs = PrispevokNaRekreaciu.objects.filter(vyplatene_v_obdobi = "%02d/%d"%(zden.month, zden.year))
+        suma = 0
+        for q in qs:
+            suma += q.prispevok
+        if not suma: return []
+        platba = {
+                "nazov": "Príspevok na rekreáciu",
+                "suma": suma,
+                "datum": self.datum,
+                "subjekt": f"{self.zamestnanec.priezvisko}, {self.zamestnanec.meno}", 
+                "cislo": self.cislo,
+                "zdroj": self.zdroj,
+                "zakazka": self.zakazka,
+                "ekoklas": self.ekoklas
+                }
+        return [platba]
+
+    class Meta:
+        verbose_name = "Príspevok na rekreáciu"
+        verbose_name_plural = "PaM - Príspevky na rekreáciu"
+    def __str__(self):
+        return f"{self.zamestnanec.priezvisko}"
+
 # použité len pri vkladané cez admin formulár
 def dohoda_upload_location(instance, filename):
     return os.path.join(DOHODY_DIR, filename)
@@ -1167,7 +1351,7 @@ class Dohoda(PolymorphicModel, Klasifikacia):
             null=True)
     #Vypĺňa sa pri vytvorení vyplácania, pri opakovanej platbe obsahuje dátum za každú platbu
     vyplatene = models.CharField("Vyplatené", 
-            help_text = "Dátum odoslania podkladov na vyplatenie, vypĺňa sa automaticky",
+            help_text = "Dátum odoslania podkladov na vyplatenie, vypĺňa sa automaticky pri vyplnení položky 'PAM Vyplatenie dohody'",
             null = True, blank = True,
             max_length=200)
     subor_dohody = models.FileField("Vygenerovaná dohoda",
@@ -1212,19 +1396,35 @@ class DoVP(Dohoda):
     #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
     def cerpanie_rozpoctu(self, zden):
         if self.datum_do <zden: return []
-        kdatum =  date(zden.year, zden.month+1, zden.day) if zden.month+1 <= 12 else  date(zden.year+1, zden.month, zden.day)
+        kdatum =  date(zden.year, zden.month+1, zden.day) if zden.month+1 <= 12 else  date(zden.year+1, 1, 1)
         if self.datum_do >= kdatum: return []
         platba = {
                 "nazov":f"DoVP odmena",
-                "suma": -self.odmena_celkom,
+                "suma": -Decimal(self.odmena_celkom),
+                "datum": zden,
+                "subjekt": f"{self.zmluvna_strana.priezvisko}, {self.zmluvna_strana.meno}", 
+                "cislo": self.cislo,
                 "zdroj": self.zdroj,
                 "zakazka": self.zakazka,
                 "ekoklas": self.ekoklas
                 }
+
+        nazov_objektu = "Odvody zamestnancov a dohodárov"  #Presne takto musí byť objekt pomenovaný
+        objekt = SystemovySubor.objects.filter(subor_nazov = nazov_objektu)
+        if not objekt:
+            return f"V systéme nie je definovaný súbor '{nazov_objektu}'."
+        nazov_suboru = objekt[0].subor.file.name 
+        td = self.zmluvna_strana.typ_doch
+        td_konv = "StarDoch" if td==TypDochodku.STAROBNY else "InvDoch" if td== TypDochodku.INVALIDNY else "StarDoch" if td==TypDochodku.STAROBNY else "DoVP"
+        odvody, _ = DohodarOdvodySpolu(nazov_suboru, float(self.odmena_celkom), td_konv, zden.year, ODVODY_VYNIMKA if self.vynimka == AnoNie.ANO else 0)
         poistne = {
                 "nazov": "DoVP poistne",
                 #Dočasne všetci rovnako, treba opraviť
-                "suma": -(Decimal(0.3255) if zden.year < 2022 else Decimal(0.328)) * self.odmena_celkom,
+                #"suma": -(Decimal(0.3255) if zden.year < 2022 else Decimal(0.328)) * self.odmena_celkom,
+                "suma": -Decimal(odvody),
+                "datum": zden,
+                "subjekt": f"{self.zmluvna_strana.priezvisko}, {self.zmluvna_strana.meno}", 
+                "cislo": self.cislo,
                 "zdroj": self.zdroj,
                 "zakazka": self.zakazka,
                 "ekoklas": EkonomickaKlasifikacia.objects.get(kod="620")
@@ -1270,6 +1470,13 @@ class DoBPS(Dohoda):
 
 class DoPC(Dohoda):
     oznacenie = "DoPC"
+    dodatok_k = models.ForeignKey('self',
+            help_text = "Ak ide len o dodatok k existujúcej DoVP, zadajte ju v tomto poli.<br />V tomto prípade sa pri ukladaní číslo tohohto dodatku zmení na číslo dohody doplnené o text 'Dodatok'. <br />Ďalší postup vytvárania dodatku je rovnaký ako v prípade DoVP",
+            on_delete=models.PROTECT,
+            related_name='%(class)s_dopc',
+            blank = True,
+            null = True
+            )
     odmena_mesacne = models.DecimalField("Odmena za mesiac",
             help_text = "Dohodnutá mesačná odmena",
             max_digits=8,
@@ -1293,15 +1500,30 @@ class DoPC(Dohoda):
         if zden > self.datum_do: return []
         platba = {
                 "nazov":f"DoPC odmena",
-                "suma": -self.odmena_mesacne,
+                "suma": -Decimal(self.odmena_mesacne),
+                "datum": zden,
+                "subjekt": f"{self.zmluvna_strana.priezvisko}, {self.zmluvna_strana.meno}", 
+                "cislo": self.cislo,
                 "zdroj": self.zdroj,
                 "zakazka": self.zakazka,
                 "ekoklas": self.ekoklas
                 }
+        nazov_objektu = "Odvody zamestnancov a dohodárov"  #Presne takto musí byť objekt pomenovaný
+        objekt = SystemovySubor.objects.filter(subor_nazov = nazov_objektu)
+        if not objekt:
+            return f"V systéme nie je definovaný súbor '{nazov_objektu}'."
+        nazov_suboru = objekt[0].subor.file.name 
+        td = self.zmluvna_strana.typ_doch
+        td_konv = "StarDoch" if td==TypDochodku.STAROBNY else "InvDoch" if td== TypDochodku.INVALIDNY else "StarDoch" if td==TypDochodku.STAROBNY else "DoPC"
+        odvody, _ = DohodarOdvodySpolu(nazov_suboru, float(self.odmena_mesacne), td_konv, zden.year, ODVODY_VYNIMKA if self.vynimka == AnoNie.ANO else 0)
         poistne = {
                 "nazov": "DoPC poistne",
                 #Dočasne všetci rovnako, treba opraviť
-                "suma": -(Decimal(0.3495) if zden.year < 2022 else Decimal(0.352)) * self.odmena_mesacne,
+                #"suma": -(Decimal(0.3495) if zden.year < 2022 else Decimal(0.352)) * self.odmena_mesacne,
+                "suma": -Decimal(odvody),
+                "datum": zden,
+                "subjekt": f"{self.zmluvna_strana.priezvisko}, {self.zmluvna_strana.meno}", 
+                "cislo": self.cislo,
                 "zdroj": self.zdroj,
                 "zakazka": self.zakazka,
                 "ekoklas": EkonomickaKlasifikacia.objects.get(kod="620")
@@ -1315,6 +1537,16 @@ class DoPC(Dohoda):
     def clean(self): 
         if self.hod_mesacne > 40:
             raise ValidationError(f"Počet hodín mesačne {hod_mesacne} presahuje maximálny zákonom povolený počet 40.")
+
+        if self.dodatok_k and not "Dodatok" in self.cislo:
+            qs = DoPC.objects.filter(cislo__startswith=self.dodatok_k.cislo).order_by("cislo")
+            #1. položka nie je dodatok, DoPC-2022-001
+            self.cislo = f"{self.dodatok_k.cislo[:13]}-Dodatok-{len(qs)}" 
+            #ukončiť predchádzajúcu
+            qlast = qs.last()
+            qlast.datum_ukoncenia = self.datum_od + timedelta(days = -1) 
+            qlast.save()
+
     def __str__(self):
         return f"{self.zmluvna_strana}; {self.cislo}"
 
@@ -1417,7 +1649,7 @@ class VyplacanieDohod(models.Model):
             td = "InvDoch"
 
         vyplatena_odmena = float(self.vyplatena_odmena)
-        odvody_zam, odvody_prac = DohodarOdvodySpolu(nazov_suboru, vyplatena_odmena, td, vynimka_suma) 
+        odvody_zam, odvody_prac = DohodarOdvodySpolu(nazov_suboru, vyplatena_odmena, td, self.dohoda.datum_od.year, vynimka_suma) 
         self.poistne_zamestnavatel = odvody_zam
         self.poistne_dohodar = odvody_prac
         self.dan_dohodar = (vyplatena_odmena - self.poistne_dohodar) * DAN_Z_PRIJMU / 100
@@ -1433,3 +1665,160 @@ class VyplacanieDohod(models.Model):
         verbose_name = 'Vyplatenie dohody'
         verbose_name_plural = 'PaM - Vyplácanie dohôd'
 
+
+def pokladna_upload_location(instance, filename):
+    return os.path.join(VPD_DIR, filename)
+class Pokladna(models.Model):
+    oznacenie = "Po"
+    cislo = models.CharField("Číslo záznamu", 
+        max_length=50)
+    typ_transakcie = models.CharField("Typ transakcie", 
+            max_length=25, 
+            null=True, 
+            choices=TypPokladna.choices
+            )
+    suma = models.DecimalField("Suma",
+            help_text = 'Suma. Dotácia je kladná, suma výdavku je záporná',
+            max_digits=8,
+            decimal_places=2,
+            null=True
+            )
+    datum_transakcie = models.DateField('Dátum transakcie',
+            help_text = "Dátum prijatia dotácie alebo preplatenia výdavku",
+            null=True
+            )
+    cislo_VPD = models.IntegerField("Poradové číslo VPD",
+            blank = True,
+            null = True
+        )
+    zamestnanec = models.ForeignKey(Zamestnanec,
+            help_text = "Uveďte zamestnanca, ktorého výdavok bol uhradený. V prípade dotácie nechajte prázdne.", 
+            on_delete=models.PROTECT,
+            related_name='%(class)s_pokladna',
+            blank = True,
+            null = True
+            )
+    subor_vpd = models.FileField("Súbor VPD",
+            help_text = "Súbor s VPD. Generuje sa akciou 'Vytvoriť VPD'",
+            upload_to=pokladna_upload_location, 
+            null = True, blank = True)
+    datum_softip = models.DateField('Dátum THS',
+            help_text = "Dátum vytvorenia zoznamu VPD pre THS. Vypĺňa sa automaticky akciou 'vytvoriť zoznam VPD pre THS'",
+            blank = True,
+            null=True
+            )
+    popis = models.CharField("Popis platby", 
+            help_text = "Stručný popis transakcie.",
+            max_length=30,
+            null=True
+            )
+    poznamka = models.CharField("Poznámka", 
+            max_length=60,
+            blank = True,
+            null=True
+            )
+    zdroj = models.ForeignKey(Zdroj,
+            help_text = "V prípade výdavku je pole povinné, v prípade dotácie nechajte prázdne",
+            on_delete=models.PROTECT,
+            related_name='%(class)s_pokladna',
+            blank = True,
+            null = True
+            )
+    zakazka = models.ForeignKey(TypZakazky,
+            on_delete=models.PROTECT,
+            help_text = "V prípade výdavku je pole povinné, v prípade dotácie nechajte prázdne",
+            verbose_name = "Typ zákazky",
+            related_name='%(class)s_pokladna',
+            blank = True,
+            null = True
+            )
+    ekoklas = models.ForeignKey(EkonomickaKlasifikacia,
+            on_delete=models.PROTECT,
+            help_text = "V prípade výdavku je pole povinné, v prípade dotácie nechajte prázdne",
+            verbose_name = "Ekonomická klasifikácia",
+            related_name='%(class)s_pokladna',
+            blank = True,
+            null = True
+            )
+    cinnost = models.ForeignKey(Cinnost,
+            on_delete=models.PROTECT,
+            help_text = "V prípade výdavku je pole povinné, v prípade dotácie nechajte prázdne",
+            verbose_name = "Činnosť",
+            related_name='%(class)s_pokladna',
+            blank = True,
+            null = True
+            )
+    history = HistoricalRecords()
+
+    def clean(self): 
+        chyby={}
+        if self.typ_transakcie == TypPokladna.DOTACIA:
+            if self.suma <= 0:
+                chyby["suma"] = "V prípade dotácie musí byť pole 'Suma' kladné"
+        else:
+            if not self.cislo_VPD:
+                self.cislo_VPD = nasledujuce_VPD()
+            if self.suma >= 0:
+                chyby["suma"] = "V prípade VPD musí byť pole 'Suma' záporné"
+            if not self.zamestnanec:
+                chyby["zamestnanec"] = "V prípade VPD treba pole 'Zamestnanec' vyplniť"
+            if not self.zakazka:
+                chyby["zakazka"] = "V prípade VPD treba pole 'Typ zákazky' vyplniť"
+            if not self.zdroj:
+                chyby["zdroj"] = "V prípade VPD treba pole 'Zdroj' vyplniť"
+            if not self.ekoklas:
+                chyby["ekoklas"] = "V prípade VPD treba pole 'Ekonomická klasifikácia' vyplniť"
+            if not self.cinnost:
+                chyby["cinnost"] = "V prípade VPD treba pole 'Činnosť' vyplniť"
+            pass
+        if chyby:
+            raise ValidationError(chyby)
+
+    #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
+    def cerpanie_rozpoctu(self, zden):
+        if self.typ_transakcie == TypPokladna.DOTACIA: return []
+        if not self.datum_softip: return []
+        if self.datum_softip <zden: return []
+        kdatum =  date(zden.year, zden.month+1, zden.day) if zden.month+1 <= 12 else  date(zden.year+1, 1, 1)
+        if self.datum_softip >= kdatum: return []
+        platba = {
+                "nazov": "Pokladňa",
+                "suma": self.suma,
+                "datum": self.datum_transakcie,
+                "subjekt": f"{self.zamestnanec.priezvisko}, {self.zamestnanec.meno}", 
+                "cislo": self.cislo,
+                "zdroj": self.zdroj,
+                "zakazka": self.zakazka,
+                "ekoklas": self.ekoklas
+                }
+        return [platba]
+
+    class Meta:
+        verbose_name = 'Záznam pokladne'
+        verbose_name_plural = 'Záznamy pokladne'
+    def __str__(self):
+        return f'{self.cislo}'
+
+class SocialnyFond(models.Model):
+    oznacenie = "SF"
+    cislo = models.CharField("Číslo", 
+            null = True,
+            max_length=50)
+    suma = models.DecimalField("Suma",
+            help_text = 'Príjmy uveďte ako kladné číslo, výdavky uveďte ako záporné číslo.',
+            max_digits=8,
+            decimal_places=2,
+            null=True)
+    datum_platby = models.DateField('Dátum operácie',
+            help_text = "Dátum realizácie operácie",
+            null=True)
+    predmet = models.CharField("Popis operácie", 
+            help_text = "Stručný popis operácie.",
+            max_length=100,
+            null=True)
+    history = HistoricalRecords()
+    class Meta:
+        verbose_name = 'Operácia na účte sociálneho fondu'
+        verbose_name_plural = 'Sociálny fond'
+    def __str__(self):
+        return f'{self.cislo}'
