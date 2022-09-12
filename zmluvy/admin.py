@@ -65,7 +65,7 @@ class PersonCommonAdmin():
 
 class FyzickaOsobaAdmin(PersonCommonAdmin):
     def get_list_display(self, request):
-        return ("menopriezvisko",'email', 'rezident', 'nevyplacat', 'zdanit', "datum_dohoda_podpis", "datum_dohoda_oznamenie", "dohodasubor") + super(FyzickaOsobaAdmin, self).get_list_display(request)
+        return ("menopriezvisko",'email', 'rezident', 'nevyplacat', 'zdanit', "dohodasubor", "datum_dohoda_oznamenie", "datum_dohoda_podpis") + super(FyzickaOsobaAdmin, self).get_list_display(request)
 
     def get_search_fields(self, request):
         return ("priezvisko", "email")
