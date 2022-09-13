@@ -1162,15 +1162,38 @@ class PlatovyVymer(Klasifikacia):
                 "cislo": self.cislo if self.cislo else "-",
                 "ekoklas": EkonomickaKlasifikacia.objects.get(kod="620")
                 }
+        #Socfond
+        if zden in [date(2022,1,1), date(2022,2,1), date(2022,3,1)]:   #Počas tychto 3 mesiacov bolo všetko inak :D
+            socfond = {
+                "nazov": "Prídel do SF",
+                "suma": -round(Decimal(0.015*hruba_mzda),2),
+                "zdroj": Zdroj.objects.get(kod="131L"), 
+                "zakazka": TypZakazky.objects.get(kod="131L0001"),
+                "datum": zden if zden < date.today() else None,
+                "subjekt": f"{self.zamestnanec.priezvisko}, {self.zamestnanec.meno}, (za {zden.year}/{zden.month})", 
+                "cislo": self.cislo if self.cislo else "-",
+                "ekoklas": EkonomickaKlasifikacia.objects.get(kod="637016")
+                }
+        else:
+            socfond = {
+                "nazov": "Prídel do SF",
+                "suma": -round(Decimal(0.015*hruba_mzda),2),
+                "zdroj": self.zdroj,
+                "zakazka": self.zakazka,
+                "datum": zden if zden < date.today() else None,
+                "subjekt": f"{self.zamestnanec.priezvisko}, {self.zamestnanec.meno}, (za {zden.year}/{zden.month})", 
+                "cislo": self.cislo if self.cislo else "-",
+                "ekoklas": EkonomickaKlasifikacia.objects.get(kod="637016")
+                }
         if koef_prit < 1:
             #trace()
             pass
 
         #kvoli kontrole (porovnať s údajmi v Softipe)
         if pn:
-            return [tarifny, osobny, funkcny, poistne, pn]
+            return [tarifny, osobny, funkcny, poistne, socfond, pn]
         else:
-            return [tarifny, osobny, funkcny, poistne]
+            return [tarifny, osobny, funkcny, poistne, socfond]
 
     def urcit_VZ(self, mesiac):
         tabulkovy_plat = float(self.tarifny_plat) + float(self.osobny_priplatok) + float(self.funkcny_priplatok)
