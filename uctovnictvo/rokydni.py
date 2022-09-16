@@ -134,22 +134,28 @@ class DvaDatumy():
 #od, do: očakávame, že sú len v jednom mesiaci
 #do: vrátane
 #do: aj nie je zadané, rátame za celý mesiac
-def prac_dni(od, do = None):
-    #Vygenerovať sviatky za aktuálny rok
-    _sviatky = holidays.SK()
-    _ = od in _sviatky #vlastné generovanie za aktuálny rok
-    sviatky = [sv.isoformat() for sv in _sviatky.keys()]
-    #print(sviatky)
+#ppd: počet prac. dní v týždni. 
+def prac_dni(od, do = None, ppd=None):
     #Pracovné dni v mesiaci
+    if not ppd:
+        wm=[1,1,1,1,1,0,0]
+    elif ppd == 1:
+        wm=[0,0,1,0,0,0,0]  #Predpokladáme, že pracuje v stredu
+    elif ppd == 2:
+        wm=[0,1,1,0,0,0,0]  #Predpokladáme, že pracuje Utorok - Stredu
+    elif ppd == 3:
+        wm=[0,1,1,1,0,0,0]  #Predpokladáme, že pracuje Utorok - Štvrtok
+    elif ppd == 4:
+        wm=[1,1,1,1,1,0,0]  #Predpokladáme, že pracuje Pondelok - Štvrtok
+    elif ppd == 5:
+        wm=[1,1,1,1,1,0,0]  #Predpokladáme, že pracuje Pondelok - Piatok
     if do:
         #print(od,do)
-        return np.busday_count(od, do + timedelta(days=1))
-        #return np.busday_count(od, do + timedelta(days=1), holidays=sviatky)
+        return np.busday_count(od, do + timedelta(days=1), weekmask=wm)
     else:
         m1 = date(od.year,od.month,1)
         mp = date(od.year+1 if od.month==12 else od.year, 1 if od.month==12 else od.month+1, 1)
-        return np.busday_count(m1, mp)
-        #return np.busday_count(m1, mp, holidays=sviatky)
+        return np.busday_count(m1, mp, weekmask=wm)
 
 def prekryv_dni(mesiac, od, do):
     from collections import namedtuple
