@@ -7,7 +7,7 @@ from django.core.exceptions import ValidationError
 from simple_history.models import HistoricalRecords
 from uctovnictvo.storage import OverwriteStorage
 from .odvody import DohodarOdvodySpolu, ZamestnanecOdvodySpolu
-from .rokydni import mesiace, koef_neodprac_dni, prekryv_dni
+from .rokydni import mesiace, koef_neodprac_dni, prekryv_dni, prac_dni
 from polymorphic.models import PolymorphicModel
 from django.utils.safestring import mark_safe
 from decimal import Decimal
@@ -64,11 +64,14 @@ class StavDohody(models.TextChoices):
     DOKONCENA = "dokoncena", "Dokončená"
 
 class TypNepritomnosti(models.TextChoices):
-    MATERSKA = "materská", "Materská"
-    OCR = "ocr", "OČR"
-    PN = "pn", "PN"
-    DOVOLENKA = "dovolenka", "Dovolenka"
+    MATERSKA = "materská", "Materská"   #Náhrada mzdy - prekážky osobné
+    OCR = "ocr", "OČR"  #NP
+    PN = "pn", "PN" #Náhrada mzdy - prekážky osobné
+    DOVOLENKA = "dovolenka", "Dovolenka"    #Náhrada mzdy - dovolenka
     DOVOLENKA2 = "dovolenka2", "Poldeň dovolenky"
+    LEKAR = "lekar", "Návšteva u lekára"    #Náhrada mzdy - prekážky osobné
+    LEKARDOPROVOD = "lekardoprovod", "Doprovod k lekárovi"  #Náhrada mzdy - prekážky osobné
+    PZV = "pzv", "Pracovné zdrav. voľno"    #Náhrada mzdy - prekážky osobné
     NEPLATENE = "neplatene", "Neplatené voľno"
 
 #access label: AnoNie('ano').label
@@ -1036,11 +1039,14 @@ class PlatovyVymer(Klasifikacia):
             null=True)
     platovy_stupen = models.IntegerField("Platový stupeň",
             null=True)
-    uvazok = models.DecimalField("Úväzok", 
-            help_text = "Zadajte pracovný úväzok týždenne (najviac 37,5 hod)",
+    uvazok = models.DecimalField("Úväzok týždenne", 
+            help_text = "Zadajte týždenný pracovný úväzok. Napríklad, pri plnom úväzku 37,5 hod, pri polovičnom 18,75 hod",
             max_digits=8, 
-            decimal_places=2, 
-            default=0)
+            decimal_places=2)
+    uvazok_denne = models.DecimalField("Úväzok denne", 
+            help_text = "Zadajte denný pracovný úväzok. Napríklad, pri plnom úväzku 7,5 hod, pri polovičnom úväzku a dohodnutých 3 prac. dňoch týždenne 6,25 hod (3*6,25= 18,75)",
+            max_digits=8, 
+            decimal_places=2 )
     zamestnanieroky = models.IntegerField("Doba zamestnania v Enú (roky)",
             help_text = "Pole sa vyplňuje automaticky, ak je pole 'Dátum do' vyplnené. Vtedy toto pole obsahuje počet celých rokov zamestnania v EnÚ do konca platnosti tohoto výmeru",
             blank=True,
@@ -1065,39 +1071,57 @@ class PlatovyVymer(Klasifikacia):
         qs1 = qs.exclude(nepritomnost_do__lt=zden)  # vylúčiť nevyhovujúce
         next_month = zden + relativedelta(months=1, day=1)  # 1. deň nasl. mesiaca
         qs2 = qs1.exclude(nepritomnost_od__gte=next_month)  # vylúčiť nevyhovujúce
-        qs3 = qs2.exclude(nepritomnost_typ=TypNepritomnosti.DOVOLENKA)  # vylúčiť dovolenky, platí sa v plnej výške
-        qs3 = qs3.exclude(nepritomnost_typ=TypNepritomnosti.DOVOLENKA2)  # vylúčiť dovolenky, platí sa v plnej výške
-        koef_prit = 1   #znižuje sa v prípase neprítomnosti
-        pn1 = 0         #počet dní práceneschopnosti v dňoch 1-3
-        pn2 = 0         #počet dní práceneschopnosti v dňoch 4-10
-        for nn in qs3:  #môže byť viac neprítomností za mesiac
-            #určiť virtuálny posledný deň v prípade neukončenej neprítomnosti
+
+        ddov = 0         #počet dní dovolenky. Za všetky sa platí náhrada mzdy vo výške platu
+        dosob = 0        #Počet dní osobných prekážok v práci (lekár a podobne). Platí sa náhrada mzdy vo výške platu 
+        dnepl = 0        #neplatené dni. Materská, PN a neplatené voľno. Náhrada za PN sa ráta inak
+        dpn1 = 0         #počet dní práceneschopnosti v dňoch 1-3. Platí sa náhrada 55 %
+        dpn2 = 0         #počet dní práceneschopnosti v dňoch 4-10. Platí sa náhrada 80 %
+
+        pdni = int(self.uvazok/self.uvazok_denne)    #počet pracovných dní v týždni, napr. 18.85/6.25=3
+        for nn in qs2:  #môže byť viac neprítomností za mesiac
+            #v prípade neukončenej neprítomnosti predpokladať neprítomnosť do konca mesiaca
             if not nn.nepritomnost_do:  #nie je zadaný
-                if nn.nepritomnost_typ == TypNepritomnosti.MATERSKA: #ak materská, tak koniec mesiaca
-                    posledny=next_month - relativedelta(days=1)
-                else:
-                    posledny=date.today() + relativedelta(days=5) #inak 5 dní od dneška
+                posledny=next_month - relativedelta(days=1) # koniec mesiaca
             else:
                 posledny = nn.nepritomnost_do 
-
-            # posledny deň obmedziť koncom mesiaca
+            # posledný deň obmedziť koncom mesiaca
             if posledny >= next_month:
                 posledny = next_month - relativedelta(days=1) 
             prvy = nn.nepritomnost_od if nn.nepritomnost_od>zden else zden
-            # ak prvy >= posledny, tak ide o mesiac nasledujúci po virtuálnom ukoncení PN. 
-            if prvy < posledny:
-                koef_prit -= koef_neodprac_dni(prvy, posledny)
 
-            #Nahrady mzdy, PN
-            #Prvé 3 dni, 55%
-            if nn.nepritomnost_typ == TypNepritomnosti.PN:
-                pn1 += prekryv_dni(zden, nn.nepritomnost_od, nn.nepritomnost_od+timedelta(days=2))
+            #Vypočítať počet dní neprítomnosti
+            #Predpokladáme, že v prípade, keď zamestnanec pracuje len napr. Utorok - Štvrtok, neprítomnosť je zadaná len na tieto dni
+            if nn.nepritomnost_typ == TypNepritomnosti.DOVOLENKA2:
+                ddov += 0.5
+            elif nn.nepritomnost_typ == TypNepritomnosti.DOVOLENKA:
+                ddov += prac_dni(prvy,posledny, pdni)
+            elif nn.nepritomnost_typ == TypNepritomnosti.PN:
+                dnepl += prac_dni(prvy,posledny, pdni)
+                #Prvé 3 dni, 55%
+                dpn1 += prekryv_dni(zden, nn.nepritomnost_od, nn.nepritomnost_od+timedelta(days=2))
                 #Dni 4 až 10, 80%
-                pn2 += prekryv_dni(zden, nn.nepritomnost_od+timedelta(days=3), min(nn.nepritomnost_od+timedelta(days=9), posledny))
+                dpn2 += prekryv_dni(zden, nn.nepritomnost_od+timedelta(days=3), min(nn.nepritomnost_od+timedelta(days=9), posledny))
+            elif nn.nepritomnost_typ in [TypNepritomnosti.MATERSKA, TypNepritomnosti.OCR, TypNepritomnosti.NEPLATENE]:
+                dnepl += prac_dni(prvy,posledny, pdni)
+            else:   #Osobné prekážky (LEKAR. LEKARDOPROVOD, PZV)
+                dosob += prac_dni(prvy,posledny, pdni)
 
+        if zden == date(2022,5,1):
+            print(self.zamestnanec.priezvisko, ddov, dosob)
+        #Počet pracovných dní
+        #pri častočnom úväzku len približné, na presný výpočet by sme asi potrebovali vedieť, v ktorých dňoch zamestnanec pracuje.
+        #Tento údaj nie je ani v Softipe
+        dprac = prac_dni(zden, ppd=pdni)
+
+        koef_prac = 1 - float(ddov+dosob+dnepl) / dprac    #Koeficient odpracovaných dní
+        koef_osob = dosob / dprac
+        koef_dov = float(ddov / dprac)    #počet prac dní v rámci dovolenky / počet prac. dní v mesiaci
+
+        #Odpracované dni
         tarifny = {
                 "nazov":"Plat tarifný plat",
-                "suma": -round(Decimal(koef_prit*float(self.tarifny_plat)),2),
+                "suma": -round(Decimal(koef_prac*float(self.tarifny_plat)),2),
                 "zdroj": self.zdroj,
                 "zakazka": self.zakazka,
                 "datum": zden if zden < date.today() else None,
@@ -1107,7 +1131,7 @@ class PlatovyVymer(Klasifikacia):
                 }
         osobny = {
                 "nazov": "Plat osobný príplatok",
-                "suma": -round(Decimal(koef_prit*float(self.osobny_priplatok)),2),
+                "suma": -round(Decimal(koef_prac*float(self.osobny_priplatok)),2),
                 "zdroj": self.zdroj,
                 "zakazka": self.zakazka,
                 "datum": zden if zden < date.today() else None,
@@ -1117,7 +1141,7 @@ class PlatovyVymer(Klasifikacia):
                 }
         funkcny = {
                 "nazov": "Plat funkčný príplatok",
-                "suma": -round(Decimal(koef_prit*float(self.funkcny_priplatok)),2),
+                "suma": -round(Decimal(koef_prac*float(self.funkcny_priplatok)),2),
                 "zdroj": self.zdroj,
                 "zakazka": self.zakazka,
                 "datum": zden if zden < date.today() else None,
@@ -1125,12 +1149,23 @@ class PlatovyVymer(Klasifikacia):
                 "cislo": self.cislo if self.cislo else "-",
                 "ekoklas": self.ekoklas
                 }
-        pn = None
-        if pn1 or pn2:
+
+        tabulkovy_plat = float(self.tarifny_plat) + float(self.osobny_priplatok) + float(self.funkcny_priplatok)
+        #Osobné prekážky, vrátane PN
+        suma_osob = 0
+        if dosob:
+            suma_osob += tabulkovy_plat*koef_osob
+            if zden == date(2022,5,1):
+                pass
+        text_vz = None
+        if dpn1 or dpn2:
             denny_vz, text_vz = self.urcit_VZ(zden)
-            pn = {
-                    "nazov": text_vz,
-                    "suma": -round(Decimal((pn1*PN1+pn2*PN2)*denny_vz/100),2),
+            suma_osob += (dpn1*PN1+dpn2*PN2)*denny_vz/100
+        nahrada_osob = None
+        if suma_osob:
+            nahrada_osob = {
+                    "nazov": "Náhrada mzdy - osobné prekážky",
+                    "suma": -round(Decimal(suma_osob),2),
                     "zdroj": self.zdroj,
                     "zakazka": self.zakazka,
                     "datum": zden if zden < date.today() else None,
@@ -1138,8 +1173,22 @@ class PlatovyVymer(Klasifikacia):
                     "cislo": self.cislo if self.cislo else "-",
                     "ekoklas": EkonomickaKlasifikacia.objects.get(kod="640")
                     }
-            if "približne" in text_vz:
-                pn["poznamka"] = f"V platovom výmere pre zamestnanca {self.zamestnanec} treba doplniť denný vymeriavací základ za mesiac {zden.year}/{zden.month}."
+            if text_vz and "približne" in text_vz:
+                nahrada_osob["poznamka"] = f"V platovom výmere pre zamestnanca {self.zamestnanec} treba doplniť denný vymeriavací základ za mesiac {zden.year}/{zden.month}."
+
+        nahrada_dov = None
+        if ddov:
+            nahrada_dov = {
+                    "nazov": "Náhrada mzdy - dovolenka",
+                    "suma": -round(Decimal(koef_dov*tabulkovy_plat),2),
+                    "zdroj": self.zdroj,
+                    "zakazka": self.zakazka,
+                    "datum": zden if zden < date.today() else None,
+                    "subjekt": f"{self.zamestnanec.priezvisko}, {self.zamestnanec.meno}, (za {zden.year}/{zden.month})", 
+                    "cislo": self.cislo if self.cislo else "-",
+                    "ekoklas": EkonomickaKlasifikacia.objects.get(kod="640")
+                    }
+
         #súbor s tabuľku odvodov
         nazov_objektu = "Odvody zamestnancov a dohodárov"  #Presne takto musí byť objekt pomenovaný
         objekt = SystemovySubor.objects.filter(subor_nazov = nazov_objektu)
@@ -1149,9 +1198,7 @@ class PlatovyVymer(Klasifikacia):
         #Konverzia typu dochodku na pozadovany typ vo funkcii ZamestnanecOdvodySpolu
         td = self.zamestnanec.typ_doch
         td_konv = "InvDoch30" if td==TypDochodku.INVALIDNY30 else "InvDoch70" if td== TypDochodku.INVALIDNY70 else "StarDoch" if td==TypDochodku.STAROBNY else "VyslDoch" if td==TypDochodku.INVAL_VYSL else "Bezny"
-        tabulkovy_plat = float(self.tarifny_plat) + float(self.osobny_priplatok) + float(self.funkcny_priplatok)
-        hruba_mzda = koef_prit * tabulkovy_plat
-        odvody, _ = ZamestnanecOdvodySpolu(nazov_suboru, hruba_mzda, td_konv, zden.year)
+        odvody, _ = ZamestnanecOdvodySpolu(nazov_suboru, koef_prac * tabulkovy_plat, td_konv, zden.year)
         poistne = {
                 "nazov": "Plat odvody",
                 "suma": -round(Decimal(odvody),2),
@@ -1166,7 +1213,7 @@ class PlatovyVymer(Klasifikacia):
         if zden in [date(2022,1,1), date(2022,2,1), date(2022,3,1)]:   #Počas tychto 3 mesiacov bolo všetko inak :D
             socfond = {
                 "nazov": "Prídel do SF",
-                "suma": -round(Decimal(0.015*hruba_mzda),2),
+                "suma": -round(Decimal(0.015*koef_prac*tabulkovy_plat),2),
                 "zdroj": Zdroj.objects.get(kod="131L"), 
                 "zakazka": TypZakazky.objects.get(kod="131L0001"),
                 "datum": zden if zden < date.today() else None,
@@ -1177,7 +1224,7 @@ class PlatovyVymer(Klasifikacia):
         else:
             socfond = {
                 "nazov": "Prídel do SF",
-                "suma": -round(Decimal(0.015*hruba_mzda),2),
+                "suma": -round(Decimal(0.015*koef_prac*tabulkovy_plat),2),  #0.015 podľa kolektívnej zmluvy
                 "zdroj": self.zdroj,
                 "zakazka": self.zakazka,
                 "datum": zden if zden < date.today() else None,
@@ -1185,15 +1232,14 @@ class PlatovyVymer(Klasifikacia):
                 "cislo": self.cislo if self.cislo else "-",
                 "ekoklas": EkonomickaKlasifikacia.objects.get(kod="637016")
                 }
-        if koef_prit < 1:
-            #trace()
-            pass
+        #if koef_prit_sf < 1 and zden == date(2022,11,1):
+        #if zden == date(2022,5,1) and nahrada_dov:
+            #print(self.zamestnanec.priezvisko,tabulkovy_plat, socfond['suma'], poistne['suma'],tarifny['suma'], osobny['suma'], funkcny['suma'], nahrada_dov['suma'])
 
-        #kvoli kontrole (porovnať s údajmi v Softipe)
-        if pn:
-            return [tarifny, osobny, funkcny, poistne, socfond, pn]
-        else:
-            return [tarifny, osobny, funkcny, poistne, socfond]
+        retlist = [tarifny, osobny, funkcny, poistne, socfond]
+        if nahrada_dov: retlist.append(nahrada_dov)
+        if nahrada_osob: retlist.append(nahrada_osob)
+        return retlist
 
     def urcit_VZ(self, mesiac):
         tabulkovy_plat = float(self.tarifny_plat) + float(self.osobny_priplatok) + float(self.funkcny_priplatok)
