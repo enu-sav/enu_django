@@ -157,7 +157,7 @@ def prac_dni(od, do = None):
 #do: vrátane
 #do: aj nie je zadané, rátame za celý mesiac. Sviatky sú ignorované
 #ppd: počet prac. dní v týždni. 
-def prac_dni(od, do = None, ppd=None):
+def prac_dni(od, do = None, ppd=None, zahrnut_sviatky=False):
     #Pracovné dni v mesiaci
     if not ppd:
         wm=[1,1,1,1,1,0,0]
@@ -177,8 +177,8 @@ def prac_dni(od, do = None, ppd=None):
         _sviatky = holidays.SK()
         _ = od in _sviatky #vlastné generovanie za aktuálny rok
         sviatky = [sv.isoformat() for sv in _sviatky.keys()]
-        return np.busday_count(od, do + timedelta(days=1), weekmask=wm, holidays=sviatky)
-    else:
+        return np.busday_count(od, do + timedelta(days=1), weekmask=wm, holidays=[] if zahrnut_sviatky else sviatky)
+    else:   #Sviatky sa zahrnú vždy bez ohľadu na parameter zahrnut_sviatky
         m1 = date(od.year,od.month,1)
         mp = date(od.year+1 if od.month==12 else od.year, 1 if od.month==12 else od.month+1, 1)
         return np.busday_count(m1, mp, weekmask=wm)

@@ -1095,24 +1095,24 @@ class PlatovyVymer(Klasifikacia):
             if nn.nepritomnost_typ == TypNepritomnosti.DOVOLENKA2:
                 ddov += 0.5
             elif nn.nepritomnost_typ == TypNepritomnosti.DOVOLENKA:
-                ddov += prac_dni(prvy,posledny, pdni)
+                ddov += prac_dni(prvy,posledny, pdni, zahrnut_sviatky=False)    #Sviatky sa nezarátajú do dovolenky, ale ako bežný prac. deň
             elif nn.nepritomnost_typ == TypNepritomnosti.PN:
-                dnepl += prac_dni(prvy,posledny, pdni)
+                dnepl += prac_dni(prvy,posledny, pdni, zahrnut_sviatky=True)    #Sviatky sa do PN zarátajú, náhrada sa ráta inak
                 #Prvé 3 dni, 55%
                 dpn1 += prekryv_dni(zden, nn.nepritomnost_od, nn.nepritomnost_od+timedelta(days=2))
                 #Dni 4 až 10, 80%
                 dpn2 += prekryv_dni(zden, nn.nepritomnost_od+timedelta(days=3), min(nn.nepritomnost_od+timedelta(days=9), posledny))
             elif nn.nepritomnost_typ in [TypNepritomnosti.MATERSKA, TypNepritomnosti.OCR, TypNepritomnosti.NEPLATENE]:
-                dnepl += prac_dni(prvy,posledny, pdni)
+                dnepl += prac_dni(prvy,posledny, pdni, zahrnut_sviatky=True)    #Sviatky sa zarátajú, nie sú platené
             else:   #Osobné prekážky (LEKAR. LEKARDOPROVOD, PZV)
-                dosob += prac_dni(prvy,posledny, pdni)
+                dosob += prac_dni(prvy,posledny, pdni, zahrnut_sviatky=True)    #Osobné prekážky vo sviatok sa nemajú čo vyskytovať
 
         if zden == date(2022,5,1):
             print(self.zamestnanec.priezvisko, ddov, dosob)
         #Počet pracovných dní
         #pri častočnom úväzku len približné, na presný výpočet by sme asi potrebovali vedieť, v ktorých dňoch zamestnanec pracuje.
         #Tento údaj nie je ani v Softipe
-        dprac = prac_dni(zden, ppd=pdni)
+        dprac = prac_dni(zden, ppd=pdni, zahrnut_sviatky=False) #Sviatky sa rátajú ako pracovné dni
 
         koef_prac = 1 - float(ddov+dosob+dnepl) / dprac    #Koeficient odpracovaných dní
         koef_osob = dosob / dprac
