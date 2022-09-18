@@ -7,7 +7,7 @@ from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 from .models import nasledujuce_cislo, nasledujuce_VPD
 from .models import PrijataFaktura, Objednavka, PrispevokNaStravne, DoPC, DoVP, DoBPS, PlatovyVymer
-from .models import VyplacanieDohod, StavDohody, Dohoda, PravidelnaPlatba, TypPP, InternyPrevod, Nepritomnost
+from .models import VyplacanieDohod, StavDohody, Dohoda, PravidelnaPlatba, TypPP, InternyPrevod, Nepritomnost, TypNepritomnosti
 from .models import Najomnik, NajomnaZmluva, NajomneFaktura, TypPN, RozpoctovaPolozkaDotacia, RozpoctovaPolozkaPresun
 from .models import PlatbaBezPrikazu, Pokladna, TypPokladna, SocialnyFond, PrispevokNaRekreaciu
 from .common import meno_priezvisko
@@ -563,6 +563,7 @@ class PrispevokNaRekreaciuForm(forms.ModelForm):
 class NepritomnostForm(forms.ModelForm):
     #inicializácia polí
     def __init__(self, *args, **kwargs):
+        self.request = kwargs.pop('request', None)
         super().__init__(*args, **kwargs)
         polecislo = "cislo"
         # Ak je pole readonly, tak sa nenachádza vo fields. Preto testujeme fields aj initial
@@ -573,6 +574,22 @@ class NepritomnostForm(forms.ModelForm):
     class Meta:
         model = Nepritomnost
         fields = "__all__"
+
+    # Skontrolovať platnost a prípadne spraviť zmeny
+
+    def clean(self): 
+        if self.cleaned_data["nepritomnost_typ"] in [TypNepritomnosti.LEKAR, TypNepritomnosti.LEKARDOPROVOD] and not self.cleaned_data["dlzka_nepritomnosti"]:
+            zamestnanec = self.cleaned_data["zamestnanec"]
+            #Doplniť denný úväzok zamestnanca
+            qs = PlatovyVymer.objects.filter(zamestnanec=zamestnanec, datum_od__lte=date.today(), datum_do__gte=date.today() )
+            if not qs:  #Aktuálny výmer nie je ukončený
+                qs = PlatovyVymer.objects.filter(zamestnanec=zamestnanec, datum_od__lte=date.today(), datum_do__isnull=True)
+            self.cleaned_data["dlzka_nepritomnosti"] = qs[0].uvazok_denne
+            messages.warning(self.request, f"Dĺžka neprítomnosti nebola vyplnená. Doplnená bola doba {self.cleaned_data['dlzka_nepritomnosti']} hod., t.j. jeden pracovný deň zamestnanca.")
+        elif not self.cleaned_data["nepritomnost_typ"] in [TypNepritomnosti.LEKAR, TypNepritomnosti.LEKARDOPROVOD] and self.cleaned_data["dlzka_nepritomnosti"]:
+            self.cleaned_data["dlzka_nepritomnosti"] = None
+            messages.warning(self.request, "Dĺžka neprítomnosti sa pre daný typ neprítomnosti neuvádza. Zadaná hodnota bola odstránená.")
+        return self.cleaned_data
 
 class VyplacanieDohodForm(forms.ModelForm):
     #inicializácia polí

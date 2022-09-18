@@ -1277,6 +1277,12 @@ class Nepritomnost(models.Model):
             max_length=20, 
             null=True, 
             choices=TypNepritomnosti.choices)
+    dlzka_nepritomnosti = models.DecimalField("Dĺžka nepritomnosti",
+            help_text = "Dĺžka neprítomnosti v hodinách, napr '1,5'.<br /> Vypĺňa sa len v prípade návštevy lekára a doprovodu k lekárovi.<br />Ak v týchto prípadoch pole necháte prázdne, automaticky sa doplní na denný úväzok zamestnanca.", 
+            max_digits=4, 
+            decimal_places=2, 
+            blank=True, 
+            null=True)
     history = HistoricalRecords()
     class Meta:
         verbose_name = "Neprítomnosť"
@@ -1284,6 +1290,11 @@ class Nepritomnost(models.Model):
     def __str__(self):
         od = self.nepritomnost_od.strftime('%d. %m. %Y')
         return f"{self.zamestnanec.priezvisko} od {od}"
+
+    def clean(self): 
+        if self.nepritomnost_typ in [TypNepritomnosti.LEKAR, TypNepritomnosti.LEKARDOPROVOD]:
+            if self.nepritomnost_do - self.nepritomnost_od > timedelta(0): 
+                raise ValidationError("Neprítonmosť v prípade návštevy u lekára alebo doprovodu k lekárovi možno zadať len na jeden deň.")
 
 def rekreacia_upload_location(instance, filename):
     return os.path.join(REKREACIA_DIR, filename)
