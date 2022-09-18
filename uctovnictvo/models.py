@@ -1198,7 +1198,7 @@ class PlatovyVymer(Klasifikacia):
         #Konverzia typu dochodku na pozadovany typ vo funkcii ZamestnanecOdvodySpolu
         td = self.zamestnanec.typ_doch
         td_konv = "InvDoch30" if td==TypDochodku.INVALIDNY30 else "InvDoch70" if td== TypDochodku.INVALIDNY70 else "StarDoch" if td==TypDochodku.STAROBNY else "VyslDoch" if td==TypDochodku.INVAL_VYSL else "Bezny"
-        odvody, _ = ZamestnanecOdvodySpolu(nazov_suboru, koef_prac * tabulkovy_plat, td_konv, zden.year)
+        odvody, _ = ZamestnanecOdvodySpolu(nazov_suboru, koef_prac * tabulkovy_plat, td_konv, zden)
         poistne = {
                 "nazov": "Plat odvody",
                 "suma": -round(Decimal(odvody),2),
@@ -1485,7 +1485,7 @@ class DoVP(Dohoda):
         nazov_suboru = objekt[0].subor.file.name 
         td = self.zmluvna_strana.typ_doch
         td_konv = "StarDoch" if td==TypDochodku.STAROBNY else "InvDoch" if td== TypDochodku.INVALIDNY else "StarDoch" if td==TypDochodku.STAROBNY else "DoVP"
-        odvody, _ = DohodarOdvodySpolu(nazov_suboru, float(self.odmena_celkom), td_konv, zden.year, ODVODY_VYNIMKA if self.vynimka == AnoNie.ANO else 0)
+        odvody, _ = DohodarOdvodySpolu(nazov_suboru, float(self.odmena_celkom), td_konv, zden, ODVODY_VYNIMKA if self.vynimka == AnoNie.ANO else 0)
         poistne = {
                 "nazov": "DoVP poistne",
                 #Dočasne všetci rovnako, treba opraviť
@@ -1584,7 +1584,7 @@ class DoPC(Dohoda):
         nazov_suboru = objekt[0].subor.file.name 
         td = self.zmluvna_strana.typ_doch
         td_konv = "StarDoch" if td==TypDochodku.STAROBNY else "InvDoch" if td== TypDochodku.INVALIDNY else "StarDoch" if td==TypDochodku.STAROBNY else "DoPC"
-        odvody, _ = DohodarOdvodySpolu(nazov_suboru, float(self.odmena_mesacne), td_konv, zden.year, ODVODY_VYNIMKA if self.vynimka == AnoNie.ANO else 0)
+        odvody, _ = DohodarOdvodySpolu(nazov_suboru, float(self.odmena_mesacne), td_konv, zden, ODVODY_VYNIMKA if self.vynimka == AnoNie.ANO else 0)
         poistne = {
                 "nazov": "DoPC poistne",
                 #Dočasne všetci rovnako, treba opraviť
@@ -1718,7 +1718,7 @@ class VyplacanieDohod(models.Model):
             td = "InvDoch"
 
         vyplatena_odmena = float(self.vyplatena_odmena)
-        odvody_zam, odvody_prac = DohodarOdvodySpolu(nazov_suboru, vyplatena_odmena, td, self.dohoda.datum_od.year, vynimka_suma) 
+        odvody_zam, odvody_prac = DohodarOdvodySpolu(nazov_suboru, vyplatena_odmena, td, self.dohoda.datum_od, vynimka_suma) 
         self.poistne_zamestnavatel = odvody_zam
         self.poistne_dohodar = odvody_prac
         self.dan_dohodar = (vyplatena_odmena - self.poistne_dohodar) * DAN_Z_PRIJMU / 100
