@@ -69,9 +69,9 @@ class TypNepritomnosti(models.TextChoices):
     PN = "pn", "PN" #Náhrada mzdy - prekážky osobné
     DOVOLENKA = "dovolenka", "Dovolenka"    #Náhrada mzdy - dovolenka
     DOVOLENKA2 = "dovolenka2", "Poldeň dovolenky"
-    LEKAR = "lekar", "Návšteva u lekára"    #Náhrada mzdy - prekážky osobné
-    LEKARDOPROVOD = "lekardoprovod", "Doprovod k lekárovi"  #Náhrada mzdy - prekážky osobné
-    PZV = "pzv", "Pracovné zdrav. voľno"    #Náhrada mzdy - prekážky osobné
+    LEKAR = "lekar", "Návšteva u lekára (L)"    #Náhrada mzdy - prekážky osobné
+    LEKARDOPROVOD = "lekardoprovod", "Doprovod k lekárovi (L/D)"  #Náhrada mzdy - prekážky osobné
+    PZV = "pzv", "Pracovné voľno (PzV, PV, P, S)"    #Náhrada mzdy - prekážky osobné
     NEPLATENE = "neplatene", "Neplatené voľno"
 
 #access label: AnoNie('ano').label
