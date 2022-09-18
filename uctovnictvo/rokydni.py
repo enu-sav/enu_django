@@ -134,6 +134,28 @@ class DvaDatumy():
 #od, do: očakávame, že sú len v jednom mesiaci
 #do: vrátane
 #do: aj nie je zadané, rátame za celý mesiac
+def prac_dni(od, do = None):
+    #Vygenerovať sviatky za aktuálny rok
+    _sviatky = holidays.SK()
+    _ = od in _sviatky #vlastné generovanie za aktuálny rok
+    sviatky = [sv.isoformat() for sv in _sviatky.keys()]
+    #print(sviatky)
+    #Pracovné dni v mesiaci
+    if do:
+        #print(od,do)
+        return np.busday_count(od, do + timedelta(days=1))
+        #return np.busday_count(od, do + timedelta(days=1), holidays=sviatky)
+    else:
+        m1 = date(od.year,od.month,1)
+        mp = date(od.year+1 if od.month==12 else od.year, 1 if od.month==12 else od.month+1, 1)
+        return np.busday_count(m1, mp)
+        #return np.busday_count(m1, mp, holidays=sviatky)
+
+#vypočítať počet pracovných dní
+#sviatky sa ignorujú
+#od, do: očakávame, že sú len v jednom mesiaci. Použité na výpočet neprítomnosti, sviatky sú brané, akoby bol zamestnanec v práci
+#do: vrátane
+#do: aj nie je zadané, rátame za celý mesiac. Sviatky sú ignorované
 #ppd: počet prac. dní v týždni. 
 def prac_dni(od, do = None, ppd=None):
     #Pracovné dni v mesiaci
@@ -151,7 +173,11 @@ def prac_dni(od, do = None, ppd=None):
         wm=[1,1,1,1,1,0,0]  #Predpokladáme, že pracuje Pondelok - Piatok
     if do:
         #print(od,do)
-        return np.busday_count(od, do + timedelta(days=1), weekmask=wm)
+        #Vygenerovať sviatky za aktuálny rok
+        _sviatky = holidays.SK()
+        _ = od in _sviatky #vlastné generovanie za aktuálny rok
+        sviatky = [sv.isoformat() for sv in _sviatky.keys()]
+        return np.busday_count(od, do + timedelta(days=1), weekmask=wm, holidays=sviatky)
     else:
         m1 = date(od.year,od.month,1)
         mp = date(od.year+1 if od.month==12 else od.year, 1 if od.month==12 else od.month+1, 1)
