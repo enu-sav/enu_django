@@ -1104,11 +1104,15 @@ class PlatovyVymer(Klasifikacia):
                 dpn2 += prekryv_dni(zden, nn.nepritomnost_od+timedelta(days=3), min(nn.nepritomnost_od+timedelta(days=9), posledny))
             elif nn.nepritomnost_typ in [TypNepritomnosti.MATERSKA, TypNepritomnosti.OCR, TypNepritomnosti.NEPLATENE]:
                 dnepl += prac_dni(prvy,posledny, pdni, zahrnut_sviatky=True)    #Sviatky sa zarátajú, nie sú platené
-            else:   #Osobné prekážky (LEKAR. LEKARDOPROVOD, PZV)
+            elif nn.nepritomnost_typ in [TypNepritomnosti.LEKARDOPROVOD, TypNepritomnosti.LEKAR]:
+                dosob += float(nn.dlzka_nepritomnosti*prac_dni(prvy,posledny, pdni, zahrnut_sviatky=True)/self.uvazok_denne)    #Osobné prekážky vo sviatok sa nemajú čo vyskytovať
+            else:   #Osobné prekážky (Pracovné voľno)
                 dosob += prac_dni(prvy,posledny, pdni, zahrnut_sviatky=True)    #Osobné prekážky vo sviatok sa nemajú čo vyskytovať
 
-        if zden == date(2022,5,1):
-            print(self.zamestnanec.priezvisko, ddov, dosob)
+        if zden == date(2022,7,1) and self.zamestnanec.meno=="Helena":
+            print(self.zamestnanec.priezvisko, ddov, dosob, dnepl, dpn1, dpn2)
+            #trace()
+            pass
         #Počet pracovných dní
         #pri častočnom úväzku len približné, na presný výpočet by sme asi potrebovali vedieť, v ktorých dňoch zamestnanec pracuje.
         #Tento údaj nie je ani v Softipe
@@ -1151,21 +1155,13 @@ class PlatovyVymer(Klasifikacia):
                 }
 
         tabulkovy_plat = float(self.tarifny_plat) + float(self.osobny_priplatok) + float(self.funkcny_priplatok)
-        #Osobné prekážky, vrátane PN
-        suma_osob = 0
-        if dosob:
-            suma_osob += tabulkovy_plat*koef_osob
-            if zden == date(2022,5,1):
-                pass
-        text_vz = None
+        #PN
+        nahrada_pn = None
         if dpn1 or dpn2:
             denny_vz, text_vz = self.urcit_VZ(zden)
-            suma_osob += (dpn1*PN1+dpn2*PN2)*denny_vz/100
-        nahrada_osob = None
-        if suma_osob:
-            nahrada_osob = {
-                    "nazov": "Náhrada mzdy - osobné prekážky",
-                    "suma": -round(Decimal(suma_osob),2),
+            nahrada_pn = {
+                    "nazov": "Náhrada mzdy - PN",
+                    "suma": -round(Decimal((dpn1*PN1+dpn2*PN2)*denny_vz/100),2),
                     "zdroj": self.zdroj,
                     "zakazka": self.zakazka,
                     "datum": zden if zden < date.today() else None,
@@ -1175,6 +1171,20 @@ class PlatovyVymer(Klasifikacia):
                     }
             if text_vz and "približne" in text_vz:
                 nahrada_osob["poznamka"] = f"V platovom výmere pre zamestnanca {self.zamestnanec} treba doplniť denný vymeriavací základ za mesiac {zden.year}/{zden.month}."
+
+        #Osobné prekážky
+        nahrada_osob = None
+        if dosob:
+            nahrada_osob = {
+                    "nazov": "Náhrada mzdy - osobné prekážky",
+                    "suma": -round(Decimal(tabulkovy_plat*koef_osob),2),
+                    "zdroj": self.zdroj,
+                    "zakazka": self.zakazka,
+                    "datum": zden if zden < date.today() else None,
+                    "subjekt": f"{self.zamestnanec.priezvisko}, {self.zamestnanec.meno}, (za {zden.year}/{zden.month})", 
+                    "cislo": self.cislo if self.cislo else "-",
+                    "ekoklas": EkonomickaKlasifikacia.objects.get(kod="640")
+                    }
 
         nahrada_dov = None
         if ddov:
@@ -1239,6 +1249,7 @@ class PlatovyVymer(Klasifikacia):
         retlist = [tarifny, osobny, funkcny, poistne, socfond]
         if nahrada_dov: retlist.append(nahrada_dov)
         if nahrada_osob: retlist.append(nahrada_osob)
+        if nahrada_pn: retlist.append(nahrada_pn)
         return retlist
 
     def urcit_VZ(self, mesiac):
