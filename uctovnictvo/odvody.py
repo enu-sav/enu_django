@@ -16,20 +16,22 @@ def TabulkaOdvodov(meno_suboru, zam_doh, typ, datum, vynimka=False):
             ws = workbook["Zamestnanci"]
             if not ws:
                 return f"V súbore '{nazov_objektu}' sa nenachádza hárok 'Zamestnanci'."
-            udaje = {
+            socialne = {
                 "nemocenske": 4,
                 "starobne": 5,
                 "invalidne": 6,
                 "nezamestnanecke": 7,
                 "urazove": 8,
-                "rezervny": 10,
+                "rezervny": 10
+            }
+            zdravotne = {
                 "zdravotne": 12,
             }
         elif datum < date(2022,3,1):
             ws = workbook["Zamestnanci"]
             if not ws:
                 return f"V súbore '{nazov_objektu}' sa nenachádza hárok 'Zamestnanci'."
-            udaje = {
+            socialne = {
                 "nemocenske": 4,
                 "starobne": 5,
                 "invalidne": 6,
@@ -37,13 +39,15 @@ def TabulkaOdvodov(meno_suboru, zam_doh, typ, datum, vynimka=False):
                 "urazove": 8,
                 "garancne": 9,
                 "rezervny": 10,
+            }
+            zdravotne = {
                 "zdravotne": 12,
             }
         else:
             ws = workbook["Zamestnanci 2022"]
             if not ws:
                 return f"V súbore '{nazov_objektu}' sa nenachádza hárok 'Zamestnanci'."
-            udaje = {
+            socialne = {
                 "nemocenske": 4,
                 "starobne": 5,
                 "invalidne": 6,
@@ -52,7 +56,9 @@ def TabulkaOdvodov(meno_suboru, zam_doh, typ, datum, vynimka=False):
                 "garancne": 9,
                 "rezervny": 10,
                 "financovanie_podpory": 11,
-                "zdravotne": 13,
+            }
+            zdravotne = {
+                    "zdravotne": 13,
             }
 
         #stĺpec v tabulke
@@ -73,17 +79,19 @@ def TabulkaOdvodov(meno_suboru, zam_doh, typ, datum, vynimka=False):
         if not ws:
             return f"V súbore '{nazov_objektu}' sa nenachádza hárok 'Dohodári'."
         # riadky v tabulke s udajmi o poisteni podľa obdobia platnosti
-        udaje = {
+        socialne = {
             "nemocenske": 4,
             "starobne": 5,
             "invalidne": 6,
             "nezamestnanecke": 7,
             "urazove": 8,
             "rezervny": 10,
+        }
+        zdravotne = {
             "zdravotne": 12,
         }
         if datum.year > 2021:
-            udaje["garancne"] = 9
+            socialne["garancne"] = 9
 
 
         #stĺpec v tabulke
@@ -100,50 +108,67 @@ def TabulkaOdvodov(meno_suboru, zam_doh, typ, datum, vynimka=False):
         else:
             return f"Zadaný neplatný typ dohodára {typ}"
 
-    odvody_zam = {}
-    odvody_prac = {}
+    socialne_zam = {}
+    socialne_prac = {}
+    zdravotne_zam = {}
+    zdravotne_prac = {}
 
-    for pp in udaje:
-        odvody_zam[pp] = ws.cell(row=udaje[pp], column=col0).value / 100 
-        odvody_prac[pp] = ws.cell(row=udaje[pp], column=col0+1).value / 100
-    return odvody_zam, odvody_prac
+    for pp in socialne:
+        socialne_zam[pp] = ws.cell(row=socialne[pp], column=col0).value / 100 
+        socialne_prac[pp] = ws.cell(row=socialne[pp], column=col0+1).value / 100
+    for pp in zdravotne:
+        zdravotne_zam[pp] = ws.cell(row=zdravotne[pp], column=col0).value / 100 
+        zdravotne_prac[pp] = ws.cell(row=zdravotne[pp], column=col0+1).value / 100
+    return socialne_zam, socialne_prac, zdravotne_zam, zdravotne_prac
 
 # vodmena: vyňatá odmena na základe odvodovej výnimky
 def DohodarOdvody(meno_suboru, odmena, typ, datum, vodmena):
     if typ in ["DoBPS", "StarDoch", "InvDoch"] and vodmena > 0:
         if odmena > vodmena:    #veľké odvody, nad sumou vodmena
-            tz1, tp1 = TabulkaOdvodov(meno_suboru, "dohodar", typ, datum)
-            tz, tp = TabulkaOdvodov(meno_suboru, "dohodar", typ, datum, vynimka=True)
-            for item1, item in zip(tz1, tz): 
-                tz[item] = round((odmena-vodmena)*tz1[item]+vodmena*tz[item], 2)
-            for item1, item in zip(tp1, tp): 
-                tp[item] = round((odmena-vodmena)*tp1[item]+vodmena*tp[item], 2)
+            ts_z1, ts_p1, tz_z1, tz_p1 = TabulkaOdvodov(meno_suboru, "dohodar", typ, datum)
+            ts_z, ts_p, tz_z, tz_p = TabulkaOdvodov(meno_suboru, "dohodar", typ, datum, vynimka=True)
+            for item1, item in zip(ts_z1, ts_z): 
+                ts_z[item] = round((odmena-vodmena)*ts_z1[item]+vodmena*ts_z[item], 2)
+            for item1, item in zip(ts_p1, ts_p): 
+                ts_p[item] = round((odmena-vodmena)*ts_p1[item]+vodmena*ts_p[item], 2)
+            for item1, item in zip(tz_z1, tz_z): 
+                tz_z[item] = round((odmena-vodmena)*tz_z1[item]+vodmena*tz_z[item], 2)
+            for item1, item in zip(tz_p1, tz_p): 
+                tz_p[item] = round((odmena-vodmena)*tz_p1[item]+vodmena*tz_p[item], 2)
         # malé odvody
         else:
-            tz, tp = TabulkaOdvodov(meno_suboru, "dohodar", typ, datum, vynimka=True)
-            for item in tz: tz[item] = round(odmena*tz[item], 2)
-            for item in tp: tp[item] = round(odmena*tp[item], 2)
+            ts_z, ts_p, tz_z, tz_p = TabulkaOdvodov(meno_suboru, "dohodar", typ, datum, vynimka=True)
+            for item in ts_z: ts_z[item] = round(odmena*ts_z[item], 2)
+            for item in ts_p: ts_p[item] = round(odmena*ts_p[item], 2)
+            for item in tz_z: tz_z[item] = round(odmena*tz_z[item], 2)
+            for item in tz_p: tz_p[item] = round(odmena*tz_p[item], 2)
     else:
-        tz, tp = TabulkaOdvodov(meno_suboru, "dohodar", typ, datum)
-        for item in tz: 
-            tz[item] = round(odmena*tz[item], 2)
-        for item in tp: 
-            tp[item] = round(odmena*tp[item], 2)
-    return tz, tp
+        ts_z, ts_p, tz_z, tz_p = TabulkaOdvodov(meno_suboru, "dohodar", typ, datum)
+        for item in ts_z: 
+            ts_z[item] = round(odmena*ts_z[item], 2)
+        for item in ts_p: 
+            ts_p[item] = round(odmena*ts_p[item], 2)
+        for item in tz_z: 
+            tz_z[item] = round(odmena*tz_z[item], 2)
+        for item in tz_p: 
+            tz_p[item] = round(odmena*tz_p[item], 2)
+    return ts_z, ts_p, tz_z, tz_p
 
 def DohodarOdvodySpolu(meno_suboru, odmena, typ, datum, vodmena):
-    odvody_zam, odvody_prac = DohodarOdvody(meno_suboru, odmena, typ, datum, vodmena)
-    return sum(odvody_zam.values()), sum(odvody_prac.values())
+    socialne_zam, socialne_prac, zdravotne_zam, zdravotne_prac = DohodarOdvody(meno_suboru, odmena, typ, datum, vodmena)
+    return sum(socialne_zam.values()), sum(socialne_prac.values()), sum(zdravotne_zam.values()), sum(zdravotne_prac.values())
 
 def ZamestnanecOdvody(meno_suboru, odmena, typ, datum):
-    tz, tp = TabulkaOdvodov(meno_suboru, "zamestnanec", typ, datum)
-    for item in tz: tz[item] = round(odmena*tz[item], 2)
-    for item in tp: tp[item] = round(odmena*tp[item], 2)
-    return tz, tp
+    ts_z, ts_p, tz_z, tz_p = TabulkaOdvodov(meno_suboru, "zamestnanec", typ, datum)
+    for item in ts_z: ts_z[item] = round(odmena*ts_z[item], 2)
+    for item in ts_p: ts_p[item] = round(odmena*ts_p[item], 2)
+    for item in tz_z: tz_z[item] = round(odmena*tz_z[item], 2)
+    for item in tz_p: tz_p[item] = round(odmena*tz_p[item], 2)
+    return ts_z, ts_p, tz_z, tz_p
 
 def ZamestnanecOdvodySpolu(meno_suboru, odmena, typ, datum):
-    odvody_zam, odvody_prac = ZamestnanecOdvody(meno_suboru, odmena, typ, datum)
-    return sum(odvody_zam.values()), sum(odvody_prac.values())
+    socialne_zam, socialne_prac, zdravotne_zam, zdravotne_prac = ZamestnanecOdvody(meno_suboru, odmena, typ, datum)
+    return sum(socialne_zam.values()), sum(socialne_prac.values()), sum(zdravotne_zam.values()), sum(zdravotne_prac.values())
 
 smeno = '/home/milos/Beliana/Django/enu_django-dev/data/Subory/SablonyASubory/OdvodyZamestnanciDohodari.xlsx'
 def dohodari_test():
@@ -206,18 +231,18 @@ def dohodari_test():
 def zamestnanci_test():
     typy = ["Bezny", "InvDoch30", "InvDoch70", "StarDoch", "VyslDoch"]
     for typ in typy:
-        odvody_zam, odvody_prac = ZamestnanecOdvodySpolu(smeno, 100, typ, date(2021,10,1))
-        print("%12s %s %2.2f %2.2f"%(typ, date(2021,10,1), odvody_zam, odvody_prac))
+        socialne_zam, socialne_prac, zdravotne_zam, zdravotne_prac = ZamestnanecOdvodySpolu(smeno, 100, typ, date(2021,10,1))
+        print("%12s %s %2.2f %2.2f %2.2f %2.2f"%(typ, date(2021,10,1), socialne_zam, socialne_prac, zdravotne_zam, zdravotne_prac))
     print()
 
     for typ in typy:
-        odvody_zam, odvody_prac = ZamestnanecOdvodySpolu(smeno, 100, typ, date(2022,2,1))
-        print("%12s %s %2.2f %2.2f"%(typ, date(2022,2,1), odvody_zam, odvody_prac))
+        socialne_zam, socialne_prac, zdravotne_zam, zdravotne_prac = ZamestnanecOdvodySpolu(smeno, 100, typ, date(2022,2,1))
+        print("%12s %s %2.2f %2.2f %2.2f %2.2f"%(typ, date(2022,2,1), socialne_zam, socialne_prac, zdravotne_zam, zdravotne_prac))
     print()
 
     for typ in typy:
-        odvody_zam, odvody_prac = ZamestnanecOdvodySpolu(smeno, 100, typ, date(2022,8,1))
-        print("%12s %s %2.2f %2.2f"%(typ, date(2022,8,1), odvody_zam, odvody_prac))
+        socialne_zam, socialne_prac, zdravotne_zam, zdravotne_prac = ZamestnanecOdvodySpolu(smeno, 100, typ, date(2022,8,1))
+        print("%12s %s %2.2f %2.2f %2.2f %2.2f"%(typ, date(2022,8,1), socialne_zam, socialne_prac, zdravotne_zam, zdravotne_prac))
 
 
     

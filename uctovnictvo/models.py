@@ -1207,11 +1207,26 @@ class PlatovyVymer(Klasifikacia):
         nazov_suboru = objekt[0].subor.file.name 
         #Konverzia typu dochodku na pozadovany typ vo funkcii ZamestnanecOdvodySpolu
         td = self.zamestnanec.typ_doch
+        if zden==date(2022,8,1) and self.zamestnanec.priezvisko=="Lapúniková":
+            #trace()
+            pass
         td_konv = "InvDoch30" if td==TypDochodku.INVALIDNY30 else "InvDoch70" if td== TypDochodku.INVALIDNY70 else "StarDoch" if td==TypDochodku.STAROBNY else "VyslDoch" if td==TypDochodku.INVAL_VYSL else "Bezny"
-        odvody, _ = ZamestnanecOdvodySpolu(nazov_suboru, koef_prac * tabulkovy_plat, td_konv, zden)
-        poistne = {
-                "nazov": "Plat odvody",
-                "suma": -round(Decimal(odvody),2),
+        if zden==date(2022,4,1):
+            pass
+        socpoist, _, zdravpoist, _ = ZamestnanecOdvodySpolu(nazov_suboru, (koef_prac+koef_dov+koef_osob) * tabulkovy_plat, td_konv, zden)
+        socialne = {
+                "nazov": "Plat poistenie sociálne",
+                "suma": -round(Decimal(socpoist),2),
+                "zdroj": self.zdroj,
+                "zakazka": self.zakazka,
+                "datum": zden if zden < date.today() else None,
+                "subjekt": f"{self.zamestnanec.priezvisko}, {self.zamestnanec.meno}, (za {zden.year}/{zden.month})", 
+                "cislo": self.cislo if self.cislo else "-",
+                "ekoklas": EkonomickaKlasifikacia.objects.get(kod="620")
+                }
+        zdravotne = {
+                "nazov": "Plat poistenie zdravotné",
+                "suma": -round(Decimal(zdravpoist),2),
                 "zdroj": self.zdroj,
                 "zakazka": self.zakazka,
                 "datum": zden if zden < date.today() else None,
@@ -1246,7 +1261,7 @@ class PlatovyVymer(Klasifikacia):
         #if zden == date(2022,5,1) and nahrada_dov:
             #print(self.zamestnanec.priezvisko,tabulkovy_plat, socfond['suma'], poistne['suma'],tarifny['suma'], osobny['suma'], funkcny['suma'], nahrada_dov['suma'])
 
-        retlist = [tarifny, osobny, funkcny, poistne, socfond]
+        retlist = [tarifny, osobny, funkcny, socialne, zdravotne, socfond]
         if nahrada_dov: retlist.append(nahrada_dov)
         if nahrada_osob: retlist.append(nahrada_osob)
         if nahrada_pn: retlist.append(nahrada_pn)
@@ -1507,12 +1522,10 @@ class DoVP(Dohoda):
         nazov_suboru = objekt[0].subor.file.name 
         td = self.zmluvna_strana.typ_doch
         td_konv = "StarDoch" if td==TypDochodku.STAROBNY else "InvDoch" if td== TypDochodku.INVALIDNY else "StarDoch" if td==TypDochodku.STAROBNY else "DoVP"
-        odvody, _ = DohodarOdvodySpolu(nazov_suboru, float(self.odmena_celkom), td_konv, zden, ODVODY_VYNIMKA if self.vynimka == AnoNie.ANO else 0)
-        poistne = {
-                "nazov": "DoVP poistne",
-                #Dočasne všetci rovnako, treba opraviť
-                #"suma": -(Decimal(0.3255) if zden.year < 2022 else Decimal(0.328)) * self.odmena_celkom,
-                "suma": -Decimal(odvody),
+        socpoist, _, zdravpoist, _  = DohodarOdvodySpolu(nazov_suboru, float(self.odmena_celkom), td_konv, zden, ODVODY_VYNIMKA if self.vynimka == AnoNie.ANO else 0)
+        socialne = {
+                "nazov": "DoVP poistenie sociálne",
+                "suma": -Decimal(socpoist),
                 "datum": zden,
                 "subjekt": f"{self.zmluvna_strana.priezvisko}, {self.zmluvna_strana.meno}", 
                 "cislo": self.cislo,
@@ -1520,7 +1533,17 @@ class DoVP(Dohoda):
                 "zakazka": self.zakazka,
                 "ekoklas": EkonomickaKlasifikacia.objects.get(kod="620")
                 }
-        return [platba, poistne]
+        zdravotne = {
+                "nazov": "DoVP poistenie zdravotné",
+                "suma": -Decimal(zdravpoist),
+                "datum": zden,
+                "subjekt": f"{self.zmluvna_strana.priezvisko}, {self.zmluvna_strana.meno}", 
+                "cislo": self.cislo,
+                "zdroj": self.zdroj,
+                "zakazka": self.zakazka,
+                "ekoklas": EkonomickaKlasifikacia.objects.get(kod="620")
+                }
+        return [platba, socialne, zdravotne]
  
     # test platnosti dát
     def clean(self): 
@@ -1606,12 +1629,12 @@ class DoPC(Dohoda):
         nazov_suboru = objekt[0].subor.file.name 
         td = self.zmluvna_strana.typ_doch
         td_konv = "StarDoch" if td==TypDochodku.STAROBNY else "InvDoch" if td== TypDochodku.INVALIDNY else "StarDoch" if td==TypDochodku.STAROBNY else "DoPC"
-        odvody, _ = DohodarOdvodySpolu(nazov_suboru, float(self.odmena_mesacne), td_konv, zden, ODVODY_VYNIMKA if self.vynimka == AnoNie.ANO else 0)
-        poistne = {
-                "nazov": "DoPC poistne",
+        socpoist, _, zdravpoist, _ = DohodarOdvodySpolu(nazov_suboru, float(self.odmena_mesacne), td_konv, zden, ODVODY_VYNIMKA if self.vynimka == AnoNie.ANO else 0)
+        socialne = {
+                "nazov": "DoPC poistenie sociálne",
                 #Dočasne všetci rovnako, treba opraviť
                 #"suma": -(Decimal(0.3495) if zden.year < 2022 else Decimal(0.352)) * self.odmena_mesacne,
-                "suma": -Decimal(odvody),
+                "suma": -Decimal(socpoist),
                 "datum": zden,
                 "subjekt": f"{self.zmluvna_strana.priezvisko}, {self.zmluvna_strana.meno}", 
                 "cislo": self.cislo,
@@ -1619,7 +1642,19 @@ class DoPC(Dohoda):
                 "zakazka": self.zakazka,
                 "ekoklas": EkonomickaKlasifikacia.objects.get(kod="620")
                 }
-        return [platba, poistne]
+        zdravotne = {
+                "nazov": "DoPC poistenie zdravotné",
+                #Dočasne všetci rovnako, treba opraviť
+                #"suma": -(Decimal(0.3495) if zden.year < 2022 else Decimal(0.352)) * self.odmena_mesacne,
+                "suma": -Decimal(zdravpoist),
+                "datum": zden,
+                "subjekt": f"{self.zmluvna_strana.priezvisko}, {self.zmluvna_strana.meno}", 
+                "cislo": self.cislo,
+                "zdroj": self.zdroj,
+                "zakazka": self.zakazka,
+                "ekoklas": EkonomickaKlasifikacia.objects.get(kod="620")
+                }
+        return [platba, socialne, zdravotne]
 
     class Meta:
         verbose_name = 'Dohoda o pracovnej činnosti'
@@ -1740,9 +1775,9 @@ class VyplacanieDohod(models.Model):
             td = "InvDoch"
 
         vyplatena_odmena = float(self.vyplatena_odmena)
-        odvody_zam, odvody_prac = DohodarOdvodySpolu(nazov_suboru, vyplatena_odmena, td, self.dohoda.datum_od, vynimka_suma) 
-        self.poistne_zamestnavatel = odvody_zam
-        self.poistne_dohodar = odvody_prac
+        socialne_zam, socialne_prac, zdravotne_zam, zdravotne_prac = DohodarOdvodySpolu(nazov_suboru, vyplatena_odmena, td, self.dohoda.datum_od, vynimka_suma) 
+        self.poistne_zamestnavatel = socialne_zam+zdravotne_zam
+        self.poistne_dohodar = socialne_praczdravotne_prac
         self.dan_dohodar = (vyplatena_odmena - self.poistne_dohodar) * DAN_Z_PRIJMU / 100
         self.na_ucet = vyplatena_odmena - self.poistne_dohodar - self.dan_dohodar
 
