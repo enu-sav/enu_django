@@ -186,7 +186,6 @@ class CerpanieRozpoctuAdmin(ModelAdminTotals):
     def generovat(self,request,rok):
         def zapisat_riadok(ws, fw, riadok, polozky, header=False):
             for cc, value in enumerate(polozky):
-                print(cc,value)
                 ws.cell(row=riadok, column = cc+1).value = value 
                 if isinstance(value, date):
                     ws.cell(row=riadok, column=cc+1).value = value
@@ -288,7 +287,6 @@ class PlatovaRekapitulaciaAdmin(ModelAdminTotals):
     def kontrola_rekapitulacie(self, request, queryset):
         def zapisat_riadok(ws, fw, riadok, polozky, header=False):
             for cc, value in enumerate(polozky):
-                print(cc,value)
                 ws.cell(row=riadok, column = cc+1).value = value 
                 if isinstance(value, date):
                     ws.cell(row=riadok, column=cc+1).value = value
@@ -313,11 +311,13 @@ class PlatovaRekapitulaciaAdmin(ModelAdminTotals):
             "DoPC": ["Dohody o pracovnej činnosti", 1],
             "DoVP": ["Dohody o vykonaní práce", 1],
             "Sociálny fond": ["Sociálny fond", 2],
-            "Príspevok na stravu": ["Fin.prísp.na stravu z-teľ", 0],
+            #"Príspevok na stravu": ["Fin.prísp.na stravu z-teľ", 0],
             "Zdravotné poistné": ["Zdravotné poistné spolu", 2],
-            "Sociálne poistné": ["Sociálne poistné spolu", 2],
+            "Sociálne poistné": ["Sociálne poistné spolu", 1],
             "DDS": ["Doplnkové dôchodkové sporenie spolu", 1],
             }
+        #typy = [PlatovyVymer, DoVP, DoPC, PrispevokNaStravne, PrispevokNaRekreaciu]
+        typy = [PlatovyVymer, DoVP, DoPC]
         #Vytvoriť workbook
         file_name = f"KontrolaRekapitulacie-{date.today().isoformat()}"
         wb = Workbook()
@@ -325,24 +325,49 @@ class PlatovaRekapitulaciaAdmin(ModelAdminTotals):
         ws_prehlad.title = "Prehľad"
         harky={}
         fw ={}  #Šírka poľa
-        for qs in queryset:
+        zapisat_riadok(ws_prehlad, fw, 1, ["Mesiac", "Softip", "Django", "Rozdiel"], header=True) 
+        for qn, qs in enumerate(queryset):
             ws = wb.create_sheet(title=qs.identifikator)
             zapisat_riadok(ws, fw, 1, ["Položka", "Softip", "Django", "Rozdiel"], header=True) 
+            #datum
+
+            #Načítať dáta z Djanga
+            #Dátum pre čerpanie
+            datum=date(int(qs.identifikator[:4]), int(qs.identifikator[-2:]), 1)
+            cerpanie = {}
+            for typ in typy:
+                for polozka in typ.objects.filter():
+                    data = polozka.cerpanie_rozpoctu(datum)
+                    for item in data:
+                        identif = item['rekapitulacia']
+                        if not identif in cerpanie:
+                            cerpanie[identif] = item['suma']
+                        else:
+                            cerpanie[identif] += item['suma']
+
+            #Načítať dáta z pdf a vyplniť hárok
             fd=open(qs.subor.path, "rb")
             pdf = PdfFileReader(fd)
             s0 = pdf.getPage(0)
             text = s0.extractText()
             for nn, polozka in enumerate(polozky):
-                #trace()
                 rr=re.findall(r"%s.*"%polozky[polozka][0], text)
                 if rr:
                     rslt = re.findall(r"[\d,\d]+", rr[0])
-                    zapisat_riadok(ws, fw, nn+2, [polozka, Decimal(rslt[polozky[polozka][1]].replace(",","."))])
+                    zapisat = [
+                        polozka, 
+                        round(Decimal(rslt[polozky[polozka][1]].replace(",",".")),2), 
+                        cerpanie[polozka] if polozka in cerpanie else "",
+                        f"=B{nn+2}+C{nn+2}"
+                        ]
+                    zapisat_riadok(ws, fw, nn+2, zapisat)
                 else:
                     zapisat_riadok(ws, fw, nn+2, [polozka])
-            pass
+            nn+=1
+            zapisat_riadok(ws, fw, nn+2, ["Spolu",f"=sum(B2:B{nn+1}",f"=sum(C2:C{nn+1}",f"=sum(D2:D{nn+1}"])
             for cc in fw:
                 ws.column_dimensions[get_column_letter(cc+1)].width = fw[cc]
+            zapisat_riadok(ws_prehlad, fw, qn+2, [qs.identifikator, f"='{qs.identifikator}'!B{len(polozky)+2}", f"='{qs.identifikator}'!C{len(polozky)+2}", f"='{qs.identifikator}'!D{len(polozky)+2}"])
 
         #Uložiť a zobraziť 
         response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')

@@ -1125,6 +1125,7 @@ class PlatovyVymer(Klasifikacia):
         #Odpracované dni
         tarifny = {
                 "nazov":"Plat tarifný plat",
+                "rekapitulacia":  "Tarifný plat",
                 "suma": -round(Decimal(koef_prac*float(self.tarifny_plat)),2),
                 "zdroj": self.zdroj,
                 "zakazka": self.zakazka,
@@ -1135,6 +1136,7 @@ class PlatovyVymer(Klasifikacia):
                 }
         osobny = {
                 "nazov": "Plat osobný príplatok",
+                "rekapitulacia": "Osobný príplatok",
                 "suma": -round(Decimal(koef_prac*float(self.osobny_priplatok)),2),
                 "zdroj": self.zdroj,
                 "zakazka": self.zakazka,
@@ -1145,6 +1147,7 @@ class PlatovyVymer(Klasifikacia):
                 }
         funkcny = {
                 "nazov": "Plat funkčný príplatok",
+                "rekapitulacia": "Príplatok za riadenie",
                 "suma": -round(Decimal(koef_prac*float(self.funkcny_priplatok)),2),
                 "zdroj": self.zdroj,
                 "zakazka": self.zakazka,
@@ -1162,6 +1165,7 @@ class PlatovyVymer(Klasifikacia):
             nahrada_pn = {
                     "nazov": "Náhrada mzdy - PN",
                     "suma": -round(Decimal((dpn1*PN1+dpn2*PN2)*denny_vz/100),2),
+                    "rekapitulacia": "XXX",
                     "zdroj": self.zdroj,
                     "zakazka": self.zakazka,
                     "datum": zden if zden < date.today() else None,
@@ -1177,6 +1181,7 @@ class PlatovyVymer(Klasifikacia):
         if dosob:
             nahrada_osob = {
                     "nazov": "Náhrada mzdy - osobné prekážky",
+                    "rekapitulacia": "Prekážky osobné",
                     "suma": -round(Decimal(tabulkovy_plat*koef_osob),2),
                     "zdroj": self.zdroj,
                     "zakazka": self.zakazka,
@@ -1190,6 +1195,7 @@ class PlatovyVymer(Klasifikacia):
         if ddov:
             nahrada_dov = {
                     "nazov": "Náhrada mzdy - dovolenka",
+                    "rekapitulacia": "Dovolenka",
                     "suma": -round(Decimal(koef_dov*tabulkovy_plat),2),
                     "zdroj": self.zdroj,
                     "zakazka": self.zakazka,
@@ -1216,6 +1222,7 @@ class PlatovyVymer(Klasifikacia):
         socpoist, _, zdravpoist, _ = ZamestnanecOdvodySpolu(nazov_suboru, (koef_prac+koef_dov+koef_osob) * tabulkovy_plat, td_konv, zden)
         socialne = {
                 "nazov": "Plat poistenie sociálne",
+                "rekapitulacia": "Sociálne poistné",
                 "suma": -round(Decimal(socpoist),2),
                 "zdroj": self.zdroj,
                 "zakazka": self.zakazka,
@@ -1226,6 +1233,7 @@ class PlatovyVymer(Klasifikacia):
                 }
         zdravotne = {
                 "nazov": "Plat poistenie zdravotné",
+                "rekapitulacia": "Zdravotné poistné",
                 "suma": -round(Decimal(zdravpoist),2),
                 "zdroj": self.zdroj,
                 "zakazka": self.zakazka,
@@ -1238,6 +1246,7 @@ class PlatovyVymer(Klasifikacia):
         if zden in [date(2022,1,1), date(2022,2,1), date(2022,3,1)]:   #Počas tychto 3 mesiacov bolo všetko inak :D
             socfond = {
                 "nazov": "Prídel do SF",
+                "rekapitulacia": "Sociálny fond",
                 "suma": -round(Decimal(0.015*koef_prac*tabulkovy_plat),2),
                 "zdroj": Zdroj.objects.get(kod="131L"), 
                 "zakazka": TypZakazky.objects.get(kod="131L0001"),
@@ -1249,6 +1258,7 @@ class PlatovyVymer(Klasifikacia):
         else:
             socfond = {
                 "nazov": "Prídel do SF",
+                "rekapitulacia": "Sociálny fond",
                 "suma": -round(Decimal(0.015*koef_prac*tabulkovy_plat),2),  #0.015 podľa kolektívnej zmluvy
                 "zdroj": self.zdroj,
                 "zakazka": self.zakazka,
@@ -1506,6 +1516,7 @@ class DoVP(Dohoda):
         if self.datum_do >= kdatum: return []
         platba = {
                 "nazov":f"DoVP odmena",
+                "rekapitulacia": "DoVP",
                 "suma": -Decimal(self.odmena_celkom),
                 "datum": zden,
                 "subjekt": f"{self.zmluvna_strana.priezvisko}, {self.zmluvna_strana.meno}", 
@@ -1525,6 +1536,7 @@ class DoVP(Dohoda):
         socpoist, _, zdravpoist, _  = DohodarOdvodySpolu(nazov_suboru, float(self.odmena_celkom), td_konv, zden, ODVODY_VYNIMKA if self.vynimka == AnoNie.ANO else 0)
         socialne = {
                 "nazov": "DoVP poistenie sociálne",
+                "rekapitulacia": "Sociálne poistné",
                 "suma": -Decimal(socpoist),
                 "datum": zden,
                 "subjekt": f"{self.zmluvna_strana.priezvisko}, {self.zmluvna_strana.meno}", 
@@ -1535,6 +1547,7 @@ class DoVP(Dohoda):
                 }
         zdravotne = {
                 "nazov": "DoVP poistenie zdravotné",
+                "rekapitulacia": "Zdravotné poistné",
                 "suma": -Decimal(zdravpoist),
                 "datum": zden,
                 "subjekt": f"{self.zmluvna_strana.priezvisko}, {self.zmluvna_strana.meno}", 
@@ -1614,6 +1627,7 @@ class DoPC(Dohoda):
         if zden > self.datum_do: return []
         platba = {
                 "nazov":f"DoPC odmena",
+                "rekapitulacia": "DoPC",
                 "suma": -Decimal(self.odmena_mesacne),
                 "datum": zden,
                 "subjekt": f"{self.zmluvna_strana.priezvisko}, {self.zmluvna_strana.meno}", 
@@ -1632,6 +1646,7 @@ class DoPC(Dohoda):
         socpoist, _, zdravpoist, _ = DohodarOdvodySpolu(nazov_suboru, float(self.odmena_mesacne), td_konv, zden, ODVODY_VYNIMKA if self.vynimka == AnoNie.ANO else 0)
         socialne = {
                 "nazov": "DoPC poistenie sociálne",
+                "rekapitulacia": "Sociálne poistné",
                 #Dočasne všetci rovnako, treba opraviť
                 #"suma": -(Decimal(0.3495) if zden.year < 2022 else Decimal(0.352)) * self.odmena_mesacne,
                 "suma": -Decimal(socpoist),
@@ -1644,6 +1659,7 @@ class DoPC(Dohoda):
                 }
         zdravotne = {
                 "nazov": "DoPC poistenie zdravotné",
+                "rekapitulacia": "Zdravotné poistné",
                 #Dočasne všetci rovnako, treba opraviť
                 #"suma": -(Decimal(0.3495) if zden.year < 2022 else Decimal(0.352)) * self.odmena_mesacne,
                 "suma": -Decimal(zdravpoist),

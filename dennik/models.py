@@ -255,12 +255,12 @@ def pr_file_path(instance, filename):
     return os.path.join(settings.PLATOVA_REKAPITULACIA_DIR_NAME, filename)
 class PlatovaRekapitulacia(models.Model):
     identifikator = models.CharField("Identifikátor",
-            help_text = "Identifikátor v tvare RRRR-MM. Doplní sa automaticky, ak názov súboru obsahuje údaje o období v tvare MMRRRR.",
+            help_text = "Identifikátor v tvare RRRR-MM. Doplní sa automaticky, ak názov súboru obsahuje údaje o období.",
             max_length=50,
             null=True,
             blank=True)
     subor = models.FileField("Súbor s platovou rekapituláciou",
-            help_text = "Vložte súbor s platovou rekapituláciou. Ak názov obsahuje údaje o období v tvare MMRRRR, tak sa automaticky vyplní polia Identifikátor.",
+            help_text = "Vložte súbor s platovou rekapituláciou.<br />Ak názov obsahuje údaje o období v tvare MM.RRRR alebo RRRR.MM (na mieste . môže byť hocijaký znak), tak sa automaticky vyplní pole Identifikátor.",
             storage=OverwriteStorage(), 
             upload_to=pr_file_path
             )
@@ -272,9 +272,15 @@ class PlatovaRekapitulacia(models.Model):
         return(self.identifikator)
 
     def clean(self): 
-        rslt=re.findall(r"([0-9][0-9])(202[0-9])",self.subor.name)
+        rslt=re.findall(r"([0-9][0-9]).?(202[0-9])",self.subor.name)
+        if rslt:
+            mesiac,rok = rslt[0]
         if not rslt:
-            raise ValidationError(f"Názov súboru {self.subor.name} neobsahuje údaje o období v tvare MMRRRR. Vyplňte pole Identifikátor alebo vložte iný (správny) súbor.")
+            rslt=re.findall(r"(202[0-9]).?([0-9][0-9])",self.subor.name)
+            if rslt:
+                rok,mesiac = rslt[0]
+        if not rslt:
+            raise ValidationError(f"Názov súboru {self.subor.name} neobsahuje údaje o období v tvare MMRRRR, MM-RRRR, RRRRMM ani RRRR-MM. Vyplňte pole Identifikátor alebo vložte iný (správny) súbor.")
         rslt = rslt[0]
         self.identifikator = f"{rslt[1]}-{rslt[0]}"
         pass
