@@ -14,7 +14,7 @@ from decimal import Decimal
 
 from beliana.settings import TMPLTS_DIR_NAME, PLATOVE_VYMERY_DIR, DOHODY_DIR, PRIJATEFAKTURY_DIR, PLATOBNE_PRIKAZY_DIR
 from beliana.settings import ODVODY_VYNIMKA, DAN_Z_PRIJMU, OBJEDNAVKY_DIR, STRAVNE_DIR, REKREACIA_DIR
-from beliana.settings import PN1, PN2, BEZ_PRIKAZU_DIR
+from beliana.settings import PN1, PN2, BEZ_PRIKAZU_DIR, DDS_PRISPEVOK
 import os,re
 from datetime import timedelta, date, datetime
 from dateutil.relativedelta import relativedelta
@@ -975,6 +975,12 @@ class Zamestnanec(ZamestnanecDohodar):
             max_length=500,
             blank=True,
             null=True)
+    dds = models.CharField("Účastník DDS", 
+            max_length=3, 
+            help_text = "Uveďte 'Áno', ak sa zamestnanec zúčastňuje doplnkového dôchdkového sporenia",
+            null = True,
+            choices=AnoNie.choices,
+            default=AnoNie.NIE)
     history = HistoricalRecords()
     class Meta:
         verbose_name = "Zamestnanec"
@@ -1122,6 +1128,17 @@ class PlatovyVymer(Klasifikacia):
         koef_osob = dosob / dprac
         koef_dov = float(ddov / dprac)    #počet prac dní v rámci dovolenky / počet prac. dní v mesiaci
 
+        #súbor s tabuľku odvodov
+        nazov_objektu = "Odvody zamestnancov a dohodárov"  #Presne takto musí byť objekt pomenovaný
+        objekt = SystemovySubor.objects.filter(subor_nazov = nazov_objektu)
+        if not objekt:
+            return f"V systéme nie je definovaný súbor '{nazov_objektu}'."
+        nazov_suboru = objekt[0].subor.file.name 
+
+        #Konverzia typu dochodku na pozadovany typ vo funkcii ZamestnanecOdvodySpolu
+        td = self.zamestnanec.typ_doch
+        td_konv = "InvDoch30" if td==TypDochodku.INVALIDNY30 else "InvDoch70" if td== TypDochodku.INVALIDNY70 else "StarDoch" if td==TypDochodku.STAROBNY else "VyslDoch" if td==TypDochodku.INVAL_VYSL else "Bezny"
+
         #Odpracované dni
         tarifny = {
                 "nazov":"Plat tarifný plat",
@@ -1156,8 +1173,35 @@ class PlatovyVymer(Klasifikacia):
                 "cislo": self.cislo if self.cislo else "-",
                 "ekoklas": self.ekoklas
                 }
-
         tabulkovy_plat = float(self.tarifny_plat) + float(self.osobny_priplatok) + float(self.funkcny_priplatok)
+        dds_prispevok = None
+        dds_zdravotne = None
+        if self.zamestnanec.dds == AnoNie.ANO:
+            dds_prispevok = {
+                "nazov": "DDS príspevok",
+                "rekapitulacia": "DDS",
+                "suma": -round(Decimal(DDS_PRISPEVOK*koef_prac*tabulkovy_plat/100),2),
+                "zdroj": self.zdroj,
+                "zakazka": self.zakazka,
+                "datum": zden if zden < date.today() else None,
+                "subjekt": f"{self.zamestnanec.priezvisko}, {self.zamestnanec.meno}, (za {zden.year}/{zden.month})", 
+                "cislo": self.cislo if self.cislo else "-",
+                "ekoklas": self.ekoklas
+                }
+
+            _, _, zdravpoist, _ = ZamestnanecOdvodySpolu(nazov_suboru, float(dds_prispevok['suma']), td_konv, zden)
+            dds_zdravotne = {
+                "nazov": "DDS poistenie zdravotné",
+                "rekapitulacia": "Zdravotné poistné",
+                "suma": round(Decimal(zdravpoist),2),
+                "zdroj": self.zdroj,
+                "zakazka": self.zakazka,
+                "datum": zden if zden < date.today() else None,
+                "subjekt": f"{self.zamestnanec.priezvisko}, {self.zamestnanec.meno}, (za {zden.year}/{zden.month})", 
+                "cislo": self.cislo if self.cislo else "-",
+                "ekoklas": self.ekoklas
+                }
+
         #PN
         nahrada_pn = None
         if dpn1 or dpn2:
@@ -1205,18 +1249,6 @@ class PlatovyVymer(Klasifikacia):
                     "ekoklas": EkonomickaKlasifikacia.objects.get(kod="640")
                     }
 
-        #súbor s tabuľku odvodov
-        nazov_objektu = "Odvody zamestnancov a dohodárov"  #Presne takto musí byť objekt pomenovaný
-        objekt = SystemovySubor.objects.filter(subor_nazov = nazov_objektu)
-        if not objekt:
-            return f"V systéme nie je definovaný súbor '{nazov_objektu}'."
-        nazov_suboru = objekt[0].subor.file.name 
-        #Konverzia typu dochodku na pozadovany typ vo funkcii ZamestnanecOdvodySpolu
-        td = self.zamestnanec.typ_doch
-        if zden==date(2022,8,1) and self.zamestnanec.priezvisko=="Lapúniková":
-            #trace()
-            pass
-        td_konv = "InvDoch30" if td==TypDochodku.INVALIDNY30 else "InvDoch70" if td== TypDochodku.INVALIDNY70 else "StarDoch" if td==TypDochodku.STAROBNY else "VyslDoch" if td==TypDochodku.INVAL_VYSL else "Bezny"
         if zden==date(2022,4,1):
             pass
         socpoist, _, zdravpoist, _ = ZamestnanecOdvodySpolu(nazov_suboru, (koef_prac+koef_dov+koef_osob) * tabulkovy_plat, td_konv, zden)
@@ -1272,6 +1304,8 @@ class PlatovyVymer(Klasifikacia):
             #print(self.zamestnanec.priezvisko,tabulkovy_plat, socfond['suma'], poistne['suma'],tarifny['suma'], osobny['suma'], funkcny['suma'], nahrada_dov['suma'])
 
         retlist = [tarifny, osobny, funkcny, socialne, zdravotne, socfond]
+        if dds_prispevok: retlist.append(dds_prispevok)
+        if dds_zdravotne: retlist.append(dds_zdravotne)
         if nahrada_dov: retlist.append(nahrada_dov)
         if nahrada_osob: retlist.append(nahrada_osob)
         if nahrada_pn: retlist.append(nahrada_pn)
