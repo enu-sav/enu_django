@@ -1,7 +1,7 @@
 from django.contrib import admin
 
 # Register your models here.
-from .models import Dokument,TypDokumentu, TypFormulara, Formular, CerpanieRozpoctu
+from .models import Dokument,TypDokumentu, TypFormulara, Formular, CerpanieRozpoctu, PlatovaRekapitulacia
 from .forms import DokumentForm, FormularForm, overit_polozku, parse_cislo
 from .export_xlsx import export_as_xlsx
 from dennik.common import VyplnitAVygenerovat
@@ -26,6 +26,8 @@ from openpyxl.styles import Font
 from openpyxl.utils import get_column_letter
 from django.http import HttpResponse
 from decimal import Decimal
+
+from PyPDF2 import PdfFileReader
 
 #https://pypi.org/project/django-admin-rangefilter/
 from rangefilter.filters import DateRangeFilter
@@ -276,3 +278,77 @@ class CerpanieRozpoctuAdmin(ModelAdminTotals):
         for qq in queryset:
             if qq.polozka != "Pomocná položka":
                 qq.delete()
+
+@admin.register(PlatovaRekapitulacia)
+class PlatovaRekapitulaciaAdmin(ModelAdminTotals):
+    list_display = ["identifikator","subor"]
+    search_fields = ["^identifikator"]
+    actions = ["kontrola_rekapitulacie"]
+
+    def kontrola_rekapitulacie(self, request, queryset):
+        def zapisat_riadok(ws, fw, riadok, polozky, header=False):
+            for cc, value in enumerate(polozky):
+                print(cc,value)
+                ws.cell(row=riadok, column = cc+1).value = value 
+                if isinstance(value, date):
+                    ws.cell(row=riadok, column=cc+1).value = value
+                    ws.cell(row=riadok, column=cc+1).number_format = "DD-MM-YYYY"
+                    if not cc in fw: fw[cc] = 0
+                    if fw[cc] < 12: fw[cc] = 12 
+                elif type(value) == Decimal:
+                    ws.cell(row=riadok, column=cc+1).value = value
+                    ws.cell(row=riadok, column=cc+1).number_format="0.00"
+                    if not cc in fw: fw[cc] = 0
+                    if fw[cc] < 12: fw[cc] = 12 
+                else:
+                    ws.cell(row=riadok, column=cc+1).value = str(value)
+                    if not cc in fw: fw[cc] = 0
+                    if fw[cc] < len(str(value))+2: fw[cc] = len(str(value))+2
+        polozky= {
+            "Tarifný plat": ["Tarifný plat spolu", 1 ],
+            "Osobný príplatok": ["Osobný príplatok", 1],
+            "Príplatok za riadenie": ["Príplatok za riadenie", 1],
+            "Dovolenka": ["Dovolenka", 1],
+            "Prekážky osobné": [ "Prekážky osobné", 1],
+            "DoPC": ["Dohody o pracovnej činnosti", 1],
+            "DoVP": ["Dohody o vykonaní práce", 1],
+            "Sociálny fond": ["Sociálny fond", 2],
+            "Príspevok na stravu": ["Fin.prísp.na stravu z-teľ", 0],
+            "Zdravotné poistné": ["Zdravotné poistné spolu", 2],
+            "Sociálne poistné": ["Sociálne poistné spolu", 2],
+            "DDS": ["Doplnkové dôchodkové sporenie spolu", 1],
+            }
+        #Vytvoriť workbook
+        file_name = f"KontrolaRekapitulacie-{date.today().isoformat()}"
+        wb = Workbook()
+        ws_prehlad = wb.active
+        ws_prehlad.title = "Prehľad"
+        harky={}
+        fw ={}  #Šírka poľa
+        for qs in queryset:
+            ws = wb.create_sheet(title=qs.identifikator)
+            zapisat_riadok(ws, fw, 1, ["Položka", "Softip", "Django", "Rozdiel"], header=True) 
+            fd=open(qs.subor.path, "rb")
+            pdf = PdfFileReader(fd)
+            s0 = pdf.getPage(0)
+            text = s0.extractText()
+            for nn, polozka in enumerate(polozky):
+                #trace()
+                rr=re.findall(r"%s.*"%polozky[polozka][0], text)
+                if rr:
+                    rslt = re.findall(r"[\d,\d]+", rr[0])
+                    zapisat_riadok(ws, fw, nn+2, [polozka, Decimal(rslt[polozky[polozka][1]].replace(",","."))])
+                else:
+                    zapisat_riadok(ws, fw, nn+2, [polozka])
+            pass
+            for cc in fw:
+                ws.column_dimensions[get_column_letter(cc+1)].width = fw[cc]
+
+        #Uložiť a zobraziť 
+        response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response['Content-Disposition'] = f'attachment; filename={file_name}.xlsx'
+        wb.save(response)
+        return response
+    kontrola_rekapitulacie.short_description = "Porovnať mzdové údaje s platovou rekapituláciou"
+    #Oprávnenie na použitie akcie, viazané na 'change'
+    kontrola_rekapitulacie.allowed_permissions = ('change',)

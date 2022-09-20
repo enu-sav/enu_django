@@ -241,6 +241,7 @@ REKREACIA_DIR="PrispevokNaRekreaciu"
 #App denniky
 FORM_DIR_NAME="HromadneDokumenty"
 DENNIK_DIR_NAME="DennikSubory"
+PLATOVA_REKAPITULACIA_DIR_NAME="PlatovaRekapitulacia"
 
 # Mail
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'

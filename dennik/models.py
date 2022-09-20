@@ -251,3 +251,30 @@ class CerpanieRozpoctu(models.Model):
             return(f"{self.polozka}-{self.mesiac}")
 
 
+def pr_file_path(instance, filename):
+    return os.path.join(settings.PLATOVA_REKAPITULACIA_DIR_NAME, filename)
+class PlatovaRekapitulacia(models.Model):
+    identifikator = models.CharField("Identifikátor",
+            help_text = "Identifikátor v tvare RRRR-MM. Doplní sa automaticky, ak názov súboru obsahuje údaje o období v tvare MMRRRR.",
+            max_length=50,
+            null=True,
+            blank=True)
+    subor = models.FileField("Súbor s platovou rekapituláciou",
+            help_text = "Vložte súbor s platovou rekapituláciou. Ak názov obsahuje údaje o období v tvare MMRRRR, tak sa automaticky vyplní polia Identifikátor.",
+            storage=OverwriteStorage(), 
+            upload_to=pr_file_path
+            )
+    history = HistoricalRecords()
+    class Meta:
+        verbose_name = 'Platová rekapitulácia'
+        verbose_name_plural = 'Platová rekapitulácia'
+    def __str__(self):
+        return(self.identifikator)
+
+    def clean(self): 
+        rslt=re.findall(r"([0-9][0-9])(202[0-9])",self.subor.name)
+        if not rslt:
+            raise ValidationError(f"Názov súboru {self.subor.name} neobsahuje údaje o období v tvare MMRRRR. Vyplňte pole Identifikátor alebo vložte iný (správny) súbor.")
+        rslt = rslt[0]
+        self.identifikator = f"{rslt[1]}-{rslt[0]}"
+        pass
