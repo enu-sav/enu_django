@@ -67,29 +67,35 @@ class FyzickaOsoba(PersonCommon):
             max_length=20, 
             null=True, 
             blank=True) 
-    zdanit = models.CharField("Zdaniť",
-            help_text = "Zvoľte 'Nie', ak autor podpísal dohodu o nezdaňovaní. V tom prípade treba vyplniť aj polia 'Dohoda podpísaná' a 'Dohoda o nezdaňovaní'.",
-            max_length=3, choices=AnoNie.choices, null=True, blank=True) 
     nevyplacat = models.CharField("Nevyplácať",
             help_text = "Zvoľte 'Áno', ak sa honorár nemá vyplácať (napr. ak autor zomrel a nie je jasné, komu honorár poslať). V poznámke uveďte konkrétny dôvod.",
             max_length=3, choices=AnoNie.choices, null=True, blank=True) 
-    datum_dohoda_podpis = models.DateField('Dohoda podpísaná',
-            help_text = "Zadajte dátum podpisu dohody o nezdaňovaní.",
-            blank=True, null=True)
-    datum_dohoda_oznamenie = models.DateField('Dohoda oznámená', 
-            help_text = "Zadajte dátum oznámenia existencie dohody o nezdaňovaní Finančnej správe. Oznámenie sa posiela v termíne do konca januára roku, ktorý nasleduje po roku, keď po prvýkrát nebol honorár zdanený.",
-            blank=True, null=True)
     rezident = models.CharField("Rezident SR", 
             help_text = "Uveďte, či je autor daňovník s neobmedzenou daňovou povinnosťou v SR (daňový rezident SR). Ak autor nie je daňový rezident SR, tak sa jeho honorár nezdaňuje.",
-            max_length=3, choices=AnoNie.choices, null=True, blank=True) 
-    poznamka = models.CharField("Poznámka", max_length=200, blank=True)
-    #pub_date = models.DateField('date published')
+            max_length=3, 
+            choices=AnoNie.choices, 
+            default = AnoNie.ANO,
+            null=True)
+    zdanit = models.CharField("Zdaniť",
+            help_text = "Zvoľte 'Nie', ak autor podpísal dohodu o nezdaňovaní. V tom prípade treba vyplniť aj polia 'Dohoda podpísaná' a 'Dohoda o nezdaňovaní'.",
+            max_length=3, 
+            choices=AnoNie.choices, 
+            default = AnoNie.ANO,
+            null=True) 
     # opakované uploadovanie súboru vytvorí novú verziu
     #subor = models.FileField("Súbor",upload_to=TMPLTS_DIR_NAME, null = True, blank = True)
     # opakované uploadovanie súboru prepíše existujúci súbor (nevytvorí novú verziu)
     dohodasubor = models.FileField("Dohoda o nezdaňovaní", 
             help_text = "Vložte pdf súbor so zoskenovanou dohodou o nezdaňovaní.",
             storage=OverwriteStorage(), upload_to=tax_agmt_path, null = True, blank = True)
+    datum_dohoda_podpis = models.DateField('Dohoda podpísaná',
+            help_text = "Zadajte dátum podpisu dohody o nezdaňovaní.",
+            blank=True, null=True)
+    datum_dohoda_oznamenie = models.DateField('Dohoda oznámená', 
+            help_text = "Zadajte dátum oznámenia existencie dohody o nezdaňovaní Finančnej správe. Oznámenie sa posiela v termíne do konca januára roku, ktorý nasleduje po roku, keď po prvýkrát nebol honorár zdanený.",
+            blank=True, null=True)
+    poznamka = models.CharField("Poznámka", max_length=200, blank=True)
+    #pub_date = models.DateField('date published')
 
     class Meta:
         abstract = True
