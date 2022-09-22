@@ -1160,7 +1160,7 @@ class PlatovyVymer(Klasifikacia):
                 "datum": zden if zden < date.today() else None,
                 "subjekt": f"{self.zamestnanec.priezvisko}, {self.zamestnanec.meno}, (za {zden.year}/{zden.month})", 
                 "cislo": self.cislo if self.cislo else "-",
-                "ekoklas": self.ekoklas
+                "ekoklas": EkonomickaKlasifikacia.objects.get(kod="612001")
                 }
         funkcny = {
                 "nazov": "Plat funkčný príplatok",
@@ -1171,7 +1171,7 @@ class PlatovyVymer(Klasifikacia):
                 "datum": zden if zden < date.today() else None,
                 "subjekt": f"{self.zamestnanec.priezvisko}, {self.zamestnanec.meno}, (za {zden.year}/{zden.month})", 
                 "cislo": self.cislo if self.cislo else "-",
-                "ekoklas": self.ekoklas
+                "ekoklas": EkonomickaKlasifikacia.objects.get(kod="612002")
                 }
         tabulkovy_plat = float(self.tarifny_plat) + float(self.osobny_priplatok) + float(self.funkcny_priplatok)
         dds_prispevok = None
@@ -1186,7 +1186,7 @@ class PlatovyVymer(Klasifikacia):
                 "datum": zden if zden < date.today() else None,
                 "subjekt": f"{self.zamestnanec.priezvisko}, {self.zamestnanec.meno}, (za {zden.year}/{zden.month})", 
                 "cislo": self.cislo if self.cislo else "-",
-                "ekoklas": self.ekoklas
+                "ekoklas": EkonomickaKlasifikacia.objects.get(kod="627")
                 }
 
             _, _, zdravpoist, _ = ZamestnanecOdvodySpolu(nazov_suboru, float(dds_prispevok['suma']), td_konv, zden)
@@ -1199,7 +1199,7 @@ class PlatovyVymer(Klasifikacia):
                 "datum": zden if zden < date.today() else None,
                 "subjekt": f"{self.zamestnanec.priezvisko}, {self.zamestnanec.meno}, (za {zden.year}/{zden.month})", 
                 "cislo": self.cislo if self.cislo else "-",
-                "ekoklas": self.ekoklas
+                "ekoklas": EkonomickaKlasifikacia.objects.get(kod="620")
                 }
 
         #PN
@@ -1215,7 +1215,7 @@ class PlatovyVymer(Klasifikacia):
                     "datum": zden if zden < date.today() else None,
                     "subjekt": f"{self.zamestnanec.priezvisko}, {self.zamestnanec.meno}, (za {zden.year}/{zden.month})", 
                     "cislo": self.cislo if self.cislo else "-",
-                    "ekoklas": EkonomickaKlasifikacia.objects.get(kod="640")
+                    "ekoklas": EkonomickaKlasifikacia.objects.get(kod="642015")
                     }
             if text_vz and "približne" in text_vz:
                 nahrada_osob["poznamka"] = f"V platovom výmere pre zamestnanca {self.zamestnanec} treba doplniť denný vymeriavací základ za mesiac {zden.year}/{zden.month}."
@@ -1232,7 +1232,7 @@ class PlatovyVymer(Klasifikacia):
                     "datum": zden if zden < date.today() else None,
                     "subjekt": f"{self.zamestnanec.priezvisko}, {self.zamestnanec.meno}, (za {zden.year}/{zden.month})", 
                     "cislo": self.cislo if self.cislo else "-",
-                    "ekoklas": EkonomickaKlasifikacia.objects.get(kod="640")
+                    "ekoklas": EkonomickaKlasifikacia.objects.get(kod="640")    #Overiť klasifikáciu
                     }
 
         nahrada_dov = None
@@ -1246,7 +1246,7 @@ class PlatovyVymer(Klasifikacia):
                     "datum": zden if zden < date.today() else None,
                     "subjekt": f"{self.zamestnanec.priezvisko}, {self.zamestnanec.meno}, (za {zden.year}/{zden.month})", 
                     "cislo": self.cislo if self.cislo else "-",
-                    "ekoklas": EkonomickaKlasifikacia.objects.get(kod="640")
+                    "ekoklas": EkonomickaKlasifikacia.objects.get(kod="611")
                     }
 
         if zden==date(2022,4,1):
@@ -1261,7 +1261,7 @@ class PlatovyVymer(Klasifikacia):
                 "datum": zden if zden < date.today() else None,
                 "subjekt": f"{self.zamestnanec.priezvisko}, {self.zamestnanec.meno}, (za {zden.year}/{zden.month})", 
                 "cislo": self.cislo if self.cislo else "-",
-                "ekoklas": EkonomickaKlasifikacia.objects.get(kod="620")
+                "ekoklas": EkonomickaKlasifikacia.objects.get(kod="625")
                 }
         zdravotne = {
                 "nazov": "Plat poistenie zdravotné",
@@ -1577,7 +1577,7 @@ class DoVP(Dohoda):
                 "cislo": self.cislo,
                 "zdroj": self.zdroj,
                 "zakazka": self.zakazka,
-                "ekoklas": EkonomickaKlasifikacia.objects.get(kod="620")
+                "ekoklas": EkonomickaKlasifikacia.objects.get(kod="625")
                 }
         zdravotne = {
                 "nazov": "DoVP poistenie zdravotné",
@@ -1689,7 +1689,7 @@ class DoPC(Dohoda):
                 "cislo": self.cislo,
                 "zdroj": self.zdroj,
                 "zakazka": self.zakazka,
-                "ekoklas": EkonomickaKlasifikacia.objects.get(kod="620")
+                "ekoklas": EkonomickaKlasifikacia.objects.get(kod="625")
                 }
         zdravotne = {
                 "nazov": "DoPC poistenie zdravotné",
