@@ -272,11 +272,11 @@ class PrispevokNaStravneForm(forms.ModelForm):
     #inicializácia polí
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.initial['zdroj'] = 1       #111
-        self.initial['program'] = 4     #nealokovaný
-        self.initial['zakazka'] = 2     #11010001 spol. zák.	Činnosti z prostriedkov SAV - rozpočet 111
-        self.initial['ekoklas'] = 108   #642014 Transfery jednotlivcom
-        self.initial['cinnost'] = 2     #1a
+        if not 'zdroj' in self.initial: self.initial['zdroj'] = 1       #111
+        if not 'program' in self.initial: self.initial['program'] = 4     #nealokovaný
+        if not 'zakazka' in self.initial: self.initial['zakazka'] = 2     #11010001 spol. zák.	Činnosti z prostriedkov SAV - rozpočet 111
+        if not 'ekoklas' in self.initial: self.initial['ekoklas'] = 108   #642014 Transfery jednotlivcom
+        if not 'cinnost' in self.inital: self.initial['cinnost'] = 2     #1a
         polecislo = "cislo"
         # Ak je pole readonly, tak sa nenachádza vo fields. Preto testujeme fields aj initial
         if polecislo in self.fields:
@@ -291,10 +291,10 @@ class AutorskeZmluvyForm(forms.ModelForm):
     #inicializácia polí
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.initial['zdroj'] = 1       #111
-        self.initial['program'] = 4     #nealokovaný
-        self.initial['zakazka'] = 1     #Beliana
-        self.initial['ekoklas'] = 58    #633018	Licencie
+        if not 'zdroj' in self.initial: self.initial['zdroj'] = 1       #111
+        if not 'program' in self.initial: self.initial['program'] = 4     #nealokovaný
+        if not 'zakazka' in self.initial: self.initial['zakazka'] = 1     #Beliana
+        if not 'ekoklas' in self.initial: self.initial['ekoklas'] = 58    #633018	Licencie
 
 class DohodaForm(forms.ModelForm):
     # Skontrolovať platnost a keď je všetko OK, spraviť záznam do denníka
@@ -372,10 +372,10 @@ class DoPCForm(DohodaForm):
         # do Admin treba pridať metódu get_form
         self.request = kwargs.pop('request', None)
         super().__init__(*args, **kwargs)
-        self.initial['zdroj'] = 1       #111
-        self.initial['program'] = 4     #nealokovaný
-        self.initial['zakazka'] = 1     #Beliana
-        self.initial['ekoklas'] = 97    #637027 - Odmeny zamestnancov mimopracovného pomeru
+        if not 'zdroj' in self.initial: self.initial['zdroj'] = 1       #111
+        if not 'program' in self.initial: self.initial['program'] = 4     #nealokovaný
+        if not 'zakazka' in self.initial: self.initial['zakazka'] = 1     #Beliana
+        if not 'ekoklas' in self.initial: self.initial['ekoklas'] = 97    #637027 - Odmeny zamestnancov mimopracovného pomeru
         polecislo = "cislo"
         # Ak je pole readonly, tak sa nenachádza vo fields. Preto testujeme fields aj initial
         if polecislo in self.fields:
@@ -392,10 +392,10 @@ class DoVPForm(DohodaForm):
         # do Admin treba pridať metódu get_form
         self.request = kwargs.pop('request', None)
         super().__init__(*args, **kwargs)
-        self.initial['zdroj'] = 1       #111
-        self.initial['program'] = 4     #nealokovaný
-        self.initial['zakazka'] = 1     #Beliana
-        self.initial['ekoklas'] = 97    #637027 - Odmeny zamestnancov mimopracovného pomeru
+        if not 'zdroj' in self.initial: self.initial['zdroj'] = 1       #111
+        if not 'program' in self.initial: self.initial['program'] = 4     #nealokovaný
+        if not 'zakazka' in self.initial: self.initial['zakazka'] = 1     #Beliana
+        if not 'ekoklas' in self.initial: self.initial['ekoklas'] = 97    #637027 - Odmeny zamestnancov mimopracovného pomeru
         polecislo = "cislo"
         # Ak je pole readonly, tak sa nenachádza vo fields. Preto testujeme fields aj initial
         if polecislo in self.fields:
@@ -412,10 +412,10 @@ class DoBPSForm(DohodaForm):
         # do Admin treba pridať metódu get_form
         self.request = kwargs.pop('request', None)
         super().__init__(*args, **kwargs)
-        self.initial['zdroj'] = 1       #111
-        self.initial['program'] = 4     #nealokovaný
-        self.initial['zakazka'] = 1     #Beliana
-        self.initial['ekoklas'] = 97    #637027 - Odmeny zamestnancov mimopracovného pomeru
+        if not 'zdroj' in self.initial: self.initial['zdroj'] = 1       #111
+        if not 'program' in self.initial: self.initial['program'] = 4     #nealokovaný
+        if not 'zakazka' in self.initial: self.initial['zakazka'] = 1     #Beliana
+        if not 'ekoklas' in self.initial: self.initial['ekoklas'] = 97    #637027 - Odmeny zamestnancov mimopracovného pomeru
         polecislo = "cislo"
         # Ak je pole readonly, tak sa nenachádza vo fields. Preto testujeme fields aj initial
         if polecislo in self.fields:
@@ -430,11 +430,11 @@ class PlatovyVymerForm(PopisZmeny):
     #inicializácia polí
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.initial['zdroj'] = 1       #111
-        self.initial['cinnost'] = 2     #Hlavná činnosť 26/1a
-        self.initial['program'] = 4     #nealokovaný
-        self.initial['zakazka'] = 2     #11010001 spol. zák.
-        self.initial['ekoklas'] = 18    #611 - Tarifný plat, osobný plat, základný plat, funkčný plat, hodnostný plat, plat, vrátane ich náhrad
+        if not 'zdroj' in self.initial: self.initial['zdroj'] = 1       #111
+        if not 'cinnost' in self.inital: self.initial['cinnost'] = 2     #Hlavná činnosť 26/1a
+        if not 'program' in self.initial: self.initial['program'] = 4     #nealokovaný
+        if not 'zakazka' in self.initial: self.initial['zakazka'] = 2     #11010001 spol. zák.
+        if not 'ekoklas' in self.initial: self.initial['ekoklas'] = 18    #611 - Tarifný plat, osobný plat, základný plat, funkčný plat, hodnostný plat, plat, vrátane ich náhrad
     class Meta:
         model = PlatovyVymer
         fields = "__all__"
@@ -445,10 +445,10 @@ class PrispevokNaRekreaciuForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         self.request = kwargs.pop('request', None)
         super().__init__(*args, **kwargs)
-        self.initial['zdroj'] = 1       #111
-        self.initial['program'] = 4     #nealokovaný
-        self.initial['zakazka'] = 2     #11010001 spol. zák.
-        self.initial['ekoklas'] = 83    #637006 - náhrady
+        if not 'zdroj' in self.initial: self.initial['zdroj'] = 1       #111
+        if not 'program' in self.initial: self.initial['program'] = 4     #nealokovaný
+        if not 'zakazka' in self.initial: self.initial['zakazka'] = 2     #11010001 spol. zák.
+        if not 'ekoklas' in self.initial: self.initial['ekoklas'] = 83    #637006 - náhrady
         polecislo = "cislo"
         # Ak je pole readonly, tak sa nenachádza vo fields. Preto testujeme fields aj initial
         if polecislo in self.fields and not polecislo in self.initial:
@@ -686,10 +686,10 @@ class NajomneFakturaForm(forms.ModelForm):
             nasledujuce = nasledujuce_cislo(NajomneFaktura)
             self.fields[polecislo].help_text = f"Zadajte číslo platby v tvare {NajomneFaktura.oznacenie}-RRRR-NNN. Predvolené číslo '{nasledujuce}' bolo určené na základe čísel existujúcich platieb ako nasledujúce v poradí."
             self.initial[polecislo] = nasledujuce
-        self.initial['zdroj'] = 3       #42 - Iné vlastné zdroje 
-        self.initial['program'] = 4     #nealokovaný
-        self.initial['zakazka'] = 8     #42002200 - Prenájom priestorov, zákl. služby, fotovoltaika,
-        self.initial['ekoklas'] = 12    #223001 - Za predaj výrobkov, tovarov a služieb
+        if not 'zdroj' in self.initial: self.initial['zdroj'] = 3       #42 - Iné vlastné zdroje 
+        if not 'program' in self.initial: self.initial['program'] = 4     #nealokovaný
+        if not 'zakazka' in self.initial: self.initial['zakazka'] = 8     #42002200 - Prenájom priestorov, zákl. služby, fotovoltaika,
+        if not 'ekoklas' in self.initial: self.initial['ekoklas'] = 12    #223001 - Za predaj výrobkov, tovarov a služieb
 
     # Skontrolovať platnost a keď je všetko OK, spraviť záznam do denníka
     def clean(self):
