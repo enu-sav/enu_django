@@ -1218,7 +1218,7 @@ class PlatovyVymer(Klasifikacia):
                     "ekoklas": EkonomickaKlasifikacia.objects.get(kod="642015")
                     }
             if text_vz and "približne" in text_vz:
-                nahrada_osob["poznamka"] = f"V platovom výmere pre zamestnanca {self.zamestnanec} treba doplniť denný vymeriavací základ za mesiac {zden.year}/{zden.month}."
+                nahrada_pn["poznamka"] = f"Vypočítaná suma náhrad PN je približná. V údajoch zamestnanca '{self.zamestnanec}' treba doplniť denný vymeriavací základ za mesiac {zden.year}/{zden.month}."
 
         #Osobné prekážky
         nahrada_osob = None
