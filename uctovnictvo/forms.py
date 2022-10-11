@@ -276,7 +276,7 @@ class PrispevokNaStravneForm(forms.ModelForm):
         if not 'program' in self.initial: self.initial['program'] = 4     #nealokovaný
         if not 'zakazka' in self.initial: self.initial['zakazka'] = 2     #11010001 spol. zák.	Činnosti z prostriedkov SAV - rozpočet 111
         if not 'ekoklas' in self.initial: self.initial['ekoklas'] = 108   #642014 Transfery jednotlivcom
-        if not 'cinnost' in self.inital: self.initial['cinnost'] = 2     #1a
+        if not 'cinnost' in self.initial: self.initial['cinnost'] = 2     #1a
         polecislo = "cislo"
         # Ak je pole readonly, tak sa nenachádza vo fields. Preto testujeme fields aj initial
         if polecislo in self.fields:
@@ -431,7 +431,7 @@ class PlatovyVymerForm(PopisZmeny):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if not 'zdroj' in self.initial: self.initial['zdroj'] = 1       #111
-        if not 'cinnost' in self.inital: self.initial['cinnost'] = 2     #Hlavná činnosť 26/1a
+        if not 'cinnost' in self.initial: self.initial['cinnost'] = 2     #Hlavná činnosť 26/1a
         if not 'program' in self.initial: self.initial['program'] = 4     #nealokovaný
         if not 'zakazka' in self.initial: self.initial['zakazka'] = 2     #11010001 spol. zák.
         if not 'ekoklas' in self.initial: self.initial['ekoklas'] = 18    #611 - Tarifný plat, osobný plat, základný plat, funkčný plat, hodnostný plat, plat, vrátane ich náhrad

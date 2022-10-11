@@ -977,10 +977,14 @@ class Zamestnanec(ZamestnanecDohodar):
             null=True)
     dds = models.CharField("Účastník DDS", 
             max_length=3, 
-            help_text = "Uveďte 'Áno', ak sa zamestnanec zúčastňuje doplnkového dôchdkového sporenia",
+            help_text = "Uveďte 'Áno', ak sa zamestnanec zúčastňuje doplnkového dôchodkového sporenia.<br />V tom prípade vyplňte aj položku 'DDS od'",
             null = True,
             choices=AnoNie.choices,
             default=AnoNie.NIE)
+    dds_od = models.DateField('DDS od',
+            help_text = "Dátum, odkedy sa zamestnanec zúčastňuje doplnkového dôchodkového sporenia.",
+            blank=True,
+            null=True)
     history = HistoricalRecords()
     class Meta:
         verbose_name = "Zamestnanec"
@@ -1190,10 +1194,15 @@ class PlatovyVymer(Klasifikacia):
         dds_prispevok = None
         dds_zdravotne = None
         if self.zamestnanec.dds == AnoNie.ANO:
-            dds_prispevok = self.polozka_cerpania("DDS príspevok", "DDS", -DDS_PRISPEVOK*koef_prac*tabulkovy_plat/100, zden, ekoklas="627")
-            _, _, zdravpoist, _ = ZamestnanecOdvody(nazov_suboru, float(dds_prispevok['suma']), td_konv, zden)
-            ekoklas = "621" if self.zamestnanec.poistovna == Poistovna.VSZP else "623"
-            dds_zdravotne = self.polozka_cerpania("DDS poistenie zdravotné", "Zdravotné poistné", zdravpoist['zdravotne'], zden, ekoklas=ekoklas)
+            if not self.zamestnanec.dds_od:
+                dds_prispevok["poznamka"] = f"Vypočítaná suma výšky príspevku do DDS je nesprávna. V údajoch zamestnanca '{self.zamestnanec}' treba vyplniť pole 'DDS od'"
+            else: # Príspevok do DDS sa vypláca od 1. dňa mesiaca, keď bola uzatvorena dohoda
+                dds_od = date(self.zamestnanec.dds_od.year, self.zamestnanec.dds_od.month, 1)
+            if zden >= dds_od:
+                dds_prispevok = self.polozka_cerpania("DDS príspevok", "DDS", -DDS_PRISPEVOK*koef_prac*tabulkovy_plat/100, zden, ekoklas="627")
+                _, _, zdravpoist, _ = ZamestnanecOdvody(nazov_suboru, float(dds_prispevok['suma']), td_konv, zden)
+                ekoklas = "621" if self.zamestnanec.poistovna == Poistovna.VSZP else "623"
+                dds_zdravotne = self.polozka_cerpania("DDS poistenie zdravotné", "Zdravotné poistné", zdravpoist['zdravotne'], zden, ekoklas=ekoklas)
 
         #PN
         nahrada_pn = None
@@ -1211,7 +1220,7 @@ class PlatovyVymer(Klasifikacia):
                     "ekoklas": EkonomickaKlasifikacia.objects.get(kod="642015")
                     }
             if text_vz and "približne" in text_vz:
-                nahrada_osob["poznamka"] = f"V platovom výmere pre zamestnanca {self.zamestnanec} treba doplniť denný vymeriavací základ za mesiac {zden.year}/{zden.month}."
+                nahrada_pn["poznamka"] = f"Vypočítaná suma náhrad PN je približná. V údajoch zamestnanca '{self.zamestnanec}' treba doplniť denný vymeriavací základ za mesiac {zden.year}/{zden.month}."
 
         #Osobné prekážky
         nahrada_osob = None
