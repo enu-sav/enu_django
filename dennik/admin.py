@@ -344,6 +344,8 @@ class PlatovaRekapitulaciaAdmin(ModelAdminTotals):
                             cerpanie[identif] = item['suma']
                         else:
                             cerpanie[identif] += item['suma']
+                        if 'poznamka' in item:
+                            messages.warning(request, format_html(item['poznamka']))
 
             #Načítať dáta z pdf a vyplniť hárok
             fd=open(qs.subor.path, "rb")
