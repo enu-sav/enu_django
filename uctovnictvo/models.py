@@ -6,7 +6,7 @@ from django.core.exceptions import ValidationError
 #https://django-simple-history.readthedocs.io/en/latest/admin.html
 from simple_history.models import HistoricalRecords
 from uctovnictvo.storage import OverwriteStorage
-from .odvody import DohodarOdvodySpolu, ZamestnanecOdvodySpolu
+from .odvody import DohodarOdvodySpolu, ZamestnanecOdvodySpolu, ZamestnanecOdvody, DohodarOdvody
 from .rokydni import mesiace, koef_neodprac_dni, prekryv_dni, prac_dni
 from polymorphic.models import PolymorphicModel
 from django.utils.safestring import mark_safe
@@ -1067,6 +1067,19 @@ class PlatovyVymer(Klasifikacia):
             null=True)
     history = HistoricalRecords()
 
+    def polozka_cerpania(self, nazov, rekapitulacia, suma, zden, zdroj=None, zakazka=None, ekoklas=None):
+        return {
+            "nazov": nazov,
+            "rekapitulacia": rekapitulacia,
+            "suma": round(Decimal(suma),2),
+            "zdroj": zdroj if zdroj else self.zdroj,
+            "zakazka": zakazka if zakazka else self.zakazka,
+            "datum": zden if zden < date.today() else None,
+            "subjekt": f"{self.zamestnanec.priezvisko}, {self.zamestnanec.meno}, (za {zden.year}/{zden.month})", 
+            "cislo": self.cislo if self.cislo else "-",
+            "ekoklas": EkonomickaKlasifikacia.objects.get(kod=ekoklas) if ekoklas else self.ekoklas
+            }
+
     #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
     def cerpanie_rozpoctu(self, zden):
         if zden < self.datum_od: return []
@@ -1177,30 +1190,10 @@ class PlatovyVymer(Klasifikacia):
         dds_prispevok = None
         dds_zdravotne = None
         if self.zamestnanec.dds == AnoNie.ANO:
-            dds_prispevok = {
-                "nazov": "DDS príspevok",
-                "rekapitulacia": "DDS",
-                "suma": -round(Decimal(DDS_PRISPEVOK*koef_prac*tabulkovy_plat/100),2),
-                "zdroj": self.zdroj,
-                "zakazka": self.zakazka,
-                "datum": zden if zden < date.today() else None,
-                "subjekt": f"{self.zamestnanec.priezvisko}, {self.zamestnanec.meno}, (za {zden.year}/{zden.month})", 
-                "cislo": self.cislo if self.cislo else "-",
-                "ekoklas": EkonomickaKlasifikacia.objects.get(kod="627")
-                }
-
-            _, _, zdravpoist, _ = ZamestnanecOdvodySpolu(nazov_suboru, float(dds_prispevok['suma']), td_konv, zden)
-            dds_zdravotne = {
-                "nazov": "DDS poistenie zdravotné",
-                "rekapitulacia": "Zdravotné poistné",
-                "suma": round(Decimal(zdravpoist),2),
-                "zdroj": self.zdroj,
-                "zakazka": self.zakazka,
-                "datum": zden if zden < date.today() else None,
-                "subjekt": f"{self.zamestnanec.priezvisko}, {self.zamestnanec.meno}, (za {zden.year}/{zden.month})", 
-                "cislo": self.cislo if self.cislo else "-",
-                "ekoklas": EkonomickaKlasifikacia.objects.get(kod="620")
-                }
+            dds_prispevok = self.polozka_cerpania("DDS príspevok", "DDS", -DDS_PRISPEVOK*koef_prac*tabulkovy_plat/100, zden, ekoklas="627")
+            _, _, zdravpoist, _ = ZamestnanecOdvody(nazov_suboru, float(dds_prispevok['suma']), td_konv, zden)
+            ekoklas = "621" if self.zamestnanec.poistovna == Poistovna.VSZP else "623"
+            dds_zdravotne = self.polozka_cerpania("DDS poistenie zdravotné", "Zdravotné poistné", zdravpoist['zdravotne'], zden, ekoklas=ekoklas)
 
         #PN
         nahrada_pn = None
@@ -1251,29 +1244,13 @@ class PlatovyVymer(Klasifikacia):
 
         if zden==date(2022,4,1):
             pass
-        socpoist, _, zdravpoist, _ = ZamestnanecOdvodySpolu(nazov_suboru, (koef_prac+koef_dov+koef_osob) * tabulkovy_plat, td_konv, zden)
-        socialne = {
-                "nazov": "Plat poistenie sociálne",
-                "rekapitulacia": "Sociálne poistné",
-                "suma": -round(Decimal(socpoist),2),
-                "zdroj": self.zdroj,
-                "zakazka": self.zakazka,
-                "datum": zden if zden < date.today() else None,
-                "subjekt": f"{self.zamestnanec.priezvisko}, {self.zamestnanec.meno}, (za {zden.year}/{zden.month})", 
-                "cislo": self.cislo if self.cislo else "-",
-                "ekoklas": EkonomickaKlasifikacia.objects.get(kod="625")
-                }
-        zdravotne = {
-                "nazov": "Plat poistenie zdravotné",
-                "rekapitulacia": "Zdravotné poistné",
-                "suma": -round(Decimal(zdravpoist),2),
-                "zdroj": self.zdroj,
-                "zakazka": self.zakazka,
-                "datum": zden if zden < date.today() else None,
-                "subjekt": f"{self.zamestnanec.priezvisko}, {self.zamestnanec.meno}, (za {zden.year}/{zden.month})", 
-                "cislo": self.cislo if self.cislo else "-",
-                "ekoklas": EkonomickaKlasifikacia.objects.get(kod="620")
-                }
+        socpoist, _, zdravpoist, _ = ZamestnanecOdvody(nazov_suboru, (koef_prac+koef_dov+koef_osob) * tabulkovy_plat, td_konv, zden)
+        ekoklas = "621" if self.zamestnanec.poistovna == Poistovna.VSZP else "623"
+        zdravotne = self.polozka_cerpania("Plat poistenie zdravotné", f"Zdravotné poistné", -zdravpoist['zdravotne'], zden, ekoklas=ekoklas)
+        socialne=[]
+        for item in socpoist:
+            socialne.append(self.polozka_cerpania("Plat poistenie sociálne", f"Sociálne poistné", -socpoist[item], zden, ekoklas=item))
+
         #Socfond
         if zden in [date(2022,1,1), date(2022,2,1), date(2022,3,1)]:   #Počas tychto 3 mesiacov bolo všetko inak :D
             socfond = {
@@ -1303,7 +1280,7 @@ class PlatovyVymer(Klasifikacia):
         #if zden == date(2022,5,1) and nahrada_dov:
             #print(self.zamestnanec.priezvisko,tabulkovy_plat, socfond['suma'], poistne['suma'],tarifny['suma'], osobny['suma'], funkcny['suma'], nahrada_dov['suma'])
 
-        retlist = [tarifny, osobny, funkcny, socialne, zdravotne, socfond]
+        retlist = socialne + [tarifny, osobny, funkcny, zdravotne, socfond]
         if dds_prispevok: retlist.append(dds_prispevok)
         if dds_zdravotne: retlist.append(dds_zdravotne)
         if nahrada_dov: retlist.append(nahrada_dov)
@@ -1516,6 +1493,19 @@ class Dohoda(PolymorphicModel, Klasifikacia):
     def adresat(self):
         return self.zmluvna_strana
 
+    def polozka_cerpania(self, nazov, rekapitulacia, suma, zden, zdroj=None, zakazka=None, ekoklas=None):
+        return {
+            "nazov": nazov,
+            "rekapitulacia": rekapitulacia,
+            "suma": round(Decimal(suma),2),
+            "zdroj": zdroj if zdroj else self.zdroj,
+            "zakazka": zakazka if zakazka else self.zakazka,
+            "datum": zden if zden < date.today() else None,
+            "subjekt": f"{self.zmluvna_strana.priezvisko}, {self.zmluvna_strana.meno}, (za {zden.year}/{zden.month})", 
+            "cislo": self.cislo if self.cislo else "-",
+            "ekoklas": EkonomickaKlasifikacia.objects.get(kod=ekoklas) if ekoklas else self.ekoklas
+            }
+
     class Meta:
         verbose_name = "Dohoda"
         verbose_name_plural = "Dohody"
@@ -1567,30 +1557,13 @@ class DoVP(Dohoda):
         nazov_suboru = objekt[0].subor.file.name 
         td = self.zmluvna_strana.typ_doch
         td_konv = "StarDoch" if td==TypDochodku.STAROBNY else "InvDoch" if td== TypDochodku.INVALIDNY else "StarDoch" if td==TypDochodku.STAROBNY else "DoVP"
-        socpoist, _, zdravpoist, _  = DohodarOdvodySpolu(nazov_suboru, float(self.odmena_celkom), td_konv, zden, ODVODY_VYNIMKA if self.vynimka == AnoNie.ANO else 0)
-        socialne = {
-                "nazov": "DoVP poistenie sociálne",
-                "rekapitulacia": "Sociálne poistné",
-                "suma": -Decimal(socpoist),
-                "datum": zden,
-                "subjekt": f"{self.zmluvna_strana.priezvisko}, {self.zmluvna_strana.meno}", 
-                "cislo": self.cislo,
-                "zdroj": self.zdroj,
-                "zakazka": self.zakazka,
-                "ekoklas": EkonomickaKlasifikacia.objects.get(kod="625")
-                }
-        zdravotne = {
-                "nazov": "DoVP poistenie zdravotné",
-                "rekapitulacia": "Zdravotné poistné",
-                "suma": -Decimal(zdravpoist),
-                "datum": zden,
-                "subjekt": f"{self.zmluvna_strana.priezvisko}, {self.zmluvna_strana.meno}", 
-                "cislo": self.cislo,
-                "zdroj": self.zdroj,
-                "zakazka": self.zakazka,
-                "ekoklas": EkonomickaKlasifikacia.objects.get(kod="620")
-                }
-        return [platba, socialne, zdravotne]
+        socpoist, _, zdravpoist, _  = DohodarOdvody(nazov_suboru, float(self.odmena_celkom), td_konv, zden, ODVODY_VYNIMKA if self.vynimka == AnoNie.ANO else 0)
+        ekoklas = "621" if self.zmluvna_strana.poistovna == Poistovna.VSZP else "623"
+        zdravotne = self.polozka_cerpania("DoVP poistenie zdravotné", "Zdravotné poistné", -zdravpoist['zdravotne'], zden, ekoklas=ekoklas)
+        socialne=[]
+        for item in socpoist:
+            socialne.append(self.polozka_cerpania("DoVP poistenie sociálne", "Sociálne poistné", -socpoist[item], zden, ekoklas=item))
+        return socialne + [platba, zdravotne]
  
     # test platnosti dát
     def clean(self): 
@@ -1677,34 +1650,13 @@ class DoPC(Dohoda):
         nazov_suboru = objekt[0].subor.file.name 
         td = self.zmluvna_strana.typ_doch
         td_konv = "StarDoch" if td==TypDochodku.STAROBNY else "InvDoch" if td== TypDochodku.INVALIDNY else "StarDoch" if td==TypDochodku.STAROBNY else "DoPC"
-        socpoist, _, zdravpoist, _ = DohodarOdvodySpolu(nazov_suboru, float(self.odmena_mesacne), td_konv, zden, ODVODY_VYNIMKA if self.vynimka == AnoNie.ANO else 0)
-        socialne = {
-                "nazov": "DoPC poistenie sociálne",
-                "rekapitulacia": "Sociálne poistné",
-                #Dočasne všetci rovnako, treba opraviť
-                #"suma": -(Decimal(0.3495) if zden.year < 2022 else Decimal(0.352)) * self.odmena_mesacne,
-                "suma": -Decimal(socpoist),
-                "datum": zden,
-                "subjekt": f"{self.zmluvna_strana.priezvisko}, {self.zmluvna_strana.meno}", 
-                "cislo": self.cislo,
-                "zdroj": self.zdroj,
-                "zakazka": self.zakazka,
-                "ekoklas": EkonomickaKlasifikacia.objects.get(kod="625")
-                }
-        zdravotne = {
-                "nazov": "DoPC poistenie zdravotné",
-                "rekapitulacia": "Zdravotné poistné",
-                #Dočasne všetci rovnako, treba opraviť
-                #"suma": -(Decimal(0.3495) if zden.year < 2022 else Decimal(0.352)) * self.odmena_mesacne,
-                "suma": -Decimal(zdravpoist),
-                "datum": zden,
-                "subjekt": f"{self.zmluvna_strana.priezvisko}, {self.zmluvna_strana.meno}", 
-                "cislo": self.cislo,
-                "zdroj": self.zdroj,
-                "zakazka": self.zakazka,
-                "ekoklas": EkonomickaKlasifikacia.objects.get(kod="620")
-                }
-        return [platba, socialne, zdravotne]
+        socpoist, _, zdravpoist, _ = DohodarOdvody(nazov_suboru, float(self.odmena_mesacne), td_konv, zden, ODVODY_VYNIMKA if self.vynimka == AnoNie.ANO else 0)
+        ekoklas = "621" if self.zmluvna_strana.poistovna == Poistovna.VSZP else "623"
+        zdravotne = self.polozka_cerpania("DoPC poistenie zdravotné", "Zdravotné poistné", -zdravpoist['zdravotne'], zden, ekoklas=ekoklas)
+        socialne=[]
+        for item in socpoist:
+            socialne.append(self.polozka_cerpania("DoPC poistenie sociálne", f"Sociálne poistné", -socpoist[item], zden, ekoklas=item))
+        return socialne + [platba, zdravotne]
 
     class Meta:
         verbose_name = 'Dohoda o pracovnej činnosti'
@@ -1825,7 +1777,7 @@ class VyplacanieDohod(models.Model):
             td = "InvDoch"
 
         vyplatena_odmena = float(self.vyplatena_odmena)
-        socialne_zam, socialne_prac, zdravotne_zam, zdravotne_prac = DohodarOdvodySpolu(nazov_suboru, vyplatena_odmena, td, self.dohoda.datum_od, vynimka_suma) 
+        socialne_zam, socialne_prac, zdravotne_zam, zdravotne_prac = DohodarOdvody(nazov_suboru, vyplatena_odmena, td, self.dohoda.datum_od, vynimka_suma) 
         self.poistne_zamestnavatel = socialne_zam+zdravotne_zam
         self.poistne_dohodar = socialne_praczdravotne_prac
         self.dan_dohodar = (vyplatena_odmena - self.poistne_dohodar) * DAN_Z_PRIJMU / 100

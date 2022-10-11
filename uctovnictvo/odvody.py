@@ -93,7 +93,6 @@ def TabulkaOdvodov(meno_suboru, zam_doh, typ, datum, vynimka=False):
         if datum.year > 2021:
             socialne["garancne"] = 9
 
-
         #stĺpec v tabulke
         if typ == "DoPC":   #aka Pravidelný príjem
             col0 = 2    #B
@@ -108,14 +107,25 @@ def TabulkaOdvodov(meno_suboru, zam_doh, typ, datum, vynimka=False):
         else:
             return f"Zadaný neplatný typ dohodára {typ}"
 
+    socialne_klas = {
+        "nemocenske": "625001",
+        "starobne": "625002",
+        "urazove": "625003",
+        "invalidne": "625004",
+        "nezamestnanecke": "625005",
+        "garancne": "625006",
+        "rezervny": "625007",
+        "financovanie_podpory": "625005",
+    }
+
     socialne_zam = {}
     socialne_prac = {}
     zdravotne_zam = {}
     zdravotne_prac = {}
 
     for pp in socialne:
-        socialne_zam[pp] = ws.cell(row=socialne[pp], column=col0).value / 100 
-        socialne_prac[pp] = ws.cell(row=socialne[pp], column=col0+1).value / 100
+        socialne_zam[socialne_klas[pp]] = ws.cell(row=socialne[pp], column=col0).value / 100 
+        socialne_prac[socialne_klas[pp]] = ws.cell(row=socialne[pp], column=col0+1).value / 100
     for pp in zdravotne:
         zdravotne_zam[pp] = ws.cell(row=zdravotne[pp], column=col0).value / 100 
         zdravotne_prac[pp] = ws.cell(row=zdravotne[pp], column=col0+1).value / 100
