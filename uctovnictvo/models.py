@@ -977,10 +977,14 @@ class Zamestnanec(ZamestnanecDohodar):
             null=True)
     dds = models.CharField("Účastník DDS", 
             max_length=3, 
-            help_text = "Uveďte 'Áno', ak sa zamestnanec zúčastňuje doplnkového dôchdkového sporenia",
+            help_text = "Uveďte 'Áno', ak sa zamestnanec zúčastňuje doplnkového dôchodkového sporenia.<br />V tom prípade vyplňte aj položku 'DDS od'",
             null = True,
             choices=AnoNie.choices,
             default=AnoNie.NIE)
+    dds_od = models.DateField('DDS od',
+            help_text = "Dátum, odkedy sa zamestnanec zúčastňuje doplnkového dôchodkového sporenia.",
+            blank=True,
+            null=True)
     history = HistoricalRecords()
     class Meta:
         verbose_name = "Zamestnanec"
@@ -1177,30 +1181,35 @@ class PlatovyVymer(Klasifikacia):
         dds_prispevok = None
         dds_zdravotne = None
         if self.zamestnanec.dds == AnoNie.ANO:
-            dds_prispevok = {
-                "nazov": "DDS príspevok",
-                "rekapitulacia": "DDS",
-                "suma": -round(Decimal(DDS_PRISPEVOK*koef_prac*tabulkovy_plat/100),2),
-                "zdroj": self.zdroj,
-                "zakazka": self.zakazka,
-                "datum": zden if zden < date.today() else None,
-                "subjekt": f"{self.zamestnanec.priezvisko}, {self.zamestnanec.meno}, (za {zden.year}/{zden.month})", 
-                "cislo": self.cislo if self.cislo else "-",
-                "ekoklas": EkonomickaKlasifikacia.objects.get(kod="627")
-                }
+            if not self.zamestnanec.dds_od:
+                dds_prispevok["poznamka"] = f"Vypočítaná suma výšky príspevku do DDS je nesprávna. V údajoch zamestnanca '{self.zamestnanec}' treba vyplniť pole 'DDS od'"
+            else: # Príspevok do DDS sa vypláca od 1. dňa mesiaca, keď bola uzatvorena dohoda
+                dds_od = date(self.zamestnanec.dds_od.year, self.zamestnanec.dds_od.month, 1)
+            if zden >= dds_od:
+                dds_prispevok = {
+                    "nazov": "DDS príspevok",
+                    "rekapitulacia": "DDS",
+                    "suma": -round(Decimal(DDS_PRISPEVOK*koef_prac*tabulkovy_plat/100),2),
+                    "zdroj": self.zdroj,
+                    "zakazka": self.zakazka,
+                    "datum": zden if zden < date.today() else None,
+                    "subjekt": f"{self.zamestnanec.priezvisko}, {self.zamestnanec.meno}, (za {zden.year}/{zden.month})", 
+                    "cislo": self.cislo if self.cislo else "-",
+                    "ekoklas": EkonomickaKlasifikacia.objects.get(kod="627")
+                    }
 
-            _, _, zdravpoist, _ = ZamestnanecOdvodySpolu(nazov_suboru, float(dds_prispevok['suma']), td_konv, zden)
-            dds_zdravotne = {
-                "nazov": "DDS poistenie zdravotné",
-                "rekapitulacia": "Zdravotné poistné",
-                "suma": round(Decimal(zdravpoist),2),
-                "zdroj": self.zdroj,
-                "zakazka": self.zakazka,
-                "datum": zden if zden < date.today() else None,
-                "subjekt": f"{self.zamestnanec.priezvisko}, {self.zamestnanec.meno}, (za {zden.year}/{zden.month})", 
-                "cislo": self.cislo if self.cislo else "-",
-                "ekoklas": EkonomickaKlasifikacia.objects.get(kod="620")
-                }
+                _, _, zdravpoist, _ = ZamestnanecOdvodySpolu(nazov_suboru, float(dds_prispevok['suma']), td_konv, zden)
+                dds_zdravotne = {
+                    "nazov": "DDS poistenie zdravotné",
+                    "rekapitulacia": "Zdravotné poistné",
+                    "suma": round(Decimal(zdravpoist),2),
+                    "zdroj": self.zdroj,
+                    "zakazka": self.zakazka,
+                    "datum": zden if zden < date.today() else None,
+                    "subjekt": f"{self.zamestnanec.priezvisko}, {self.zamestnanec.meno}, (za {zden.year}/{zden.month})", 
+                    "cislo": self.cislo if self.cislo else "-",
+                    "ekoklas": EkonomickaKlasifikacia.objects.get(kod="620")
+                    }
 
         #PN
         nahrada_pn = None
