@@ -1698,8 +1698,8 @@ class DoPC(Dohoda):
                 "datum": zden,
                 "subjekt": f"{self.zmluvna_strana.priezvisko}, {self.zmluvna_strana.meno}", 
                 "cislo": self.cislo,
-                "zdroj": self.zdroj,
-                "zakazka": self.zakazka,
+                "zdroj": zdroj,
+                "zakazka": zakazka,
                 "ekoklas": self.ekoklas
                 }
         nazov_objektu = "Odvody zamestnancov a dohodárov"  #Presne takto musí byť objekt pomenovaný
