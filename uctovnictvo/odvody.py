@@ -124,8 +124,20 @@ def TabulkaOdvodov(meno_suboru, zam_doh, typ, datum, vynimka=False):
     zdravotne_prac = {}
 
     for pp in socialne:
-        socialne_zam[socialne_klas[pp]] = ws.cell(row=socialne[pp], column=col0).value / 100 
-        socialne_prac[socialne_klas[pp]] = ws.cell(row=socialne[pp], column=col0+1).value / 100
+        # sčítať po položkách (kvôli 625005)
+        if not socialne_klas[pp] in socialne_zam:
+            socialne_zam[socialne_klas[pp]] = ws.cell(row=socialne[pp], column=col0).value / 100 
+        else:
+            socialne_zam[socialne_klas[pp]] += ws.cell(row=socialne[pp], column=col0).value / 100 
+
+        if not socialne_klas[pp] in socialne_prac:
+            socialne_prac[socialne_klas[pp]] = ws.cell(row=socialne[pp], column=col0+1).value / 100 
+        else:
+            socialne_prac[socialne_klas[pp]] += ws.cell(row=socialne[pp], column=col0+1).value / 100 
+
+    #for pp in socialne:
+        #socialne_zam[socialne_klas[pp]] = ws.cell(row=socialne[pp], column=col0).value / 100 
+        #socialne_prac[socialne_klas[pp]] = ws.cell(row=socialne[pp], column=col0+1).value / 100
     for pp in zdravotne:
         zdravotne_zam[pp] = ws.cell(row=zdravotne[pp], column=col0).value / 100 
         zdravotne_prac[pp] = ws.cell(row=zdravotne[pp], column=col0+1).value / 100
