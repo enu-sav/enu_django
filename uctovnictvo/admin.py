@@ -969,7 +969,7 @@ class DohodaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, Mode
         #cislo a zmluvna_strana riešime v odvodenej triede
         return ("stav_dohody", "dohoda_odoslana", "_predmet", "datum_od", "datum_do", "vyplatene", "subor_dohody", "sken_dohody", "vynimka")
     def get_readonly_fields(self, request, obj=None):
-        polia_klasif = ["zdroj", "zakazka", "ekoklas"]
+        polia_klasif = ["zdroj", "zakazka", "ekoklas", "cinnost"]
         if not obj:
             return ["subor_dohody","sken_dohody", "dohoda_odoslana", "vyplatene"]
         elif obj.stav_dohody == StavDohody.NOVA or obj.stav_dohody == StavDohody.VYTVORENA: 
@@ -1128,8 +1128,12 @@ class DoPCAdmin(DohodaAdmin):
         elif obj.stav_dohody == StavDohody.ODOSLANA_DOHODAROVI: 
             return ro_parent + ["odmena_mesacne", "hod_mesacne", "datum_ukoncenia"]
         elif obj.stav_dohody == StavDohody.PODPISANA_DOHODAROM:
+            ro_parent.remove("zdroj")
+            ro_parent.remove("zakazka")
             return ro_parent + ["odmena_mesacne", "hod_mesacne"]
         elif obj.stav_dohody == StavDohody.DOKONCENA:
+            ro_parent.remove("zdroj")
+            ro_parent.remove("zakazka")
             return ro_parent + ["odmena_mesacne", "hod_mesacne"]
         else:
             #sem by sme nemali prist
