@@ -1657,6 +1657,11 @@ class DoPC(Dohoda):
             help_text = "Zadajte dátum predčasného ukončenia platnosti dohody",
             blank = True,
             null=True)
+    zmena_zdroja = models.TextField("Zmena zdroja alebo odmeny", 
+            help_text = "Zadajte po riadkoch mesiace (v rozsahu platnosti dohody), v ktorých sa zdroj alebo suma odlišujú od svojich preddefinovaných hodnôt, a to v tvare <em>RRRR/MM zdroj odmena</em>.<br />Vždy treba zadať zdroj aj odmenu, aj keď sa zmenila len jedna z týchto hodnôt.", 
+            max_length=500,
+            blank=True,
+            null=True)
     history = HistoricalRecords()
 
     #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
@@ -1664,10 +1669,32 @@ class DoPC(Dohoda):
         if zden < self.datum_od: return []
         if self.datum_ukoncenia and zden > self.datum_ukoncenia: return []
         if zden > self.datum_do: return []
+
+        zdroj = None
+        zakazka = None
+        odmena_mesacne = None
+        if self.zmena_zdroja:
+            if zden == date(2022,7,1):
+                #trace()
+                pass
+            zz = re.findall(r"%s/0*%s ([0-9]+) ([0-9,.]+)"%(zden.year, zden.month), self.zmena_zdroja)
+            if zz:
+                if zz[0][0]== "42":
+                    zdroj = Zdroj.objects.get(kod="42")
+                    zakazka = TypZakazky.objects.get(kod="42002200")
+                    odmena_mesacne = float(zz[0][1].replace(",","."))
+                elif zz[0][0]== "111":
+                    zdroj = Zdroj.objects.get(kod="111")
+                    zakazka = TypZakazky.objects.get(kod="11010001 spol. zák.")
+                    odmena_mesacne = float(zz[0][1].replace(",","."))
+
+        zdroj = zdroj if zdroj else self.zdroj
+        zakazka = zakazka if zakazka else self.zakazka
+        odmena_mesacne = odmena_mesacne if odmena_mesacne else self.odmena_mesacne
         platba = {
                 "nazov":f"DoPC odmena",
                 "rekapitulacia": "DoPC",
-                "suma": -Decimal(self.odmena_mesacne),
+                "suma": -Decimal(odmena_mesacne),
                 "datum": zden,
                 "subjekt": f"{self.zmluvna_strana.priezvisko}, {self.zmluvna_strana.meno}", 
                 "cislo": self.cislo,
@@ -1684,10 +1711,10 @@ class DoPC(Dohoda):
         td_konv = "StarDoch" if td==TypDochodku.STAROBNY else "InvDoch" if td== TypDochodku.INVALIDNY else "StarDoch" if td==TypDochodku.STAROBNY else "DoPC"
         socpoist, _, zdravpoist, _ = DohodarOdvody(nazov_suboru, float(self.odmena_mesacne), td_konv, zden, ODVODY_VYNIMKA if self.vynimka == AnoNie.ANO else 0)
         ekoklas = "621" if self.zmluvna_strana.poistovna == Poistovna.VSZP else "623"
-        zdravotne = self.polozka_cerpania("DoPC poistenie zdravotné", "Zdravotné poistné", -zdravpoist['zdravotne'], zden, ekoklas=ekoklas)
+        zdravotne = self.polozka_cerpania("DoPC poistenie zdravotné", "Zdravotné poistné", -zdravpoist['zdravotne'], zden, zdroj=zdroj, zakazka=zakazka, ekoklas=ekoklas)
         socialne=[]
         for item in socpoist:
-            socialne.append(self.polozka_cerpania("DoPC poistenie sociálne", f"Sociálne poistné", -socpoist[item], zden, ekoklas=item))
+            socialne.append(self.polozka_cerpania("DoPC poistenie sociálne", f"Sociálne poistné", -socpoist[item], zden, zdroj=zdroj, zakazka=zakazka, ekoklas=item))
         return socialne + [platba, zdravotne]
 
     class Meta:
