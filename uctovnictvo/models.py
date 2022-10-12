@@ -1069,6 +1069,11 @@ class PlatovyVymer(Klasifikacia):
             help_text = "Dátum najbližšieho platového postupu. Pole sa vyplňuje automaticky, ak nie je pole 'Dátum do' vyplnené, inak je prázdne",
             blank=True,
             null=True)
+    zmena_zdroja = models.TextField("Zmena zdroja", 
+            help_text = "Zadajte po riadkoch mesiace (v rozsahu platnosti výmeru), v ktorých sa zdroj odlišuje od preddefinovaného zdroja.<br /> Napr. ak je preddefinovaný zdroj 111, ale vo februári 2022 sa vyplácalo zo zdroja 42, na riadku uveďte '2022/02 42'.", 
+            max_length=500,
+            blank=True,
+            null=True)
     history = HistoricalRecords()
 
     def polozka_cerpania(self, nazov, rekapitulacia, suma, zden, zdroj=None, zakazka=None, ekoklas=None):
@@ -1156,13 +1161,31 @@ class PlatovyVymer(Klasifikacia):
         td = self.zamestnanec.typ_doch
         td_konv = "InvDoch30" if td==TypDochodku.INVALIDNY30 else "InvDoch70" if td== TypDochodku.INVALIDNY70 else "StarDoch" if td==TypDochodku.STAROBNY else "VyslDoch" if td==TypDochodku.INVAL_VYSL else "Bezny"
 
+        zdroj = None
+        zakazka = None
+        if self.zmena_zdroja:
+            if zden == date(2022,2,1):
+                #trace()
+                pass
+            zz = re.findall(r"%s/0*%s ([0-9]*)"%(zden.year, zden.month), self.zmena_zdroja)
+            if zz:
+                if zz[0]== "42":
+                    zdroj = Zdroj.objects.get(kod="42")
+                    zakazka = TypZakazky.objects.get(kod="42002200")
+                elif zz[0]== "111":
+                    zdroj = Zdroj.objects.get(kod="111")
+                    zakazka = TypZakazky.objects.get(kod="11010001 spol. zák.")
+
+        zdroj = zdroj if zdroj else self.zdroj
+        zakazka = zakazka if zakazka else self.zakazka
+
         #Odpracované dni
         tarifny = {
                 "nazov":"Plat tarifný plat",
                 "rekapitulacia":  "Tarifný plat",
                 "suma": -round(Decimal(koef_prac*float(self.tarifny_plat)),2),
-                "zdroj": self.zdroj,
-                "zakazka": self.zakazka,
+                "zdroj": zdroj,
+                "zakazka": zakazka,
                 "datum": zden if zden < date.today() else None,
                 "subjekt": f"{self.zamestnanec.priezvisko}, {self.zamestnanec.meno}, (za {zden.year}/{zden.month})", 
                 "cislo": self.cislo if self.cislo else "-",
@@ -1172,8 +1195,8 @@ class PlatovyVymer(Klasifikacia):
                 "nazov": "Plat osobný príplatok",
                 "rekapitulacia": "Osobný príplatok",
                 "suma": -round(Decimal(koef_prac*float(self.osobny_priplatok)),2),
-                "zdroj": self.zdroj,
-                "zakazka": self.zakazka,
+                "zdroj": zdroj,
+                "zakazka": zakazka,
                 "datum": zden if zden < date.today() else None,
                 "subjekt": f"{self.zamestnanec.priezvisko}, {self.zamestnanec.meno}, (za {zden.year}/{zden.month})", 
                 "cislo": self.cislo if self.cislo else "-",
@@ -1183,8 +1206,8 @@ class PlatovyVymer(Klasifikacia):
                 "nazov": "Plat funkčný príplatok",
                 "rekapitulacia": "Príplatok za riadenie",
                 "suma": -round(Decimal(koef_prac*float(self.funkcny_priplatok)),2),
-                "zdroj": self.zdroj,
-                "zakazka": self.zakazka,
+                "zdroj": zdroj,
+                "zakazka": zakazka,
                 "datum": zden if zden < date.today() else None,
                 "subjekt": f"{self.zamestnanec.priezvisko}, {self.zamestnanec.meno}, (za {zden.year}/{zden.month})", 
                 "cislo": self.cislo if self.cislo else "-",
@@ -1199,10 +1222,10 @@ class PlatovyVymer(Klasifikacia):
             else: # Príspevok do DDS sa vypláca od 1. dňa mesiaca, keď bola uzatvorena dohoda
                 dds_od = date(self.zamestnanec.dds_od.year, self.zamestnanec.dds_od.month, 1)
             if zden >= dds_od:
-                dds_prispevok = self.polozka_cerpania("DDS príspevok", "DDS", -DDS_PRISPEVOK*koef_prac*tabulkovy_plat/100, zden, ekoklas="627")
+                dds_prispevok = self.polozka_cerpania("DDS príspevok", "DDS", -DDS_PRISPEVOK*koef_prac*tabulkovy_plat/100, zden, zdroj=zdroj, zakazka=zakazka, ekoklas="627")
                 _, _, zdravpoist, _ = ZamestnanecOdvody(nazov_suboru, float(dds_prispevok['suma']), td_konv, zden)
                 ekoklas = "621" if self.zamestnanec.poistovna == Poistovna.VSZP else "623"
-                dds_zdravotne = self.polozka_cerpania("DDS poistenie zdravotné", "Zdravotné poistné", zdravpoist['zdravotne'], zden, ekoklas=ekoklas)
+                dds_zdravotne = self.polozka_cerpania("DDS poistenie zdravotné", "Zdravotné poistné", zdravpoist['zdravotne'], zden, zdroj=zdroj, zakazka=zakazka, ekoklas=ekoklas)
 
         #PN
         nahrada_pn = None
@@ -1212,8 +1235,8 @@ class PlatovyVymer(Klasifikacia):
                     "nazov": "Náhrada mzdy - PN",
                     "suma": -round(Decimal((dpn1*PN1+dpn2*PN2)*denny_vz/100),2),
                     "rekapitulacia": "XXX",
-                    "zdroj": self.zdroj,
-                    "zakazka": self.zakazka,
+                    "zdroj": zdroj,
+                    "zakazka": zakazka,
                     "datum": zden if zden < date.today() else None,
                     "subjekt": f"{self.zamestnanec.priezvisko}, {self.zamestnanec.meno}, (za {zden.year}/{zden.month})", 
                     "cislo": self.cislo if self.cislo else "-",
@@ -1229,8 +1252,8 @@ class PlatovyVymer(Klasifikacia):
                     "nazov": "Náhrada mzdy - osobné prekážky",
                     "rekapitulacia": "Prekážky osobné",
                     "suma": -round(Decimal(tabulkovy_plat*koef_osob),2),
-                    "zdroj": self.zdroj,
-                    "zakazka": self.zakazka,
+                    "zdroj": zdroj,
+                    "zakazka": zakazka,
                     "datum": zden if zden < date.today() else None,
                     "subjekt": f"{self.zamestnanec.priezvisko}, {self.zamestnanec.meno}, (za {zden.year}/{zden.month})", 
                     "cislo": self.cislo if self.cislo else "-",
@@ -1243,8 +1266,8 @@ class PlatovyVymer(Klasifikacia):
                     "nazov": "Náhrada mzdy - dovolenka",
                     "rekapitulacia": "Dovolenka",
                     "suma": -round(Decimal(koef_dov*tabulkovy_plat),2),
-                    "zdroj": self.zdroj,
-                    "zakazka": self.zakazka,
+                    "zdroj": zdroj,
+                    "zakazka": zakazka,
                     "datum": zden if zden < date.today() else None,
                     "subjekt": f"{self.zamestnanec.priezvisko}, {self.zamestnanec.meno}, (za {zden.year}/{zden.month})", 
                     "cislo": self.cislo if self.cislo else "-",
@@ -1255,10 +1278,10 @@ class PlatovyVymer(Klasifikacia):
             pass
         socpoist, _, zdravpoist, _ = ZamestnanecOdvody(nazov_suboru, (koef_prac+koef_dov+koef_osob) * tabulkovy_plat, td_konv, zden)
         ekoklas = "621" if self.zamestnanec.poistovna == Poistovna.VSZP else "623"
-        zdravotne = self.polozka_cerpania("Plat poistenie zdravotné", f"Zdravotné poistné", -zdravpoist['zdravotne'], zden, ekoklas=ekoklas)
+        zdravotne = self.polozka_cerpania("Plat poistenie zdravotné", f"Zdravotné poistné", -zdravpoist['zdravotne'], zden, zdroj=zdroj, zakazka=zakazka, ekoklas=ekoklas)
         socialne=[]
         for item in socpoist:
-            socialne.append(self.polozka_cerpania("Plat poistenie sociálne", f"Sociálne poistné", -socpoist[item], zden, ekoklas=item))
+            socialne.append(self.polozka_cerpania("Plat poistenie sociálne", f"Sociálne poistné", -socpoist[item], zden, zdroj=zdroj, zakazka=zakazka, ekoklas=item))
 
         #Socfond
         if zden in [date(2022,1,1), date(2022,2,1), date(2022,3,1)]:   #Počas tychto 3 mesiacov bolo všetko inak :D
@@ -1278,8 +1301,8 @@ class PlatovyVymer(Klasifikacia):
                 "nazov": "Prídel do SF",
                 "rekapitulacia": "Sociálny fond",
                 "suma": -round(Decimal(0.015*koef_prac*tabulkovy_plat),2),  #0.015 podľa kolektívnej zmluvy
-                "zdroj": self.zdroj,
-                "zakazka": self.zakazka,
+                "zdroj": zdroj,
+                "zakazka": zakazka,
                 "datum": zden if zden < date.today() else None,
                 "subjekt": f"{self.zamestnanec.priezvisko}, {self.zamestnanec.meno}, (za {zden.year}/{zden.month})", 
                 "cislo": self.cislo if self.cislo else "-",

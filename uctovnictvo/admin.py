@@ -1296,6 +1296,7 @@ class PlatovyVymerAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
         if obj and obj.datum_do:
             aux = [f.name for f in PlatovyVymer._meta.get_fields()]
             aux.remove("datum_do")
+            aux.remove("zmena_zdroja")
             return aux
         else:
             return ["zamestnanieroky", "zamestnaniedni", "datum_postup"]
