@@ -1167,7 +1167,7 @@ class PlatovyVymer(Klasifikacia):
             if zden == date(2022,2,1):
                 #trace()
                 pass
-            zz = re.findall(r"%s/0*%s ([0-9]*)"%(zden.year, zden.month), self.zmena_zdroja)
+            zz = re.findall(r"%s/0*%s +([0-9]*)"%(zden.year, zden.month), self.zmena_zdroja)
             if zz:
                 if zz[0]== "42":
                     zdroj = Zdroj.objects.get(kod="42")
@@ -1674,10 +1674,10 @@ class DoPC(Dohoda):
         zakazka = None
         odmena_mesacne = None
         if self.zmena_zdroja:
-            if zden == date(2022,7,1):
+            if zden == date(2022,5,1):
                 #trace()
                 pass
-            zz = re.findall(r"%s/0*%s ([0-9]+) ([0-9,.]+)"%(zden.year, zden.month), self.zmena_zdroja)
+            zz = re.findall(r"%s/0*%s +([0-9]+) +([0-9,.]+)"%(zden.year, zden.month), self.zmena_zdroja)
             if zz:
                 if zz[0][0]== "42":
                     zdroj = Zdroj.objects.get(kod="42")
@@ -1709,7 +1709,7 @@ class DoPC(Dohoda):
         nazov_suboru = objekt[0].subor.file.name 
         td = self.zmluvna_strana.typ_doch
         td_konv = "StarDoch" if td==TypDochodku.STAROBNY else "InvDoch" if td== TypDochodku.INVALIDNY else "StarDoch" if td==TypDochodku.STAROBNY else "DoPC"
-        socpoist, _, zdravpoist, _ = DohodarOdvody(nazov_suboru, float(self.odmena_mesacne), td_konv, zden, ODVODY_VYNIMKA if self.vynimka == AnoNie.ANO else 0)
+        socpoist, _, zdravpoist, _ = DohodarOdvody(nazov_suboru, float(odmena_mesacne), td_konv, zden, ODVODY_VYNIMKA if self.vynimka == AnoNie.ANO else 0)
         ekoklas = "621" if self.zmluvna_strana.poistovna == Poistovna.VSZP else "623"
         zdravotne = self.polozka_cerpania("DoPC poistenie zdravotné", "Zdravotné poistné", -zdravpoist['zdravotne'], zden, zdroj=zdroj, zakazka=zakazka, ekoklas=ekoklas)
         socialne=[]
