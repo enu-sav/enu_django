@@ -175,7 +175,11 @@ def VytvoritPlatobnyPrikazIP(faktura, pouzivatel):
     text = text.replace(f"{lt}prevod_cislo{gt}", faktura.cislo)
     locale.setlocale(locale.LC_ALL, 'sk_SK.UTF-8')
     if faktura.suma:
-        text = text.replace(f"{lt}DM{gt}", f"{locale_format(-faktura.suma)} €")     # suma je záporná, o formulári chceme kladné
+        text = text.replace(f"{lt}DM{gt}", f"{locale_format(abs(faktura.suma))} €")     # vo formulári chceme kladné
+        if faktura.suma > 0:
+            text = text.replace(f"{lt}doda_odbe{gt}", "Odberateľ")
+        else:
+            text = text.replace(f"{lt}doda_odbe{gt}", "Dodávateľ")
     else:
         return messages.ERROR, "Vytváranie príkazu zlyhalo, lebo nebola zadaná suma.", None
     text = text.replace(f"{lt}prijimatel{gt}", faktura.partner.nazov)
@@ -204,7 +208,10 @@ def VytvoritPlatobnyPrikazIP(faktura, pouzivatel):
         text = text.replace(f"{lt}dph_neuctovat{gt}", "DPH neúčtovať")
     else:
         text = text.replace(f"{lt}dph_neuctovat{gt}", "")
-    text = text.replace(f"{lt}IBAN{gt}", faktura.partner.bankovy_kontakt)
+    if faktura.partner.bankovy_kontakt:
+        text = text.replace(f"{lt}IBAN{gt}", faktura.partner.bankovy_kontakt)
+    else:
+        text = text.replace(f"{lt}IBAN{gt}", "")
     text = text.replace(f"{lt}predmet{gt}", faktura.predmet)
     text = text.replace(f"{lt}na_zaklade{gt}", faktura.na_zaklade)
     text = text.replace(f"{lt}program{gt}", faktura.program.kod)
