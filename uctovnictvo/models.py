@@ -1709,7 +1709,7 @@ class DoPC(Dohoda):
         nazov_suboru = objekt[0].subor.file.name 
         td = self.zmluvna_strana.typ_doch
         td_konv = "StarDoch" if td==TypDochodku.STAROBNY else "InvDoch" if td== TypDochodku.INVALIDNY else "StarDoch" if td==TypDochodku.STAROBNY else "DoPC"
-        socpoist, _, zdravpoist, _ = DohodarOdvody(nazov_suboru, float(self.odmena_mesacne), td_konv, zden, ODVODY_VYNIMKA if self.vynimka == AnoNie.ANO else 0)
+        socpoist, _, zdravpoist, _ = DohodarOdvody(nazov_suboru, float(odmena_mesacne), td_konv, zden, ODVODY_VYNIMKA if self.vynimka == AnoNie.ANO else 0)
         ekoklas = "621" if self.zmluvna_strana.poistovna == Poistovna.VSZP else "623"
         zdravotne = self.polozka_cerpania("DoPC poistenie zdravotné", "Zdravotné poistné", -zdravpoist['zdravotne'], zden, zdroj=zdroj, zakazka=zakazka, ekoklas=ekoklas)
         socialne=[]
