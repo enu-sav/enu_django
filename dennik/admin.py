@@ -12,7 +12,7 @@ from django.contrib import messages
 from zmluvy.models import ZmluvaAutor, ZmluvaGrafik, VytvarnaObjednavkaPlatba, PlatbaAutorskaSumar
 from uctovnictvo.models import Objednavka, PrijataFaktura, PrispevokNaStravne, DoVP, DoPC, DoBPS
 from uctovnictvo.models import PlatovyVymer, PravidelnaPlatba, NajomneFaktura, InternyPrevod
-from uctovnictvo.models import RozpoctovaPolozka, PlatbaBezPrikazu, Pokladna, PrispevokNaRekreaciu
+from uctovnictvo.models import RozpoctovaPolozka, PlatbaBezPrikazu, Pokladna, PrispevokNaRekreaciu, OdmenaOprava
 import re
 from import_export.admin import ImportExportModelAdmin
 from datetime import date
@@ -223,7 +223,7 @@ class CerpanieRozpoctuAdmin(ModelAdminTotals):
         riadok=2
         #for fn in enumerate(nazvy): fw[fn[0]]=len(fn[1])
 
-        typy = [PravidelnaPlatba, PlatovyVymer, PrijataFaktura, DoVP, DoPC, PlatbaAutorskaSumar, NajomneFaktura, PrispevokNaStravne, RozpoctovaPolozka, PlatbaBezPrikazu, Pokladna, PrispevokNaRekreaciu,InternyPrevod]
+        typy = [PravidelnaPlatba, PlatovyVymer, OdmenaOprava, PrijataFaktura, DoVP, DoPC, PlatbaAutorskaSumar, NajomneFaktura, PrispevokNaStravne, RozpoctovaPolozka, PlatbaBezPrikazu, Pokladna, PrispevokNaRekreaciu,InternyPrevod]
         for typ in typy:
             for polozka in typ.objects.filter():
                 for md1 in md1list[:-1]:
@@ -317,7 +317,7 @@ class PlatovaRekapitulaciaAdmin(ModelAdminTotals):
             "DDS": ["Doplnkové dôchodkové sporenie spolu", 1],
             }
         #typy = [PlatovyVymer, DoVP, DoPC, PrispevokNaStravne, PrispevokNaRekreaciu]
-        typy = [PlatovyVymer, DoVP, DoPC]
+        typy = [PlatovyVymer, OdmenaOprava, DoVP, DoPC]
         #Vytvoriť workbook
         file_name = f"KontrolaRekapitulacie-{date.today().isoformat()}"
         wb = Workbook()
@@ -338,6 +338,9 @@ class PlatovaRekapitulaciaAdmin(ModelAdminTotals):
             for typ in typy:
                 for polozka in typ.objects.filter():
                     data = polozka.cerpanie_rozpoctu(datum)
+                    if data == None:
+                        trace()
+                        pass
                     for item in data:
                         identif = item['rekapitulacia']
                         if not identif in cerpanie:

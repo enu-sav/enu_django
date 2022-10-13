@@ -22,6 +22,13 @@ import numpy as np
 from ipdb import set_trace as trace
 
 #access label: AnoNie('ano').label
+class OdmenaAleboOprava(models.TextChoices):
+    ODMENA = 'odmena', 'Odmena'
+    OPRAVATARIF = 'opravatarif', 'Oprava tarifný plat'
+    OPRAVAOSOB = 'opravaosob', 'Oprava osobný pr.'
+    OPRAVARIAD = 'opravariad', 'Oprava pr. za riadenie'
+
+#access label: AnoNie('ano').label
 class AnoNie(models.TextChoices):
     ANO = 'ano', 'Áno'
     NIE = 'nie', 'Nie'
@@ -1203,7 +1210,7 @@ class PlatovyVymer(Klasifikacia):
                 "ekoklas": EkonomickaKlasifikacia.objects.get(kod="612001")
                 }
         funkcny = {
-                "nazov": "Plat funkčný príplatok",
+                "nazov": "Plat príplatok za riadenie",
                 "rekapitulacia": "Príplatok za riadenie",
                 "suma": -round(Decimal(koef_prac*float(self.funkcny_priplatok)),2),
                 "zdroj": zdroj,
@@ -1374,6 +1381,140 @@ class Nepritomnost(models.Model):
         if self.nepritomnost_typ in [TypNepritomnosti.LEKAR, TypNepritomnosti.LEKARDOPROVOD]:
             if self.nepritomnost_do - self.nepritomnost_od > timedelta(0): 
                 raise ValidationError("Neprítonmosť v prípade návštevy u lekára alebo doprovodu k lekárovi možno zadať len na jeden deň.")
+
+def odmena_upload_location(instance, filename):
+    return os.path.join(ODMENY_DIR, filename)
+class OdmenaOprava(Klasifikacia):
+    oznacenie = "OO"
+    cislo = models.CharField("Číslo", 
+            #help_text: definovaný vo forms
+            null = True,
+            max_length=50)
+    typ = models.CharField("Odmena/Oprava",
+            max_length=20, 
+            help_text = "Uveďte, či ide o odmenu a opravu vyplatenej mzdy",
+            null = True,
+            choices=OdmenaAleboOprava.choices)
+    zamestnanec = models.ForeignKey(Zamestnanec,
+            on_delete=models.PROTECT, 
+            verbose_name = "Zamestnanec",
+            related_name='%(class)s_zamestnanec')  #zabezpečí rozlíšenie modelov, keby dačo
+    suma = models.DecimalField("Suma", 
+            help_text = "Výška odmeny alebo opravy. Odmena je záporná, oprava môže byť kladná (t.j. zmestnancovi bola strhnutá z výplaty).",
+            max_digits=8, 
+            decimal_places=2, 
+            blank=True, 
+            null=True,
+            default=0)
+    vyplatene_v_obdobi = models.CharField("Vyplatené v", 
+            help_text = "Uveďte mesiac vyplatenia odmeny alebo mesiac, ku ktorému sa oprava vzťahuje v tvare em>MM/RRRR</em>", 
+            null = True,
+            max_length=10)
+    zdovodnenie = models.TextField("Zdôvodnenie", 
+            help_text = "Zadajte dôvod vyplatenia odmeny alebo vykonania opravy",
+            max_length=500,
+            null=True)
+    subor_kl = models.FileField("Príkaz a krycí list",
+            help_text = "Súbor s príkazom na vyplatenie odmeny a krycím listom.<br />Generuje sa akciou <em>Vytvoriť príkaz na vyplatenie odmeny</em>.",
+            upload_to=odmena_upload_location,
+            blank=True, 
+            null=True
+            )
+    datum_kl = models.DateField('Dátum odoslania KL',
+            help_text = "Dátum odoslania krycieho listu.<br />Po zadaní sa vytvorí záznam v Denníku.",
+            blank=True, 
+            null=True
+            )
+    history = HistoricalRecords()
+
+    @staticmethod
+    def check_vyplatene_v(value):
+        return re.findall(r"[0-9][0-9]/[0-9][0-9][0-9][0-9]", value)
+
+    def clean(self): 
+        if self.typ == OdmenaAleboOprava.ODMENA and self.suma >= 0:
+            raise ValidationError("Suma odmeny musí byť záporná")
+
+        if self.vyplatene_v_obdobi:
+            if not OdmenaOprava.check_vyplatene_v(self.vyplatene_v_obdobi):
+                raise ValidationError("Údaj v poli 'Vyplatené v' musí byť v tvare MM/RRRR (napr. 07/2022)")
+
+    def polozka_cerpania(self, nazov, rekapitulacia, suma, zden, zdroj=None, zakazka=None, ekoklas=None):
+        return {
+            "nazov": nazov,
+            "rekapitulacia": rekapitulacia,
+            "suma": round(Decimal(suma),2),
+            "zdroj": zdroj if zdroj else self.zdroj,
+            "zakazka": zakazka if zakazka else self.zakazka,
+            "datum": zden if zden < date.today() else None,
+            "subjekt": f"{self.zamestnanec.priezvisko}, {self.zamestnanec.meno}, (za {zden.year}/{zden.month})", 
+            "cislo": self.cislo if self.cislo else "-",
+            "ekoklas": EkonomickaKlasifikacia.objects.get(kod=ekoklas) if ekoklas else self.ekoklas
+            }
+
+    #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
+    def cerpanie_rozpoctu(self, zden):
+        if self.vyplatene_v_obdobi != "%02d/%d"%(zden.month, zden.year): return []
+
+        platby = []
+        #súbor s tabuľku odvodov
+        nazov_objektu = "Odvody zamestnancov a dohodárov"  #Presne takto musí byť objekt pomenovaný
+        objekt = SystemovySubor.objects.filter(subor_nazov = nazov_objektu)
+        if not objekt:
+            return f"V systéme nie je definovaný súbor '{nazov_objektu}'."
+        nazov_suboru = objekt[0].subor.file.name
+
+        if self.typ == OdmenaAleboOprava.ODMENA:
+            nazov = "Plat odmena"
+            rekapitulacia = "Odmena"
+        elif self.typ == OdmenaAleboOprava.OPRAVATARIF:
+            nazov = "Plat tarifný plat oprava"
+            rekapitulacia = "Tarifný plat"
+        elif self.typ == OdmenaAleboOprava.OPRAVAOSOB:
+            nazov = "Plat osobný príplatok oprava"
+            rekapitulacia = "Osobný príplatok"
+        elif self.typ == OdmenaAleboOprava.OPRAVARIAD:
+            nazov = "Plat príplatok za riadenie oprava"
+            rekapitulacia = "Príplatok za riadenie"
+
+        platba = {
+            "nazov": nazov,
+            "rekapitulacia": rekapitulacia,
+            "suma": self.suma,
+            "datum": zden,
+            "subjekt": f"{self.zamestnanec.priezvisko}, {self.zamestnanec.meno}", 
+            "cislo": self.cislo,
+            "zdroj": self.zdroj,
+            "zakazka": self.zakazka,
+            "ekoklas": self.ekoklas
+            }
+        platby.append(platba)
+
+        #Konverzia typu dochodku na pozadovany typ vo funkcii ZamestnanecOdvodySpolu
+        td = self.zamestnanec.typ_doch
+        td_konv = "InvDoch30" if td==TypDochodku.INVALIDNY30 else "InvDoch70" if td== TypDochodku.INVALIDNY70 else "StarDoch" if td==TypDochodku.STAROBNY else "VyslDoch" if td==TypDochodku.INVAL_VYSL else "Bezny"
+        socpoist, _, zdravpoist, _ = ZamestnanecOdvody(nazov_suboru, float(self.suma), td_konv, zden)
+        ekoklas = "621" if self.zamestnanec.poistovna == Poistovna.VSZP else "623"
+        zdravotne = self.polozka_cerpania("Plat poistenie zdravotné", f"Zdravotné poistné", zdravpoist['zdravotne'], zden, ekoklas=ekoklas)
+        platby.append(zdravotne)
+
+        for item in socpoist:
+            platby.append(self.polozka_cerpania("Plat poistenie sociálne", f"Sociálne poistné", socpoist[item], zden, ekoklas=item))
+
+        #Socfond
+        if zden in [date(2022,1,1), date(2022,2,1), date(2022,3,1)]:   #Počas tychto 3 mesiacov bolo všetko inak :D
+            socfond = self.polozka_cerpania("Prídel do SF", "Sociálny fond", round(Decimal(0.015*float(self.suma))), zden, zdroj=Zdroj.objects.get(kod="131L"), zakazka=TypZakazky.objects.get(kod="131L0001"), ekoklas="637016")
+        else:
+            socfond = self.polozka_cerpania("Prídel do SF", "Sociálny fond", round(Decimal(0.015*float(self.suma))), zden, ekoklas="637016")
+        platby.append(socfond)
+
+        return platby
+
+    class Meta:
+        verbose_name = "Odmena alebo oprava"
+        verbose_name_plural = "PaM - Odmeny a opravy"
+    def __str__(self):
+        return f"{self.zamestnanec.priezvisko}"
 
 def rekreacia_upload_location(instance, filename):
     return os.path.join(REKREACIA_DIR, filename)

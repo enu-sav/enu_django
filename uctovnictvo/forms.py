@@ -9,7 +9,7 @@ from .models import nasledujuce_cislo, nasledujuce_VPD
 from .models import PrijataFaktura, Objednavka, PrispevokNaStravne, DoPC, DoVP, DoBPS, PlatovyVymer
 from .models import VyplacanieDohod, StavDohody, Dohoda, PravidelnaPlatba, TypPP, InternyPrevod, Nepritomnost, TypNepritomnosti
 from .models import Najomnik, NajomnaZmluva, NajomneFaktura, TypPN, RozpoctovaPolozkaDotacia, RozpoctovaPolozkaPresun
-from .models import PlatbaBezPrikazu, Pokladna, TypPokladna, SocialnyFond, PrispevokNaRekreaciu
+from .models import PlatbaBezPrikazu, Pokladna, TypPokladna, SocialnyFond, PrispevokNaRekreaciu, OdmenaOprava
 from .common import meno_priezvisko
 from dennik.models import Dokument, SposobDorucenia, TypDokumentu, InOut
 from datetime import date, datetime
@@ -439,6 +439,81 @@ class PlatovyVymerForm(PopisZmeny):
         model = PlatovyVymer
         fields = "__all__"
         field_order = ["cislo_zamestnanca", "zamestnanec", "suborvymer", "datum_od", "datum_do", "tarifny_plat", "osobny_priplatok", "funkcny_priplatok", "platova_trieda", "platovy_stupen", "datum_postup", "zamestnanieroky", "zamestnaniedni", "popis_zmeny"]
+
+class OdmenaOpravaForm(forms.ModelForm):
+    #inicializácia polí
+    def __init__(self, *args, **kwargs):
+        self.request = kwargs.pop('request', None)
+        super().__init__(*args, **kwargs)
+        if not 'zdroj' in self.initial: self.initial['zdroj'] = 1       #111
+        if not 'program' in self.initial: self.initial['program'] = 4     #nealokovaný
+        if not 'zakazka' in self.initial: self.initial['zakazka'] = 2     #11010001 spol. zák.
+        if not 'ekoklas' in self.initial: self.initial['ekoklas'] = 18    #611 - Tarifný plat, osobný plat, základný plat, funkčný plat, hodnostný plat, plat, vrátane ich náhrad
+        polecislo = "cislo"
+        # Ak je pole readonly, tak sa nenachádza vo fields. Preto testujeme fields aj initial
+        if polecislo in self.fields and not polecislo in self.initial:
+            nasledujuce = nasledujuce_cislo(OdmenaOprava)
+            self.fields[polecislo].help_text = f"Zadajte číslo v tvare {OdmenaOprava.oznacenie}-RRRR-NNN. Predvolené číslo '{nasledujuce}' bolo určené na základe čísel existujúcich záznamov ako nasledujúce v poradí."
+            self.initial[polecislo] = nasledujuce
+    class Meta:
+        model = OdmenaOprava
+        fields = "__all__"
+
+    # Skontrolovať platnost a keď je všetko OK, spraviť záznam do denníka
+    def clean(self):
+        if 'cislo' in self.changed_data:
+            if not self.cleaned_data['cislo'][:3] == OdmenaOprava.oznacenie:
+                raise ValidationError({"cislo": "Nesprávne číslo. Zadajte číslo v tvare {OdmenaOprava.oznacenie}-RRRR-NNN"})
+        try:
+            #pole dane_na_uhradu možno vyplniť až po vygenerovani platobného príkazu akciou 
+            #"Vytvoriť platobný príkaz a krycí list pre THS"
+            if 'subor_vyuctovanie' in self.changed_data and "prispevok" in self.changed_data and self.cleaned_data['prispevok'] < 0 and "vyplatene_v_obdobi" in self.changed_data and OdmenaOprava.check_vyplatene_v(self.cleaned_data["vyplatene_v_obdobi"]):
+                vec = f"Príspevok na rekreáciu {self.cleaned_data['zamestnanec'].priezvisko} - vyúčtovanie"
+                cislo = nasledujuce_cislo(Dokument)
+                dok = Dokument(
+                    cislo = cislo,
+                    cislopolozky = self.cleaned_data['cislo'],
+                    #datumvytvorenia = self.cleaned_data['dane_na_uhradu'],
+                    datumvytvorenia = date.today(),
+                    typdokumentu = TypDokumentu.REKREACIA,
+                    inout = InOut.PRIJATY,
+                    adresat = "PaM",
+                    vec = f'<a href="/admin/uctovnictvo/prispevoknarekreaciu/{self.instance.id}">{vec}</a>',
+                    prijalodoslal=self.request.user.username, #zámena mien prijalodoslal - zaznamvytvoril
+                )
+                dok.save()
+                messages.warning(self.request, 
+                    format_html(
+                        'Do denníka prijatej a odoslanej pošty bol pridaný záznam č. {}: <em>{}</em>, treba v ňom doplniť údaje o prijatí.',
+                        mark_safe(f'<a href="/admin/dennik/dokument/{dok.id}/change/">{cislo}</a>'),
+                        vec
+                        )
+                )
+            if 'datum_kl' in self.changed_data:
+                vec = f"Príspevok na rekreáciu {self.cleaned_data['zamestnanec'].priezvisko} - krycí list"
+                cislo = nasledujuce_cislo(Dokument)
+                dok = Dokument(
+                    cislo = cislo,
+                    cislopolozky = self.cleaned_data['cislo'],
+                    #datumvytvorenia = self.cleaned_data['dane_na_uhradu'],
+                    datumvytvorenia = date.today(),
+                    typdokumentu = TypDokumentu.REKREACIA,
+                    inout = InOut.ODOSLANY,
+                    adresat = "PaM",
+                    vec = f'<a href="/admin/uctovnictvo/prispevoknarekreaciu/{self.instance.id}">{vec}</a>',
+                    prijalodoslal=self.request.user.username, #zámena mien prijalodoslal - zaznamvytvoril
+                )
+                dok.save()
+                messages.warning(self.request, 
+                    format_html(
+                        'Do denníka prijatej a odoslanej pošty bol pridaný záznam č. {}: <em>{}</em>, treba v ňom doplniť údaje o odoslaní.',
+                        mark_safe(f'<a href="/admin/dennik/dokument/{dok.id}/change/">{cislo}</a>'),
+                        vec
+                        )
+                )
+        except ValidationError as ex:
+            raise ex
+        return self.cleaned_data
 
 class PrispevokNaRekreaciuForm(forms.ModelForm):
     #inicializácia polí
