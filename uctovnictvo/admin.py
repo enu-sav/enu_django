@@ -15,14 +15,14 @@ from .models import ZamestnanecDohodar, Zamestnanec, Dohodar, StavDohody, Pravid
 from .models import Najomnik, NajomnaZmluva, NajomneFaktura, TypPP, TypPN, Cinnost
 from .models import InternyPartner, InternyPrevod, Nepritomnost, RozpoctovaPolozka, RozpoctovaPolozkaDotacia
 from .models import RozpoctovaPolozkaPresun, PlatbaBezPrikazu, Pokladna, TypPokladna
-from .models import nasledujuce_cislo, nasledujuce_VPD, SocialnyFond, PrispevokNaRekreaciu
+from .models import nasledujuce_cislo, nasledujuce_VPD, SocialnyFond, PrispevokNaRekreaciu, OdmenaOprava
 from .common import VytvoritPlatobnyPrikaz, VytvoritSuborDohody, VytvoritSuborObjednavky, leapdays, VytvoritKryciList
 from .common import VytvoritPlatobnyPrikazIP, VytvoritSuborVPD, UlozitStranuPK
 from .forms import PrijataFakturaForm, AutorskeZmluvyForm, ObjednavkaForm, ZmluvaForm, PrispevokNaStravneForm, PravidelnaPlatbaForm
 from .forms import PlatovyVymerForm, NajomneFakturaForm, NajomnaZmluvaForm, PlatbaBezPrikazuForm
 from .forms import DoPCForm, DoVPForm, DoBPSForm, VyplacanieDohodForm
 from .forms import InternyPrevodForm, NepritomnostForm, RozpoctovaPolozkaDotaciaForm, RozpoctovaPolozkaPresunForm
-from .forms import PokladnaForm, SocialnyFondForm, PrispevokNaRekreaciuForm
+from .forms import PokladnaForm, SocialnyFondForm, PrispevokNaRekreaciuForm, OdmenaOpravaForm
 from .rokydni import datum_postupu, vypocet_prax, vypocet_zamestnanie, postup_roky, roky_postupu
 from beliana.settings import DPH
 from dennik.models import Dokument, TypDokumentu, InOut
@@ -58,7 +58,7 @@ def formfield_for_foreignkey(instance, db_field, request, **kwargs):
         kwargs["queryset"] = Dodavatel.objects.filter().order_by(Collate('nazov', 'nocase'))
     if db_field.name == "objednavka_zmluva" and instance.model in [PrijataFaktura, PravidelnaPlatba]:
         kwargs["queryset"] = ObjednavkaZmluva.objects.filter().order_by(Collate('dodavatel__nazov', 'nocase'))
-    if db_field.name == "zamestnanec" and instance.model in [PlatovyVymer, Nepritomnost, Pokladna, PrispevokNaRekreaciu]:
+    if db_field.name == "zamestnanec" and instance.model in [PlatovyVymer, Nepritomnost, Pokladna, PrispevokNaRekreaciu, OdmenaOprava]:
         kwargs["queryset"] = Zamestnanec.objects.filter().order_by(Collate('priezvisko', 'nocase'))
     if db_field.name == "zmluvna_strana" and instance.model in [DoVP, DoPC, DoBPS]:
         kwargs["queryset"] = Dohodar.objects.filter().order_by(Collate('priezvisko', 'nocase'))
@@ -1224,6 +1224,56 @@ class NepritomnostAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
                 kwargs['request'] = request
                 return AdminForm(*args, **kwargs)
         return AdminFormMod
+
+@admin.register(OdmenaOprava)
+class OdmenaOpravaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin):
+#class OdmenaOpravaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
+    form = OdmenaOpravaForm
+    list_display = ["cislo", "typ", "zamestnanec_link", "suma", "vyplatene_v_obdobi", "subor_kl", "datum_kl"]
+    # ^: v poli vyhľadávať len od začiatku
+    search_fields = ["cislo", "^typ", "zamestnanec__meno", "zamestnanec__priezvisko"]
+
+    # zoraďovateľný odkaz na zamestnanca
+    # umožnené prostredníctvom AdminChangeLinksMixin
+    change_links = [
+        ('zamestnanec', {
+            'admin_order_field': 'zamestnanec__priezvisko', # Allow to sort members by the column
+        })
+    ]
+
+    #actions = ['vytvorit_kryci_list']
+
+    # Zoradiť položky v pulldown menu
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        return formfield_for_foreignkey(self, db_field, request, **kwargs)
+
+    # do AdminForm pridať request, aby v jej __init__ bolo request dostupné
+    def get_form(self, request, obj=None, **kwargs):
+        AdminForm = super(OdmenaOpravaAdmin, self).get_form(request, obj, **kwargs)
+        class AdminFormMod(AdminForm):
+            def __new__(cls, *args, **kwargs):
+                kwargs['request'] = request
+                return AdminForm(*args, **kwargs)
+        return AdminFormMod
+
+    def vytvorit_kryci_list(self, request, queryset):
+        if len(queryset) != 1:
+            self.message_user(request, f"Vybrať možno len jednu položku", messages.ERROR)
+            return
+        prispevok = queryset[0]
+        if prispevok.subor_kl:
+            self.message_user(request, f"Krycí list už bol vytvorený, opakovanie nie je možné", messages.ERROR)
+            return
+        status, msg, vytvoreny_subor = VytvoritKryciList(prispevok, request.user)
+        if status != messages.ERROR:
+            #prispevok.dane_na_uhradu = timezone.now()
+            prispevok.subor_kl = vytvoreny_subor
+            prispevok.save()
+        self.message_user(request, msg, status)
+
+    vytvorit_kryci_list.short_description = "Vytvoriť krycí list"
+    #Oprávnenie na použitie akcie, viazané na 'change'
+    vytvorit_kryci_list.allowed_permissions = ('change',)
 
 @admin.register(PrispevokNaRekreaciu)
 class PrispevokNaRekreaciuAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
