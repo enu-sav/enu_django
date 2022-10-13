@@ -1241,7 +1241,7 @@ class PlatovyVymer(Klasifikacia):
             nahrada_pn = {
                     "nazov": "Náhrada mzdy - PN",
                     "suma": -round(Decimal((dpn1*PN1+dpn2*PN2)*denny_vz/100),2),
-                    "rekapitulacia": "XXX",
+                    "rekapitulacia": "DPN",
                     "zdroj": zdroj,
                     "zakazka": zakazka,
                     "datum": zden if zden < date.today() else None,
@@ -1403,7 +1403,6 @@ class OdmenaOprava(Klasifikacia):
             help_text = "Výška odmeny alebo opravy. Odmena je záporná, oprava môže byť kladná (t.j. zmestnancovi bola strhnutá z výplaty).",
             max_digits=8, 
             decimal_places=2, 
-            blank=True, 
             null=True,
             default=0)
     vyplatene_v_obdobi = models.CharField("Vyplatené v", 
@@ -1466,7 +1465,7 @@ class OdmenaOprava(Klasifikacia):
 
         if self.typ == OdmenaAleboOprava.ODMENA:
             nazov = "Plat odmena"
-            rekapitulacia = "Odmena"
+            rekapitulacia = "Odmeny"
         elif self.typ == OdmenaAleboOprava.OPRAVATARIF:
             nazov = "Plat tarifný plat oprava"
             rekapitulacia = "Tarifný plat"

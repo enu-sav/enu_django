@@ -315,6 +315,8 @@ class PlatovaRekapitulaciaAdmin(ModelAdminTotals):
             "Zdravotné poistné": ["Zdravotné poistné spolu", 2],
             "Sociálne poistné": ["Sociálne poistné spolu", 1],
             "DDS": ["Doplnkové dôchodkové sporenie spolu", 1],
+            "Odmeny": ["Odmeny spolu", 0],
+            "DPN": ["Náhrada príjmu pri DPN", 1],
             }
         #typy = [PlatovyVymer, DoVP, DoPC, PrispevokNaStravne, PrispevokNaRekreaciu]
         typy = [PlatovyVymer, OdmenaOprava, DoVP, DoPC]
@@ -338,9 +340,6 @@ class PlatovaRekapitulaciaAdmin(ModelAdminTotals):
             for typ in typy:
                 for polozka in typ.objects.filter():
                     data = polozka.cerpanie_rozpoctu(datum)
-                    if data == None:
-                        trace()
-                        pass
                     for item in data:
                         identif = item['rekapitulacia']
                         if not identif in cerpanie:
