@@ -1564,6 +1564,7 @@ class PrispevokNaRekreaciu(Klasifikacia):
             blank=True, 
             null=True
             )
+    history = HistoricalRecords()
 
     @staticmethod
     def check_vyplatene_v(value):
