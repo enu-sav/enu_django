@@ -1278,7 +1278,7 @@ class OdmenaOpravaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
 @admin.register(PrispevokNaRekreaciu)
 class PrispevokNaRekreaciuAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
     form = PrispevokNaRekreaciuForm
-    list_display = ["cislo", "datum", "subor_ziadost", "subor_vyuctovanie", "zamestnanec_link", "prispevok", "subor_kl"]
+    list_display = ["cislo", "datum", "subor_ziadost", "subor_vyuctovanie", "zamestnanec_link", "prispevok", "vyplatene_v_obdobi", "subor_kl"]
     # ^: v poli vyhľadávať len od začiatku
     search_fields = ["cislo", "zamestnanec__meno", "zamestnanec__priezvisko"]
 
@@ -1291,6 +1291,31 @@ class PrispevokNaRekreaciuAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHist
     ]
 
     actions = ['vytvorit_kryci_list']
+
+    # nezobrazovať polia id a program
+    def get_fields(self, request, obj=None):
+        fields = super().get_fields(request, obj)
+        fields.remove('id')
+        fields.remove('program')
+        return fields
+
+    #['id', 'zdroj', 'program', 'zakazka', 'ekoklas', 'cinnost', 'poznamka', 'cislo', 'datum', 'zamestnanec', 'subor_ziadost', 'subor_vyuctovanie', 'prispevok', 'vyplatene_v_obdobi', 'subor_kl', 'datum_kl']
+    def get_readonly_fields(self, request, obj=None):
+        fields = [f.name for f in PrispevokNaRekreaciu._meta.get_fields()]
+        #fields.remove("id")
+        editable = []
+        if not obj:
+            editable = ["poznamka", "cislo", "datum", "zamestnanec", "subor_ziadost", "ekoklas", "zdroj", "zakazka"]
+        elif obj.subor_ziadost and not obj. datum_podpisu_ziadosti:
+            editable = ["datum_podpisu_ziadosti"]
+        elif obj.datum_podpisu_ziadosti and not (obj.subor_vyuctovanie and obj.prispevok and obj.vyplatene_v_obdobi):
+            editable = [ 'subor_vyuctovanie', 'prispevok', 'vyplatene_v_obdobi']
+        elif obj.prispevok and obj.prispevok > 0:
+            editable = [ 'subor_vyuctovanie', 'prispevok', 'vyplatene_v_obdobi']
+        elif obj.subor_kl and not obj.datum_kl:
+            editable = [ 'datum_kl']
+        for rr in editable: fields.remove(rr)
+        return fields
 
     # Zoradiť položky v pulldown menu
     def formfield_for_foreignkey(self, db_field, request, **kwargs):

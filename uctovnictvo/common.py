@@ -146,7 +146,7 @@ def VytvoritKryciList(platba, pouzivatel):
     opath = os.path.join(settings.PLATOBNE_PRIKAZY_DIR,nazov)
     with open(os.path.join(settings.MEDIA_ROOT,opath), "w") as f:
         f.write(text)
-    return messages.SUCCESS, mark_safe(f"Súbor krycieho listu platby {platba.cislo} bol úspešne vytvorený ({opath}). Krycí list dajte na podpis. <br />Ak treba, údaje platby možno ešte upravovať. Po každej úprave treba vytvoriť nový krycí list opakovaním akcie.<br />Po podpísaní krycí list dajte na sekretariát na odoslanie a vyplňte pole '{meno_pola}'."), opath
+    return messages.SUCCESS, mark_safe(f"Súbor krycieho listu platby {platba.cislo} bol úspešne vytvorený ({opath}). Krycí list a vyúčtovanie dajte na podpis. <br />Po podpísaní krycí list a vyúčtovanie dajte na sekretariát na odoslanie a vyplňte pole '{meno_pola}'."), opath
  
 # pouzivatel: aktualny pouzivatel
 def VytvoritPlatobnyPrikazIP(faktura, pouzivatel):
