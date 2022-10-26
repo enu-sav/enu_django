@@ -1535,13 +1535,17 @@ class PrispevokNaRekreaciu(Klasifikacia):
             help_text = "Súbor so žiadosťou o príspevok (doručený zamestnancom).<br />Po zadaní sa vytvorí záznam v Denníku.",
             upload_to=rekreacia_upload_location
             )
+    datum_podpisu_ziadosti = models.DateField('Dátum podpisu žiadosti',
+            help_text = "Dátum podpisu žiadosti vedením. <br />Po zadaní sa vytvorí záznam v denníku na odoslanie žiadosti na PaM",
+            null=True
+            )
     subor_vyuctovanie = models.FileField("Vyúčtovanie príspevku",
-            help_text = "Súbor s vyúčtovaním príspevku (doručený mzdovou účtárňou).<br />Po zadaní sa vytvorí záznam v Denníku.",
+            help_text = "Súbor s vyúčtovaním príspevku.<br />Po zadaní sa vytvorí záznam v Denníku.",
             upload_to=rekreacia_upload_location,
             blank=True, 
             null=True
             )
-    prispevok = models.DecimalField("Príspevok na vyplatenie", 
+    prispevok = models.DecimalField("Na vyplatenie", 
             help_text = "Výška príspevku na rekreáciu určená mzdovou účtárňou (záporné číslo).",
             max_digits=8, 
             decimal_places=2, 
@@ -1572,23 +1576,13 @@ class PrispevokNaRekreaciu(Klasifikacia):
 
 
     def clean(self): 
-        if self.prispevok > 0:
-            raise ValidationError("Suma príspevku musí byť záporná")
-        if self.subor_vyuctovanie and not self.prispevok:
-            raise ValidationError("Ak je vložený súbor s vyúčtovaním, treba vyplniť aj položky 'Príspevok na vyplatenie'")
-
-        if not self.subor_vyuctovanie and self.prispevok:
-            raise ValidationError("Ak je vyplnená položka 'Príspevok na vyplatenie', treba vložiť súbor s vyúčtovaním.")
-
-        if not self.subor_vyuctovanie and self.vyplatene_v_obdobi:
-            raise ValidationError("Ak je vyplnená položka 'Príspevok na vyplatenie', treba vyplniť aj pole 'Vyplatené v'.")
-
-        if not self.subor_vyuctovanie and self.vyplatene_v_obdobi:
-            raise ValidationError("Ak je vyplnená položka 'Vyplatené v', treba vložiť súbor s vyúčtovaním.")
-
-        if self.vyplatene_v_obdobi:
-            if not PrispevokNaRekreaciu.check_vyplatene_v(self.vyplatene_v_obdobi):
-                raise ValidationError("Údaj v poli 'Vyplatené v' musí byť v tvare MM/RRRR (napr. 07/2022)")
+        if (self.prispevok or self.subor_vyuctovanie or self.vyplatene_v_obdobi) and  not (self.prispevok and self.subor_vyuctovanie and self.vyplatene_v_obdobi):
+            raise ValidationError("Vyplniť treba všetky tri polia 'Vyúčtovanie príspevku', 'Na vyplatenie' a 'Vyplatené v'")
+        if self.prispevok and self.prispevok > 0:
+            raise ValidationError("Suma 'Na vyplatenie' musí byť záporná")
+        if self.vyplatene_v_obdobi and not PrispevokNaRekreaciu.check_vyplatene_v(self.vyplatene_v_obdobi):
+            self.vyplatene_v_obdobi = None
+            raise ValidationError("Údaj v poli 'Vyplatené v' musí byť v tvare MM/RRRR (napr. 07/2022)")
 
     #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
     def cerpanie_rozpoctu(self, zden):
@@ -1613,7 +1607,7 @@ class PrispevokNaRekreaciu(Klasifikacia):
         verbose_name = "Príspevok na rekreáciu"
         verbose_name_plural = "PaM - Príspevky na rekreáciu"
     def __str__(self):
-        return f"{self.zamestnanec.priezvisko}"
+        return f"{self.zamestnanec.priezvisko}, {self.zamestnanec.meno}"
 
 # použité len pri vkladané cez admin formulár
 def dohoda_upload_location(instance, filename):
@@ -1636,7 +1630,7 @@ class Dohoda(PolymorphicModel, Klasifikacia):
             null=True)
     vynimka = models.CharField("Uplatnená výnimka", 
             max_length=3, 
-            help_text = "Uveďte 'Áno', ak si dohodár na túto dohodu uplatňuje odvodovú výnimku",
+            help_text = "Uveďte 'Áno', ak si dohodár (dôchodca) na túto dohodu uplatňuje odvodovú výnimku",
             null = True,
             choices=AnoNie.choices)
     predmet = models.TextField("Pracovná činnosť", 
