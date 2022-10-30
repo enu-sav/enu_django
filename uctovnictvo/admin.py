@@ -16,7 +16,8 @@ from .models import Najomnik, NajomnaZmluva, NajomneFaktura, TypPP, TypPN, Cinno
 from .models import InternyPartner, InternyPrevod, Nepritomnost, RozpoctovaPolozka, RozpoctovaPolozkaDotacia
 from .models import RozpoctovaPolozkaPresun, PlatbaBezPrikazu, Pokladna, TypPokladna
 from .models import nasledujuce_cislo, nasledujuce_VPD, SocialnyFond, PrispevokNaRekreaciu, OdmenaOprava
-from .common import VytvoritPlatobnyPrikaz, VytvoritSuborDohody, VytvoritSuborObjednavky, leapdays, VytvoritKryciList
+from .common import VytvoritPlatobnyPrikaz, VytvoritSuborDohody, VytvoritSuborObjednavky, leapdays
+from .common import VytvoritKryciList, VytvoritKryciListRekreacia
 from .common import VytvoritPlatobnyPrikazIP, VytvoritSuborVPD, UlozitStranuPK
 from .forms import PrijataFakturaForm, AutorskeZmluvyForm, ObjednavkaForm, ZmluvaForm, PrispevokNaStravneForm, PravidelnaPlatbaForm
 from .forms import PlatovyVymerForm, NajomneFakturaForm, NajomnaZmluvaForm, PlatbaBezPrikazuForm
@@ -1264,7 +1265,7 @@ class OdmenaOpravaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
         if prispevok.subor_kl:
             self.message_user(request, f"Krycí list už bol vytvorený, opakovanie nie je možné", messages.ERROR)
             return
-        status, msg, vytvoreny_subor = VytvoritKryciList(prispevok, request.user)
+        status, msg, vytvoreny_subor = VytvoritKryciListRekreacia(prispevok, request.user)
         if status != messages.ERROR:
             #prispevok.dane_na_uhradu = timezone.now()
             prispevok.subor_kl = vytvoreny_subor
@@ -1278,7 +1279,7 @@ class OdmenaOpravaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
 @admin.register(PrispevokNaRekreaciu)
 class PrispevokNaRekreaciuAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
     form = PrispevokNaRekreaciuForm
-    list_display = ["cislo", "datum", "subor_ziadost", "subor_vyuctovanie", "zamestnanec_link", "prispevok", "vyplatene_v_obdobi", "subor_kl"]
+    list_display = ["cislo", "zamestnanec_link", "datum", "datum_podpisu_ziadosti", "datum_kl", "subor_ziadost", "subor_vyuctovanie", "subor_kl", "prispevok", "vyplatene_v_obdobi"]
     # ^: v poli vyhľadávať len od začiatku
     search_fields = ["cislo", "zamestnanec__meno", "zamestnanec__priezvisko"]
 
@@ -1338,7 +1339,7 @@ class PrispevokNaRekreaciuAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHist
         if prispevok.subor_kl:
             self.message_user(request, f"Krycí list už bol vytvorený, opakovanie nie je možné", messages.ERROR)
             return
-        status, msg, vytvoreny_subor = VytvoritKryciList(prispevok, request.user)
+        status, msg, vytvoreny_subor = VytvoritKryciListRekreacia(prispevok, request.user)
         if status != messages.ERROR:
             #prispevok.dane_na_uhradu = timezone.now()
             prispevok.subor_kl = vytvoreny_subor
