@@ -5,7 +5,7 @@ from django.contrib import messages
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 from django.db.models.functions import Collate, Length
-import re
+import re, os
 from datetime import date, datetime, timedelta
 from ipdb import set_trace as trace
 from .models import EkonomickaKlasifikacia, TypZakazky, Zdroj, Program, Dodavatel, ObjednavkaZmluva
@@ -25,7 +25,7 @@ from .forms import DoPCForm, DoVPForm, DoBPSForm, VyplacanieDohodForm
 from .forms import InternyPrevodForm, NepritomnostForm, RozpoctovaPolozkaDotaciaForm, RozpoctovaPolozkaPresunForm
 from .forms import PokladnaForm, SocialnyFondForm, PrispevokNaRekreaciuForm, OdmenaOpravaForm
 from .rokydni import datum_postupu, vypocet_prax, vypocet_zamestnanie, postup_roky, roky_postupu
-from beliana.settings import DPH
+from beliana.settings import DPH, MEDIA_ROOT, MEDIA_URL
 from dennik.models import Dokument, TypDokumentu, InOut
 
 #zobrazenie histórie
@@ -1279,7 +1279,7 @@ class OdmenaOpravaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
 @admin.register(PrispevokNaRekreaciu)
 class PrispevokNaRekreaciuAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
     form = PrispevokNaRekreaciuForm
-    list_display = ["cislo", "zamestnanec_link", "datum", "datum_podpisu_ziadosti", "datum_kl", "subor_ziadost", "subor_vyuctovanie", "subor_kl", "prispevok", "vyplatene_v_obdobi"]
+    list_display = ["cislo", "zamestnanec_link", "datum", "_subor_ziadost", "datum_podpisu_ziadosti", "_subor_vyuctovanie", "datum_kl", "_subor_kl", "prispevok", "vyplatene_v_obdobi"]
     # ^: v poli vyhľadávať len od začiatku
     search_fields = ["cislo", "zamestnanec__meno", "zamestnanec__priezvisko"]
 
@@ -1292,6 +1292,30 @@ class PrispevokNaRekreaciuAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHist
     ]
 
     actions = ['vytvorit_kryci_list']
+
+    def _subor_vyuctovanie(self, obj):
+        if  obj.subor_vyuctovanie:
+            url = os.path.join(MEDIA_ROOT,obj.subor_vyuctovanie.url)
+            return format_html(mark_safe(f'<a href="{url}">Vyúčtovanie</a>')) 
+        else:
+            return "-"
+    _subor_vyuctovanie.short_description = "Súbor vyúčtovania"
+
+    def _subor_ziadost(self, obj):
+        if  obj.subor_ziadost:
+            url = os.path.join(MEDIA_ROOT,obj.subor_ziadost.url)
+            return format_html(mark_safe(f'<a href="{url}">Žiadosť</a>')) 
+        else:
+            return "-"
+    _subor_ziadost.short_description = "Súbor žiadosti"
+
+    def _subor_kl(self, obj):
+        if  obj.subor_kl:
+            url = os.path.join(MEDIA_ROOT,obj.subor_kl.url)
+            return format_html(mark_safe(f'<a href="{url}">Krycí list</a>')) 
+        else:
+            return "-"
+    _subor_kl.short_description = "Súbor KL"
 
     # nezobrazovať polia id a program
     def get_fields(self, request, obj=None):
