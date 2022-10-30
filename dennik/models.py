@@ -100,7 +100,7 @@ podpísaná</em> v zmluve</li>
             blank = True,
             null = True)
     suborposta = models.FileField("Súbor s poštou",
-            help_text = "Vložte súbor prijatou / odoslanou poštou (ak nebola súčasťou inej položky)",
+            help_text = "Vložte súbor s prijatou / odoslanou poštou (ak nebola súčasťou inej položky)",
             storage=OverwriteStorage(), 
             upload_to=dennik_file_path, 
             null = True, 
