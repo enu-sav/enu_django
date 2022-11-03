@@ -1328,17 +1328,17 @@ class PrispevokNaRekreaciuAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHist
     def get_readonly_fields(self, request, obj=None):
         fields = [f.name for f in PrispevokNaRekreaciu._meta.get_fields()]
         #fields.remove("id")
-        editable = []
+        editable = ["poznamka"]
         if not obj:
-            editable = ["poznamka", "cislo", "datum", "zamestnanec", "subor_ziadost", "ekoklas", "zdroj", "zakazka"]
+            editable += ["cislo", "datum", "zamestnanec", "subor_ziadost", "ekoklas", "zdroj", "zakazka"]
         elif obj.subor_ziadost and not obj. datum_podpisu_ziadosti:
-            editable = ["datum_podpisu_ziadosti"]
+            editable += ["datum_podpisu_ziadosti"]
         elif obj.datum_podpisu_ziadosti and not (obj.subor_vyuctovanie and obj.prispevok and obj.vyplatene_v_obdobi):
-            editable = [ 'subor_vyuctovanie', 'prispevok', 'vyplatene_v_obdobi']
+            editable += ['subor_vyuctovanie', 'prispevok', 'vyplatene_v_obdobi']
         elif obj.prispevok and obj.prispevok > 0:
-            editable = [ 'subor_vyuctovanie', 'prispevok', 'vyplatene_v_obdobi']
+            editable += ['subor_vyuctovanie', 'prispevok', 'vyplatene_v_obdobi']
         elif obj.subor_kl and not obj.datum_kl:
-            editable = [ 'datum_kl']
+            editable += ['datum_kl']
         for rr in editable: fields.remove(rr)
         return fields
 
