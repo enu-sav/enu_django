@@ -461,13 +461,13 @@ class PrijataFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdm
         if not obj:
             return ["program", "platobny_prikaz", "dane_na_uhradu"]
         elif obj.dane_na_uhradu:
-            nearly_all = ["program", "platobny_prikaz", "doslo_datum"] 
-            nearly_all += ["splatnost_datum", "suma", "mena", "dane_na_uhradu"]
+            nearly_all = ["program", "doslo_datum"] 
+            nearly_all += ["splatnost_datum", "mena", "dane_na_uhradu"]
             return nearly_all
         elif not obj.platobny_prikaz:   #ešte nebola spustená akcia
             return ["program", "cislo", "platobny_prikaz", "dane_na_uhradu"]
         else:   #všetko hotové, možno odoslať, ale stále možno aj editovať
-            return ["program", "cislo", "platobny_prikaz"]
+            return ["program", "cislo"]
 
     def vytvorit_platobny_prikaz(self, request, queryset):
         if len(queryset) != 1:
@@ -1377,7 +1377,7 @@ class PrispevokNaRekreaciuAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHist
 @admin.register(PlatovyVymer)
 class PlatovyVymerAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
     form = PlatovyVymerForm
-    list_display = ["cislo", "mp","zamestnanec_link", "zamestnanie_enu_od", "stav_vymeru","zamestnanie_od", "aktualna_prax", "datum_postup", "_postup_roky", "uvazok", "uvazok_denne", "datum_od", "datum_do", "_zamestnanie_roky_dni", "_top", "_ts", "suborvymer"]
+    list_display = ["cislo", "mp","zamestnanec_link", "zamestnanie_enu_od", "stav_vymeru","zamestnanie_od", "aktualna_prax", "datum_postup", "_postup_roky", "_uvazok", "datum_od", "datum_do", "_zamestnanie_roky_dni", "_top", "_ts", "suborvymer"]
     # ^: v poli vyhľadávať len od začiatku
     search_fields = ["cislo", "zamestnanec__meno", "zamestnanec__priezvisko"]
     actions = ['duplikovat_zaznam', export_selected_objects]
@@ -1404,6 +1404,10 @@ class PlatovyVymerAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
             return aux
         else:
             return ["zamestnanieroky", "zamestnaniedni", "datum_postup"]
+
+    def _uvazok(self, obj):
+        return f"{obj.uvazok}/{obj.uvazok_denne}"
+    _uvazok.short_description = "Úväzok týždenne/denne"
 
     def stav_vymeru(self, obj):
         today = date.today()
