@@ -1339,6 +1339,8 @@ class PrispevokNaRekreaciuAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHist
             editable += ['subor_vyuctovanie', 'prispevok', 'vyplatene_v_obdobi']
         elif obj.subor_kl and not obj.datum_kl:
             editable += ['datum_kl']
+        elif obj.subor_kl:  #for the case, when KL was created off-Django and needs to be replaced
+            editable += ['subor_kl']
         for rr in editable: fields.remove(rr)
         return fields
 
