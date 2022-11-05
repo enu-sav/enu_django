@@ -71,15 +71,17 @@ class StavDohody(models.TextChoices):
     DOKONCENA = "dokoncena", "Dokončená"
 
 class TypNepritomnosti(models.TextChoices):
-    MATERSKA = "materská", "Materská"   #Náhrada mzdy - prekážky osobné
-    OCR = "ocr", "OČR"  #NP
-    PN = "pn", "PN" #Náhrada mzdy - prekážky osobné
-    DOVOLENKA = "dovolenka", "Dovolenka"    #Náhrada mzdy - dovolenka
+    MATERSKA = "materská", "Materská"           #Náhrada mzdy - prekážky osobné
+    OCR = "ocr", "OČR"                          #NP
+    PN = "pn", "PN"                             #Náhrada mzdy - prekážky osobné
+    DOVOLENKA = "dovolenka", "Dovolenka"        #Náhrada mzdy - dovolenka
     DOVOLENKA2 = "dovolenka2", "Poldeň dovolenky"
     LEKAR = "lekar", "Návšteva u lekára (L)"    #Náhrada mzdy - prekážky osobné
     LEKARDOPROVOD = "lekardoprovod", "Doprovod k lekárovi (L/D)"  #Náhrada mzdy - prekážky osobné
-    PZV = "pzv", "Pracovné voľno (PzV, PV, P, S)"    #Náhrada mzdy - prekážky osobné
-    NEPLATENE = "neplatene", "Neplatené voľno"
+    PZV = "pzv", "Pracovné voľno (PzV, PV, P, S, KZVS)"    #Náhrada mzdy - prekážky osobné
+    NEPLATENE = "neplatene", "Neplatené voľno"  # nič sa neplatí
+    SLUZOBNA = "sluzobna", "Služobná cesta"     # normálna mzda
+    PRACADOMA = "pracadoma", "Práca na doma"    # normálna mzda
 
 #access label: AnoNie('ano').label
 class TypPokladna(models.TextChoices):
@@ -1131,6 +1133,8 @@ class PlatovyVymer(Klasifikacia):
                 ddov += 0.5
             elif nn.nepritomnost_typ == TypNepritomnosti.DOVOLENKA:
                 ddov += prac_dni(prvy,posledny, pdni, zahrnut_sviatky=False)    #Sviatky sa nezarátajú do dovolenky, ale ako bežný prac. deň
+            elif nn.nepritomnost_typ == TypNepritomnosti.NEPLATENE:
+                dnepl += prac_dni(prvy,posledny, pdni, zahrnut_sviatky=True)    #Sviatky sa do NV zarátajú, náhrada sa ráta inak
             elif nn.nepritomnost_typ == TypNepritomnosti.PN:
                 dnepl += prac_dni(prvy,posledny, pdni, zahrnut_sviatky=True)    #Sviatky sa do PN zarátajú, náhrada sa ráta inak
                 #Prvé 3 dni, 55%
