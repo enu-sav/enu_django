@@ -1123,19 +1123,19 @@ class DoPCAdmin(DohodaAdmin):
         if not obj:
             return ro_parent + ["datum_ukoncenia"]
         elif obj.stav_dohody == StavDohody.NOVA or obj.stav_dohody == StavDohody.VYTVORENA: 
-            return ro_parent + ["datum_ukoncenia"]
+            return ro_parent + ["datum_ukoncenia", "dodatok_k"]
         elif obj.stav_dohody == StavDohody.NAPODPIS: 
-            return ro_parent + ["odmena_mesacne", "hod_mesacne", "datum_ukoncenia"]
+            return ro_parent + ["odmena_mesacne", "hod_mesacne", "datum_ukoncenia", "dodatok_k"]
         elif obj.stav_dohody == StavDohody.ODOSLANA_DOHODAROVI: 
-            return ro_parent + ["odmena_mesacne", "hod_mesacne", "datum_ukoncenia"]
+            return ro_parent + ["odmena_mesacne", "hod_mesacne", "datum_ukoncenia", "dodatok_k"]
         elif obj.stav_dohody == StavDohody.PODPISANA_DOHODAROM:
             ro_parent.remove("zdroj")
             ro_parent.remove("zakazka")
-            return ro_parent + ["odmena_mesacne", "hod_mesacne"]
+            return ro_parent + ["odmena_mesacne", "hod_mesacne", "dodatok_k"]
         elif obj.stav_dohody == StavDohody.DOKONCENA:
             ro_parent.remove("zdroj")
             ro_parent.remove("zakazka")
-            return ro_parent + ["odmena_mesacne", "hod_mesacne"]
+            return ro_parent + ["odmena_mesacne", "hod_mesacne", "dodatok_k"]
         else:
             #sem by sme nemali prist
             return ro_parent

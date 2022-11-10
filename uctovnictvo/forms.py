@@ -349,7 +349,7 @@ class DohodaForm(forms.ModelForm):
             messages.warning(self.request, f"Po aktualizácii údajov treba opakovane vygenerovať súbor dohody akciou 'Vytvoriť súbor dohody'")
         elif "stav_dohody" in self.cleaned_data and self.cleaned_data["stav_dohody"] == StavDohody.NAPODPIS:
             messages.warning(self.request, f"Podpísanú dohodu treba dať na sekretariát na odoslanie dohodárovi a následne stav dohody zmeniť na '{StavDohody.ODOSLANA_DOHODAROVI.label}'")
-        elif "stav_dohody" in self.changed_data and self.cleaned_data["stav_dohody"] == StavDohody.DOKONCENA:
+        elif "stav_dohody" in self.changed_data and self.cleaned_data["stav_dohody"] == StavDohody.PODPISANA_DOHODAROM:
             #Vytvoriť záznam do denníka
             vec = f"Podpísaná dohoda {self.instance.cislo} od autora"
             cislo = nasledujuce_cislo(Dokument)
@@ -364,6 +364,13 @@ class DohodaForm(forms.ModelForm):
                 prijalodoslal=self.request.user.username, #zámena mien prijalodoslal - zaznamvytvoril
             )
             dok.save()
+            messages.warning(self.request, 
+                format_html(
+                    'Do denníka prijatej a odoslanej pošty bol pridaný záznam č. {}: <em>{}</em>, treba v ňom doplniť údaje o prijatí.',
+                    mark_safe(f'<a href="/admin/dennik/dokument/{dok.id}/change/">{cislo}</a>'),
+                    vec
+                    )
+            )
             messages.warning(self.request, f"Sken podpísanej dohody treba vložiť do poľa 'Skenovaná dohoda'. Po vypršaní platnosti dohody treba spraviť záznam do 'PaM - Vyplácanie dohôd'")
 
 class DoPCForm(DohodaForm):

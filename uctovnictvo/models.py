@@ -67,7 +67,7 @@ class StavDohody(models.TextChoices):
     #PODPISANA_ENU = "podpisana_enu", "Podpísaná EnÚ"
     NAPODPIS = "napodpis", "Daná na podpis vedeniu EnÚ"
     ODOSLANA_DOHODAROVI = "odoslana_dohodarovi", "Daná dohodárovi na podpis"
-    PODPISANA_DOHODAROM = "podpisana_dohodarom", "Podpísaná"
+    PODPISANA_DOHODAROM = "podpisana_dohodarom", "Podpísaná dohodárom"
     DOKONCENA = "dokoncena", "Dokončená"
 
 class TypNepritomnosti(models.TextChoices):
