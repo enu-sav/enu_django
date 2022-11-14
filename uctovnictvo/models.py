@@ -716,6 +716,7 @@ class RozpoctovaPolozka(Klasifikacia):
         if zden.month != 1: return []
         platba = {
                 "nazov":f"Dotácia",
+                "cislo": self.cislo,
                 "suma": self.suma,
                 "zdroj": self.zdroj,
                 "zakazka": self.zakazka,

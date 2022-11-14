@@ -229,6 +229,10 @@ class CerpanieRozpoctuAdmin(ModelAdminTotals):
                 for md1 in md1list[:-1]:
                     data = polozka.cerpanie_rozpoctu(md1)
                     for item in data:
+                        if item['nazov'] == "Dotácia":
+                            #print(item)
+                            #trace()
+                            pass
                         identif = f"{item['nazov']} {item['zdroj'].kod} {item['zakazka'].kod} {item['ekoklas'].kod}, {md1}"
                         polozky = [item['nazov'], item['suma'], item['subjekt'] if "subjekt" in item else "", item['datum'] if "datum" in item else "", item['cislo'], item['zdroj'].kod, item['zakazka'].kod, item['ekoklas'].kod]
                         zapisat_riadok(ws_polozky, fw, riadok, polozky)
