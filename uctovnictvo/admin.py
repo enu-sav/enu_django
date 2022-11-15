@@ -850,6 +850,12 @@ class RozpoctovaPolozkaDotaciaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, Simple
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         return formfield_for_foreignkey(self, db_field, request, **kwargs)
 
+    def delete_queryset(self, request, queryset):
+        for qq in queryset:
+            qq.rozpoctovapolozka.suma -= qq.suma
+            qq.rozpoctovapolozka.save()
+            qq.delete()
+
     # zoraďovateľný odkaz na polozku
     change_links = [
         ('rozpoctovapolozka', {
@@ -870,6 +876,15 @@ class RozpoctovaPolozkaPresunAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleH
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         return formfield_for_foreignkey(self, db_field, request, **kwargs)
+
+    # pri odstraňovaní napraviť aj dothnuté položky 
+    def delete_queryset(self, request, queryset):
+        for qq in queryset:
+            qq.presun_zdroj.suma += qq.suma
+            qq.presun_ciel.suma -= qq.suma
+            qq.presun_zdroj.save()
+            qq.presun_ciel.save()
+            qq.delete()
 
     # zoraďovateľný odkaz na dodávateľa
     change_links = [
