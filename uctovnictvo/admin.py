@@ -22,7 +22,7 @@ from .common import VytvoritPlatobnyPrikazIP, VytvoritSuborVPD, UlozitStranuPK
 from .forms import PrijataFakturaForm, AutorskeZmluvyForm, ObjednavkaForm, ZmluvaForm, PrispevokNaStravneForm, PravidelnaPlatbaForm
 from .forms import PlatovyVymerForm, NajomneFakturaForm, NajomnaZmluvaForm, PlatbaBezPrikazuForm
 from .forms import DoPCForm, DoVPForm, DoBPSForm, VyplacanieDohodForm
-from .forms import InternyPrevodForm, NepritomnostForm, RozpoctovaPolozkaDotaciaForm, RozpoctovaPolozkaPresunForm
+from .forms import InternyPrevodForm, NepritomnostForm, RozpoctovaPolozkaDotaciaForm, RozpoctovaPolozkaPresunForm, RozpoctovaPolozkaForm
 from .forms import PokladnaForm, SocialnyFondForm, PrispevokNaRekreaciuForm, OdmenaOpravaForm
 from .rokydni import datum_postupu, vypocet_prax, vypocet_zamestnanie, postup_roky, roky_postupu
 from beliana.settings import DPH, MEDIA_ROOT, MEDIA_URL
@@ -80,6 +80,11 @@ def formfield_for_foreignkey(instance, db_field, request, **kwargs):
         kwargs["queryset"] = Cinnost.objects.filter().order_by('kod')
     if db_field.name == "ekoklas":
         kwargs["queryset"] = EkonomickaKlasifikacia.objects.filter().order_by('kod')
+
+    if db_field.name == "presun_zdroj":
+        kwargs["queryset"] = RozpoctovaPolozka.objects.filter().order_by('-cislo')
+    if db_field.name == "presun_ciel":
+        kwargs["queryset"] = RozpoctovaPolozka.objects.filter().order_by('-cislo')
     return super(type(instance), instance).formfield_for_foreignkey(db_field, request, **kwargs)
 
 # Ak sa má v histórii zobraziť zoznam zmien, príslušná admin trieda musí dediť od ZobraziZmeny
@@ -807,20 +812,33 @@ class NajomneFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdm
 
 @admin.register(RozpoctovaPolozka)
 class RozpoctovaPolozkaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
-    list_display = ["cislo", "suma",  "zdroj", "zakazka", "ekoklas", "cinnost" ]
-    search_fields = ["cislo", "^zdroj__kod", "^zakazka__kod", "^ekoklas__kod", "^cinnost__kod" ]
+    form = RozpoctovaPolozkaForm
+    list_display = ["cislo", "suma",  "za_rok", "zdroj", "zakazka", "ekoklas", "cinnost" ]
+    search_fields = ["cislo", "za_rok", "^zdroj__kod", "^zakazka__kod", "^ekoklas__kod", "^cinnost__kod" ]
     exclude = ["program", "poznamka"]
     list_totals = [
         ('suma', Sum),
     ]
     def get_readonly_fields(self, request, obj=None):
-        return [ "cislo", "suma", "ekoklas", "zakazka", "zdroj", "cinnost"]
+        if obj:
+            return ["cislo", "suma", "ekoklas", "zakazka", "zdroj", "cinnost", "za_rok"]
+        else:
+            return ["suma"]
+
+    # do AdminForm pridať request, aby v jej __init__ bolo request dostupné
+    def get_form(self, request, obj=None, **kwargs):
+        AdminForm = super(RozpoctovaPolozkaAdmin, self).get_form(request, obj, **kwargs)
+        class AdminFormMod(AdminForm):
+            def __new__(cls, *args, **kwargs):
+                kwargs['request'] = request
+                return AdminForm(*args, **kwargs)
+        return AdminFormMod
 
 @admin.register(RozpoctovaPolozkaDotacia)
 class RozpoctovaPolozkaDotaciaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
     form = RozpoctovaPolozkaDotaciaForm
-    list_display = ["cislo", "suma",  "rozpoctovapolozka_link", "zdroj", "zakazka", "ekoklas", "cinnost" ]
-    search_fields = ["cislo", "^zdroj__kod", "rozpoctovapolozka__cislo", "^zakazka__kod", "^ekoklas__kod", "^cinnost__kod" ]
+    list_display = ["cislo", "suma", "za_rok",  "rozpoctovapolozka_link", "zdroj", "zakazka", "ekoklas", "cinnost" ]
+    search_fields = ["cislo", "za_rok", "^zdroj__kod", "rozpoctovapolozka__cislo", "^zakazka__kod", "^ekoklas__kod", "^cinnost__kod" ]
     exclude = ["program", "rozpoctovapolozka"]
     list_totals = [
         ('suma', Sum),
@@ -842,21 +860,24 @@ class RozpoctovaPolozkaDotaciaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, Simple
 @admin.register(RozpoctovaPolozkaPresun)
 class RozpoctovaPolozkaPresunAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
     form = RozpoctovaPolozkaPresunForm
-    list_display = ["cislo", "suma",  "zdroj_link", "ciel_link", "dovod"]
-    search_fields = ["cislo", "zdroj__cislo", "ciel__cislo", "dovod"]
+    list_display = ["cislo", "suma",  "presun_zdroj_link", "presun_ciel_link", "dovod"]
+    search_fields = ["cislo", "presun_zdroj__cislo", "presun_ciel__cislo", "dovod"]
     list_totals = [
         ('suma', Sum),
     ]
     def get_readonly_fields(self, request, obj=None):
-        return [ "cislo", "suma", "zdroj", "ciel"] if obj else []
+        return [ "cislo", "suma", "presun_zdroj", "presun_ciel"] if obj else []
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        return formfield_for_foreignkey(self, db_field, request, **kwargs)
 
     # zoraďovateľný odkaz na dodávateľa
     change_links = [
-        ('zdroj', {
-            'admin_order_field': 'zdroj__cislo', # Allow to sort members by the column
+        ('presun_zdroj', {
+            'admin_order_field': 'presun_zdroj__cislo', # Allow to sort members by the column
         }),
-        ('ciel', {
-            'admin_order_field': 'ciel__cislo', # Allow to sort members by the column
+        ('presun_ciel', {
+            'admin_order_field': 'presun_ciel__cislo', # Allow to sort members by the column
         })
     ]
 

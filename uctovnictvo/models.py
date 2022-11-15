@@ -40,9 +40,12 @@ class Mena(models.TextChoices):
     GBP = 'GBP'
 
 # Pre triedu classname určí číslo nasledujúceho záznamu v pvare X-2021-NNN
-def nasledujuce_cislo(classname):
+def nasledujuce_cislo(classname, rok=None):
         # zoznam faktúr s číslom "PS-2021-123" zoradený vzostupne
-        ozn_rok = f"{classname.oznacenie}-{datetime.now().year}-"
+        if rok:
+            ozn_rok = f"{classname.oznacenie}-{rok}-"
+        else:
+            ozn_rok = f"{classname.oznacenie}-{datetime.now().year}-"
         itemlist = classname.objects.filter(cislo__istartswith=ozn_rok).order_by("cislo")
         if itemlist:
             latest = itemlist.last().cislo
@@ -705,10 +708,18 @@ class RozpoctovaPolozka(Klasifikacia):
         max_length=50)
     suma = models.DecimalField("Aktuálny súčet dotácií a prevodov",
             help_text = 'Automaticky vypočítaná položka. Nezohľadňuje prímy a výdavky',
+            default = 0,
             max_digits=8,
             decimal_places=2,
             null=True)
+    za_rok = models.IntegerField("Za rok",
+            help_text = "Uveďte rok, ktorého sa dotácia týka")
     history = HistoricalRecords()
+
+    def clean(self):
+        #zmeniť číslo položky, ak súvisí s nasledujúcim rokom
+        if int(re.findall(r"-(....)-", self.cislo)[0]) != self.za_rok:
+            self.cislo = nasledujuce_cislo(RozpoctovaPolozka, self.za_rok)
 
     #zarátanie dotácií, v roku len raz, v januári
     def cerpanie_rozpoctu(self, zden):
@@ -728,7 +739,7 @@ class RozpoctovaPolozka(Klasifikacia):
         verbose_name = 'Rozpočtová položka'
         verbose_name_plural = 'Rozpočet - Rozpočtové položky'
     def __str__(self):
-        return f'{self.cislo}'
+        return f'{self.cislo} ({self.zakazka.kod} - {self.ekoklas.kod} - {self.zdroj.kod})'
 
 class RozpoctovaPolozkaDotacia(Klasifikacia):
     oznacenie = "RPD"
@@ -736,10 +747,11 @@ class RozpoctovaPolozkaDotacia(Klasifikacia):
         #help_text = "Číslo rozpočtovej položky. Nová položka za pridáva len vtedy, keď položka s požadovanou klasifikáciou neexistuje.",  
         max_length=50)
     suma = models.DecimalField("Výška dotácie",
-            help_text = 'Suma sa pripočíta k zodpovedajúcej rozpočtovej položke za aktuálny rok. Ak tá ešte neexistuje, vytvorí sa.',
+            help_text = 'Suma sa pripočíta k zodpovedajúcej rozpočtovej položke za špecifikovaný rok. Ak tá ešte neexistuje, vytvorí sa. <br />Ak ide o zníženie rozpočtu, uveďte <strong>zápornú hodnotu</strong>"',
             max_digits=8,
             decimal_places=2,
             null=True)
+    za_rok = models.IntegerField("Za rok")
     rozpoctovapolozka = models.ForeignKey(RozpoctovaPolozka,
             on_delete=models.PROTECT, 
             verbose_name = "Rozpočtová položka",
@@ -748,9 +760,12 @@ class RozpoctovaPolozkaDotacia(Klasifikacia):
     history = HistoricalRecords()
 
     def clean(self): 
-        if self.suma < 0:
-            raise ValidationError("Suma musí byť kladná")
+        #zmeniť číslo položky, ak súvisí s nasledujúcim rokom
+        if int(re.findall(r"-(....)-", self.cislo)[0]) != self.za_rok:
+            self.cislo = nasledujuce_cislo(RozpoctovaPolozkaDotacia, self.za_rok)
+        # upraviť súvisiacu rozpočtovú položku
         qs = RozpoctovaPolozka.objects.filter(
+                za_rok=self.za_rok,
                 zdroj=self.zdroj,
                 program=self.program,
                 zakazka=self.zakazka,
@@ -763,12 +778,13 @@ class RozpoctovaPolozkaDotacia(Klasifikacia):
             self.rozpoctovapolozka = qs[0]
         else:
             polozka = RozpoctovaPolozka(
-                cislo = nasledujuce_cislo(RozpoctovaPolozka),
+                cislo = nasledujuce_cislo(RozpoctovaPolozka, self.za_rok),
                 zdroj=self.zdroj,
                 program=self.program,
                 zakazka=self.zakazka,
                 cinnost=self.cinnost,
                 ekoklas=self.ekoklas,
+                za_rok=self.za_rok,
                 suma=self.suma,
                 )
             polozka.save()
@@ -790,13 +806,13 @@ class RozpoctovaPolozkaPresun(models.Model):
             max_digits=8,
             decimal_places=2,
             null=True)
-    zdroj = models.ForeignKey(RozpoctovaPolozka,
+    presun_zdroj = models.ForeignKey(RozpoctovaPolozka,
             on_delete=models.PROTECT, 
             verbose_name = "Z položky",
             null = True,
             related_name='%(class)s_zdroj')  #zabezpečí rozlíšenie modelov, keby dačo
-    ciel = models.ForeignKey(RozpoctovaPolozka,
-            help_text = 'Ak cieľová položka ešte neexistuje, vytvorte ju ako dotáciu s 0-ovou výškou.',
+    presun_ciel = models.ForeignKey(RozpoctovaPolozka,
+            help_text = 'Ak cieľová rozpočtová položka ešte neexistuje, vytvorte ju s 0-ovou výškou a požadovanou klasifikáciou.',
             on_delete=models.PROTECT, 
             verbose_name = "Do položky",
             null = True,
@@ -807,12 +823,19 @@ class RozpoctovaPolozkaPresun(models.Model):
     history = HistoricalRecords()
 
     def clean(self): 
+        rok_zdroj = int(re.findall(r"-(....)-", self.presun_zdroj.cislo)[0])
+        rok_ciel = int(re.findall(r"-(....)-", self.presun_ciel.cislo)[0])
+        if rok_zdroj != rok_ciel:
+            raise ValidationError("Prenos medzi rokmi nie je povolený")
         if self.suma < 0:
             raise ValidationError("Suma musí byť kladná")
-        self.zdroj.suma -= self.suma
-        self.ciel.suma += self.suma
-        self.zdroj.save()
-        self.ciel.save()
+        if self.presun_zdroj.suma - self.suma < 0:
+            raise ValidationError("Suma na presun prevyšuje sumu zdrojovej položky")
+
+        self.presun_zdroj.suma -= self.suma
+        self.presun_ciel.suma += self.suma
+        self.presun_zdroj.save()
+        self.presun_ciel.save()
 
     class Meta:
         verbose_name = 'Presun medzi položkami'

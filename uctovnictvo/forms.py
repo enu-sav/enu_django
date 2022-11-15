@@ -8,7 +8,7 @@ from django.utils.safestring import mark_safe
 from .models import nasledujuce_cislo, nasledujuce_VPD
 from .models import PrijataFaktura, Objednavka, PrispevokNaStravne, DoPC, DoVP, DoBPS, PlatovyVymer
 from .models import VyplacanieDohod, StavDohody, Dohoda, PravidelnaPlatba, TypPP, InternyPrevod, Nepritomnost, TypNepritomnosti
-from .models import Najomnik, NajomnaZmluva, NajomneFaktura, TypPN, RozpoctovaPolozkaDotacia, RozpoctovaPolozkaPresun
+from .models import Najomnik, NajomnaZmluva, NajomneFaktura, TypPN, RozpoctovaPolozkaDotacia, RozpoctovaPolozkaPresun, RozpoctovaPolozka
 from .models import PlatbaBezPrikazu, Pokladna, TypPokladna, SocialnyFond, PrispevokNaRekreaciu, OdmenaOprava
 from .common import meno_priezvisko
 from dennik.models import Dokument, SposobDorucenia, TypDokumentu, InOut
@@ -747,7 +747,19 @@ class RozpoctovaPolozkaPresunForm(forms.ModelForm):
         # Ak je pole readonly, tak sa nenachádza vo fields. Preto testujeme fields aj initial
         if polecislo in self.fields and not polecislo in self.initial:
             nasledujuce = nasledujuce_cislo(RozpoctovaPolozkaPresun)
-            self.fields[polecislo].help_text = f"Zadajte číslo položky v tvare {RozpoctovaPolozkaPresun.oznacenie}-RRRR-NNN. Predvolené číslo '{nasledujuce}' bolo určené na základe čísel existujúcich položky ako nasledujúce v poradí."
+            self.fields[polecislo].help_text = f"Zadajte číslo položky v tvare {RozpoctovaPolozkaPresun.oznacenie}-RRRR-NNN. Predvolené číslo '{nasledujuce}' bolo určené na základe čísel existujúcich položiek ako nasledujúce v poradí."
+            self.initial[polecislo] = nasledujuce
+
+class RozpoctovaPolozkaForm(forms.ModelForm):
+    #inicializácia polí
+    def __init__(self, *args, **kwargs):
+        self.request = kwargs.pop('request', None)
+        super().__init__(*args, **kwargs)
+        polecislo = "cislo"
+        # Ak je pole readonly, tak sa nenachádza vo fields. Preto testujeme fields aj initial
+        if polecislo in self.fields and not polecislo in self.initial:
+            nasledujuce = nasledujuce_cislo(RozpoctovaPolozka)
+            self.fields[polecislo].help_text = f"Zadajte číslo položky v tvare {RozpoctovaPolozka}-RRRR-NNN. Predvolené číslo '{nasledujuce}' bolo určené na základe čísel existujúcich položiek ako nasledujúce v poradí.<br />Ak v poli 'Za rok' zadáte nasledujúci rok, po uložení sa číslo automaticky zmení na nasledujúce číslo budúceho roku."
             self.initial[polecislo] = nasledujuce
 
 class RozpoctovaPolozkaDotaciaForm(forms.ModelForm):
@@ -759,7 +771,7 @@ class RozpoctovaPolozkaDotaciaForm(forms.ModelForm):
         # Ak je pole readonly, tak sa nenachádza vo fields. Preto testujeme fields aj initial
         if polecislo in self.fields and not polecislo in self.initial:
             nasledujuce = nasledujuce_cislo(RozpoctovaPolozkaDotacia)
-            self.fields[polecislo].help_text = f"Zadajte číslo položky v tvare {RozpoctovaPolozkaDotacia.oznacenie}-RRRR-NNN. Predvolené číslo '{nasledujuce}' bolo určené na základe čísel existujúcich položky ako nasledujúce v poradí."
+            self.fields[polecislo].help_text = f"Zadajte číslo položky v tvare {RozpoctovaPolozkaDotacia.oznacenie}-RRRR-NNN. Predvolené číslo '{nasledujuce}' bolo určené na základe čísel existujúcich položiek ako nasledujúce v poradí.<br />Ak v poli 'Za rok' zadáte nasledujúci rok, po uložení sa číslo automaticky zmení na nasledujúce číslo budúceho roku."
             self.initial[polecislo] = nasledujuce
 
 class NajomneFakturaForm(forms.ModelForm):
