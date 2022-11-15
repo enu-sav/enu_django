@@ -203,7 +203,8 @@ class CerpanieRozpoctuAdmin(ModelAdminTotals):
                     if fw[cc] < len(str(value))+2: fw[cc] = len(str(value))+2
     
         #najskôr všetko zmazať
-        CerpanieRozpoctu.objects.filter(mesiac__isnull=False).delete()
+        # Nemazať  "Pomocná položka", potrebujeme
+        CerpanieRozpoctu.objects.filter().exclude(polozka="Pomocná položka").delete()
 
         #Vytvoriť workbook
         file_name = f"Cerpanie_rozpoctu_{rok}-{date.today().isoformat()}"
