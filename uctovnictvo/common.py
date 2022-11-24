@@ -101,6 +101,37 @@ def adresa(osoba):
         return f"{osoba.adresa_mesto}, {osoba.adresa_stat}".strip()
  
 # pouzivatel: aktualny pouzivatel
+# PrispevokNaRekreaciu
+def VytvoritKryciListRekreacia(platba, pouzivatel):
+    #úvodné testy
+    if not os.path.isdir(settings.PLATOBNE_PRIKAZY_DIR):
+        os.makedirs(settings.PLATOBNE_PRIKAZY_DIR)
+    
+    #Načítať súbor šablóny
+    nazov_objektu = "Šablóna krycieho listu: vyúčtovanie žiadosti o príspevok na rekreáciu"  #Presne takto musí byť objekt pomenovaný
+    sablona = SystemovySubor.objects.filter(subor_nazov = nazov_objektu)
+    if not sablona:
+        return messages.ERROR, f"V systéme nie je definovaný súbor '{nazov_objektu}'.", None
+    nazov_suboru = sablona[0].subor.file.name 
+    workbook = load_workbook(filename=nazov_suboru)
+    ws = workbook.active
+    ws[f'C2'].value = platba.cislo
+    ws[f'F2'].value = meno_priezvisko(platba.zamestnanec)
+    ws[f'B3'].value = datetime.date.today().strftime('%d. %m. %Y')
+    ws[f'D21'].value = f"{platba.zdroj.kod} ({platba.zdroj.popis})"
+    ws[f'D22'].value = f"{platba.zakazka.kod} ({platba.zakazka.popis})"
+    ws[f'D23'].value = f"{platba.ekoklas.kod} ({platba.ekoklas.nazov})"
+    ws[f'D24'].value = f"{platba.cinnost.kod} ({platba.cinnost.nazov})"
+
+    #ulozit
+    nazov = platba.zamestnanec.priezvisko
+    nazov = f"{platba.zamestnanec.priezvisko}-{platba.cislo}.xlsx"
+    opath = os.path.join(settings.REKREACIA_DIR,nazov)
+    workbook.save(os.path.join(settings.MEDIA_ROOT,opath))
+    return messages.SUCCESS, mark_safe(f"Súbor krycieho listu vyúčtovania príspevku na rekreáciu {platba.cislo} bol úspešne vytvorený ({opath}). <br />Krycí list a vyúčtovanie dajte na podpis. <br />Po podpísaní dajte krycí list a vyúčtovanie na sekretariát na odoslanie a vyplňte pole 'Dátum odoslania KL'."), opath
+ 
+
+# pouzivatel: aktualny pouzivatel
 def VytvoritKryciList(platba, pouzivatel):
     #úvodné testy
     if not os.path.isdir(settings.PLATOBNE_PRIKAZY_DIR):
@@ -128,10 +159,6 @@ def VytvoritKryciList(platba, pouzivatel):
         text = text.replace(f"{lt}popis{gt}", f"Platba č. {platba.cislo_softip}")
         nazov = platba.zmluva.najomnik.nazov
         meno_pola = "Dané na vybavenie dňa"
-    elif type(platba) ==  PrispevokNaRekreaciu:
-        text = text.replace(f"{lt}popis{gt}", f"Príspevok na rekreáciu,  {meno_priezvisko(platba.zamestnanec)}, {platba.vyplatene_v_obdobi}")
-        nazov = platba.zamestnanec.priezvisko
-        meno_pola = 'Dátum odoslania KL'
     else:
         text = text.replace(f"{lt}popis{gt}", "")
     text = text.replace(f"{lt}zdroj{gt}", f"{platba.zdroj.kod} ({platba.zdroj.popis})")
@@ -146,7 +173,7 @@ def VytvoritKryciList(platba, pouzivatel):
     opath = os.path.join(settings.PLATOBNE_PRIKAZY_DIR,nazov)
     with open(os.path.join(settings.MEDIA_ROOT,opath), "w") as f:
         f.write(text)
-    return messages.SUCCESS, mark_safe(f"Súbor krycieho listu platby {platba.cislo} bol úspešne vytvorený ({opath}). Krycí list dajte na podpis. <br />Ak treba, údaje platby možno ešte upravovať. Po každej úprave treba vytvoriť nový krycí list opakovaním akcie.<br />Po podpísaní krycí list dajte na sekretariát na odoslanie a vyplňte pole '{meno_pola}'."), opath
+    return messages.SUCCESS, mark_safe(f"Súbor krycieho listu platby {platba.cislo} bol úspešne vytvorený ({opath}). <br />Krycí list a vyúčtovanie dajte na podpis. <br />Po podpísaní krycí list a vyúčtovanie dajte na sekretariát na odoslanie a vyplňte pole '{meno_pola}'."), opath
  
 # pouzivatel: aktualny pouzivatel
 def VytvoritPlatobnyPrikazIP(faktura, pouzivatel):
@@ -175,7 +202,11 @@ def VytvoritPlatobnyPrikazIP(faktura, pouzivatel):
     text = text.replace(f"{lt}prevod_cislo{gt}", faktura.cislo)
     locale.setlocale(locale.LC_ALL, 'sk_SK.UTF-8')
     if faktura.suma:
-        text = text.replace(f"{lt}DM{gt}", f"{locale_format(-faktura.suma)} €")     # suma je záporná, o formulári chceme kladné
+        text = text.replace(f"{lt}DM{gt}", f"{locale_format(abs(faktura.suma))} €")     # vo formulári chceme kladné
+        if faktura.suma > 0:
+            text = text.replace(f"{lt}doda_odbe{gt}", "Odberateľ")
+        else:
+            text = text.replace(f"{lt}doda_odbe{gt}", "Dodávateľ")
     else:
         return messages.ERROR, "Vytváranie príkazu zlyhalo, lebo nebola zadaná suma.", None
     text = text.replace(f"{lt}prijimatel{gt}", faktura.partner.nazov)
@@ -204,7 +235,10 @@ def VytvoritPlatobnyPrikazIP(faktura, pouzivatel):
         text = text.replace(f"{lt}dph_neuctovat{gt}", "DPH neúčtovať")
     else:
         text = text.replace(f"{lt}dph_neuctovat{gt}", "")
-    text = text.replace(f"{lt}IBAN{gt}", faktura.partner.bankovy_kontakt)
+    if faktura.partner.bankovy_kontakt:
+        text = text.replace(f"{lt}IBAN{gt}", faktura.partner.bankovy_kontakt)
+    else:
+        text = text.replace(f"{lt}IBAN{gt}", "")
     text = text.replace(f"{lt}predmet{gt}", faktura.predmet)
     text = text.replace(f"{lt}na_zaklade{gt}", faktura.na_zaklade)
     text = text.replace(f"{lt}program{gt}", faktura.program.kod)

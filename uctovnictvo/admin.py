@@ -5,7 +5,7 @@ from django.contrib import messages
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 from django.db.models.functions import Collate, Length
-import re
+import re, os
 from datetime import date, datetime, timedelta
 from ipdb import set_trace as trace
 from .models import EkonomickaKlasifikacia, TypZakazky, Zdroj, Program, Dodavatel, ObjednavkaZmluva
@@ -15,16 +15,17 @@ from .models import ZamestnanecDohodar, Zamestnanec, Dohodar, StavDohody, Pravid
 from .models import Najomnik, NajomnaZmluva, NajomneFaktura, TypPP, TypPN, Cinnost
 from .models import InternyPartner, InternyPrevod, Nepritomnost, RozpoctovaPolozka, RozpoctovaPolozkaDotacia
 from .models import RozpoctovaPolozkaPresun, PlatbaBezPrikazu, Pokladna, TypPokladna
-from .models import nasledujuce_cislo, nasledujuce_VPD, SocialnyFond, PrispevokNaRekreaciu
-from .common import VytvoritPlatobnyPrikaz, VytvoritSuborDohody, VytvoritSuborObjednavky, leapdays, VytvoritKryciList
+from .models import nasledujuce_cislo, nasledujuce_VPD, SocialnyFond, PrispevokNaRekreaciu, OdmenaOprava
+from .common import VytvoritPlatobnyPrikaz, VytvoritSuborDohody, VytvoritSuborObjednavky, leapdays
+from .common import VytvoritKryciList, VytvoritKryciListRekreacia
 from .common import VytvoritPlatobnyPrikazIP, VytvoritSuborVPD, UlozitStranuPK
 from .forms import PrijataFakturaForm, AutorskeZmluvyForm, ObjednavkaForm, ZmluvaForm, PrispevokNaStravneForm, PravidelnaPlatbaForm
 from .forms import PlatovyVymerForm, NajomneFakturaForm, NajomnaZmluvaForm, PlatbaBezPrikazuForm
 from .forms import DoPCForm, DoVPForm, DoBPSForm, VyplacanieDohodForm
-from .forms import InternyPrevodForm, NepritomnostForm, RozpoctovaPolozkaDotaciaForm, RozpoctovaPolozkaPresunForm
-from .forms import PokladnaForm, SocialnyFondForm, PrispevokNaRekreaciuForm
+from .forms import InternyPrevodForm, NepritomnostForm, RozpoctovaPolozkaDotaciaForm, RozpoctovaPolozkaPresunForm, RozpoctovaPolozkaForm
+from .forms import PokladnaForm, SocialnyFondForm, PrispevokNaRekreaciuForm, OdmenaOpravaForm
 from .rokydni import datum_postupu, vypocet_prax, vypocet_zamestnanie, postup_roky, roky_postupu
-from beliana.settings import DPH
+from beliana.settings import DPH, MEDIA_ROOT, MEDIA_URL
 from dennik.models import Dokument, TypDokumentu, InOut
 
 #zobrazenie histórie
@@ -58,7 +59,7 @@ def formfield_for_foreignkey(instance, db_field, request, **kwargs):
         kwargs["queryset"] = Dodavatel.objects.filter().order_by(Collate('nazov', 'nocase'))
     if db_field.name == "objednavka_zmluva" and instance.model in [PrijataFaktura, PravidelnaPlatba]:
         kwargs["queryset"] = ObjednavkaZmluva.objects.filter().order_by(Collate('dodavatel__nazov', 'nocase'))
-    if db_field.name == "zamestnanec" and instance.model in [PlatovyVymer, Nepritomnost, Pokladna, PrispevokNaRekreaciu]:
+    if db_field.name == "zamestnanec" and instance.model in [PlatovyVymer, Nepritomnost, Pokladna, PrispevokNaRekreaciu, OdmenaOprava]:
         kwargs["queryset"] = Zamestnanec.objects.filter().order_by(Collate('priezvisko', 'nocase'))
     if db_field.name == "zmluvna_strana" and instance.model in [DoVP, DoPC, DoBPS]:
         kwargs["queryset"] = Dohodar.objects.filter().order_by(Collate('priezvisko', 'nocase'))
@@ -79,6 +80,11 @@ def formfield_for_foreignkey(instance, db_field, request, **kwargs):
         kwargs["queryset"] = Cinnost.objects.filter().order_by('kod')
     if db_field.name == "ekoklas":
         kwargs["queryset"] = EkonomickaKlasifikacia.objects.filter().order_by('kod')
+
+    if db_field.name == "presun_zdroj":
+        kwargs["queryset"] = RozpoctovaPolozka.objects.filter().order_by('-cislo')
+    if db_field.name == "presun_ciel":
+        kwargs["queryset"] = RozpoctovaPolozka.objects.filter().order_by('-cislo')
     return super(type(instance), instance).formfield_for_foreignkey(db_field, request, **kwargs)
 
 # Ak sa má v histórii zobraziť zoznam zmien, príslušná admin trieda musí dediť od ZobraziZmeny
@@ -433,7 +439,7 @@ class ZmluvaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, Impo
 #class PrijataFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
 class PrijataFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
     form = PrijataFakturaForm
-    list_display = ["cislo", "objednavka_zmluva_link", "prijata_faktura", "suma", "predmet", "platobny_prikaz", "dane_na_uhradu", "zdroj", "zakazka", "ekoklas","cinnost"]
+    list_display = ["cislo", "objednavka_zmluva_link", "prijata_faktura", "suma", "predmet", "platobny_prikaz", "dane_na_uhradu", "zdroj", "zakazka", "ekoklas","cinnost", "program"]
     search_fields = ["^cislo","objednavka_zmluva__dodavatel__nazov", "predmet", "^zdroj__kod", "^zakazka__kod", "^ekoklas__kod", "^ekoklas__nazov",  "^cinnost__kod", "cinnost__nazov" ]
 
     # zoraďovateľný odkaz na dodávateľa
@@ -460,13 +466,13 @@ class PrijataFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdm
         if not obj:
             return ["program", "platobny_prikaz", "dane_na_uhradu"]
         elif obj.dane_na_uhradu:
-            nearly_all = ["program", "platobny_prikaz", "doslo_datum"] 
-            nearly_all += ["splatnost_datum", "suma", "mena", "dane_na_uhradu"]
+            nearly_all = ["program", "doslo_datum"] 
+            nearly_all += ["splatnost_datum", "mena", "dane_na_uhradu"]
             return nearly_all
         elif not obj.platobny_prikaz:   #ešte nebola spustená akcia
             return ["program", "cislo", "platobny_prikaz", "dane_na_uhradu"]
         else:   #všetko hotové, možno odoslať, ale stále možno aj editovať
-            return ["program", "cislo", "platobny_prikaz"]
+            return ["program", "cislo"]
 
     def vytvorit_platobny_prikaz(self, request, queryset):
         if len(queryset) != 1:
@@ -806,20 +812,33 @@ class NajomneFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdm
 
 @admin.register(RozpoctovaPolozka)
 class RozpoctovaPolozkaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
-    list_display = ["cislo", "suma",  "zdroj", "zakazka", "ekoklas", "cinnost" ]
-    search_fields = ["cislo", "^zdroj__kod", "^zakazka__kod", "^ekoklas__kod", "^cinnost__kod" ]
+    form = RozpoctovaPolozkaForm
+    list_display = ["cislo", "suma",  "za_rok", "zdroj", "zakazka", "ekoklas", "cinnost" ]
+    search_fields = ["cislo", "za_rok", "^zdroj__kod", "^zakazka__kod", "^ekoklas__kod", "^cinnost__kod" ]
     exclude = ["program", "poznamka"]
     list_totals = [
         ('suma', Sum),
     ]
     def get_readonly_fields(self, request, obj=None):
-        return [ "cislo", "suma", "ekoklas", "zakazka", "zdroj", "cinnost"]
+        if obj:
+            return ["cislo", "suma", "ekoklas", "zakazka", "zdroj", "cinnost", "za_rok"]
+        else:
+            return ["suma"]
+
+    # do AdminForm pridať request, aby v jej __init__ bolo request dostupné
+    def get_form(self, request, obj=None, **kwargs):
+        AdminForm = super(RozpoctovaPolozkaAdmin, self).get_form(request, obj, **kwargs)
+        class AdminFormMod(AdminForm):
+            def __new__(cls, *args, **kwargs):
+                kwargs['request'] = request
+                return AdminForm(*args, **kwargs)
+        return AdminFormMod
 
 @admin.register(RozpoctovaPolozkaDotacia)
 class RozpoctovaPolozkaDotaciaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
     form = RozpoctovaPolozkaDotaciaForm
-    list_display = ["cislo", "suma",  "rozpoctovapolozka_link", "zdroj", "zakazka", "ekoklas", "cinnost" ]
-    search_fields = ["cislo", "^zdroj__kod", "rozpoctovapolozka__cislo", "^zakazka__kod", "^ekoklas__kod", "^cinnost__kod" ]
+    list_display = ["cislo", "suma", "za_rok",  "rozpoctovapolozka_link", "zdroj", "zakazka", "ekoklas", "cinnost" ]
+    search_fields = ["cislo", "za_rok", "^zdroj__kod", "rozpoctovapolozka__cislo", "^zakazka__kod", "^ekoklas__kod", "^cinnost__kod" ]
     exclude = ["program", "rozpoctovapolozka"]
     list_totals = [
         ('suma', Sum),
@@ -831,6 +850,12 @@ class RozpoctovaPolozkaDotaciaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, Simple
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         return formfield_for_foreignkey(self, db_field, request, **kwargs)
 
+    def delete_queryset(self, request, queryset):
+        for qq in queryset:
+            qq.rozpoctovapolozka.suma -= qq.suma
+            qq.rozpoctovapolozka.save()
+            qq.delete()
+
     # zoraďovateľný odkaz na polozku
     change_links = [
         ('rozpoctovapolozka', {
@@ -841,21 +866,33 @@ class RozpoctovaPolozkaDotaciaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, Simple
 @admin.register(RozpoctovaPolozkaPresun)
 class RozpoctovaPolozkaPresunAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
     form = RozpoctovaPolozkaPresunForm
-    list_display = ["cislo", "suma",  "zdroj_link", "ciel_link", "dovod"]
-    search_fields = ["cislo", "zdroj__cislo", "ciel__cislo", "dovod"]
+    list_display = ["cislo", "suma",  "presun_zdroj_link", "presun_ciel_link", "dovod"]
+    search_fields = ["cislo", "presun_zdroj__cislo", "presun_ciel__cislo", "dovod"]
     list_totals = [
         ('suma', Sum),
     ]
     def get_readonly_fields(self, request, obj=None):
-        return [ "cislo", "suma", "zdroj", "ciel"] if obj else []
+        return [ "cislo", "suma", "presun_zdroj", "presun_ciel"] if obj else []
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        return formfield_for_foreignkey(self, db_field, request, **kwargs)
+
+    # pri odstraňovaní napraviť aj dothnuté položky 
+    def delete_queryset(self, request, queryset):
+        for qq in queryset:
+            qq.presun_zdroj.suma += qq.suma
+            qq.presun_ciel.suma -= qq.suma
+            qq.presun_zdroj.save()
+            qq.presun_ciel.save()
+            qq.delete()
 
     # zoraďovateľný odkaz na dodávateľa
     change_links = [
-        ('zdroj', {
-            'admin_order_field': 'zdroj__cislo', # Allow to sort members by the column
+        ('presun_zdroj', {
+            'admin_order_field': 'presun_zdroj__cislo', # Allow to sort members by the column
         }),
-        ('ciel', {
-            'admin_order_field': 'ciel__cislo', # Allow to sort members by the column
+        ('presun_ciel', {
+            'admin_order_field': 'presun_ciel__cislo', # Allow to sort members by the column
         })
     ]
 
@@ -969,7 +1006,7 @@ class DohodaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, Mode
         #cislo a zmluvna_strana riešime v odvodenej triede
         return ("stav_dohody", "dohoda_odoslana", "_predmet", "datum_od", "datum_do", "vyplatene", "subor_dohody", "sken_dohody", "vynimka")
     def get_readonly_fields(self, request, obj=None):
-        polia_klasif = ["zdroj", "zakazka", "ekoklas"]
+        polia_klasif = ["zdroj", "zakazka", "ekoklas", "cinnost"]
         if not obj:
             return ["subor_dohody","sken_dohody", "dohoda_odoslana", "vyplatene"]
         elif obj.stav_dohody == StavDohody.NOVA or obj.stav_dohody == StavDohody.VYTVORENA: 
@@ -1122,15 +1159,19 @@ class DoPCAdmin(DohodaAdmin):
         if not obj:
             return ro_parent + ["datum_ukoncenia"]
         elif obj.stav_dohody == StavDohody.NOVA or obj.stav_dohody == StavDohody.VYTVORENA: 
-            return ro_parent + ["datum_ukoncenia"]
+            return ro_parent + ["datum_ukoncenia", "dodatok_k"]
         elif obj.stav_dohody == StavDohody.NAPODPIS: 
-            return ro_parent + ["odmena_mesacne", "hod_mesacne", "datum_ukoncenia"]
+            return ro_parent + ["odmena_mesacne", "hod_mesacne", "datum_ukoncenia", "dodatok_k"]
         elif obj.stav_dohody == StavDohody.ODOSLANA_DOHODAROVI: 
-            return ro_parent + ["odmena_mesacne", "hod_mesacne", "datum_ukoncenia"]
+            return ro_parent + ["odmena_mesacne", "hod_mesacne", "datum_ukoncenia", "dodatok_k"]
         elif obj.stav_dohody == StavDohody.PODPISANA_DOHODAROM:
-            return ro_parent + ["odmena_mesacne", "hod_mesacne"]
+            ro_parent.remove("zdroj")
+            ro_parent.remove("zakazka")
+            return ro_parent + ["odmena_mesacne", "hod_mesacne", "dodatok_k"]
         elif obj.stav_dohody == StavDohody.DOKONCENA:
-            return ro_parent + ["odmena_mesacne", "hod_mesacne"]
+            ro_parent.remove("zdroj")
+            ro_parent.remove("zakazka")
+            return ro_parent + ["odmena_mesacne", "hod_mesacne", "dodatok_k"]
         else:
             #sem by sme nemali prist
             return ro_parent
@@ -1221,12 +1262,65 @@ class NepritomnostAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
                 return AdminForm(*args, **kwargs)
         return AdminFormMod
 
+@admin.register(OdmenaOprava)
+class OdmenaOpravaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin):
+#class OdmenaOpravaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
+    form = OdmenaOpravaForm
+    list_display = ["cislo", "typ", "zamestnanec_link", "suma", "vyplatene_v_obdobi", "subor_kl", "datum_kl"]
+    # ^: v poli vyhľadávať len od začiatku
+    search_fields = ["cislo", "^typ", "zamestnanec__meno", "zamestnanec__priezvisko"]
+
+    # zoraďovateľný odkaz na zamestnanca
+    # umožnené prostredníctvom AdminChangeLinksMixin
+    change_links = [
+        ('zamestnanec', {
+            'admin_order_field': 'zamestnanec__priezvisko', # Allow to sort members by the column
+        })
+    ]
+
+    #actions = ['vytvorit_kryci_list']
+
+    # Zoradiť položky v pulldown menu
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        return formfield_for_foreignkey(self, db_field, request, **kwargs)
+
+    # do AdminForm pridať request, aby v jej __init__ bolo request dostupné
+    def get_form(self, request, obj=None, **kwargs):
+        AdminForm = super(OdmenaOpravaAdmin, self).get_form(request, obj, **kwargs)
+        class AdminFormMod(AdminForm):
+            def __new__(cls, *args, **kwargs):
+                kwargs['request'] = request
+                return AdminForm(*args, **kwargs)
+        return AdminFormMod
+
+    def vytvorit_kryci_list(self, request, queryset):
+        if len(queryset) != 1:
+            self.message_user(request, f"Vybrať možno len jednu položku", messages.ERROR)
+            return
+        prispevok = queryset[0]
+        if prispevok.subor_kl:
+            self.message_user(request, f"Krycí list už bol vytvorený, opakovanie nie je možné", messages.ERROR)
+            return
+        status, msg, vytvoreny_subor = VytvoritKryciListRekreacia(prispevok, request.user)
+        if status != messages.ERROR:
+            #prispevok.dane_na_uhradu = timezone.now()
+            prispevok.subor_kl = vytvoreny_subor
+            prispevok.save()
+        self.message_user(request, msg, status)
+
+    vytvorit_kryci_list.short_description = "Vytvoriť krycí list"
+    #Oprávnenie na použitie akcie, viazané na 'change'
+    vytvorit_kryci_list.allowed_permissions = ('change',)
+
 @admin.register(PrispevokNaRekreaciu)
-class PrispevokNaRekreaciuAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
+class PrispevokNaRekreaciuAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
     form = PrispevokNaRekreaciuForm
-    list_display = ["cislo", "datum", "subor_ziadost", "subor_vyuctovanie", "zamestnanec_link", "prispevok", "subor_kl"]
+    list_display = ["cislo", "zamestnanec_link", "datum", "_subor_ziadost", "datum_podpisu_ziadosti", "_subor_vyuctovanie", "_subor_kl", "datum_kl", "prispevok", "vyplatene_v_obdobi"]
     # ^: v poli vyhľadávať len od začiatku
     search_fields = ["cislo", "zamestnanec__meno", "zamestnanec__priezvisko"]
+    list_totals = [
+        ('prispevok', Sum),
+    ]
 
     # zoraďovateľný odkaz na dodávateľa
     # umožnené prostredníctvom AdminChangeLinksMixin
@@ -1237,6 +1331,57 @@ class PrispevokNaRekreaciuAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHist
     ]
 
     actions = ['vytvorit_kryci_list']
+
+    def _subor_vyuctovanie(self, obj):
+        if  obj.subor_vyuctovanie:
+            url = os.path.join(MEDIA_ROOT,obj.subor_vyuctovanie.url)
+            return format_html(mark_safe(f'<a href="{url}">Vyúčtovanie</a>')) 
+        else:
+            return "-"
+    _subor_vyuctovanie.short_description = "Súbor vyúčtovania"
+
+    def _subor_ziadost(self, obj):
+        if  obj.subor_ziadost:
+            url = os.path.join(MEDIA_ROOT,obj.subor_ziadost.url)
+            return format_html(mark_safe(f'<a href="{url}">Žiadosť</a>')) 
+        else:
+            return "-"
+    _subor_ziadost.short_description = "Súbor žiadosti"
+
+    def _subor_kl(self, obj):
+        if  obj.subor_kl:
+            url = os.path.join(MEDIA_ROOT,obj.subor_kl.url)
+            return format_html(mark_safe(f'<a href="{url}">Krycí list</a>')) 
+        else:
+            return "-"
+    _subor_kl.short_description = "Súbor KL"
+
+    # nezobrazovať polia id a program
+    def get_fields(self, request, obj=None):
+        fields = super().get_fields(request, obj)
+        fields.remove('id')
+        fields.remove('program')
+        return fields
+
+    #['id', 'zdroj', 'program', 'zakazka', 'ekoklas', 'cinnost', 'poznamka', 'cislo', 'datum', 'zamestnanec', 'subor_ziadost', 'subor_vyuctovanie', 'prispevok', 'vyplatene_v_obdobi', 'subor_kl', 'datum_kl']
+    def get_readonly_fields(self, request, obj=None):
+        fields = [f.name for f in PrispevokNaRekreaciu._meta.get_fields()]
+        #fields.remove("id")
+        editable = ["poznamka"]
+        if not obj:
+            editable += ["cislo", "datum", "zamestnanec", "subor_ziadost", "ekoklas", "zdroj", "zakazka"]
+        elif obj.subor_ziadost and not obj. datum_podpisu_ziadosti:
+            editable += ["datum_podpisu_ziadosti"]
+        elif obj.datum_podpisu_ziadosti and not (obj.subor_vyuctovanie and obj.prispevok and obj.vyplatene_v_obdobi):
+            editable += ['subor_vyuctovanie', 'prispevok', 'vyplatene_v_obdobi']
+        elif obj.prispevok and obj.prispevok > 0:
+            editable += ['subor_vyuctovanie', 'prispevok', 'vyplatene_v_obdobi']
+        elif obj.subor_kl and not obj.datum_kl:
+            editable += ['datum_kl']
+        elif obj.subor_kl:  #for the case, when KL was created off-Django and needs to be replaced
+            editable += ['subor_kl']
+        for rr in editable: fields.remove(rr)
+        return fields
 
     # Zoradiť položky v pulldown menu
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
@@ -1259,7 +1404,7 @@ class PrispevokNaRekreaciuAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHist
         if prispevok.subor_kl:
             self.message_user(request, f"Krycí list už bol vytvorený, opakovanie nie je možné", messages.ERROR)
             return
-        status, msg, vytvoreny_subor = VytvoritKryciList(prispevok, request.user)
+        status, msg, vytvoreny_subor = VytvoritKryciListRekreacia(prispevok, request.user)
         if status != messages.ERROR:
             #prispevok.dane_na_uhradu = timezone.now()
             prispevok.subor_kl = vytvoreny_subor
@@ -1273,7 +1418,7 @@ class PrispevokNaRekreaciuAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHist
 @admin.register(PlatovyVymer)
 class PlatovyVymerAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
     form = PlatovyVymerForm
-    list_display = ["cislo", "mp","zamestnanec_link", "zamestnanie_enu_od", "stav_vymeru","zamestnanie_od", "aktualna_prax", "datum_postup", "_postup_roky", "uvazok", "uvazok_denne", "datum_od", "datum_do", "_zamestnanie_roky_dni", "_top", "_ts", "suborvymer"]
+    list_display = ["cislo", "mp","zamestnanec_link", "zamestnanie_enu_od", "stav_vymeru","zamestnanie_od", "aktualna_prax", "datum_postup", "_postup_roky", "_uvazok", "datum_od", "datum_do", "_zamestnanie_roky_dni", "_top", "_ts", "suborvymer"]
     # ^: v poli vyhľadávať len od začiatku
     search_fields = ["cislo", "zamestnanec__meno", "zamestnanec__priezvisko"]
     actions = ['duplikovat_zaznam', export_selected_objects]
@@ -1296,9 +1441,14 @@ class PlatovyVymerAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
         if obj and obj.datum_do:
             aux = [f.name for f in PlatovyVymer._meta.get_fields()]
             aux.remove("datum_do")
+            aux.remove("zmena_zdroja")
             return aux
         else:
             return ["zamestnanieroky", "zamestnaniedni", "datum_postup"]
+
+    def _uvazok(self, obj):
+        return f"{obj.uvazok}/{obj.uvazok_denne}"
+    _uvazok.short_description = "Úväzok týždenne/denne"
 
     def stav_vymeru(self, obj):
         today = date.today()

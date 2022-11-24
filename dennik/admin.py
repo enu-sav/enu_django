@@ -12,7 +12,7 @@ from django.contrib import messages
 from zmluvy.models import ZmluvaAutor, ZmluvaGrafik, VytvarnaObjednavkaPlatba, PlatbaAutorskaSumar
 from uctovnictvo.models import Objednavka, PrijataFaktura, PrispevokNaStravne, DoVP, DoPC, DoBPS
 from uctovnictvo.models import PlatovyVymer, PravidelnaPlatba, NajomneFaktura, InternyPrevod
-from uctovnictvo.models import RozpoctovaPolozka, PlatbaBezPrikazu, Pokladna, PrispevokNaRekreaciu
+from uctovnictvo.models import RozpoctovaPolozka, PlatbaBezPrikazu, Pokladna, PrispevokNaRekreaciu, OdmenaOprava
 import re
 from import_export.admin import ImportExportModelAdmin
 from datetime import date
@@ -160,7 +160,7 @@ class CerpanieRozpoctuAdmin(ModelAdminTotals):
     list_display = ["polozka","mesiac","suma","zdroj","zakazka","ekoklas"]
     #search_fields = ["polozka", "mesiac", "zdroj", "zakazka", "ekoklas"]
     search_fields = ["polozka", "mesiac", "^zdroj__kod", "^zakazka__kod", "^ekoklas__kod"]
-    actions = ['generovat2021', "generovat2022", export_as_xlsx]
+    actions = ['generovat2021', "generovat2022", "generovat2023", export_as_xlsx]
     list_totals = [
             ('suma', Sum)
             ]
@@ -173,15 +173,18 @@ class CerpanieRozpoctuAdmin(ModelAdminTotals):
 
     def generovat2021(self, request, queryset):
         self.generovat(request, 2021)
-        pass
     generovat2021.short_description = f"Generovať prehľad čerpania rozpočtu za 2021"
     generovat2021.allowed_permissions = ('change',)
 
     def generovat2022(self, request, queryset):
         return self.generovat(request, 2022)
-        pass
     generovat2022.short_description = f"Generovať prehľad čerpania rozpočtu za 2022"
     generovat2022.allowed_permissions = ('change',)
+
+    def generovat2023(self, request, queryset):
+        return self.generovat(request, 2023)
+    generovat2023.short_description = f"Generovať prehľad čerpania rozpočtu za 2023"
+    generovat2023.allowed_permissions = ('change',)
 
     def generovat(self,request,rok):
         def zapisat_riadok(ws, fw, riadok, polozky, header=False):
@@ -203,7 +206,8 @@ class CerpanieRozpoctuAdmin(ModelAdminTotals):
                     if fw[cc] < len(str(value))+2: fw[cc] = len(str(value))+2
     
         #najskôr všetko zmazať
-        CerpanieRozpoctu.objects.filter(mesiac__isnull=False).delete()
+        # Nemazať  "Pomocná položka", potrebujeme
+        CerpanieRozpoctu.objects.filter().exclude(polozka="Pomocná položka").delete()
 
         #Vytvoriť workbook
         file_name = f"Cerpanie_rozpoctu_{rok}-{date.today().isoformat()}"
@@ -223,12 +227,16 @@ class CerpanieRozpoctuAdmin(ModelAdminTotals):
         riadok=2
         #for fn in enumerate(nazvy): fw[fn[0]]=len(fn[1])
 
-        typy = [PravidelnaPlatba, PlatovyVymer, PrijataFaktura, DoVP, DoPC, PlatbaAutorskaSumar, NajomneFaktura, PrispevokNaStravne, RozpoctovaPolozka, PlatbaBezPrikazu, Pokladna, PrispevokNaRekreaciu,InternyPrevod]
+        typy = [PravidelnaPlatba, PlatovyVymer, OdmenaOprava, PrijataFaktura, DoVP, DoPC, PlatbaAutorskaSumar, NajomneFaktura, PrispevokNaStravne, RozpoctovaPolozka, PlatbaBezPrikazu, Pokladna, PrispevokNaRekreaciu,InternyPrevod]
         for typ in typy:
             for polozka in typ.objects.filter():
                 for md1 in md1list[:-1]:
                     data = polozka.cerpanie_rozpoctu(md1)
                     for item in data:
+                        if item['nazov'] == "Dotácia":
+                            #print(item)
+                            #trace()
+                            pass
                         identif = f"{item['nazov']} {item['zdroj'].kod} {item['zakazka'].kod} {item['ekoklas'].kod}, {md1}"
                         polozky = [item['nazov'], item['suma'], item['subjekt'] if "subjekt" in item else "", item['datum'] if "datum" in item else "", item['cislo'], item['zdroj'].kod, item['zakazka'].kod, item['ekoklas'].kod]
                         zapisat_riadok(ws_polozky, fw, riadok, polozky)
@@ -315,9 +323,11 @@ class PlatovaRekapitulaciaAdmin(ModelAdminTotals):
             "Zdravotné poistné": ["Zdravotné poistné spolu", 2],
             "Sociálne poistné": ["Sociálne poistné spolu", 1],
             "DDS": ["Doplnkové dôchodkové sporenie spolu", 1],
+            "Odmeny": ["Odmeny spolu", 0],
+            "DPN": ["Náhrada príjmu pri DPN", 1],
             }
         #typy = [PlatovyVymer, DoVP, DoPC, PrispevokNaStravne, PrispevokNaRekreaciu]
-        typy = [PlatovyVymer, DoVP, DoPC]
+        typy = [PlatovyVymer, OdmenaOprava, DoVP, DoPC]
         #Vytvoriť workbook
         file_name = f"KontrolaRekapitulacie-{date.today().isoformat()}"
         wb = Workbook()
