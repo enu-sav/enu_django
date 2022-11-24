@@ -310,9 +310,12 @@ class Zmluva(ObjednavkaZmluva):
             blank=True, null=True)
     trvala_zmluva = models.CharField("Trvalá zmluva", 
             max_length=3, 
-            help_text = "Uveďte 'Áno', ak ide o trvalú zmluvu (očakáva sa viacero faktúr), inak uveďte 'Nie' (ako napr. zmluvy s LITA)",
+            help_text = "Uveďte 'Áno', ak ide o trvalú zmluvu (očakáva sa viacero faktúr), inak uveďte 'Nie'.<br /><strong>Ak zmluva nahrádza staršiu zmluvu, treba jej platnosť ukončiť vyplnením poľa 'Platná do'.</strong> ",
             default = AnoNie.ANO,
             choices=AnoNie.choices)
+    platna_do = models.DateField('Platná do', 
+            help_text = "Zadajte dátum ukončenia platnosti trvalej zmluvy. Platnosť trvalej zmluvy sa testuje pri vytváraní faktúry.",
+            blank=True, null=True)
     history = HistoricalRecords()
     class Meta:
         verbose_name = 'Zmluva'
@@ -451,6 +454,10 @@ class PrijataFaktura(FakturaPravidelnaPlatba):
             blank = True,
             null = True)
     history = HistoricalRecords()
+
+    def clean(self):
+        if self.objednavka_zmluva.platna_do and self.splatnost_datum > self.objednavka_zmluva.platna_do:
+            raise ValidationError(f"Faktúra nemôže byť vytvorená, lebo zmluva {self.objednavka_zmluva} je platná len do {self.objednavka_zmluva.platna_do}.")
 
     #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
     def cerpanie_rozpoctu(self, zden):

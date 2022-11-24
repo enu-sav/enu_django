@@ -403,7 +403,7 @@ class PokladnaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, Mo
 @admin.register(Zmluva)
 class ZmluvaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
     form = ZmluvaForm
-    list_display = ["cislo", "dodavatel_link", "predmet", "datum_zverejnenia_CRZ", "url_zmluvy_html"]
+    list_display = ["cislo", "dodavatel_link", "predmet", "datum_zverejnenia_CRZ", "trvala_zmluva", "platna_do", "url_zmluvy_html"]
     search_fields = ["dodavatel__nazov", "cislo", "predmet"]
     actions = [export_selected_objects]
 
