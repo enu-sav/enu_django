@@ -169,6 +169,8 @@ class ZmluvaGrafikForm(ZmluvaForm):
 class VytvarnaObjednavkaPlatbaForm(forms.ModelForm):
     #inicializácia polí
     def __init__(self, *args, **kwargs):
+        # do Admin treba pridať metódu get_form
+        self.request = kwargs.pop('request', None)
         super().__init__(*args, **kwargs)
         polecislo = "cislo"
         # Ak je pole readonly, tak sa nenachádza vo fields. Preto testujeme fields aj initial
@@ -176,6 +178,81 @@ class VytvarnaObjednavkaPlatbaForm(forms.ModelForm):
             nasledujuce = nasledujuce_cislo(VytvarnaObjednavkaPlatba)
             self.fields[polecislo].help_text = f"Zadajte číslo novej objednávky v tvare {VytvarnaObjednavkaPlatba.oznacenie}-RRRR-NNN. Predvolené číslo '{nasledujuce} bolo určené na základe čísel existujúcich výtvarných objednávok ako nasledujúce v poradí."
             self.initial[polecislo] = nasledujuce
+
+    # Skontrolovať platnost a keď je všetko OK, spraviť záznam do denníka
+    def clean(self):
+        if 'cislo' in self.changed_data:
+            if not self.cleaned_data['cislo'][:2] == VytvarnaObjednavka.oznacenie:
+                raise ValidationError({"cislo": "Nesprávne číslo. Zadajte číslo novej faktúry v tvare {VytvarnaObjednavka.oznacenie}-RRRR-NNN"})
+        try:
+            #pole dane_na_uhradu možno vyplniť až po vygenerovani platobného príkazu akciou 
+            #"Vytvoriť platobný príkaz a krycí list pre THS"
+            #trace()
+            #Ak je už vygenerovaný príkaz ale zmenila sa výška honorára, treba upozorniť na potrebu opakovaného vytvorenia príkazu
+            if "objednane_polozky" in self.changed_data:
+                messages.warning(self.request, 
+                    format_html(
+                        'Teraz vytvorte súbor objednávky</strong> akciou "Vytvoriť súbor objednávky".'
+                        )
+               )
+            if "honorar" in self.changed_data and not "poznamka" in self.changed_data: 
+                raise ValidationError(f"Zmenili ste hodnotu v poli 'Honorár', ale nezadali ste dôvod v poli 'Poznámka'.")
+            if "honorar" in self.changed_data and self.instance.subor_prikaz:
+                messages.warning(self.request, 
+                    format_html(
+                        'Zmenili ste výšku honorára. Údaje v platobnom príkaze sú teraz neplatné.<br /><strong>Opakovane vytvorte súbor príkazu</strong>  akciou "Vytvoriť platobný príkaz a krycí list pre THS".'
+                        )
+               )
+            if 'datum_objednavky' in self.changed_data:
+                vec = f"Objednávka výtvarných diel {self.instance.cislo}"
+                cislo = nasledujuce_cislo(Dokument)
+                dok = Dokument(
+                    cislo = cislo,
+                    cislopolozky = self.instance.cislo,
+                    #datumvytvorenia = self.cleaned_data['dane_na_uhradu'],
+                    datumvytvorenia = date.today(),
+                    typdokumentu = TypDokumentu.VOBJEDNAVKA,
+                    inout = InOut.ODOSLANY,
+                    adresat = self.instance.vytvarna_zmluva.zmluvna_strana,
+                    sposob = SposobDorucenia.MAIL,
+                    datum = date.today(),
+                    vec = f'<a href="{self.instance.subor_objednavky.url}">{vec}</a>',
+                    zaznamvytvoril=self.request.user.username, #zámena mien prijalodoslal - zaznamvytvoril
+                    prijalodoslal=self.request.user.username, #zámena mien prijalodoslal - zaznamvytvoril
+                )
+                dok.save()
+                messages.warning(self.request, 
+                    format_html(
+                        'Do denníka prijatej a odoslanej pošty bol pridaný záznam č. {}: <em>{}</em>, údaje o odoslaní (mailom) sú už vyplnené.<br/>Po dodaní objednaných položiek vytvorte príkaz na vyplatenie. Ak treba, upravte sumu honorára na vyplatenie.',
+                        mark_safe(f'<a href="/admin/dennik/dokument/{dok.id}/change/">{cislo}</a>'),
+                        vec
+                        )
+                )
+            if 'dane_na_uhradu' in self.changed_data:
+                vec = f"Platobný príkaz na THS {self.instance.cislo} na vyplatenie"
+                cislo = nasledujuce_cislo(Dokument)
+                dok = Dokument(
+                    cislo = cislo,
+                    cislopolozky = self.instance.cislo,
+                    #datumvytvorenia = self.cleaned_data['dane_na_uhradu'],
+                    datumvytvorenia = date.today(),
+                    typdokumentu = TypDokumentu.VYPLACANIE_VH,
+                    inout = InOut.ODOSLANY,
+                    adresat = "THS",
+                    vec = f'<a href="{self.instance.subor_prikaz.url}">{vec}</a>',
+                    prijalodoslal=self.request.user.username, #zámena mien prijalodoslal - zaznamvytvoril
+                )
+                dok.save()
+                messages.warning(self.request, 
+                    format_html(
+                        'Do denníka prijatej a odoslanej pošty bol pridaný záznam č. {}: <em>{}</em>, sekretariát v ňom doplní údaje o odoslaní.',
+                        mark_safe(f'<a href="/admin/dennik/dokument/{dok.id}/change/">{cislo}</a>'),
+                        vec
+                        )
+                )
+        except ValidationError as ex:
+            raise ex
+        return self.cleaned_data
 
 class PlatbaAutorskaSumarForm(forms.ModelForm):
     #inicializácia polí

@@ -25,7 +25,7 @@ from django.db.models import Sum
 from .models import OsobaAutor, ZmluvaAutor, PlatbaAutorskaOdmena, PlatbaAutorskaSumar, StavZmluvy, PlatbaAutorskaSumarSubor
 from .models import AnoNie, SystemovySubor, PersonCommon, OsobaGrafik, ZmluvaGrafik, Zmluva, VytvarnaObjednavkaPlatba
 from .common import VytvoritAutorskuZmluvu, VytvoritVytvarnuObjednavku
-from .vyplatitautorske import VyplatitAutorskeOdmeny
+from .vyplatitautorske import VyplatitAutorskeOdmeny, VyplatitOdmenyGrafik
 from dennik.forms import nasledujuce_cislo
 
 from .forms import OsobaAutorForm, ZmluvaAutorForm, PlatbaAutorskaSumarForm, OsobaGrafikForm, ZmluvaGrafikForm, VytvarnaObjednavkaPlatbaForm
@@ -471,11 +471,10 @@ class PlatbaAutorskaOdmenaAdmin(PlatbaAdmin):
         return {f.name for f in PlatbaAutorskaOdmena._meta.get_fields()}  #všetky polia akt. triedy
 
 @admin.register(VytvarnaObjednavkaPlatba)
-class VytvarnaObjednavkaPlatbaAdmin(PlatbaAdmin):
+class VytvarnaObjednavkaPlatbaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
     form = VytvarnaObjednavkaPlatbaForm
     # autor_link: pridá autora zmluvy do zoznamu, vďaka AdminChangeLinksMixin
-    def get_list_display(self, request):
-        return ('cislo', 'vytvarna_zmluva_link', 'subor_objednavky') + super(VytvarnaObjednavkaPlatbaAdmin, self).get_list_display(request)
+    list_display = ["cislo", "vytvarna_zmluva_link", "subor_objednavky", "honorar", "datum_objednavky", "subor_prikaz", "dane_na_uhradu", "datum_uhradenia", "datum_oznamenia", "odvod_LF", "odvedena_dan"]
 
     #search_fields = ['cislo', "zmluva", "autor__rs_login"]
 
@@ -487,16 +486,25 @@ class VytvarnaObjednavkaPlatbaAdmin(PlatbaAdmin):
         }),
     ]
 
-    actions = ['vytvorit_objednavku']
+    actions = ['vytvorit_objednavku', "vytvorit_platobny_prikaz"]
 
-    #obj is None during the object creation, but set to the object being edited during an edit
-    #predpokladá sa, že hodnoty sa importujú skriptom a že neskôr sa už neupravujú
     def get_readonly_fields(self, request, obj=None):
-        vsetky = {f.name for f in VytvarnaObjednavkaPlatba._meta.get_fields()}  #všetky polia akt. triedy
-        if obj:
-            return ['vytvarna_zmluva', 'datum_uhradenia', 'honorar', 'odvod_LF', 'odvedena_dan', 'uhradena_suma']
-        else:
-            return vsetky - {"vytvarna_zmluva", "datum_objednavky", "objednane_polozky", "cislo"}
+        readonly = ["cislo", "vytvarna_zmluva", "objednane_polozky", "datum_objednavky", "subor_objednavky", "honorar", "subor_prikaz", "dane_na_uhradu", "datum_uhradenia", "datum_oznamenia", "odvod_LF", "odvedena_dan", "poznamka"]
+        editable = []
+        if not obj:                                                 #nová položka
+            editable = ["cislo", "vytvarna_zmluva", "objednane_polozky", "poznamka"]
+        elif not obj.datum_objednavky and not obj.subor_objednavky: #ešte nevygenerovaný súbor objednávky
+            editable = ["cislo", "vytvarna_zmluva", "objednane_polozky", "poznamka"]
+        elif not obj.datum_objednavky and obj.subor_objednavky:     #vygenerovaný súbor objednávky
+            editable = ["cislo", "vytvarna_zmluva", "objednane_polozky", "datum_objednavky", "poznamka"]
+        elif obj.datum_objednavky and not obj.subor_prikaz:         #ešte nevygenerovaný príkaz
+            editable = ["honorar", "poznamka"]
+        elif not obj.dane_na_uhradu and obj.subor_prikaz:           #vygenerovaný príkaz
+            editable = ["honorar", "dane_na_uhradu", "poznamka"]
+        elif obj.dane_na_uhradu and obj.subor_prikaz:               #odoslané na THS, čakáme na dátum vyplatenia
+            editable = ["datum_uhradenia", "datum_oznamenia", "poznamka"]
+        for ed in editable: readonly.remove(ed)
+        return readonly 
 
     def vytvorit_objednavku(self, request, queryset):
         if len(queryset) != 1:
@@ -510,12 +518,42 @@ class VytvarnaObjednavkaPlatbaAdmin(PlatbaAdmin):
             objednavka.subor_objednavky=subor
             objednavka.save()
             self.message_user(request, msg, status)
-            self.message_user(request, f"Vytvorenú objednávku odošlite grafikovi.", messages.WARNING)
+            self.message_user(request, f"Vytvorenú objednávku odošlite autorovi mailom a následne vyplňte pole 'Dátum objednávky'.", messages.WARNING)
         else:
             self.message_user(request, f"Súbor objednávky {objednavka.cislo} nebol vytvorený: {msg}'", messages.ERROR)
     vytvorit_objednavku.short_description = f"Vytvoriť súbor objednávky"
     #Oprávnenie na použitie akcie, viazané na 'change'
     vytvorit_objednavku.allowed_permissions = ('change',)
+
+    def vytvorit_platobny_prikaz(self, request, queryset):
+        if len(queryset) != 1:
+            self.message_user(request, f"Vybrať možno len jednu položku", messages.ERROR)
+            return
+        platba = queryset[0]
+        if not platba.datum_objednavky:
+            self.message_user(request, f"Platobný príkaz nemožno vytvoriť, lebo objednávka ešte nebola odoslaná.", messages.ERROR)
+            return
+        platba.odvedena_dan = platba.honorar*settings.DAN_Z_PRIJMU/100 if platba.vytvarna_zmluva.zmluvna_strana.zdanit == AnoNie.ANO else 0
+        platba.odvod_LF = platba.honorar*settings.LITFOND_ODVOD/100
+        prikaz = VyplatitOdmenyGrafik(platba)
+        status, msg, vytvoreny_subor = prikaz.vytvorit_prikaz()
+        if status != messages.ERROR:
+            platba.subor_prikaz = vytvoreny_subor
+            platba.save()
+        self.message_user(request, msg, status)
+
+    vytvorit_platobny_prikaz.short_description = "Vytvoriť platobný príkaz a krycí list pre THS"
+    #Oprávnenie na použitie akcie, viazané na 'change'
+    vytvorit_platobny_prikaz.allowed_permissions = ('change',)
+
+    # do AdminForm pridať request, aby v jej __init__ bolo request dostupné
+    def get_form(self, request, obj=None, **kwargs):
+        AdminForm = super(VytvarnaObjednavkaPlatbaAdmin, self).get_form(request, obj, **kwargs)
+        class AdminFormMod(AdminForm):
+            def __new__(cls, *args, **kwargs):
+                kwargs['request'] = request
+                return AdminForm(*args, **kwargs)
+        return AdminFormMod
 
 # pripajanie suborov k objektu: krok 2, vytvoriť XxxSuborAdmin
 # musí byť pred krokom 3

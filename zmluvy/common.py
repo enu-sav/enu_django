@@ -117,7 +117,7 @@ def VytvoritAutorskuZmluvu(zmluva, nazov_sablony):
     if autor.adresa_ulica:
         addr = f"{autor.adresa_ulica}, {addr}"
 
-    #korešpondenčná adresa
+    ##korešpondenčná adresa
     kaddr=""
     if autor.koresp_adresa_mesto:
         kaddr = f"{autor.koresp_adresa_mesto}, {autor.koresp_adresa_stat}"
@@ -238,17 +238,18 @@ def OveritUdajeAutora(autor, testovat_zdanovanie = True):
     return chyby.strip(" ").strip(",")
 
 def VytvoritVytvarnuObjednavku(objednavka, pouzivatel):
-    pass
-
     #úvodné testy
     if not os.path.isdir(settings.CONTRACTS_DIR):
         return messages.ERROR, f"Chyba pri vytváraní súborov zmluvy: neexistuje priečinok '{settings.CONTRACTS_DIR}'", None
 
-    #kontrola položiek
+    #kontrola položiek a výpočet sumárnej odmeny
     polozky = [sp.strip() for sp in objednavka.objednane_polozky.split("\n")]
+    honorar=0
     for nn, polozka in enumerate(polozky):
         if len(re.findall(";", polozka)) != 3:
             return messages.ERROR, f"riadok {nn+1} v zozname položiek má nesprávny počet polí/bodkočiarok ({polozka})'", None
+        rslt = re.findall(r"[^;]*; *[^;]*; *([0-9]*); *([0-9.,]*)", polozka)[0]
+        honorar += int(rslt[0])*float(rslt[1].replace(",","."))
 
     autor = objednavka.vytvarna_zmluva.zmluvna_strana
     mp = f"{autor.meno} {autor.priezvisko}"
@@ -305,4 +306,7 @@ def VytvoritVytvarnuObjednavku(objednavka, pouzivatel):
     nazov = f'{objednavka.cislo}-{autor.priezvisko}.xlsx'
     opath = os.path.join(settings.OBJEDNAVKY_DIR,nazov)
     workbook.save(os.path.join(settings.MEDIA_ROOT,opath))
+    #Vyplnit pole objednavky
+    objednavka.honorar = honorar
+    objednavka.save()
     return messages.SUCCESS, f"Súbor objednávky {objednavka.cislo} bol úspešne vytvorený ({opath}).", opath

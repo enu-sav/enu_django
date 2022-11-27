@@ -33,7 +33,7 @@ class StavZmluvy(models.TextChoices):
 class PersonCommon(models.Model):
     # IBAN alebo aj kompletný popis s BIC a číslom účtu
     bankovy_kontakt = models.CharField("Bankový kontakt", 
-            help_text = "Zadajte IBAN účtu autora.",
+            help_text = "Zadajte IBAN účtu autora (s medzerami po štvoriciach).",
             max_length=200, null=True, blank=True)
     adresa_ulica = models.CharField("Adresa – ulica a číslo domu", max_length=200, null=True, blank=True)
     adresa_mesto = models.CharField("Adresa – PSČ a mesto", max_length=200, null=True, blank=True)
@@ -246,30 +246,58 @@ class PlatbaAutorskaOdmena(Platba):
         verbose_name = 'Aut. honorár po autoroch'
         verbose_name_plural = 'Aut. honoráre po autoroch'
 
-class VytvarnaObjednavkaPlatba(Platba):
+class VytvarnaObjednavkaPlatba(models.Model):
     oznacenie = "VO"    #čislo objednávky výtvarného diela
     #related_name: v admin.py umožní zobrazit platby autora v zozname autorov cez pole platby_link 
     cislo = models.CharField("Číslo objednávky", max_length=50, null=True)
     vytvarna_zmluva = models.ForeignKey(ZmluvaGrafik, on_delete=models.PROTECT, related_name = "vytvarne_platby")
-    datum_objednavky = models.DateField('Dátum objednávky',
-            help_text = "Dátum vystavenia objednávky",
-            null=True)
     objednane_polozky = models.TextField("Objednané položky", 
-            help_text = mark_safe("Po riadkoch zadajte objednávané položky so štyrmi poľami oddelenými bodkočiarkou v poradí: <b>Popis</b>; <b>Typ</b>; <b>Množstvo</b>; <b>Cena za jednotku</b>.<br />Ako typ uveďte: mapa, fotografia, čb perovka, farebná kresba."),
+            help_text = mark_safe("Po riadkoch zadajte objednávané položky so štyrmi poľami oddelenými bodkočiarkou v poradí: <b>Popis</b>; <b>Typ</b>; <b>Množstvo</b>; <b>Cena za jednotku</b>.<br />Ako typ uveďte: mapa, fotografia, čb perovka, farebná kresba.<br />Po vyplnení položiek vytvorte súbor objednávky akciou 'Vytvoriť súbor objednávky'.<br /><strong>Honorár sa dáva na vyplatenie jednorázovo až po dodaní všetkých objednaných položiek</strong>."),
             null=True,
             max_length=5000)
     subor_objednavky = models.FileField("Vygenerovaná objednávka", 
             help_text = "Súbor objednávky na poslanie autorovi na podpis, vygenerovaný akciou 'Vytvoriť súbor objednávky'.",
             storage=OverwriteStorage(), upload_to=contract_path, null = True, blank = True)
-
-    # executed after 'save'
-    #def clean(self):
-        #if getattr(self, 'autor', None) is None: # check that current instance has 'autor' attribute not set
-            #self.autor = self.zmluva.zmluvna_strana
+    datum_objednavky = models.DateField('Dátum objednávky',
+            help_text = "Dátum odoslania objednávky autorovi (mailom)",
+            null=True)
+    honorar = models.DecimalField("Honorár na vyplatenie", 
+            help_text = "Honorár na vyplatenie. Vyplní sa automaticky na základe položiek objednávky spustením akcie 'Vytvoriť súbor objednávky'.<br />Ak autor nedodá všetky objednané položky, pred generovaním príkazu na vyplatenie sumu upravte a do poľa 'Poznámka' uveďte zoznam nedodaných položiek.",
+            max_digits=8, 
+            decimal_places=2, 
+            null=True, 
+            blank=True)
+    poznamka = models.CharField("Poznámka", max_length=200, blank=True)
+    subor_prikaz = models.FileField("Platobný príkaz",
+            help_text = f"Súbor generovaný akciou 'Vygenerovať platobný príkaz'.<br /><strong>Po podpísaní dať na sekretariát na odoslanie do účtárne THS</strong>. Následne <strong>vyplňte pole <em>Dané na úhradu dňa</em></strong>.", 
+            upload_to=contract_path, 
+            null = True, 
+            blank = True)
+    dane_na_uhradu = models.DateField('Odovzdané na sekretariát dňa',
+            help_text = 'Zadajte dátum odovzdania vytlačeného platobného príkazu a krycieho listu na sekretariát na ďalšie spracovanie. <br />Vytvorí sa záznam v <a href="/admin/dennik/dokument/">denníku prijatej a odoslanej pošty</a>, ktorý vyplní sekretariát.',
+            blank=True, null=True)
+    datum_uhradenia= models.DateField("Uhradené dňa",
+            help_text = f'Dátum uhradenia odmeny a dane Finančnej správe (pokiaľ autor nepodpísal zmluvu o nezdaňovaní).',
+            null=True, 
+            blank=True)
+    datum_oznamenia = models.DateField('Oznámené FS', 
+            help_text = "Dátum oznámenia výšky zrazenej dane na finančnú správu (termín: do 15. dňa nasledujúceho mesiaca).<br />Nevyplňuje sa, ak sa autor zdaňuje sám.",
+            null=True, 
+            blank=True)
+    #zmluva príp. zoznam zmlúv, podľa ktorých sa vyplácalo
+    odvod_LF = models.DecimalField("Odvod aut. fondu", 
+            help_text = "Automaticky doplnené akciou 'Vytvoriť platobný príkaz a krycí list pre THS'",
+            max_digits=8, decimal_places=2, null=True, blank=True)
+    odvedena_dan = models.DecimalField("Odvedená daň", 
+            help_text = "Automaticky doplnené akciou 'Vytvoriť platobný príkaz a krycí list pre THS'",
+            max_digits=8, decimal_places=2, null=True, blank=True)
+    history = HistoricalRecords()
 
     class Meta:
         verbose_name = 'Objednávka a vyplatenie výtvarných diel'
         verbose_name_plural = 'Objednávky a vyplácanie výtvarných diel'
+    def __str__(self):
+        return f"{self.cislo}-{self.vytvarna_zmluva.zmluvna_strana}"
 
 #https://stackoverflow.com/questions/55543232/how-to-upload-multiple-files-from-the-django-admin
 #Vykoná sa len pri vkladaní suborov cez GUI. Pri programovom vytváraní treba cestu nastaviť

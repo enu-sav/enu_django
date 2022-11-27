@@ -4,6 +4,7 @@ from glob import glob
 from datetime import date, datetime
 from django.conf import settings
 from django.contrib import messages
+from django.utils.safestring import mark_safe
 from zmluvy.models import OsobaAutor, ZmluvaAutor, PlatbaAutorskaOdmena, PlatbaAutorskaSumar, SystemovySubor, AnoNie, StavZmluvy
 from openpyxl import load_workbook
 from openpyxl.styles import Font, Color, colors, Alignment, PatternFill , numbers
@@ -13,7 +14,7 @@ from ipdb import set_trace as trace
 from .common import OveritUdajeAutora, valid_rodne_cislo, valid_iban
 
 
-class VyplatitAutorskeOdmeny():
+class VyplatitOdmeny():
     #ws_template = f"{settings.TEMPLATES_DIR}/UhradaAutHonoraru.xlsx"
     litfond_odvod = settings.LITFOND_ODVOD  #Aktuálne 0 kvôli Covid pandémii, inak 2 %
     dan_odvod = settings.DAN_Z_PRIJMU       # daň, napr. 19 %
@@ -22,6 +23,11 @@ class VyplatitAutorskeOdmeny():
     ucetLitFond  = settings.UCET_LITFOND
     ucetFin = settings.UCET_FIN_URAD
 
+    def meno_priezvisko(self, autor):
+        return f"{autor.meno} {autor.priezvisko}"
+
+
+class VyplatitAutorskeOdmeny(VyplatitOdmeny):
     def __init__(self, csv_subory=None, cislo=None, datum_vyplatenia=None, zoznam_autorov=None): 
 
         self.csv_subory = csv_subory
@@ -130,9 +136,6 @@ class VyplatitAutorskeOdmeny():
                     pass
         pass
 
-    def meno_priezvisko(self, autor):
-        return f"{autor.meno} {autor.priezvisko}"
-
     def _meno_priezvisko(self, autor):
         if autor.titul_pred_menom:
             mp = f"{autor.titul_pred_menom} {autor.meno} {autor.priezvisko}"
@@ -154,7 +157,7 @@ class VyplatitAutorskeOdmeny():
         if not sablona:
             self.log(messages.ERROR, f"V systéme nie je definovaný súbor '{nazov_objektu}'.")
             return None
-        ws_template = sablona[0].subor.file.name 
+        self.ws_template = sablona[0].subor.file.name 
 
         csv_path = os.path.join(settings.MEDIA_ROOT,settings.RLTS_DIR_NAME, self.cislo) 
         self.pocet_znakov = {"rs": {}, "webrs":{}}
@@ -968,3 +971,112 @@ class VyplatitAutorskeOdmeny():
             platba.delete()
             self.log(messages.SUCCESS, msg)
 
+
+class VyplatitOdmenyGrafik(VyplatitOdmeny):
+    def __init__(self, platba): 
+        self.platba = platba
+        pass
+    # pouzivatel: aktualny pouzivatel
+    def vytvorit_prikaz(self):
+        #Súbor šablóny
+        nazov_objektu = "Šablóna vyplácania honorárov"  #Presne takto mysí byť objekt pomenovaný
+        sablona = SystemovySubor.objects.filter(subor_nazov = nazov_objektu)
+        if not sablona:
+            self.log(messages.ERROR, f"V systéme nie je definovaný súbor '{nazov_objektu}'.")
+            return None
+        ws_template = sablona[0].subor.file.name 
+
+        # styly buniek, https://openpyxl.readthedocs.io/en/default/styles.html
+        # default font dokumentu je Arial
+        self.fbold = Font(name="Arial", bold=True)
+        self.aright = Alignment(horizontal='right')
+        acenter = Alignment(horizontal='center')
+        aleft = Alignment(horizontal='left')
+
+        workbook = load_workbook(filename=ws_template)
+
+        #upraviť vlastnosti dokumentu
+        workbook.properties.creator = "DjangoBel, systém na správu autorských zmlúv Encyclopaedie Beliany"
+        workbook.properties.title=f"Vyplácanie objednávky grafických prác č. {self.platba.cislo}" 
+        workbook.properties.created = datetime.now()
+        workbook.properties.revision = 1
+        workbook.properties.modified = datetime.now()
+        workbook.properties.lastPrinted = None
+
+        #Inicializácia hárkov
+        vyplatit = workbook["Na vyplatenie"]
+        self.kryci_list = workbook["Krycí list"]
+        workbook.remove_sheet(workbook["Výpočet"])
+
+        # upraviť hárok Na vyplatenie
+        vyplatit["A4"].value = vyplatit["A4"].value.replace("[[coho]]","autorského honoráru")
+        #vyplatit.merge_cells('A5:G5')
+        vyplatit["C5"] = f"identifikátor vyplácania {self.platba.cislo}"
+        #vyplatit["A5"].alignment = acenter
+
+        vyplatit["A7"] = "Prevody spolu:"
+        vyplatit["B7"] = self.platba.honorar + self.platba.odvedena_dan + self.platba.odvod_LF # honorár + daň + LF
+        vyplatit[f"B7"].number_format= "0.00"
+        vyplatit[f"B7"].alignment = aleft
+        vyplatit[f"B7"].font = self.fbold
+        vyplatit["D7"] = "EKRK:"
+        vyplatit["E7"] = "633018"
+        vyplatit[f"E7"].alignment = aleft
+        vyplatit[f"E7"].font = self.fbold
+        vyplatit["A8"] = "Z čísla účtu EnÚ:"
+        vyplatit["B8"] = VyplatitAutorskeOdmeny.ucetEnÚ
+        # Farba pozadia
+        for i, rowOfCellObjects in enumerate(vyplatit['A7':'G8']):
+            for n, cellObj in enumerate(rowOfCellObjects):
+                cellObj.fill = PatternFill("solid", fgColor="FFFF00")
+        pos = 10
+        #daň
+        a,b,c,d,e,f = range(pos, pos+6)
+        vyplatit[f"A{a}"] = "Komu:"
+        vyplatit[f"B{a}"] = "Zrážková daň z odmeny"
+        vyplatit[f"A{b}"] = "Názov:"
+        vyplatit[f"B{b}"] = "Finančná správa"
+        vyplatit[f"A{c}"] = "IBAN:"
+        vyplatit[f"B{c}"] = VyplatitAutorskeOdmeny.ucetFin
+        vyplatit[f"A{d}"] = "VS:"
+        vyplatit[f"B{d}"] = date.today().strftime('%m%Y')
+        vyplatit[f"A{e}"] = "Suma na úhradu:"
+        vyplatit[f"B{e}"] = self.platba.odvedena_dan
+        vyplatit[f"B{e}"].number_format= "0.00"
+        vyplatit[f"B{e}"].alignment = aleft
+        vyplatit[f"B{e}"].font = self.fbold
+        pos = pos+8
+
+        a,b,c,d = range(pos, pos+4)
+        adata = self.platba.vytvarna_zmluva.zmluvna_strana
+        vyplatit[f"A{a}"] = "Autor:"
+        vyplatit[f"B{a}"] = self.meno_priezvisko(adata)
+        vyplatit[f"A{b}"] = "IBAN:"
+        vyplatit[f"B{b}"] = adata.bankovy_kontakt
+        vyplatit[f"A{c}"] = "VS:"
+        vyplatit[f"B{c}"] = f"1700{date.today().strftime('%m%Y')}"
+        vyplatit[f"A{d}"] = "Suma na úhradu:"
+        vyplatit[f"B{d}"] = self.platba.honorar
+        vyplatit[f"B{d}"].number_format= "0.00"
+        vyplatit[f"B{d}"].alignment = aleft
+        vyplatit[f"B{d}"].font = self.fbold
+        pos += 8
+
+        a,b,c,d,e,f = range(pos, pos+6)
+        vyplatit[f"A{a}"] = "V Bratislave dňa {}".format(date.today().strftime("%d.%m.%Y"))
+        vyplatit[f"E{a}"] = "Ing. Tatiana Šrámková"
+        vyplatit[f"E{b}"] = "riaditeľka org. zložky EnÚ SAV"
+        vyplatit.print_area = []    #Zrušiť oblasť tlače
+
+        # upraviť hárok Krycí list
+        self.kryci_list["A2"].value = self.kryci_list["A2"].value.replace("[[coho]]", "autorského honoráru") 
+        self.kryci_list["A2"].value = self.kryci_list["A2"].value.replace("[[xx-xxxx]]", self.platba.cislo)
+        self.kryci_list.print_area = [] #Zrušiť oblasť tlače
+
+        #save the file
+        nazov = f"{self.platba.cislo}-{self.platba.vytvarna_zmluva.zmluvna_strana.priezvisko}-PlPrikaz.xlsx"
+        opath = os.path.join(settings.OBJEDNAVKY_DIR,nazov)
+        workbook.save(os.path.join(settings.MEDIA_ROOT,opath))
+        msg = f"Údaje o vyplácaní boli uložené do súboru {opath}"
+
+        return messages.SUCCESS, mark_safe(f"Súbor s platobným príkazom a krycím listom platby {self.platba.cislo} bol úspešne vytvorený ({opath}). <br />Príkaz a krycí list vytlačte a dajte na sekretariát na ďalšie spracovanie. Následne vyplňte pole 'Odovzdané na sekretariát dňa'."), opath

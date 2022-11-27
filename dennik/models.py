@@ -26,6 +26,7 @@ class TypDokumentu(models.TextChoices):
     DoBPS = 'dobps', 'DoBPS'
     HROMADNY = 'hromadny', 'Hromadný dokument'
     VYPLACANIE_AH = 'vyplacanie_ah', 'Vyplácanie autorských honorárov'
+    VYPLACANIE_VH = 'vyplacanie_vh', 'Vyplácanie výtvarných honorárov'
     NAJOMNE = 'najomne', 'Nájomné'
     PRAVIDELNAPLATBA = 'pravidelnaplatba', 'Pravidelná platba'
     INTERNYPREVOD = 'internyprevod', 'Interný prevod'
