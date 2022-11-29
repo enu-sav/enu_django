@@ -468,7 +468,7 @@ class PrijataFaktura(FakturaPravidelnaPlatba):
     history = HistoricalRecords()
 
     def clean(self):
-        if self.objednavka_zmluva.platna_do and self.splatnost_datum > self.objednavka_zmluva.platna_do:
+        if type(self.objednavka_zmluva) == PrijataFaktura and self.objednavka_zmluva.platna_do and self.splatnost_datum > self.objednavka_zmluva.platna_do:
             raise ValidationError(f"Faktúra nemôže byť vytvorená, lebo zmluva {self.objednavka_zmluva} je platná len do {self.objednavka_zmluva.platna_do}.")
 
     #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
