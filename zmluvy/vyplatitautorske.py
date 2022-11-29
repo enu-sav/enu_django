@@ -1039,7 +1039,7 @@ class VyplatitOdmenyGrafik(VyplatitOdmeny):
         vyplatit[f"A{c}"] = "IBAN:"
         vyplatit[f"B{c}"] = VyplatitAutorskeOdmeny.ucetFin
         vyplatit[f"A{d}"] = "VS:"
-        vyplatit[f"B{d}"] = date.today().strftime('%m%Y')
+        vyplatit[f"B{d}"] = f"1700{date.today().strftime('%m%Y')}"
         vyplatit[f"A{e}"] = "Suma na úhradu:"
         vyplatit[f"B{e}"] = self.platba.odvedena_dan
         vyplatit[f"B{e}"].number_format= "0.00"
@@ -1054,7 +1054,7 @@ class VyplatitOdmenyGrafik(VyplatitOdmeny):
         vyplatit[f"A{b}"] = "IBAN:"
         vyplatit[f"B{b}"] = adata.bankovy_kontakt
         vyplatit[f"A{c}"] = "VS:"
-        vyplatit[f"B{c}"] = f"1700{date.today().strftime('%m%Y')}"
+        vyplatit[f"B{c}"] = f"{date.today().strftime('%m%Y')}"
         vyplatit[f"A{d}"] = "Suma na úhradu:"
         vyplatit[f"B{d}"] = self.platba.honorar
         vyplatit[f"B{d}"].number_format= "0.00"
