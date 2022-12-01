@@ -40,7 +40,13 @@ class Mena(models.TextChoices):
     USD = 'USD'
     GBP = 'GBP'
 
-# Pre triedu classname určí číslo nasledujúceho záznamu v pvare X-2021-NNN
+priblizny_kurz = {
+        Mena.CZK: 24.36,
+        Mena.USD: 1.045,
+        Mena.GBP: 0.857
+    }
+
+        # Pre triedu classname určí číslo nasledujúceho záznamu v pvare X-2021-NNN
 def nasledujuce_cislo(classname, rok=None):
         # zoznam faktúr s číslom "PS-2021-123" zoradený vzostupne
         if rok:
@@ -379,7 +385,7 @@ class Platba(Klasifikacia):
             blank=True, null=True)
     splatnost_datum = models.DateField('Dátum splatnosti',
             null=True)
-    suma = models.DecimalField("Suma", 
+    suma = models.DecimalField("Suma [EUR]", 
             max_digits=8, 
             decimal_places=2, 
             null=True)
@@ -457,6 +463,12 @@ class PrijataFaktura(FakturaPravidelnaPlatba):
             max_length=100)
     doslo_datum = models.DateField('Došlo dňa',
             null=True)
+    sumacm = models.DecimalField("Suma v cudzej mene", 
+            help_text = "V prípade uvedenia sumy v cudzej mene vložte do poľa 'Suma' nulu. Pole 'Suma vypňte až bude známa skutočne uhradená suma v EUR",
+            max_digits=8, 
+            decimal_places=2, 
+            blank = True,
+            null=True)
     mena = models.CharField("Mena", 
             max_length=3, 
             default= Mena.EUR,
@@ -479,9 +491,14 @@ class PrijataFaktura(FakturaPravidelnaPlatba):
         kdatum =  date(zden.year, zden.month+1, zden.day) if zden.month+1 <= 12 else  date(zden.year+1, 1, 1)
         if self.dane_na_uhradu >= kdatum: return []
         typ = "zmluva" if type(self.objednavka_zmluva) == Zmluva else "objednávka" if type(self.objednavka_zmluva) == Objednavka else "rozhodnutie" 
+        if self.mena != Mena.EUR and not self.suma: 
+            suma = float(self.sumacm) / priblizny_kurz[self.mena]
+        else:
+            suma = self.suma
+
         platba = {
                 "nazov":f"Faktúra {typ}",
-                "suma": self.suma,
+                "suma": round(Decimal(suma),2),
                 "datum": self.dane_na_uhradu,
                 "cislo": self.cislo,
                 "subjekt": self.adresat(),
@@ -489,6 +506,8 @@ class PrijataFaktura(FakturaPravidelnaPlatba):
                 "zakazka": self.zakazka,
                 "ekoklas": self.ekoklas
                 }
+        if self.mena != Mena.EUR and not self.suma: 
+            platba["poznamka"] = f"Čerpanie rozpočtu: uhradená suma v EUR faktúry {self.cislo} v cudzej mene je približná. Správnu sumu v EUR vložte do poľa 'Suma' na základe údajov o platbe zo Softipu."
         return [platba]
     class Meta:
         verbose_name = 'Prijatá faktúra'
@@ -1286,7 +1305,7 @@ class PlatovyVymer(Klasifikacia):
                     "ekoklas": EkonomickaKlasifikacia.objects.get(kod="642015")
                     }
             if text_vz and "približne" in text_vz:
-                nahrada_pn["poznamka"] = f"Vypočítaná suma náhrad PN je približná. V údajoch zamestnanca '{self.zamestnanec}' treba doplniť denný vymeriavací základ za mesiac {zden.year}/{zden.month}."
+                nahrada_pn["poznamka"] = f"Čerpanie rozpočtu: vypočítaná suma náhrad PN je približná. V údajoch zamestnanca '{self.zamestnanec}' treba na základe údajov v Softipe doplniť denný vymeriavací základ za mesiac {zden.year}/{zden.month}."
 
         #Osobné prekážky
         nahrada_osob = None

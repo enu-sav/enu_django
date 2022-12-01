@@ -247,7 +247,7 @@ class PlatbaBezPrikazuAdmin(ZobrazitZmeny, SimpleHistoryAdmin):
     def save_model(self, request, obj, form, change):
         if 'suma' in form.changed_data:
             if obj.suma >= 0:
-                messages.add_message(request, messages.WARNING, "Do poľa 'Suma' sa obvykle vkladajú výdavky (záporná suma), vložili ste však 0 alebo kladnú hodnotu sumy. Ak ide o omyl, hodnotu opravte.") 
+                messages.add_message(request, messages.WARNING, "Do poľa 'Suma' sa obvykle vkladajú výdavky (záporná suma), vložili ste však 0 alebo kladnú hodnotu sumy. <br />Ak ide o omyl, hodnotu opravte. Ak ide o platbu v cudzej mene, pole vyplňte dotatočne.") 
 
         #Ak ide o Prídel do sociálneho fondu - 637016 - vytvoriť položku SF
         if obj.ekoklas == EkonomickaKlasifikacia.objects.get(kod="637016"):
@@ -439,7 +439,7 @@ class ZmluvaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, Impo
 #class PrijataFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
 class PrijataFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
     form = PrijataFakturaForm
-    list_display = ["cislo", "objednavka_zmluva_link", "prijata_faktura", "suma", "predmet", "platobny_prikaz", "dane_na_uhradu", "zdroj", "zakazka", "ekoklas","cinnost", "program"]
+    list_display = ["cislo", "objednavka_zmluva_link", "prijata_faktura", "suma", "predmet", "platobny_prikaz", "dane_na_uhradu", "mena", "zdroj", "zakazka", "ekoklas","cinnost", "program"]
     search_fields = ["^cislo","objednavka_zmluva__dodavatel__nazov", "predmet", "^zdroj__kod", "^zakazka__kod", "^ekoklas__kod", "^ekoklas__nazov",  "^cinnost__kod", "cinnost__nazov" ]
 
     # zoraďovateľný odkaz na dodávateľa

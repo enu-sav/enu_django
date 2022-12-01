@@ -283,15 +283,18 @@ def VytvoritPlatobnyPrikaz(faktura, pouzivatel):
     #
     text = text.replace(f"{lt}nasa_faktura_cislo{gt}", faktura.cislo)
     locale.setlocale(locale.LC_ALL, 'sk_SK.UTF-8')
-    if faktura.suma:
-        if not jePF or faktura.mena == Mena.EUR:
-            text = text.replace(f"{lt}DM{gt}", f"{locale_format(-faktura.suma)} €")     # suma je záporná, o formulári chceme kladné
+    if not faktura.suma and not faktura.sumacm:
+        return messages.ERROR, "Vytváranie príkazu zlyhalo, lebo nebola zadaná suma v Eur a ani suma v cudzej mene.", None
+    if jePF:    #faktúra môže byť aj v cudzej mene
+        if faktura.mena == Mena.EUR:
+            text = text.replace(f"{lt}DM{gt}", f"{locale_format(-faktura.suma)} €")     # suma je záporná, vo formulári chceme kladné
             text = text.replace(f"{lt}CM{gt}", "")
         else:
-            text = text.replace(f"{lt}CM{gt}", f"{locale_format(-faktura.suma)} {faktura.mena}")    # suma je záporná, o formulári chceme kladné
+            text = text.replace(f"{lt}CM{gt}", f"{locale_format(-faktura.sumacm)} {faktura.mena}")    # suma je záporná, vo formulári chceme kladné
             text = text.replace(f"{lt}DM{gt}", "")
-    else:
-        return messages.ERROR, "Vytváranie príkazu zlyhalo, lebo nebola zadaná suma.", None
+    else:   #len v EUR
+        text = text.replace(f"{lt}DM{gt}", f"{locale_format(-faktura.suma)} €")     # suma je záporná, o formulári chceme kladné
+        text = text.replace(f"{lt}CM{gt}", "")
     text = text.replace(f"{lt}dodavatel{gt}", faktura.objednavka_zmluva.dodavatel.nazov)
     # ulica ne nepovinná (malá obec)
     if faktura.objednavka_zmluva.dodavatel.adresa_ulica:

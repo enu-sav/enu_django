@@ -69,8 +69,9 @@ class PrijataFakturaForm(forms.ModelForm):
                 nasledujuce = nasledujuce_cislo(PrijataFaktura)
                 self.fields[polecislo].help_text = f"Zadajte číslo novej faktúry v tvare {PrijataFaktura.oznacenie}-RRRR-NNN. Predvolené číslo '{nasledujuce}' bolo určené na základe čísiel existujúcich faktúr ako nasledujúce v poradí."
                 self.initial[polecislo] = nasledujuce
-            else:
+            else: 
                 self.fields[polecislo].help_text = f"Číslo faktúry v tvare {PrijataFaktura.oznacenie}-RRRR-NNN."
+        self.fields['suma'].help_text = f"Ak ide o platbu v cudzej mene, vyplňte polia '{self.fields['sumacm'].label}' a '{self.fields['mena'].label}' a do tohoto poľa vložte nulu.<br />Toto pole vyplňte až po určení skutočne vyplatenej sumy v EUR"
 
     # Skontrolovať platnost a keď je všetko OK, spraviť záznam do denníka
     def clean(self):
