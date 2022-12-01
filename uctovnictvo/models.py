@@ -1196,13 +1196,15 @@ class PlatovyVymer(Klasifikacia):
                 dnepl += prac_dni(prvy,posledny, pdni, zahrnut_sviatky=True)    #Sviatky sa zarátajú, nie sú platené
             elif nn.nepritomnost_typ in [TypNepritomnosti.LEKARDOPROVOD, TypNepritomnosti.LEKAR]:
                 dosob += float(nn.dlzka_nepritomnosti*prac_dni(prvy,posledny, pdni, zahrnut_sviatky=True)/self.uvazok_denne)    #Osobné prekážky vo sviatok sa nemajú čo vyskytovať
+            elif nn.nepritomnost_typ in [TypNepritomnosti.SLUZOBNA, TypNepritomnosti.PRACADOMA]:
+                pass    #normálna mzda
             else:   #Osobné prekážky (Pracovné voľno)
                 dosob += prac_dni(prvy,posledny, pdni, zahrnut_sviatky=True)    #Osobné prekážky vo sviatok sa nemajú čo vyskytovať
 
-        if zden == date(2022,7,1) and self.zamestnanec.meno=="Helena":
-            print(self.zamestnanec.priezvisko, ddov, dosob, dnepl, dpn1, dpn2)
+        #if zden == date(2022,7,1) and self.zamestnanec.meno=="Helena":
+            #print(self.zamestnanec.priezvisko, ddov, dosob, dnepl, dpn1, dpn2)
             #trace()
-            pass
+            #pass
         #Počet pracovných dní
         #pri častočnom úväzku len približné, na presný výpočet by sme asi potrebovali vedieť, v ktorých dňoch zamestnanec pracuje.
         #Tento údaj nie je ani v Softipe
