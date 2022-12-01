@@ -468,56 +468,13 @@ class OdmenaOpravaForm(forms.ModelForm):
 
     # Skontrolovať platnost a keď je všetko OK, spraviť záznam do denníka
     def clean(self):
-        if 'cislo' in self.changed_data:
-            if not self.cleaned_data['cislo'][:3] == OdmenaOprava.oznacenie:
-                raise ValidationError({"cislo": "Nesprávne číslo. Zadajte číslo v tvare {OdmenaOprava.oznacenie}-RRRR-NNN"})
         try:
-            #pole dane_na_uhradu možno vyplniť až po vygenerovani platobného príkazu akciou 
-            #"Vytvoriť platobný príkaz a krycí list pre THS"
-            if 'subor_vyuctovanie' in self.changed_data and "prispevok" in self.changed_data and self.cleaned_data['prispevok'] < 0 and "vyplatene_v_obdobi" in self.changed_data and OdmenaOprava.check_vyplatene_v(self.cleaned_data["vyplatene_v_obdobi"]):
-                vec = f"Príspevok na rekreáciu {self.cleaned_data['zamestnanec'].priezvisko} - vyúčtovanie"
-                cislo = nasledujuce_cislo(Dokument)
-                dok = Dokument(
-                    cislo = cislo,
-                    cislopolozky = self.cleaned_data['cislo'],
-                    #datumvytvorenia = self.cleaned_data['dane_na_uhradu'],
-                    datumvytvorenia = date.today(),
-                    typdokumentu = TypDokumentu.REKREACIA,
-                    inout = InOut.PRIJATY,
-                    adresat = "PaM",
-                    vec = f'<a href="/admin/uctovnictvo/prispevoknarekreaciu/{self.instance.id}">{vec}</a>',
-                    prijalodoslal=self.request.user.username, #zámena mien prijalodoslal - zaznamvytvoril
-                )
-                dok.save()
-                messages.warning(self.request, 
-                    format_html(
-                        'Do denníka prijatej a odoslanej pošty bol pridaný záznam č. {}: <em>{}</em>, treba v ňom doplniť údaje o prijatí.',
-                        mark_safe(f'<a href="/admin/dennik/dokument/{dok.id}/change/">{cislo}</a>'),
-                        vec
-                        )
-                )
-            if 'datum_kl' in self.changed_data:
-                vec = f"Príspevok na rekreáciu {self.cleaned_data['zamestnanec'].priezvisko} - krycí list"
-                cislo = nasledujuce_cislo(Dokument)
-                dok = Dokument(
-                    cislo = cislo,
-                    cislopolozky = self.cleaned_data['cislo'],
-                    #datumvytvorenia = self.cleaned_data['dane_na_uhradu'],
-                    datumvytvorenia = date.today(),
-                    typdokumentu = TypDokumentu.REKREACIA,
-                    inout = InOut.ODOSLANY,
-                    adresat = "PaM",
-                    vec = f'<a href="/admin/uctovnictvo/prispevoknarekreaciu/{self.instance.id}">{vec}</a>',
-                    prijalodoslal=self.request.user.username, #zámena mien prijalodoslal - zaznamvytvoril
-                )
-                dok.save()
-                messages.warning(self.request, 
-                    format_html(
-                        'Do denníka prijatej a odoslanej pošty bol pridaný záznam č. {}: <em>{}</em>, treba v ňom doplniť údaje o odoslaní.',
-                        mark_safe(f'<a href="/admin/dennik/dokument/{dok.id}/change/">{cislo}</a>'),
-                        vec
-                        )
-                )
+            if 'cislo' in self.changed_data:
+                if not self.cleaned_data['cislo'][:3] == OdmenaOprava.oznacenie:
+                    raise ValidationError({"cislo": "Nesprávne číslo. Zadajte číslo novej žiadosti v tvare {OdmenaOprava.oznacenie}-RRRR-NNN"})
+            if "subor_odmeny" in self.changed_data:
+                cislo = self.cleaned_data['cislo']
+                messages.warning(self.request, f'Do záznamu {cislo} bol pridaný súbor so zoznamom odmien.<br />Vygenerujte pre neho Platobný príkaz a krycí list (akcia "Vytvoriť platobný príkaz a krycí list pre THS"). Pritom sa vytvoria záznamy pre všetky odmeny zo súboru (pre tieto záznamy sa platobný príkaz negeneruje).')
         except ValidationError as ex:
             raise ex
         return self.cleaned_data

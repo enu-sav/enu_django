@@ -14,7 +14,7 @@ from decimal import Decimal
 
 from beliana.settings import TMPLTS_DIR_NAME, PLATOVE_VYMERY_DIR, DOHODY_DIR, PRIJATEFAKTURY_DIR, PLATOBNE_PRIKAZY_DIR
 from beliana.settings import ODVODY_VYNIMKA, DAN_Z_PRIJMU, OBJEDNAVKY_DIR, STRAVNE_DIR, REKREACIA_DIR
-from beliana.settings import PN1, PN2, BEZ_PRIKAZU_DIR, DDS_PRISPEVOK
+from beliana.settings import PN1, PN2, BEZ_PRIKAZU_DIR, DDS_PRISPEVOK, ODMENY_DIR
 import os,re
 from datetime import timedelta, date, datetime
 from dateutil.relativedelta import relativedelta
@@ -24,6 +24,7 @@ from ipdb import set_trace as trace
 #access label: AnoNie('ano').label
 class OdmenaAleboOprava(models.TextChoices):
     ODMENA = 'odmena', 'Odmena'
+    ODMENAS = 'odmenasubor', 'XLSX súbor s odmenami'
     OPRAVATARIF = 'opravatarif', 'Oprava tarifný plat'
     OPRAVAOSOB = 'opravaosob', 'Oprava osobný pr.'
     OPRAVARIAD = 'opravariad', 'Oprava pr. za riadenie'
@@ -1425,17 +1426,27 @@ class OdmenaOprava(Klasifikacia):
             #help_text: definovaný vo forms
             null = True,
             max_length=50)
-    typ = models.CharField("Odmena/Oprava",
+    typ = models.CharField("Typ záznamu",
             max_length=20, 
-            help_text = "Uveďte, či ide o odmenu a opravu vyplatenej mzdy",
+            help_text = "Uveďte, či ide o odmenu, súbor s odmenami alebo opravu vyplatenej mzdy",
             null = True,
             choices=OdmenaAleboOprava.choices)
     zamestnanec = models.ForeignKey(Zamestnanec,
+            help_text = "Nevypĺňa sa, ak sa vkladá súbor so zoznamom odmien",
             on_delete=models.PROTECT, 
             verbose_name = "Zamestnanec",
-            related_name='%(class)s_zamestnanec')  #zabezpečí rozlíšenie modelov, keby dačo
+            related_name='%(class)s_zamestnanec',  #zabezpečí rozlíšenie modelov, keby dačo
+            blank=True, 
+            null=True
+            )
+    subor_odmeny = models.FileField("Súbor so zoznamom odmien",
+            help_text = "XLSX súbor so zoznamom odmien.<br />Po vložení sa vytvoria záznamy jednotlivo pre všetkých odmenených. Ak sa záznam s takýmto súborom zmaže,tak sa zmažú aj všetky s ním súvisiace záznamy.",
+            upload_to=odmena_upload_location,
+            blank=True, 
+            null=True
+            )
     suma = models.DecimalField("Suma", 
-            help_text = "Výška odmeny alebo opravy. Odmena je záporná, oprava môže byť kladná (t.j. zmestnancovi bola strhnutá z výplaty).",
+            help_text = "Výška odmeny alebo opravy. Odmena je záporná, oprava môže byť kladná (t.j. zmestnancovi bola strhnutá z výplaty).<br /> Ak sa vkladá súbor so zoznamom odmien, uveďte súčet.",
             max_digits=8, 
             decimal_places=2, 
             null=True,
@@ -1466,12 +1477,18 @@ class OdmenaOprava(Klasifikacia):
         return re.findall(r"[0-9][0-9]/[0-9][0-9][0-9][0-9]", value)
 
     def clean(self): 
-        if self.typ == OdmenaAleboOprava.ODMENA and self.suma >= 0:
-            raise ValidationError("Suma odmeny musí byť záporná")
-
+        errors={}
+        if self.typ == OdmenaAleboOprava.ODMENA and not self.zamestnanec:
+            errors["zamestnanec"] = "Pole 'Zamestnanec' nebolo vyplnené."
+        if self.typ == OdmenaAleboOprava.ODMENAS and not self.subor_odmeny:
+            errors["subor_odmeny"] = "Pole 'Súbor so zozmamom odmien' nebolo vyplnené."
+        if self.typ in [OdmenaAleboOprava.ODMENA, OdmenaAleboOprava.ODMENAS] and self.suma >= 0:
+            errors["suma"] = "Suma odmeny musí byť záporná"
         if self.vyplatene_v_obdobi:
             if not OdmenaOprava.check_vyplatene_v(self.vyplatene_v_obdobi):
-                raise ValidationError("Údaj v poli 'Vyplatené v' musí byť v tvare MM/RRRR (napr. 07/2022)")
+                errors["vyplatene_v_obdobi"] = "Údaj v poli 'Vyplatené v' musí byť v tvare MM/RRRR (napr. 07/2022)"
+        if errors:
+            raise ValidationError(errors)
 
     def polozka_cerpania(self, nazov, rekapitulacia, suma, zden, zdroj=None, zakazka=None, ekoklas=None):
         return {
@@ -1489,6 +1506,7 @@ class OdmenaOprava(Klasifikacia):
     #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
     def cerpanie_rozpoctu(self, zden):
         if self.vyplatene_v_obdobi != "%02d/%d"%(zden.month, zden.year): return []
+        if self.typ == OdmenaAleboOprava.ODMENAS: return []
 
         platby = []
         #súbor s tabuľku odvodov
@@ -1548,7 +1566,8 @@ class OdmenaOprava(Klasifikacia):
         verbose_name = "Odmena alebo oprava"
         verbose_name_plural = "PaM - Odmeny a opravy"
     def __str__(self):
-        return f"{self.zamestnanec.priezvisko}"
+        subjekt = "Súbor so zoznamom odnmien" if self.typ == OdmenaAleboOprava.ODMENAS else f"{self.zamestnanec.priezvisko}, {self.zamestnanec.meno}"
+        return f"{self.typ} {subjekt}"
 
 def rekreacia_upload_location(instance, filename):
     return os.path.join(REKREACIA_DIR, filename)

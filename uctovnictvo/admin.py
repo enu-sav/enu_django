@@ -15,9 +15,9 @@ from .models import ZamestnanecDohodar, Zamestnanec, Dohodar, StavDohody, Pravid
 from .models import Najomnik, NajomnaZmluva, NajomneFaktura, TypPP, TypPN, Cinnost
 from .models import InternyPartner, InternyPrevod, Nepritomnost, RozpoctovaPolozka, RozpoctovaPolozkaDotacia
 from .models import RozpoctovaPolozkaPresun, PlatbaBezPrikazu, Pokladna, TypPokladna
-from .models import nasledujuce_cislo, nasledujuce_VPD, SocialnyFond, PrispevokNaRekreaciu, OdmenaOprava
+from .models import nasledujuce_cislo, nasledujuce_VPD, SocialnyFond, PrispevokNaRekreaciu, OdmenaOprava, OdmenaAleboOprava
 from .common import VytvoritPlatobnyPrikaz, VytvoritSuborDohody, VytvoritSuborObjednavky, leapdays
-from .common import VytvoritKryciList, VytvoritKryciListRekreacia
+from .common import VytvoritKryciList, VytvoritKryciListRekreacia, generovatIndividualneOdmeny, zmazatIndividualneOdmeny
 from .common import VytvoritPlatobnyPrikazIP, VytvoritSuborVPD, UlozitStranuPK
 from .forms import PrijataFakturaForm, AutorskeZmluvyForm, ObjednavkaForm, ZmluvaForm, PrispevokNaStravneForm, PravidelnaPlatbaForm
 from .forms import PlatovyVymerForm, NajomneFakturaForm, NajomnaZmluvaForm, PlatbaBezPrikazuForm
@@ -1266,7 +1266,7 @@ class NepritomnostAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
 class OdmenaOpravaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin):
 #class OdmenaOpravaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
     form = OdmenaOpravaForm
-    list_display = ["cislo", "typ", "zamestnanec_link", "suma", "vyplatene_v_obdobi", "subor_kl", "datum_kl"]
+    list_display = ["cislo", "typ", "zamestnanec_link", "subor_odmeny", "suma", "vyplatene_v_obdobi", "subor_kl", "datum_kl"]
     # ^: v poli vyhľadávať len od začiatku
     search_fields = ["cislo", "^typ", "zamestnanec__meno", "zamestnanec__priezvisko"]
 
@@ -1278,7 +1278,7 @@ class OdmenaOpravaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
         })
     ]
 
-    #actions = ['vytvorit_kryci_list']
+    actions = ['vytvorit_kryci_list']
 
     # Zoradiť položky v pulldown menu
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
@@ -1297,16 +1297,39 @@ class OdmenaOpravaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
         if len(queryset) != 1:
             self.message_user(request, f"Vybrať možno len jednu položku", messages.ERROR)
             return
-        prispevok = queryset[0]
-        if prispevok.subor_kl:
+        polozka = queryset[0]
+        if polozka.subor_kl:
             self.message_user(request, f"Krycí list už bol vytvorený, opakovanie nie je možné", messages.ERROR)
             return
-        status, msg, vytvoreny_subor = VytvoritKryciListRekreacia(prispevok, request.user)
-        if status != messages.ERROR:
-            #prispevok.dane_na_uhradu = timezone.now()
-            prispevok.subor_kl = vytvoreny_subor
-            prispevok.save()
-        self.message_user(request, msg, status)
+        #overiť, či nejde o generovaný záznam
+        cisla = re.findall(r"(..-....-...)-(..)", polozka.cislo)
+        if cisla:
+            self.message_user(request, f"Položka {polozka.cislo} je súčasťou {cisla[0][0]}. Samostatný krycí list na nevytvára.", messages.ERROR)
+            return
+        if polozka.subor_odmeny:
+            rslt = generovatIndividualneOdmeny(polozka)
+            if len(rslt) == 1:  #Chyba
+                self.message_user(request, rslt[0], messages.ERROR)
+            else:
+                pocet, celkova_suma = rslt
+                self.message_user(request, f"Vygenerované boli individuálne záznamy o odmenách: počet {pocet}, celková suma {celkova_suma}.",messages.INFO)
+                if celkova_suma != -polozka.suma:
+                    self.message_user(request, f"Zadaná suma {polozka.suma}€ nesúhlasí so súčtom jednotlivých odmien {celkova_suma}€ v súbore.",messages.ERROR)
+
+        #status, msg, vytvoreny_subor = VytvoritKryciListRekreacia(prispevok, request.user)
+        #if status != messages.ERROR:
+            ##prispevok.dane_na_uhradu = timezone.now()
+            #prispevok.subor_kl = vytvoreny_subor
+            #prispevok.save()
+        #self.message_user(request, msg, status)
+        self.message_user(request, f"Generovanie krycích listov ešte nie je implementované",messages.WARNING)
+
+    def delete_queryset(self, request, queryset):
+        for qq in queryset:
+            if qq.typ ==  OdmenaAleboOprava.ODMENAS:
+                pocet = zmazatIndividualneOdmeny(qq)
+                self.message_user(request, f"Zmazaných bolo {pocet} individuálnych záznamov o odmenách.",messages.INFO)
+            qq.delete()
 
     vytvorit_kryci_list.short_description = "Vytvoriť krycí list"
     #Oprávnenie na použitie akcie, viazané na 'change'

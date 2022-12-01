@@ -9,7 +9,7 @@ from django.utils import timezone
 from django.utils.html import format_html
 from .models import SystemovySubor, PrijataFaktura, AnoNie, Objednavka, PrijataFaktura, Rozhodnutie, Zmluva
 from .models import DoVP, DoPC, DoBPS, Poistovna, TypDochodku, Mena, PravidelnaPlatba, TypPP, TypPokladna, Pokladna
-from .models import NajomneFaktura, PrispevokNaRekreaciu
+from .models import NajomneFaktura, PrispevokNaRekreaciu, Zamestnanec, OdmenaOprava, OdmenaAleboOprava
 
 from openpyxl import load_workbook
 from openpyxl.styles import Font, Color, colors, Alignment, PatternFill , numbers
@@ -673,3 +673,54 @@ def UlozitStranuPK(request, queryset, strana):
         mark_safe(f'<a href="{mpath}">{nazov}</a>'),
         )
     return messages.SUCCESS, msg, mpath
+
+def zmazatIndividualneOdmeny(sumarna_odmena):
+    qs = OdmenaOprava.objects.filter(typ=OdmenaAleboOprava.ODMENA, cislo__startswith=sumarna_odmena.cislo) 
+    for polozka in qs: polozka.delete()
+    return len(qs)
+
+def generovatIndividualneOdmeny(sumarna_odmena):
+    workbook = load_workbook(filename=sumarna_odmena.subor_odmeny.file.name)
+    ws = workbook.active
+    #Vyhľadať prvý riadok tabuľky
+    riadok = 1
+    while ws[f'B{riadok}'].value != "osobné číslo": riadok += 1
+    riadok += 1
+    # test spravnosti položiek
+    aux=riadok
+    while ws[f'D{aux}'].value != "spolu":
+        suma = ws[f"E{aux}"].value
+        if type(suma) == str:
+            return [f"Hodnota výšky odmeny v riadku {aux} (a zrejme aj nasledujúcich riadkov) súboru položky {sumarna_odmena.cislo} je vzorec. Súbor upravte tak, aby výška odmeny bola číslo."]
+        aux += 1
+    pocet=0
+    celkova_suma=0
+    while ws[f'D{riadok}'].value != "spolu":
+        zamestnanec = Zamestnanec.objects.get(cislo_zamestnanca = int(ws[f'B{riadok}'].value))
+        suma = float(ws[f"E{riadok}"].value)
+        cislo = "%s-%02d"%(sumarna_odmena.cislo,pocet+1)
+        try:
+            zaznam=OdmenaOprava.objects.get(cislo=cislo)
+            zaznam.delete()
+        except:
+            pass
+        odmena = OdmenaOprava (
+                cislo = cislo,
+                zamestnanec = zamestnanec,
+                typ = OdmenaAleboOprava.ODMENA,
+                suma = -suma,
+                zdroj = sumarna_odmena.zdroj, 
+                program = sumarna_odmena.program,
+                zakazka = sumarna_odmena.zakazka,
+                ekoklas = sumarna_odmena.ekoklas,
+                cinnost = sumarna_odmena.cinnost,
+                vyplatene_v_obdobi = sumarna_odmena.vyplatene_v_obdobi,
+                zdovodnenie = f"Súčasť sumárnej odmeny č. {sumarna_odmena.cislo}"
+                )
+        odmena.save()
+        pocet += 1
+        celkova_suma += suma 
+        riadok += 1
+        pass
+    return pocet, celkova_suma
+
