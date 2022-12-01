@@ -247,7 +247,7 @@ class PlatbaBezPrikazuAdmin(ZobrazitZmeny, SimpleHistoryAdmin):
     def save_model(self, request, obj, form, change):
         if 'suma' in form.changed_data:
             if obj.suma >= 0:
-                messages.add_message(request, messages.WARNING, "Do poľa 'Suma' sa obvykle vkladajú výdavky (záporná suma), vložili ste však 0 alebo kladnú hodnotu sumy. <br />Ak ide o omyl, hodnotu opravte. Ak ide o platbu v cudzej mene, pole vyplňte dotatočne.") 
+                messages.add_message(request, messages.WARNING, "Do poľa 'Suma' sa obvykle vkladajú výdavky (záporná suma), vložili ste však 0 alebo kladnú hodnotu sumy. <br />Ak ide o omyl, hodnotu opravte.") 
 
         #Ak ide o Prídel do sociálneho fondu - 637016 - vytvoriť položku SF
         if obj.ekoklas == EkonomickaKlasifikacia.objects.get(kod="637016"):
@@ -568,7 +568,7 @@ class PrijataFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdm
             pass
         if 'suma' in form.changed_data:
             if obj.suma >= 0:
-                messages.add_message(request, messages.WARNING, "Do poľa 'Suma' sa obvykle vkladajú výdavky (záporná suma), vložili ste však 0 alebo kladnú hodnotu sumy. Ak ide o omyl, hodnotu opravte.") 
+                messages.add_message(request, messages.WARNING, "Do poľa 'Suma' sa obvykle vkladajú výdavky (záporná suma), vložili ste však 0 alebo kladnú hodnotu sumy. Ak ide o omyl, hodnotu opravte. Ak ide o platbu v cudzej mene, pole vyplňte dotatočne.") 
         super(PrijataFakturaAdmin, self).save_model(request, obj, form, change)
 
     # do AdminForm pridať request, aby v jej __init__ bolo request dostupné
