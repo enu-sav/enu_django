@@ -17,7 +17,7 @@ from .models import InternyPartner, InternyPrevod, Nepritomnost, RozpoctovaPoloz
 from .models import RozpoctovaPolozkaPresun, PlatbaBezPrikazu, Pokladna, TypPokladna
 from .models import nasledujuce_cislo, nasledujuce_VPD, SocialnyFond, PrispevokNaRekreaciu, OdmenaOprava, OdmenaAleboOprava
 from .common import VytvoritPlatobnyPrikaz, VytvoritSuborDohody, VytvoritSuborObjednavky, leapdays
-from .common import VytvoritKryciList, VytvoritKryciListRekreacia, generovatIndividualneOdmeny, zmazatIndividualneOdmeny
+from .common import VytvoritKryciList, VytvoritKryciListRekreacia, generovatIndividualneOdmeny, zmazatIndividualneOdmeny, generovatNepritomnost
 from .common import VytvoritPlatobnyPrikazIP, VytvoritSuborVPD, UlozitStranuPK
 from .forms import PrijataFakturaForm, AutorskeZmluvyForm, ObjednavkaForm, ZmluvaForm, PrispevokNaStravneForm, PravidelnaPlatbaForm
 from .forms import PlatovyVymerForm, NajomneFakturaForm, NajomnaZmluvaForm, PlatbaBezPrikazuForm
@@ -1238,7 +1238,7 @@ class VyplacanieDohodAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAd
 @admin.register(Nepritomnost)
 class NepritomnostAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
     form = NepritomnostForm
-    list_display = ["cislo", "nepritomnost_od", "nepritomnost_do", "zamestnanec_link", "nepritomnost_typ", "dlzka_nepritomnosti"]
+    list_display = ["cislo", "subor_nepritomnost", "nepritomnost_od", "nepritomnost_do", "zamestnanec_link", "nepritomnost_typ", "dlzka_nepritomnosti"]
     # ^: v poli vyhľadávať len od začiatku
     search_fields = ["cislo", "zamestnanec__meno", "zamestnanec__priezvisko", "^nepritomnost_typ"]
 
@@ -1249,6 +1249,8 @@ class NepritomnostAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
             'admin_order_field': 'zamestnanec__priezvisko', # Allow to sort members by the column
         })
     ]
+    actions = ['generovat_nepritomnost']
+
     # Zoradiť položky v pulldown menu
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         return formfield_for_foreignkey(self, db_field, request, **kwargs)
@@ -1261,6 +1263,29 @@ class NepritomnostAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
                 kwargs['request'] = request
                 return AdminForm(*args, **kwargs)
         return AdminFormMod
+
+    def generovat_nepritomnost(self, request, queryset):
+        if len(queryset) != 1:
+            self.message_user(request, f"Vybrať možno len jednu položku", messages.ERROR)
+            return
+        polozka = queryset[0]
+        uz_generovane = Nepritomnost.objects.filter(cislo="%s-01"%polozka.cislo)
+        if uz_generovane:
+            self.message_user(request, f"Záznamy boli už pre súbor {polozka.cislo} vygenerovane.", messages.ERROR)
+            return
+        if polozka.subor_nepritomnost:
+            rslt = generovatNepritomnost(polozka)
+            if len(rslt) == 1:  #Chyba
+                self.message_user(request, rslt[0], messages.ERROR)
+            else:
+                nzamestnanci, nnepritomnosti = rslt
+                self.message_user(request, f"Vygenerovaných bolo {nnepritomnosti} záznamov o neprítomnosti pre {nzamestnanci} zamestnancov.",messages.INFO)
+        else:
+            self.message_user(request, f"Položka {polozka.cislo} neobsahuje súbor.", messages.ERROR)
+
+    generovat_nepritomnost.short_description = "Generovať záznamy neprítomnosti"
+    #Oprávnenie na použitie akcie, viazané na 'change'
+    generovat_nepritomnost.allowed_permissions = ('change',)
 
 @admin.register(OdmenaOprava)
 class OdmenaOpravaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin):
@@ -1315,6 +1340,8 @@ class OdmenaOpravaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
                 self.message_user(request, f"Vygenerované boli individuálne záznamy o odmenách: počet {pocet}, celková suma {celkova_suma}.",messages.INFO)
                 if celkova_suma != -polozka.suma:
                     self.message_user(request, f"Zadaná suma {polozka.suma}€ nesúhlasí so súčtom jednotlivých odmien {celkova_suma}€ v súbore.",messages.ERROR)
+        else:
+            self.message_user(request, f"Položka {polozka.cislo} neobsahuje súbor.", messages.ERROR)
 
         #status, msg, vytvoreny_subor = VytvoritKryciListRekreacia(prispevok, request.user)
         #if status != messages.ERROR:
@@ -1323,6 +1350,9 @@ class OdmenaOpravaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
             #prispevok.save()
         #self.message_user(request, msg, status)
         self.message_user(request, f"Generovanie krycích listov ešte nie je implementované",messages.WARNING)
+    vytvorit_kryci_list.short_description = "Vytvoriť krycí list"
+    #Oprávnenie na použitie akcie, viazané na 'change'
+    vytvorit_kryci_list.allowed_permissions = ('change',)
 
     def delete_queryset(self, request, queryset):
         for qq in queryset:
@@ -1331,9 +1361,6 @@ class OdmenaOpravaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
                 self.message_user(request, f"Zmazaných bolo {pocet} individuálnych záznamov o odmenách.",messages.INFO)
             qq.delete()
 
-    vytvorit_kryci_list.short_description = "Vytvoriť krycí list"
-    #Oprávnenie na použitie akcie, viazané na 'change'
-    vytvorit_kryci_list.allowed_permissions = ('change',)
 
 @admin.register(PrispevokNaRekreaciu)
 class PrispevokNaRekreaciuAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):

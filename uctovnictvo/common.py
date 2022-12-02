@@ -9,7 +9,7 @@ from django.utils import timezone
 from django.utils.html import format_html
 from .models import SystemovySubor, PrijataFaktura, AnoNie, Objednavka, PrijataFaktura, Rozhodnutie, Zmluva
 from .models import DoVP, DoPC, DoBPS, Poistovna, TypDochodku, Mena, PravidelnaPlatba, TypPP, TypPokladna, Pokladna
-from .models import NajomneFaktura, PrispevokNaRekreaciu, Zamestnanec, OdmenaOprava, OdmenaAleboOprava
+from .models import NajomneFaktura, PrispevokNaRekreaciu, Zamestnanec, OdmenaOprava, OdmenaAleboOprava, TypNepritomnosti, Nepritomnost
 
 from openpyxl import load_workbook
 from openpyxl.styles import Font, Color, colors, Alignment, PatternFill , numbers
@@ -726,4 +726,88 @@ def generovatIndividualneOdmeny(sumarna_odmena):
         riadok += 1
         pass
     return pocet, celkova_suma
+
+
+def generovatNepritomnost(sumarna_nepritomnost):
+    workbook = load_workbook(filename=sumarna_nepritomnost.subor_nepritomnost.file.name)
+    ws = workbook.active
+    #ktorý súbor máme?
+    if ws["B1"].value == 1 and ws["C1"].value == 2 and ws["D1"].value == 3: #Od Anity
+        return generovatNepritomnostAnita(sumarna_nepritomnost.cislo,ws)
+
+def generovatNepritomnostAnita(cislo,ws):
+    #Vyhľadať prvý riadok tabuľky
+    typy = {
+            "D": TypNepritomnosti.DOVOLENKA,
+            "D2": TypNepritomnosti.DOVOLENKA2,
+            "L": TypNepritomnosti.LEKAR,
+            "L/D": TypNepritomnosti.LEKARDOPROVOD,
+            "PzV": TypNepritomnosti.PZV,
+            "PN": TypNepritomnosti.PN,
+            "NV": TypNepritomnosti.NEPLATENE,
+            "OČR": TypNepritomnosti.OCR,
+            "PV": TypNepritomnosti.PZV,
+            "RV": TypNepritomnosti.PZV,
+            "SC": TypNepritomnosti.SLUZOBNA,
+            "Šk": TypNepritomnosti.SKOLENIE,
+            "KZ VS": TypNepritomnosti.PZV
+            }
+    #ignorovať
+    itypy = ["S", "PnD", "SSZ", None]
+    #Kontrola tabulky
+    prvy = 1
+    nriadok = 1
+    while ws[f"A{nriadok}"].value: nriadok += 1
+    nstlpec = 1
+    while ws.cell(row=1, column=nstlpec).value: nstlpec += 1
+    for r in range (2,nriadok):
+        print(ws[f"A{r}"].value)
+        for s in range(2,nstlpec):
+            value = ws.cell(row=r, column=s).value
+            if not (value in itypy or value in typy):
+                return [f"Neznáma položka '{value}' v pozícii ({r},{s})"]
+    
+    if ws["A1"].value == "November 2022":
+        rok = 2022
+        mesiac = 11
+
+    zpocet=0  
+    npocet=0
+    for r in range (2,nriadok):
+        aux = ws[f"A{r}"].value
+        priezvisko = aux[:aux.index(" ")]
+        zamestnanec = Zamestnanec.objects.get(priezvisko=priezvisko)
+        s=2
+        while s < nstlpec:
+            value = ws.cell(row=r, column=s).value 
+            if value in ["D", "PN", "NV"]:
+                atyp = value
+                sstart = s
+                while ws.cell(row=r, column=s).value == atyp: s+=1
+                nepr = Nepritomnost(
+                    cislo = "%s-%02d"%(cislo, npocet+1),
+                    zamestnanec = zamestnanec,
+                    nepritomnost_typ = typy[atyp],
+                    nepritomnost_od = datetime.date(rok, mesiac,sstart-1),
+                    nepritomnost_do = datetime.date(rok, mesiac,s-2)
+                    )
+                print(r, s, nepr.nepritomnost_od, nepr.nepritomnost_do, nepr.nepritomnost_typ)
+                s -=1
+                npocet += 1
+                nepr.save()
+            elif value in typy:
+                nepr = Nepritomnost(
+                    cislo = "%s-%02d"%(cislo, npocet+1),
+                    zamestnanec = zamestnanec,
+                    nepritomnost_typ = typy[value],
+                    nepritomnost_od = datetime.date(rok, mesiac,s-1),
+                    nepritomnost_do = datetime.date(rok, mesiac,s-1)
+                    )
+                npocet += 1
+                nepr.save()
+                pass
+            s+=1
+        zpocet += 1
+        pass
+    return zpocet, npocet
 

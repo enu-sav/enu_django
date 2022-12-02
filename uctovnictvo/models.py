@@ -14,7 +14,7 @@ from decimal import Decimal
 
 from beliana.settings import TMPLTS_DIR_NAME, PLATOVE_VYMERY_DIR, DOHODY_DIR, PRIJATEFAKTURY_DIR, PLATOBNE_PRIKAZY_DIR
 from beliana.settings import ODVODY_VYNIMKA, DAN_Z_PRIJMU, OBJEDNAVKY_DIR, STRAVNE_DIR, REKREACIA_DIR
-from beliana.settings import PN1, PN2, BEZ_PRIKAZU_DIR, DDS_PRISPEVOK, ODMENY_DIR
+from beliana.settings import PN1, PN2, BEZ_PRIKAZU_DIR, DDS_PRISPEVOK, ODMENY_DIR, NEPRITOMNOST_DIR
 import os,re
 from datetime import timedelta, date, datetime
 from dateutil.relativedelta import relativedelta
@@ -92,6 +92,7 @@ class TypNepritomnosti(models.TextChoices):
     NEPLATENE = "neplatene", "Neplatené voľno"  # nič sa neplatí
     SLUZOBNA = "sluzobna", "Služobná cesta"     # normálna mzda
     PRACADOMA = "pracadoma", "Práca na doma"    # normálna mzda
+    SKOLENIE = "skolenie", "Školenie"    # normálna mzda
 
 #access label: AnoNie('ano').label
 class TypPokladna(models.TextChoices):
@@ -1196,7 +1197,7 @@ class PlatovyVymer(Klasifikacia):
                 dnepl += prac_dni(prvy,posledny, pdni, zahrnut_sviatky=True)    #Sviatky sa zarátajú, nie sú platené
             elif nn.nepritomnost_typ in [TypNepritomnosti.LEKARDOPROVOD, TypNepritomnosti.LEKAR]:
                 dosob += float(nn.dlzka_nepritomnosti*prac_dni(prvy,posledny, pdni, zahrnut_sviatky=True)/self.uvazok_denne)    #Osobné prekážky vo sviatok sa nemajú čo vyskytovať
-            elif nn.nepritomnost_typ in [TypNepritomnosti.SLUZOBNA, TypNepritomnosti.PRACADOMA]:
+            elif nn.nepritomnost_typ in [TypNepritomnosti.SLUZOBNA, TypNepritomnosti.PRACADOMA, TypNepritomnosti.SKOLENIE]:
                 pass    #normálna mzda
             else:   #Osobné prekážky (Pracovné voľno)
                 dosob += prac_dni(prvy,posledny, pdni, zahrnut_sviatky=True)    #Osobné prekážky vo sviatok sa nemajú čo vyskytovať
@@ -1399,18 +1400,30 @@ class PlatovyVymer(Klasifikacia):
         od = self.datum_od.strftime('%d. %m. %Y') if self.datum_od else '--'
         return f"{self.zamestnanec.priezvisko}, {od}"
 
+def nepritomnost_upload_location(instance, filename):
+    return os.path.join(NEPRITOMNOST_DIR, filename)
 class Nepritomnost(models.Model):
     oznacenie = "Np"
     cislo = models.CharField("Číslo", 
             #help_text: definovaný vo forms
             null = True,
             max_length=50)
+    subor_nepritomnost = models.FileField("Súbor so zoznamom",
+            help_text = "XLSX súbor so zoznamom neprítomností.<br />Po vložení treba akciou 'Generovať záznamy neprítomnosti' vytvoriť jednotlivé záznamy.",
+            upload_to=nepritomnost_upload_location,
+            blank=True, 
+            null=True
+            )
     zamestnanec = models.ForeignKey(Zamestnanec,
             on_delete=models.PROTECT, 
             verbose_name = "Zamestnanec",
-            related_name='%(class)s_zamestnanec')  #zabezpečí rozlíšenie modelov, keby dačo
+            related_name='%(class)s_zamestnanec',  #zabezpečí rozlíšenie modelov, keby dačo
+            blank=True, 
+            null=True
+            )
     nepritomnost_od= models.DateField('Neprítomnosť od',
             help_text = 'Prvý deň neprítomnosti',
+            blank=True, 
             null=True)
     nepritomnost_do= models.DateField('Neprítomnosť do',
             help_text = 'Posledný deň neprítomnosti',
@@ -1418,6 +1431,7 @@ class Nepritomnost(models.Model):
             null=True)
     nepritomnost_typ = models.CharField("Typ neprítomnosti",
             max_length=20, 
+            blank=True, 
             null=True, 
             choices=TypNepritomnosti.choices)
     dlzka_nepritomnosti = models.DecimalField("Dĺžka nepritomnosti",
@@ -1431,8 +1445,12 @@ class Nepritomnost(models.Model):
         verbose_name = "Neprítomnosť"
         verbose_name_plural = "PaM - Neprítomnosť"
     def __str__(self):
-        od = self.nepritomnost_od.strftime('%d. %m. %Y')
-        return f"{self.zamestnanec.priezvisko} od {od}"
+        if self.nepritomnost_od:
+            od = self.nepritomnost_od.strftime('%d. %m. %Y')
+            return f"{self.zamestnanec.priezvisko} od {od}"
+        else:
+            return "Neprítomnosť - súbor"
+
 
     def clean(self): 
         if self.nepritomnost_typ in [TypNepritomnosti.LEKAR, TypNepritomnosti.LEKARDOPROVOD]:
