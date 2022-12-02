@@ -1563,6 +1563,7 @@ class OdmenaOprava(Klasifikacia):
             }
         platby.append(platba)
 
+
         #Konverzia typu dochodku na pozadovany typ vo funkcii ZamestnanecOdvodySpolu
         td = self.zamestnanec.typ_doch
         td_konv = "InvDoch30" if td==TypDochodku.INVALIDNY30 else "InvDoch70" if td== TypDochodku.INVALIDNY70 else "StarDoch" if td==TypDochodku.STAROBNY else "VyslDoch" if td==TypDochodku.INVAL_VYSL else "Bezny"
@@ -1580,6 +1581,21 @@ class OdmenaOprava(Klasifikacia):
         else:
             socfond = self.polozka_cerpania("Prídel do SF", "Sociálny fond", round(Decimal(0.015*float(self.suma))), zden, ekoklas="637016")
         platby.append(socfond)
+
+        dds_prispevok = None
+        dds_zdravotne = None
+        if self.zamestnanec.dds == AnoNie.ANO:
+            if not self.zamestnanec.dds_od:
+                dds_prispevok["poznamka"] = f"Vypočítaná suma výšky príspevku do DDS je nesprávna. V údajoch zamestnanca '{self.zamestnanec}' treba vyplniť pole 'DDS od'"
+            else: # Príspevok do DDS sa vypláca od 1. dňa mesiaca, keď bola uzatvorena dohoda
+                dds_od = date(self.zamestnanec.dds_od.year, self.zamestnanec.dds_od.month, 1)
+            if zden >= dds_od:
+                dds_prispevok = self.polozka_cerpania("DDS príspevok", "DDS", DDS_PRISPEVOK*self.suma/100, zden, zdroj=self.zdroj, zakazka=self.zakazka, ekoklas="627")
+                _, _, zdravpoist, _ = ZamestnanecOdvody(nazov_suboru, float(dds_prispevok['suma']), td_konv, zden)
+                ekoklas = "621" if self.zamestnanec.poistovna == Poistovna.VSZP else "623"
+                dds_zdravotne = self.polozka_cerpania("DDS poistenie zdravotné", "Zdravotné poistné", zdravpoist['zdravotne'], zden, zdroj=self.zdroj, zakazka=self.zakazka, ekoklas=ekoklas)
+        if dds_prispevok: platby.append(dds_prispevok)
+        if dds_zdravotne: platby.append(dds_zdravotne)
 
         return platby
 
