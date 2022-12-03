@@ -14,7 +14,7 @@ from decimal import Decimal
 
 from beliana.settings import TMPLTS_DIR_NAME, PLATOVE_VYMERY_DIR, DOHODY_DIR, PRIJATEFAKTURY_DIR, PLATOBNE_PRIKAZY_DIR
 from beliana.settings import ODVODY_VYNIMKA, DAN_Z_PRIJMU, OBJEDNAVKY_DIR, STRAVNE_DIR, REKREACIA_DIR
-from beliana.settings import PN1, PN2, BEZ_PRIKAZU_DIR, DDS_PRISPEVOK, ODMENY_DIR, NEPRITOMNOST_DIR
+from beliana.settings import PN1, PN2, BEZ_PRIKAZU_DIR, DDS_PRISPEVOK, ODMENY_DIR, NEPRITOMNOST_DIR, SOCFOND_PRISPEVOK
 import os,re
 from datetime import timedelta, date, datetime
 from dateutil.relativedelta import relativedelta
@@ -1353,7 +1353,7 @@ class PlatovyVymer(Klasifikacia):
             socfond = {
                 "nazov": "Prídel do SF",
                 "rekapitulacia": "Sociálny fond",
-                "suma": -round(Decimal(0.015*koef_prac*tabulkovy_plat),2),
+                "suma": -round(Decimal(SOCFOND_PRISPEVOK*koef_prac*tabulkovy_plat/100),2),
                 "zdroj": Zdroj.objects.get(kod="131L"), 
                 "zakazka": TypZakazky.objects.get(kod="131L0001"),
                 "datum": zden if zden < date.today() else None,
@@ -1365,7 +1365,7 @@ class PlatovyVymer(Klasifikacia):
             socfond = {
                 "nazov": "Prídel do SF",
                 "rekapitulacia": "Sociálny fond",
-                "suma": -round(Decimal(0.015*koef_prac*tabulkovy_plat),2),  #0.015 podľa kolektívnej zmluvy
+                "suma": -round(Decimal(SOCFOND_PRISPEVOK*koef_prac*tabulkovy_plat/100),2),
                 "zdroj": zdroj,
                 "zakazka": zakazka,
                 "datum": zden if zden < date.today() else None,
@@ -1595,9 +1595,9 @@ class OdmenaOprava(Klasifikacia):
 
         #Socfond
         if zden in [date(2022,1,1), date(2022,2,1), date(2022,3,1)]:   #Počas tychto 3 mesiacov bolo všetko inak :D
-            socfond = self.polozka_cerpania("Prídel do SF", "Sociálny fond", round(Decimal(0.015*float(self.suma))), zden, zdroj=Zdroj.objects.get(kod="131L"), zakazka=TypZakazky.objects.get(kod="131L0001"), ekoklas="637016")
+            socfond = self.polozka_cerpania("Prídel do SF", "Sociálny fond", round(Decimal(SOCFOND_PRISPEVOK*float(self.suma)/100)), zden, zdroj=Zdroj.objects.get(kod="131L"), zakazka=TypZakazky.objects.get(kod="131L0001"), ekoklas="637016")
         else:
-            socfond = self.polozka_cerpania("Prídel do SF", "Sociálny fond", round(Decimal(0.015*float(self.suma))), zden, ekoklas="637016")
+            socfond = self.polozka_cerpania("Prídel do SF", "Sociálny fond", round(Decimal(SOCFOND_PRISPEVOK*float(self.suma)/100)), zden, ekoklas="637016")
         platby.append(socfond)
 
         dds_prispevok = None

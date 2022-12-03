@@ -198,7 +198,8 @@ UCET_LITFOND  = "SK47 0200 0000 0012 2545 9853"
 UCET_FIN_URAD = "SK61 8180 5002 6780 2710 3305"
 PN1= 55                 #náhrada mzdy za prvé 3 dni PN-ky
 PN2= 80                 #náhrada mzdy za dni 3 - 1- PN-ky
-DDS_PRISPEVOK=2                   #Doplnkové dôchodkové sporenie, %
+DDS_PRISPEVOK=2         #Doplnkové dôchodkové sporenie, %
+SOCFOND_PRISPEVOK=1.5    #Sociálny fond, %
 
 #Predvolené zobrazenie dátumu v admin
 from django.conf.locale.sk import formats as sk_formats
