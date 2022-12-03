@@ -1595,9 +1595,9 @@ class OdmenaOprava(Klasifikacia):
 
         #Socfond
         if zden in [date(2022,1,1), date(2022,2,1), date(2022,3,1)]:   #Počas tychto 3 mesiacov bolo všetko inak :D
-            socfond = self.polozka_cerpania("Prídel do SF", "Sociálny fond", round(Decimal(SOCFOND_PRISPEVOK*float(self.suma)/100)), zden, zdroj=Zdroj.objects.get(kod="131L"), zakazka=TypZakazky.objects.get(kod="131L0001"), ekoklas="637016")
+            socfond = self.polozka_cerpania("Prídel do SF", "Sociálny fond", SOCFOND_PRISPEVOK*float(self.suma)/100, zden, zdroj=Zdroj.objects.get(kod="131L"), zakazka=TypZakazky.objects.get(kod="131L0001"), ekoklas="637016")
         else:
-            socfond = self.polozka_cerpania("Prídel do SF", "Sociálny fond", round(Decimal(SOCFOND_PRISPEVOK*float(self.suma)/100)), zden, ekoklas="637016")
+            socfond = self.polozka_cerpania("Prídel do SF", "Sociálny fond", SOCFOND_PRISPEVOK*float(self.suma)/100, zden, ekoklas="637016")
         platby.append(socfond)
 
         dds_prispevok = None
