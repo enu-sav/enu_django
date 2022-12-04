@@ -1169,38 +1169,44 @@ class PlatovyVymer(Klasifikacia):
 
         pdni = int(self.uvazok/self.uvazok_denne)    #počet pracovných dní v týždni, napr. 18.85/6.25=3
         for nn in qs2:  #môže byť viac neprítomností za mesiac
-            #v prípade neukončenej neprítomnosti predpokladať neprítomnosť do konca mesiaca
-            if not nn.nepritomnost_do:  #nie je zadaný
-                posledny=next_month - relativedelta(days=1) # koniec mesiaca
-            else:
-                posledny = nn.nepritomnost_do 
-            # posledný deň obmedziť koncom mesiaca
-            if posledny >= next_month:
-                posledny = next_month - relativedelta(days=1) 
-            prvy = nn.nepritomnost_od if nn.nepritomnost_od>zden else zden
+            try:
+                #v prípade neukončenej neprítomnosti predpokladať neprítomnosť do konca mesiaca
+                if not nn.nepritomnost_do:  #nie je zadaný
+                    posledny=next_month - relativedelta(days=1) # koniec mesiaca
+                else:
+                    posledny = nn.nepritomnost_do 
+                # posledný deň obmedziť koncom mesiaca
+                if posledny >= next_month:
+                    posledny = next_month - relativedelta(days=1) 
+                prvy = nn.nepritomnost_od if nn.nepritomnost_od>zden else zden
+    
+                #Vypočítať počet dní neprítomnosti
+                #Predpokladáme, že v prípade, keď zamestnanec pracuje len napr. Utorok - Štvrtok, neprítomnosť je zadaná len na tieto dni
+                if nn.nepritomnost_typ == TypNepritomnosti.DOVOLENKA2:
+                    ddov += 0.5
+                elif nn.nepritomnost_typ == TypNepritomnosti.DOVOLENKA:
+                    ddov += prac_dni(prvy,posledny, pdni, zahrnut_sviatky=False)    #Sviatky sa nezarátajú do dovolenky, ale ako bežný prac. deň
+                elif nn.nepritomnost_typ == TypNepritomnosti.NEPLATENE:
+                    dnepl += prac_dni(prvy,posledny, pdni, zahrnut_sviatky=True)    #Sviatky sa do NV zarátajú, náhrada sa ráta inak
+                elif nn.nepritomnost_typ == TypNepritomnosti.PN:
+                    dnepl += prac_dni(prvy,posledny, pdni, zahrnut_sviatky=True)    #Sviatky sa do PN zarátajú, náhrada sa ráta inak
+                    #Prvé 3 dni, 55%
+                    dpn1 += prekryv_dni(zden, nn.nepritomnost_od, nn.nepritomnost_od+timedelta(days=2))
+                    #Dni 4 až 10, 80%
+                    dpn2 += prekryv_dni(zden, nn.nepritomnost_od+timedelta(days=3), min(nn.nepritomnost_od+timedelta(days=9), posledny))
+                elif nn.nepritomnost_typ in [TypNepritomnosti.MATERSKA, TypNepritomnosti.OCR, TypNepritomnosti.NEPLATENE]:
+                    dnepl += prac_dni(prvy,posledny, pdni, zahrnut_sviatky=True)    #Sviatky sa zarátajú, nie sú platené
+                elif nn.nepritomnost_typ in [TypNepritomnosti.LEKARDOPROVOD, TypNepritomnosti.LEKAR]:
+                    dosob += float(nn.dlzka_nepritomnosti*prac_dni(prvy,posledny, pdni, zahrnut_sviatky=True)/self.uvazok_denne)    #Osobné prekážky vo sviatok sa nemajú čo vyskytovať
+                elif nn.nepritomnost_typ in [TypNepritomnosti.SLUZOBNA, TypNepritomnosti.PRACADOMA, TypNepritomnosti.SKOLENIE]:
+                    pass    #normálna mzda
+                else:   #Osobné prekážky (Pracovné voľno)
+                    dosob += prac_dni(prvy,posledny, pdni, zahrnut_sviatky=True)    #Osobné prekážky vo sviatok sa nemajú čo vyskytovať
+            except TypeError:
+                raise TypeError(f"Chyba pri spracovaní platového výmeru '{self}', neprítomnosť '{nn}'")
 
-            #Vypočítať počet dní neprítomnosti
-            #Predpokladáme, že v prípade, keď zamestnanec pracuje len napr. Utorok - Štvrtok, neprítomnosť je zadaná len na tieto dni
-            if nn.nepritomnost_typ == TypNepritomnosti.DOVOLENKA2:
-                ddov += 0.5
-            elif nn.nepritomnost_typ == TypNepritomnosti.DOVOLENKA:
-                ddov += prac_dni(prvy,posledny, pdni, zahrnut_sviatky=False)    #Sviatky sa nezarátajú do dovolenky, ale ako bežný prac. deň
-            elif nn.nepritomnost_typ == TypNepritomnosti.NEPLATENE:
-                dnepl += prac_dni(prvy,posledny, pdni, zahrnut_sviatky=True)    #Sviatky sa do NV zarátajú, náhrada sa ráta inak
-            elif nn.nepritomnost_typ == TypNepritomnosti.PN:
-                dnepl += prac_dni(prvy,posledny, pdni, zahrnut_sviatky=True)    #Sviatky sa do PN zarátajú, náhrada sa ráta inak
-                #Prvé 3 dni, 55%
-                dpn1 += prekryv_dni(zden, nn.nepritomnost_od, nn.nepritomnost_od+timedelta(days=2))
-                #Dni 4 až 10, 80%
-                dpn2 += prekryv_dni(zden, nn.nepritomnost_od+timedelta(days=3), min(nn.nepritomnost_od+timedelta(days=9), posledny))
-            elif nn.nepritomnost_typ in [TypNepritomnosti.MATERSKA, TypNepritomnosti.OCR, TypNepritomnosti.NEPLATENE]:
-                dnepl += prac_dni(prvy,posledny, pdni, zahrnut_sviatky=True)    #Sviatky sa zarátajú, nie sú platené
-            elif nn.nepritomnost_typ in [TypNepritomnosti.LEKARDOPROVOD, TypNepritomnosti.LEKAR]:
-                dosob += float(nn.dlzka_nepritomnosti*prac_dni(prvy,posledny, pdni, zahrnut_sviatky=True)/self.uvazok_denne)    #Osobné prekážky vo sviatok sa nemajú čo vyskytovať
-            elif nn.nepritomnost_typ in [TypNepritomnosti.SLUZOBNA, TypNepritomnosti.PRACADOMA, TypNepritomnosti.SKOLENIE]:
-                pass    #normálna mzda
-            else:   #Osobné prekážky (Pracovné voľno)
-                dosob += prac_dni(prvy,posledny, pdni, zahrnut_sviatky=True)    #Osobné prekážky vo sviatok sa nemajú čo vyskytovať
+            #trace()
+                pass
 
         #if zden == date(2022,7,1) and self.zamestnanec.meno=="Helena":
             #print(self.zamestnanec.priezvisko, ddov, dosob, dnepl, dpn1, dpn2)
@@ -1586,6 +1592,7 @@ class OdmenaOprava(Klasifikacia):
         td = self.zamestnanec.typ_doch
         td_konv = "InvDoch30" if td==TypDochodku.INVALIDNY30 else "InvDoch70" if td== TypDochodku.INVALIDNY70 else "StarDoch" if td==TypDochodku.STAROBNY else "VyslDoch" if td==TypDochodku.INVAL_VYSL else "Bezny"
         socpoist, _, zdravpoist, _ = ZamestnanecOdvody(nazov_suboru, float(self.suma), td_konv, zden)
+        print(self.zamestnanec, td_konv, socpoist)
         ekoklas = "621" if self.zamestnanec.poistovna == Poistovna.VSZP else "623"
         zdravotne = self.polozka_cerpania("Plat poistenie zdravotné", f"Zdravotné poistné", zdravpoist['zdravotne'], zden, ekoklas=ekoklas)
         platby.append(zdravotne)
