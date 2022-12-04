@@ -1197,7 +1197,8 @@ class PlatovyVymer(Klasifikacia):
                 elif nn.nepritomnost_typ in [TypNepritomnosti.MATERSKA, TypNepritomnosti.OCR, TypNepritomnosti.NEPLATENE]:
                     dnepl += prac_dni(prvy,posledny, pdni, zahrnut_sviatky=True)    #Sviatky sa zarátajú, nie sú platené
                 elif nn.nepritomnost_typ in [TypNepritomnosti.LEKARDOPROVOD, TypNepritomnosti.LEKAR]:
-                    dosob += float(nn.dlzka_nepritomnosti*prac_dni(prvy,posledny, pdni, zahrnut_sviatky=True)/self.uvazok_denne)    #Osobné prekážky vo sviatok sa nemajú čo vyskytovať
+                    dlzka_nepritomnosti = nn.dlzka_nepritomnosti if nn.dlzka_nepritomnosti else self.uvazok_denne
+                    dosob += float(dlzka_nepritomnosti*prac_dni(prvy,posledny, pdni, zahrnut_sviatky=True)/self.uvazok_denne)    #Osobné prekážky vo sviatok sa nemajú čo vyskytovať
                 elif nn.nepritomnost_typ in [TypNepritomnosti.SLUZOBNA, TypNepritomnosti.PRACADOMA, TypNepritomnosti.SKOLENIE]:
                     pass    #normálna mzda
                 else:   #Osobné prekážky (Pracovné voľno)
@@ -1592,7 +1593,6 @@ class OdmenaOprava(Klasifikacia):
         td = self.zamestnanec.typ_doch
         td_konv = "InvDoch30" if td==TypDochodku.INVALIDNY30 else "InvDoch70" if td== TypDochodku.INVALIDNY70 else "StarDoch" if td==TypDochodku.STAROBNY else "VyslDoch" if td==TypDochodku.INVAL_VYSL else "Bezny"
         socpoist, _, zdravpoist, _ = ZamestnanecOdvody(nazov_suboru, float(self.suma), td_konv, zden)
-        print(self.zamestnanec, td_konv, socpoist)
         ekoklas = "621" if self.zamestnanec.poistovna == Poistovna.VSZP else "623"
         zdravotne = self.polozka_cerpania("Plat poistenie zdravotné", f"Zdravotné poistné", zdravpoist['zdravotne'], zden, ekoklas=ekoklas)
         platby.append(zdravotne)
