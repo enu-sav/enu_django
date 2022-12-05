@@ -272,8 +272,8 @@ def VytvoritVytvarnuObjednavku(objednavka, pouzivatel):
     obj["A8"].value = obj["A8"].value.replace("[[autor]]",mp)
     obj["A9"].value = obj["A9"].value.replace("[[cislo]]",objednavka.cislo)
     obj["A10"].value = obj["A10"].value.replace("[[zmluva]]",objednavka.vytvarna_zmluva.cislo)
-    obj["A28"].value = obj["A28"].value.replace("[[redaktor]]",pouzivatel.get_full_name())
-    obj["A28"].value = obj["A28"].value.replace("[[dnes]]", date.today().strftime("%d.%m.%Y"))
+    obj["A33"].value = obj["A33"].value.replace("[[redaktor]]",pouzivatel.get_full_name())
+    obj["A33"].value = obj["A33"].value.replace("[[dnes]]", date.today().strftime("%d.%m.%Y"))
 
     #položky
     prvy_riadok = 14 #prvy riadok tabulky
