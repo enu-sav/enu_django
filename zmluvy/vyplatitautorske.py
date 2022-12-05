@@ -1015,7 +1015,7 @@ class VyplatitOdmenyGrafik(VyplatitOdmeny):
         #vyplatit["A5"].alignment = acenter
 
         vyplatit["A7"] = "Prevody spolu:"
-        vyplatit["B7"] = self.platba.honorar + self.platba.odvedena_dan + self.platba.odvod_LF # honorár + daň + LF
+        vyplatit["B7"] = self.platba.honorar    # honorár + daň + LF
         vyplatit[f"B7"].number_format= "0.00"
         vyplatit[f"B7"].alignment = aleft
         vyplatit[f"B7"].font = self.fbold
@@ -1056,7 +1056,7 @@ class VyplatitOdmenyGrafik(VyplatitOdmeny):
         vyplatit[f"A{c}"] = "VS:"
         vyplatit[f"B{c}"] = f"{date.today().strftime('%m%Y')}"
         vyplatit[f"A{d}"] = "Suma na úhradu:"
-        vyplatit[f"B{d}"] = self.platba.honorar
+        vyplatit[f"B{d}"] = self.platba.honorar - self.platba.odvedena_dan - self.platba.odvod_LF
         vyplatit[f"B{d}"].number_format= "0.00"
         vyplatit[f"B{d}"].alignment = aleft
         vyplatit[f"B{d}"].font = self.fbold
