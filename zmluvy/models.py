@@ -97,6 +97,10 @@ class FyzickaOsoba(PersonCommon):
     poznamka = models.CharField("Poznámka", max_length=200, blank=True)
     #pub_date = models.DateField('date published')
 
+    #priezvisko, meno
+    def pm(self):
+        return f"{self.priezvisko}, {self.meno}"
+
     class Meta:
         abstract = True
 
@@ -204,6 +208,10 @@ class ZmluvaGrafik(Zmluva):
     def adresat(self):
         return self.zmluvna_strana
 
+    #priezvisko, meno
+    def pm(self):
+        return self.zmluvna_strana.pm()
+
     class Meta:
         verbose_name = 'Výtvarná zmluva'
         verbose_name_plural = 'Výtvarné zmluvy'
@@ -261,8 +269,8 @@ class VytvarnaObjednavkaPlatba(models.Model):
     datum_objednavky = models.DateField('Dátum objednávky',
             help_text = "Dátum odoslania objednávky autorovi (mailom)",
             null=True)
-    honorar = models.DecimalField("Honorár na vyplatenie", 
-            help_text = "Honorár na vyplatenie. Vyplní sa automaticky na základe položiek objednávky spustením akcie 'Vytvoriť súbor objednávky'.<br />Ak autor nedodá všetky objednané položky, pred generovaním príkazu na vyplatenie sumu upravte a do poľa 'Poznámka' uveďte zoznam nedodaných položiek.",
+    honorar = models.DecimalField("Honorár", 
+            help_text = "Honorár. Vyplní sa automaticky na základe položiek objednávky spustením akcie 'Vytvoriť súbor objednávky'.<br />Ak autor nedodá všetky objednané položky, pred generovaním príkazu na vyplatenie sumu upravte a do poľa 'Poznámka' uveďte zoznam nedodaných položiek.",
             max_digits=8, 
             decimal_places=2, 
             null=True, 
@@ -292,6 +300,39 @@ class VytvarnaObjednavkaPlatba(models.Model):
             help_text = "Automaticky doplnené akciou 'Vytvoriť platobný príkaz a krycí list pre THS'",
             max_digits=8, decimal_places=2, null=True, blank=True)
     history = HistoricalRecords()
+
+    #priezvisko, meno
+    def pm(self):
+        return self.vytvarna_zmluva.pm()
+
+    #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
+    def cerpanie_rozpoctu(self, zden):
+        if not self.datum_uhradenia: return []
+        if self.datum_uhradenia <zden: return []
+        kdatum =  date(zden.year, zden.month+1, zden.day) if zden.month+1 <= 12 else  date(zden.year+1, zden.month, zden.day)
+        if self.datum_uhradenia >= kdatum: return []
+
+        if zden.year==2022 and zden.month < 4:
+            zdroj = Zdroj.objects.get(kod="131L")
+            zakazka = TypZakazky.objects.get(kod="131L - Beliana")
+        else:
+            zdroj = Zdroj.objects.get(kod="111")
+            zakazka = TypZakazky.objects.get(kod="11070002 Beliana")
+
+        platby = PlatbaAutorskaOdmena.objects.filter(cislo=self.cislo)
+        odmeny = [platba.honorar for platba in platby]
+        #trace()
+        platba = {
+                "nazov": "Honoráre výtvarné",
+                "suma": -self.honorar,
+                "datum": self.datum_uhradenia,
+                "subjekt": self.pm(),
+                "cislo": self.cislo,
+                "zdroj": zdroj,
+                "zakazka": zakazka,
+                "ekoklas": EkonomickaKlasifikacia.objects.get(kod="633018") #licencie
+                }
+        return [platba]
 
     class Meta:
         verbose_name = 'Objednávka a vyplatenie výtvarných diel'
@@ -393,7 +434,7 @@ class PlatbaAutorskaSumar(models.Model):
         platby = PlatbaAutorskaOdmena.objects.filter(cislo=self.cislo)
         odmeny = [platba.honorar for platba in platby]
         platba = {
-                "nazov": "Honorár autori",
+                "nazov": "Honoráre autori",
                 "suma": -sum(odmeny),
                 "datum": self.datum_uhradenia if self.datum_uhradenia else self.datum_importovania,
                 "subjekt": "Autori",

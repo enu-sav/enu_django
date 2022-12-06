@@ -227,7 +227,7 @@ class CerpanieRozpoctuAdmin(ModelAdminTotals):
         riadok=2
         #for fn in enumerate(nazvy): fw[fn[0]]=len(fn[1])
 
-        typy = [PravidelnaPlatba, PlatovyVymer, OdmenaOprava, PrijataFaktura, DoVP, DoPC, PlatbaAutorskaSumar, NajomneFaktura, PrispevokNaStravne, RozpoctovaPolozka, PlatbaBezPrikazu, Pokladna, PrispevokNaRekreaciu,InternyPrevod]
+        typy = [PravidelnaPlatba, PlatovyVymer, OdmenaOprava, PrijataFaktura, DoVP, DoPC, PlatbaAutorskaSumar, VytvarnaObjednavkaPlatba, NajomneFaktura, PrispevokNaStravne, RozpoctovaPolozka, PlatbaBezPrikazu, Pokladna, PrispevokNaRekreaciu,InternyPrevod]
         for typ in typy:
             for polozka in typ.objects.filter():
                 for md1 in md1list[:-1]:

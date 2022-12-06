@@ -474,7 +474,7 @@ class PlatbaAutorskaOdmenaAdmin(PlatbaAdmin):
 class VytvarnaObjednavkaPlatbaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
     form = VytvarnaObjednavkaPlatbaForm
     # autor_link: pridá autora zmluvy do zoznamu, vďaka AdminChangeLinksMixin
-    list_display = ["cislo", "vytvarna_zmluva_link", "subor_objednavky", "honorar", "datum_objednavky", "subor_prikaz", "dane_na_uhradu", "datum_uhradenia", "datum_oznamenia", "odvod_LF", "odvedena_dan"]
+    list_display = ["cislo", "vytvarna_zmluva_link", "subor_objednavky", "honorar", "datum_objednavky", "subor_prikaz", "dane_na_uhradu", "datum_uhradenia", "datum_oznamenia", "_vyplatene", "odvedena_dan"]
 
     #search_fields = ['cislo', "zmluva", "autor__rs_login"]
 
@@ -487,6 +487,10 @@ class VytvarnaObjednavkaPlatbaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, M
     ]
 
     actions = ['vytvorit_objednavku', "vytvorit_platobny_prikaz"]
+
+    def _vyplatene(self, obj):
+        return obj.honorar - obj.odvedena_dan
+    _vyplatene.short_description = "Vyplatené"
 
     def get_readonly_fields(self, request, obj=None):
         readonly = ["cislo", "vytvarna_zmluva", "objednane_polozky", "datum_objednavky", "subor_objednavky", "honorar", "subor_prikaz", "dane_na_uhradu", "datum_uhradenia", "datum_oznamenia", "odvod_LF", "odvedena_dan", "poznamka"]
