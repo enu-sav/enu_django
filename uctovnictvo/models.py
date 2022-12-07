@@ -1702,14 +1702,11 @@ class PrispevokNaRekreaciu(Klasifikacia):
 
     #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
     def cerpanie_rozpoctu(self, zden):
-        qs = PrispevokNaRekreaciu.objects.filter(vyplatene_v_obdobi = "%02d/%d"%(zden.month, zden.year))
-        suma = 0
-        for q in qs:
-            suma += q.prispevok
-        if not suma: return []
+        zobdobie = "%02d/%d"%(zden.month,zden.year)
+        if zobdobie != self.vyplatene_v_obdobi: return []
         platba = {
                 "nazov": "Príspevok na rekreáciu",
-                "suma": suma,
+                "suma": self.prispevok,
                 "datum": self.datum,
                 "subjekt": f"{self.zamestnanec.priezvisko}, {self.zamestnanec.meno}", 
                 "cislo": self.cislo,
