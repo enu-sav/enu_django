@@ -667,7 +667,7 @@ def UlozitStranuPK(request, queryset, strana):
 
     #ulozit
     #Create directory admin.rs_login if necessary
-    nazov = f'PK-{timezone.now().strftime("%d-%m-%Y")}.xlsx'
+    nazov = 'PK-%02d-%s.xlsx'%(strana,timezone.now().strftime("%d-%m-%Y"))
     opath = os.path.join(settings.POKLADNA_DIR,nazov)
     workbook.save(os.path.join(settings.MEDIA_ROOT,opath))
     mpath = os.path.join(settings.MEDIA_URL,opath)
