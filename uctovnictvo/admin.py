@@ -297,7 +297,9 @@ class PokladnaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, Mo
     ]
 
     def get_readonly_fields(self, request, obj=None):
-        return ["datum_softip"]
+        #quick hack: superuser môže kvôli oprave editovať pole datum_softip
+        #nejako podobne implementovať aj pre iné triedy, možno pridať permissions "fix_stuff"
+        return [] if request.user.has_perm('uctovnictvo.delete_pokladna') else ["datum_softip"]
 
     # Zoradiť položky v pulldown menu
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
