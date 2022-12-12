@@ -67,7 +67,7 @@ class ZobrazitZmeny(SimpleHistoryAdmin):
 @admin.register(Dokument)
 class DokumentAdmin(ZobrazitZmeny,ImportExportModelAdmin):
     form = DokumentForm
-    list_display = ["cislo", "cislopolozky", "adresat", "typdokumentu", "inout", "datum", "sposob", "naspracovanie", "zaznamvytvoril", "vec_html", "suborposta", "prijalodoslal", "datumvytvorenia"]
+    list_display = ["cislo", "zrusene", "cislopolozky", "adresat", "typdokumentu", "inout", "datum", "sposob", "naspracovanie", "zaznamvytvoril", "vec_html", "suborposta", "prijalodoslal", "datumvytvorenia"]
     # určiť poradie polí v editovacom formulári
     #fields = ["cislo"]
     def vec_html(self, obj):
@@ -78,7 +78,12 @@ class DokumentAdmin(ZobrazitZmeny,ImportExportModelAdmin):
             return obj.vec
     search_fields = ("cislo","adresat","sposob", "inout", "prijalodoslal", "vec", "naspracovanie")
     vec_html.short_description = "Popis"
-    exclude = ("odosielatel", "url", "prijalodoslal", "datumvytvorenia", "zaznamvytvoril", "poznamka")
+    exclude = ("odosielatel", "url", "prijalodoslal", "datumvytvorenia", "zaznamvytvoril")
+
+    def get_readonly_fields(self, request, obj=None):
+        #quick hack: superuser môže kvôli oprave editovať pole datum_softip
+        #nejako podobne implementovať aj pre iné triedy, možno pridať permissions "fix_stuff"
+        return [] if request.user.has_perm('uctovnictvo.delete_pokladna') else ["zrusene", "poznamka"]
 
     # do AdminForm pridať request, aby v jej __init__ bolo request dostupné
     def get_form(self, request, obj=None, **kwargs):

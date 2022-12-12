@@ -3,7 +3,7 @@ from beliana import settings
 from simple_history.models import HistoricalRecords
 from django.core.exceptions import ValidationError
 from django.core.validators import FileExtensionValidator
-from uctovnictvo.models import Zdroj, TypZakazky, EkonomickaKlasifikacia
+from uctovnictvo.models import Zdroj, TypZakazky, EkonomickaKlasifikacia, AnoNie
 from uctovnictvo.storage import OverwriteStorage
 from ipdb import set_trace as trace
 import re, os
@@ -54,6 +54,18 @@ def dennik_file_path(instance, filename):
 class Dokument(models.Model):
     oznacenie = "D"    #v čísle dokument, D-2021-123
     cislo = models.CharField("Číslo", max_length=50)
+    zrusene = models.CharField("Zrušené", 
+            help_text = "Zvoľté 'Áno', ak záznam treba označit ako zrušený. V tom prípade v poli 'Poznámka' uveďte príčinu",
+            max_length=10, 
+            null=True, 
+            choices=AnoNie.choices,
+            default=AnoNie.NIE)
+    poznamka = models.CharField("Poznámka", 
+            help_text = "Poznámka. Povinné len v prípade, ak ide o zrušenie záznamu.",
+            max_length=60,
+            blank = True,
+            null=True
+            )
     cislopolozky = models.CharField("Súvisiaca položka", 
             null = True,
             help_text = """Ak je to relevantné, uveďte číslo súvisiacej položky v Djangu (zmluvy, dohody), inak vložte pomlčku '-'.<br />
@@ -119,6 +131,10 @@ podpísaná</em> v zmluve</li>
     datumvytvorenia = models.DateField("Dátum vytvorenia záznamu",
             help_text = "Dátum vytvorenia záznamu (vypĺňané automaticky)",
             null = True)
+
+    def clean(self):
+        if self.zrusene == AnoNie.ANO and not self.poznamka:
+            raise ValidationError({'poznamka':"V prípade zrušenia záznamu v poli 'Poznámka' uveďte príčinu"})
 
     history = HistoricalRecords()
     class Meta:
