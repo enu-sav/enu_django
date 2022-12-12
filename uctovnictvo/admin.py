@@ -351,6 +351,9 @@ class PokladnaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, Mo
         strana = len(datumy) + 1
 
         qs = qs.filter(datum_softip__isnull=True).order_by("datum_transakcie")
+        if not qs:
+            self.message_user(request, f"Žiadne nové položky na zaznamenanie do PK neboli nájdené.", messages.INFO)
+            return
         status, msg, media_url = UlozitStranuPK(request, qs, strana)
         if status ==  messages.ERROR:
             self.message_user(request, msg, status)
