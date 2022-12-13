@@ -842,7 +842,7 @@ class RozpoctovaPolozkaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistory
 @admin.register(RozpoctovaPolozkaDotacia)
 class RozpoctovaPolozkaDotaciaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
     form = RozpoctovaPolozkaDotaciaForm
-    list_display = ["cislo", "suma", "za_rok",  "rozpoctovapolozka_link", "zdroj", "zakazka", "ekoklas", "cinnost" ]
+    list_display = ["cislo", "suma", "za_rok",  "rozpoctovapolozka_link", "poznamka", "zdroj", "zakazka", "ekoklas"]
     search_fields = ["cislo", "za_rok", "^zdroj__kod", "rozpoctovapolozka__cislo", "^zakazka__kod", "^ekoklas__kod", "^cinnost__kod" ]
     exclude = ["program", "rozpoctovapolozka"]
     list_totals = [
