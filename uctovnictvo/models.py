@@ -1488,7 +1488,7 @@ class OdmenaOprava(Klasifikacia):
             null=True
             )
     subor_odmeny = models.FileField("Súbor so zoznamom odmien",
-            help_text = "XLSX súbor so zoznamom odmien.<br />Po vložení sa vytvoria záznamy jednotlivo pre všetkých odmenených. Ak sa záznam s takýmto súborom zmaže,tak sa zmažú aj všetky s ním súvisiace záznamy.",
+            help_text = "XLSX súbor so zoznamom odmien.<br />Po vygenerovaní krycieho listu sa vytvoria záznamy jednotlivo pre všetkých odmenených. Ak sa záznam s takýmto súborom zmaže,tak sa zmažú aj všetky s ním súvisiace záznamy.",
             upload_to=odmena_upload_location,
             blank=True, 
             null=True
@@ -1500,7 +1500,7 @@ class OdmenaOprava(Klasifikacia):
             null=True,
             default=0)
     vyplatene_v_obdobi = models.CharField("Vyplatené v", 
-            help_text = "Uveďte mesiac vyplatenia odmeny alebo mesiac, ku ktorému sa oprava vzťahuje v tvare em>MM/RRRR</em>", 
+            help_text = "Uveďte mesiac vyplatenia odmeny alebo mesiac, ku ktorému sa oprava vzťahuje v tvare <em>MM/RRRR</em>", 
             null = True,
             max_length=10)
     zdovodnenie = models.TextField("Zdôvodnenie", 
