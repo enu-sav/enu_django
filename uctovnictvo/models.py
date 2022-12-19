@@ -1979,7 +1979,7 @@ class DoPC(Dohoda):
     # test platnosti dát
     def clean(self): 
         if self.hod_mesacne > 40:
-            raise ValidationError(f"Počet hodín mesačne {hod_mesacne} presahuje maximálny zákonom povolený počet 40.")
+            raise ValidationError(f"Počet hodín mesačne {self.hod_mesacne} presahuje maximálny zákonom povolený počet 40.")
 
         if self.dodatok_k and not "Dodatok" in self.cislo:
             qs = DoPC.objects.filter(cislo__startswith=self.dodatok_k.cislo).order_by("cislo")
