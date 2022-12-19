@@ -157,7 +157,7 @@ class VyplatitAutorskeOdmeny(VyplatitOdmeny):
         if not sablona:
             self.log(messages.ERROR, f"V systéme nie je definovaný súbor '{nazov_objektu}'.")
             return None
-        self.ws_template = sablona[0].subor.file.name 
+        ws_template = sablona[0].subor.file.name
 
         csv_path = os.path.join(settings.MEDIA_ROOT,settings.RLTS_DIR_NAME, self.cislo) 
         self.pocet_znakov = {"rs": {}, "webrs":{}}
