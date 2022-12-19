@@ -28,6 +28,8 @@ class OdmenaAleboOprava(models.TextChoices):
     OPRAVATARIF = 'opravatarif', 'Oprava tarifný plat'
     OPRAVAOSOB = 'opravaosob', 'Oprava osobný pr.'
     OPRAVARIAD = 'opravariad', 'Oprava pr. za riadenie'
+    ODSTUPNE = 'odstupne', 'Odstupné'
+    ODCHODNE = 'odchodne', 'Odchodné'
 
 #access label: AnoNie('ano').label
 class AnoNie(models.TextChoices):
@@ -1568,6 +1570,12 @@ class OdmenaOprava(Klasifikacia):
         elif self.typ == OdmenaAleboOprava.OPRAVATARIF:
             nazov = "Plat tarifný plat oprava"
             rekapitulacia = "Tarifný plat"
+        elif self.typ == OdmenaAleboOprava.ODCHODNE:
+            nazov = "Plat odchodné"
+            rekapitulacia = "xxx"   #treba doplniť
+        elif self.typ == OdmenaAleboOprava.ODSTUPNE:
+            nazov = "Plat odstupné"
+            rekapitulacia = "xxx"   #treba doplniť
         elif self.typ == OdmenaAleboOprava.OPRAVAOSOB:
             nazov = "Plat osobný príplatok oprava"
             rekapitulacia = "Osobný príplatok"
