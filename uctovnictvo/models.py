@@ -1943,7 +1943,7 @@ class DoPC(Dohoda):
             decimal_places=2, 
             null=True)
     hod_mesacne = models.DecimalField("Hodín za mesiac",
-            help_text = "Dohodnutý počet odpracovaných hodín za mesiac, najviac 40",
+            help_text = "Dohodnutý počet odpracovaných hodín za mesiac, najviac 42",
             max_digits=8, 
             decimal_places=1, 
             null=True)
@@ -2016,8 +2016,8 @@ class DoPC(Dohoda):
         verbose_name_plural = 'PaM - Dohody o pracovnej činnosti'
     # test platnosti dát
     def clean(self): 
-        if self.hod_mesacne > 40:
-            raise ValidationError(f"Počet hodín mesačne {self.hod_mesacne} presahuje maximálny zákonom povolený počet 40.")
+        if self.hod_mesacne > 42:
+            raise ValidationError(f"Počet hodín mesačne {self.hod_mesacne} presahuje maximálny zákonom povolený počet 42.")
 
         if self.dodatok_k and not "Dodatok" in self.cislo:
             qs = DoPC.objects.filter(cislo__startswith=self.dodatok_k.cislo).order_by("cislo")
