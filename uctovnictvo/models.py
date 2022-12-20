@@ -918,8 +918,6 @@ class PrispevokNaStravne(Klasifikacia):
     # zrážka za január 2022 prijatá do rozpočtu 2022
     # zrážka za január 2023 prijatá do rozpočtu 2023
     def cerpanie_rozpoctu(self, zden):
-        if not str(zden.year) in self.cislo: return []
-        if not self.za_mesiac: return []
         msc= {
             "januar": 1,
             "februar": 2,
@@ -934,7 +932,32 @@ class PrispevokNaStravne(Klasifikacia):
             "november": 11,
             "december": 12
             }
-        if zden.month != msc[self.za_mesiac]: return [] 
+        #príspevok za január budúceho roku zarátať už za december
+        if not self.za_mesiac: return []    #pole nie je vyplnené
+        if not str(zden.year) in self.cislo: return []  #nesprávny rok
+        if zden.month != msc[self.za_mesiac]: return [] #nesprávny mesiac 
+        platby = []
+        # V januári sa príspevok nezaratáva
+        if zden.month == 1 and self.suma_zamestnavatel < 0:    
+            return []
+        #v decembri, ak ide o príspevok, pridaj aj január nasledujúceho roka
+        elif zden.month == 12 and self.suma_zamestnavatel < 0:    
+            qs = PrispevokNaStravne.objects.filter(cislo__startswith=f"{PrispevokNaStravne.oznacenie}-{zden.year+1}")
+            qs = qs.filter(za_mesiac=Mesiace.JANUAR,suma_zamestnavatel__lt=0)
+            if qs:
+                qs=qs[0]
+                platba = {
+                    "nazov":f"Stravné",
+                    "suma": qs.suma_zamestnavatel,
+                    "datum": zden,
+                    "subjekt": "Zamestnanci",
+                    "cislo": qs.cislo,
+                    "zdroj": qs.zdroj,
+                    "zakazka": qs.zakazka,
+                    "ekoklas": qs.ekoklas
+                    }
+            platby = [platba]
+
         platba = {
                 "nazov":f"Stravné",
                 "suma": self.suma_zamestnavatel,
@@ -945,7 +968,8 @@ class PrispevokNaStravne(Klasifikacia):
                 "zakazka": self.zakazka,
                 "ekoklas": self.ekoklas
                 }
-        return [platba]
+        platby.append(platba)
+        return platby
 
     class Meta:
         verbose_name = 'Príspevok na stravné'
