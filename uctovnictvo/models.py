@@ -1369,7 +1369,7 @@ class PlatovyVymer(Klasifikacia):
                     "datum": zden if zden < date.today() else None,
                     "subjekt": f"{self.zamestnanec.priezvisko}, {self.zamestnanec.meno}, (za {zden.year}/{zden.month})", 
                     "cislo": self.cislo if self.cislo else "-",
-                    "ekoklas": EkonomickaKlasifikacia.objects.get(kod="640")    #Overiť klasifikáciu
+                    "ekoklas": EkonomickaKlasifikacia.objects.get(kod="611")    #Overené
                     }
 
         nahrada_dov = None
