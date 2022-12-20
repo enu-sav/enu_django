@@ -906,6 +906,17 @@ class PrispevokNaStravne(Klasifikacia):
             raise ValidationError("Položky 'Príspevok zamestnávateľa' a 'Príspevok zo soc. fondu' musia byť buď len kladné alebo len záporné.")
 
     #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
+    #príspevok na stravné za vypláca za nasledujúci mesiac spolu s výplatou, ktorá je za minulý mesiac
+    #zrážka na stravné za zaratúva na konci mesiaca, ktorého sa týka (po sumarizácii neprítomnosti)
+    #V pdf je údaj o mesiaci, ktorého sa príspevok alebo zrážka týka
+    #V čerpaní rozpočtu sa uvádza rozdiel príspevok - zrážka na daný mesiac
+    #
+    #Zarátavanie januárového príspevku a zrážok:
+    # príspevok za január 2022 vyplatený z rozpočtu 2021
+    # príspevok za január 2023 vyplatený z rozpočtu 2022
+    #
+    # zrážka za január 2022 prijatá do rozpočtu 2022
+    # zrážka za január 2023 prijatá do rozpočtu 2023
     def cerpanie_rozpoctu(self, zden):
         if not str(zden.year) in self.cislo: return []
         if not self.za_mesiac: return []
@@ -1153,6 +1164,9 @@ class PlatovyVymer(Klasifikacia):
             }
 
     #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
+    #Mzdy sa vyplácajú spätne, t.j. v máji sa vypláca mzda za apríl
+    #Decembrová výplata sa vypláca už v decembri, v decembri teda zamestnanec dostane výplatu dvakrát, v januári výplatu nedostane
+    #Spôsob výpočtu bol skontrolovaný z hľadiska zaťažovanie rozpočtu aj z hľadiska mzdovej rekapitulácie.
     def cerpanie_rozpoctu(self, zden):
         if zden < self.datum_od: return []
         if self.datum_do and zden > self.datum_do: return []
@@ -1530,8 +1544,8 @@ class OdmenaOprava(Klasifikacia):
             errors["zamestnanec"] = "Pole 'Zamestnanec' nebolo vyplnené."
         if self.typ == OdmenaAleboOprava.ODMENAS and not self.subor_odmeny:
             errors["subor_odmeny"] = "Pole 'Súbor so zozmamom odmien' nebolo vyplnené."
-        if self.typ in [OdmenaAleboOprava.ODMENA, OdmenaAleboOprava.ODMENAS] and self.suma >= 0:
-            errors["suma"] = "Suma odmeny musí byť záporná"
+        if self.typ in [OdmenaAleboOprava.ODMENA, OdmenaAleboOprava.ODMENAS, OdmenaAleboOprava.ODCHODNE, OdmenaAleboOprava.ODSTUPNE] and self.suma >= 0:
+            errors["suma"] = "Suma odmeny, odchodného a odstupného musí byť záporná"
         if self.vyplatene_v_obdobi:
             if not OdmenaOprava.check_vyplatene_v(self.vyplatene_v_obdobi):
                 errors["vyplatene_v_obdobi"] = "Údaj v poli 'Vyplatené v' musí byť v tvare MM/RRRR (napr. 07/2022)"
