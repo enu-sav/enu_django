@@ -770,6 +770,9 @@ def generovatNepritomnostAnita(cislo,ws):
     if ws["A1"].value == "November 2022":
         rok = 2022
         mesiac = 11
+    elif ws["A1"].value == "December 2022":
+        rok = 2022
+        mesiac = 12
 
     zpocet=0  
     npocet=0
