@@ -1,11 +1,24 @@
 from openpyxl import load_workbook
 from ipdb import set_trace as trace
 from datetime import date
+from beliana.settings import MIN_VZ, MAX_VZ
 #from models import TypDochodku
 
 # vráti tabuľku odvodov pre zadanú kategóriu
 #https://www.podnikajte.sk/socialne-a-zdravotne-odvody/odvody-z-dohody-2021
 #do roku 2021 sa neplatilo garancne poistenie
+
+socialne_klas = {
+    "nemocenske": "625001",
+    "starobne": "625002",
+    "urazove": "625003",
+    "invalidne": "625004",
+    "nezamestnanecke": "625005",
+    "garancne": "625006",
+    "rezervny": "625007",
+    "financovanie_podpory": "625005",
+}
+
 def TabulkaOdvodov(meno_suboru, zam_doh, typ, datum, vynimka=False):
     #Načítať súbor s údajmi o odvodoch
     workbook = load_workbook(filename=meno_suboru)
@@ -107,16 +120,6 @@ def TabulkaOdvodov(meno_suboru, zam_doh, typ, datum, vynimka=False):
         else:
             return f"Zadaný neplatný typ dohodára {typ}"
 
-    socialne_klas = {
-        "nemocenske": "625001",
-        "starobne": "625002",
-        "urazove": "625003",
-        "invalidne": "625004",
-        "nezamestnanecke": "625005",
-        "garancne": "625006",
-        "rezervny": "625007",
-        "financovanie_podpory": "625005",
-    }
 
     socialne_zam = {}
     socialne_prac = {}
@@ -178,7 +181,10 @@ def DohodarOdvodySpolu(meno_suboru, odmena, typ, datum, vodmena):
 
 def ZamestnanecOdvody(meno_suboru, odmena, typ, datum):
     ts_z, ts_p, tz_z, tz_p = TabulkaOdvodov(meno_suboru, "zamestnanec", typ, datum)
-    for item in ts_z: ts_z[item] = round(odmena*ts_z[item], 2)
+    for item in ts_z: 
+        aodmena = odmena if item == socialne_klas['urazove'] else min(odmena, MAX_VZ[datum.year])
+        aodmena = aodmena if aodmena > MIN_VZ else 0 
+        ts_z[item] = round(aodmena*ts_z[item], 2)
     for item in ts_p: ts_p[item] = round(odmena*ts_p[item], 2)
     for item in tz_z: tz_z[item] = round(odmena*tz_z[item], 2)
     for item in tz_p: tz_p[item] = round(odmena*tz_p[item], 2)

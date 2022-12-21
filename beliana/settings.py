@@ -201,6 +201,18 @@ PN2= 80                 #náhrada mzdy za dni 3 - 1- PN-ky
 DDS_PRISPEVOK=2         #Doplnkové dôchodkové sporenie, %
 SOCFOND_PRISPEVOK=1.5   #Sociálny fond, %
 
+#https://www.socpoist.sk/news/nove-vymeriavacie-zaklady-pre-platenie-poistneho-od-1-januara-2023-su-uz-zname
+#Maximum a minimum vymeroavacích základov pre sociálne poistenie
+MAX_VZ ={
+        2022:7931,
+        2023:8477
+        }
+MIN_VZ ={
+        2022:566.50,
+        2023:605.50
+        }
+
+
 #Predvolené zobrazenie dátumu v admin
 from django.conf.locale.sk import formats as sk_formats
 sk_formats.DATE_FORMAT = "d.m.Y"
