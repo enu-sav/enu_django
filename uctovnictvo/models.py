@@ -1849,6 +1849,12 @@ class DoVP(Dohoda):
             max_digits=8, 
             decimal_places=1, 
             null=True)
+    interny_prevod = models.CharField("Int. prevod", 
+            max_length=3, 
+            help_text = "Uveďte 'Áno', ak sa hradí interným prevodom na organizačnú zložku. Takáto položka sa nezaráta do platovej rekapitulácie",
+            null = True,
+            default = AnoNie.NIE,
+            choices=AnoNie.choices)
     id_tsh = models.CharField("Číslo priradené THS",
             help_text = "Uveďte číslo, pod ktorým dohody vedie THS",
             null = True, blank = True,
@@ -1866,7 +1872,7 @@ class DoVP(Dohoda):
         if self.datum_do >= kdatum: return []
         platba = {
                 "nazov":f"DoVP odmena",
-                "rekapitulacia": "DoVP",
+                "rekapitulacia": "DoVP" if self.interny_prevod == AnoNie.NIE else None,
                 "suma": -Decimal(self.odmena_celkom),
                 "datum": zden,
                 "subjekt": f"{self.zmluvna_strana.priezvisko}, {self.zmluvna_strana.meno}", 
@@ -1885,10 +1891,12 @@ class DoVP(Dohoda):
         td_konv = "StarDoch" if td==TypDochodku.STAROBNY else "InvDoch" if td== TypDochodku.INVALIDNY else "StarDoch" if td==TypDochodku.STAROBNY else "DoVP"
         socpoist, _, zdravpoist, _  = DohodarOdvody(nazov_suboru, float(self.odmena_celkom), td_konv, zden, ODVODY_VYNIMKA if self.vynimka == AnoNie.ANO else 0)
         ekoklas = "621" if self.zmluvna_strana.poistovna == Poistovna.VSZP else "623"
-        zdravotne = self.polozka_cerpania("DoVP poistenie zdravotné", "Zdravotné poistné", -zdravpoist['zdravotne'], zden, ekoklas=ekoklas)
+        zpoist = "Zdravotné poistné" if self.interny_prevod == AnoNie.NIE else None
+        zdravotne = self.polozka_cerpania("DoVP poistenie zdravotné", zpoist, -zdravpoist['zdravotne'], zden, ekoklas=ekoklas)
         socialne=[]
+        spoist = "Sociálne poistné" if self.interny_prevod == AnoNie.NIE else None
         for item in socpoist:
-            socialne.append(self.polozka_cerpania("DoVP poistenie sociálne", "Sociálne poistné", -socpoist[item], zden, ekoklas=item))
+            socialne.append(self.polozka_cerpania("DoVP poistenie sociálne", spoist, -socpoist[item], zden, ekoklas=item))
         return socialne + [platba, zdravotne]
  
     # test platnosti dát
@@ -1931,7 +1939,7 @@ class DoBPS(Dohoda):
 class DoPC(Dohoda):
     oznacenie = "DoPC"
     dodatok_k = models.ForeignKey('self',
-            help_text = "Ak ide len o dodatok k existujúcej DoVP, zadajte ju v tomto poli.<br />V tomto prípade sa pri ukladaní číslo tohohto dodatku zmení na číslo dohody doplnené o text 'Dodatok'. <br />Ďalší postup vytvárania dodatku je rovnaký ako v prípade DoVP",
+            help_text = "Ak ide len o dodatok k existujúcej DoPC, zadajte ju v tomto poli.<br />V tomto prípade sa pri ukladaní číslo tohohto dodatku zmení na číslo dohody doplnené o text 'Dodatok'. <br />Ďalší postup vytvárania dodatku je rovnaký ako v prípade DoVP",
             on_delete=models.PROTECT,
             related_name='%(class)s_dopc',
             blank = True,

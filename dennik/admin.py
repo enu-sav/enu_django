@@ -355,6 +355,8 @@ class PlatovaRekapitulaciaAdmin(ModelAdminTotals):
                     data = polozka.cerpanie_rozpoctu(datum)
                     for item in data:
                         identif = item['rekapitulacia']
+                        if not identif: 
+                            continue  #vyplácanie DoVP interným prevodom
                         if not identif in cerpanie:
                             cerpanie[identif] = item['suma']
                         else:

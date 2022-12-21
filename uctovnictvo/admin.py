@@ -1068,7 +1068,7 @@ class DoVPAdmin(DohodaAdmin):
     #Polia DoVP: odmena_celkom hod_celkom id_tsh pomocnik
     form = DoVPForm
     def get_list_display(self, request):
-        list_display = ("cislo", "zmluvna_strana_link", "odmena_celkom", "hod_celkom", "poznamka" )
+        list_display = ("cislo", "zmluvna_strana_link", "odmena_celkom", "hod_celkom", "interny_prevod", "poznamka" )
         return list_display + super(DoVPAdmin, self).get_list_display(request)
     def get_readonly_fields(self, request, obj=None):
         # polia rodičovskej triedy
