@@ -1396,7 +1396,7 @@ class PlatovyVymer(Klasifikacia):
             socialne.append(self.polozka_cerpania("Plat poistenie sociálne", f"Sociálne poistné", -socpoist[item], zden, zdroj=zdroj, zakazka=zakazka, ekoklas=item))
 
         #Socfond
-        if zden in [date(2022,1,1), date(2022,2,1), date(2022,3,1)]:   #Počas tychto 3 mesiacov bolo všetko inak :D
+        if zden in [date(2022,1,1), date(2022,2,1)]:   #Počas mesiacov 1 - 3 bolo všetko inak, SF sa týkajú len 1 - 2, lebo sa vypláca v nasl. mesiaci
             socfond = {
                 "nazov": "Prídel do SF",
                 "rekapitulacia": "Sociálny fond",
