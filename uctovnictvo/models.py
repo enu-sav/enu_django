@@ -1647,7 +1647,7 @@ class OdmenaOprava(Klasifikacia):
             platby.append(self.polozka_cerpania("Plat poistenie sociálne", f"Sociálne poistné", socpoist[item], zden, ekoklas=item))
 
         #Socfond
-        if zden in [date(2022,1,1), date(2022,2,1), date(2022,3,1)]:   #Počas tychto 3 mesiacov bolo všetko inak :D
+        if zden in [date(2022,1,1), date(2022,2,1)]:   #Počas mesiacov 1 - 3 bolo všetko inak, SF sa týkajú len 1 - 2, lebo sa vypláca v nasl. mesiaci
             socfond = self.polozka_cerpania("Prídel do SF", "Sociálny fond", SOCFOND_PRISPEVOK*float(self.suma)/100, zden, zdroj=Zdroj.objects.get(kod="131L"), zakazka=TypZakazky.objects.get(kod="131L0001"), ekoklas="637016")
         else:
             socfond = self.polozka_cerpania("Prídel do SF", "Sociálny fond", SOCFOND_PRISPEVOK*float(self.suma)/100, zden, ekoklas="637016")
