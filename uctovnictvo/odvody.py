@@ -1,12 +1,8 @@
 from openpyxl import load_workbook
 from ipdb import set_trace as trace
 from datetime import date
-from beliana.settings import MIN_VZ, MAX_VZ
+from beliana.settings import MAX_VZ
 #from models import TypDochodku
-
-# vráti tabuľku odvodov pre zadanú kategóriu
-#https://www.podnikajte.sk/socialne-a-zdravotne-odvody/odvody-z-dohody-2021
-#do roku 2021 sa neplatilo garancne poistenie
 
 socialne_klas = {
     "nemocenske": "625001",
@@ -19,9 +15,19 @@ socialne_klas = {
     "financovanie_podpory": "625005",
 }
 
-def TabulkaOdvodov(meno_suboru, zam_doh, typ, datum, vynimka=False):
+
+# vráti tabuľku odvodov pre zadanú kategóriu
+#https://www.podnikajte.sk/socialne-a-zdravotne-odvody/odvody-z-dohody-2021
+#do roku 2021 sa neplatilo garancne poistenie
+def TabulkaOdvodov(zam_doh, typ, datum, vynimka=False, vylucitelnost=False):
     #Načítať súbor s údajmi o odvodoch
-    workbook = load_workbook(filename=meno_suboru)
+    nazov_objektu = "Odvody zamestnancov a dohodárov"  #Presne takto musí byť objekt pomenovaný
+    #objekt = SystemovySubor.objects.filter(subor_nazov = nazov_objektu)
+    #if not objekt:
+        #return f"V systéme nie je definovaný súbor '{nazov_objektu}'."
+    #workbook = load_workbook(filename=objekt[0].subor.file.name )
+    smeno = '/home/milos/Beliana/Django/enu_django-dev/data/Subory/SablonyASubory/OdvodyZamestnanciDohodari.xlsx'
+    workbook = load_workbook(filename=smeno)
 
 
     if zam_doh == "zamestnanec":
@@ -120,34 +126,41 @@ def TabulkaOdvodov(meno_suboru, zam_doh, typ, datum, vynimka=False):
         else:
             return f"Zadaný neplatný typ dohodára {typ}"
 
-
     socialne_zam = {}
     socialne_prac = {}
     zdravotne_zam = {}
     zdravotne_prac = {}
 
-    for pp in socialne:
-        # sčítať po položkách (kvôli 625005)
+    #Ak je mesiac "vylúčiteľný", platí sa len 'urazové'
+    if  vylucitelnost:
+        pp = "urazove"
         if not socialne_klas[pp] in socialne_zam:
             socialne_zam[socialne_klas[pp]] = ws.cell(row=socialne[pp], column=col0).value / 100 
         else:
             socialne_zam[socialne_klas[pp]] += ws.cell(row=socialne[pp], column=col0).value / 100 
+    else:
+        for pp in socialne:
+            # sčítať po položkách (kvôli 625005)
+            if not socialne_klas[pp] in socialne_zam:
+                socialne_zam[socialne_klas[pp]] = ws.cell(row=socialne[pp], column=col0).value / 100 
+            else:
+                socialne_zam[socialne_klas[pp]] += ws.cell(row=socialne[pp], column=col0).value / 100 
 
-        if not socialne_klas[pp] in socialne_prac:
-            socialne_prac[socialne_klas[pp]] = ws.cell(row=socialne[pp], column=col0+1).value / 100 
-        else:
-            socialne_prac[socialne_klas[pp]] += ws.cell(row=socialne[pp], column=col0+1).value / 100 
+            if not socialne_klas[pp] in socialne_prac:
+                socialne_prac[socialne_klas[pp]] = ws.cell(row=socialne[pp], column=col0+1).value / 100 
+            else:
+                socialne_prac[socialne_klas[pp]] += ws.cell(row=socialne[pp], column=col0+1).value / 100 
     for pp in zdravotne:
         zdravotne_zam[pp] = ws.cell(row=zdravotne[pp], column=col0).value / 100 
         zdravotne_prac[pp] = ws.cell(row=zdravotne[pp], column=col0+1).value / 100
     return socialne_zam, socialne_prac, zdravotne_zam, zdravotne_prac
 
 # vodmena: vyňatá odmena na základe odvodovej výnimky
-def DohodarOdvody(meno_suboru, odmena, typ, datum, vodmena):
+def DohodarOdvody(odmena, typ, datum, vodmena):
     if typ in ["DoBPS", "StarDoch", "InvDoch"] and vodmena > 0:
         if odmena > vodmena:    #veľké odvody, nad sumou vodmena
-            ts_z1, ts_p1, tz_z1, tz_p1 = TabulkaOdvodov(meno_suboru, "dohodar", typ, datum)
-            ts_z, ts_p, tz_z, tz_p = TabulkaOdvodov(meno_suboru, "dohodar", typ, datum, vynimka=True)
+            ts_z1, ts_p1, tz_z1, tz_p1 = TabulkaOdvodov("dohodar", typ, datum)
+            ts_z, ts_p, tz_z, tz_p = TabulkaOdvodov("dohodar", typ, datum, vynimka=True)
             for item1, item in zip(ts_z1, ts_z): 
                 ts_z[item] = round((odmena-vodmena)*ts_z1[item]+vodmena*ts_z[item], 2)
             for item1, item in zip(ts_p1, ts_p): 
@@ -158,13 +171,13 @@ def DohodarOdvody(meno_suboru, odmena, typ, datum, vodmena):
                 tz_p[item] = round((odmena-vodmena)*tz_p1[item]+vodmena*tz_p[item], 2)
         # malé odvody
         else:
-            ts_z, ts_p, tz_z, tz_p = TabulkaOdvodov(meno_suboru, "dohodar", typ, datum, vynimka=True)
+            ts_z, ts_p, tz_z, tz_p = TabulkaOdvodov("dohodar", typ, datum, vynimka=True)
             for item in ts_z: ts_z[item] = round(odmena*ts_z[item], 2)
             for item in ts_p: ts_p[item] = round(odmena*ts_p[item], 2)
             for item in tz_z: tz_z[item] = round(odmena*tz_z[item], 2)
             for item in tz_p: tz_p[item] = round(odmena*tz_p[item], 2)
     else:
-        ts_z, ts_p, tz_z, tz_p = TabulkaOdvodov(meno_suboru, "dohodar", typ, datum)
+        ts_z, ts_p, tz_z, tz_p = TabulkaOdvodov("dohodar", typ, datum)
         for item in ts_z: 
             ts_z[item] = round(odmena*ts_z[item], 2)
         for item in ts_p: 
@@ -175,23 +188,26 @@ def DohodarOdvody(meno_suboru, odmena, typ, datum, vodmena):
             tz_p[item] = round(odmena*tz_p[item], 2)
     return ts_z, ts_p, tz_z, tz_p
 
-def DohodarOdvodySpolu(meno_suboru, odmena, typ, datum, vodmena):
-    socialne_zam, socialne_prac, zdravotne_zam, zdravotne_prac = DohodarOdvody(meno_suboru, odmena, typ, datum, vodmena)
+def DohodarOdvodySpolu(odmena, typ, datum, vodmena):
+    socialne_zam, socialne_prac, zdravotne_zam, zdravotne_prac = DohodarOdvody(odmena, typ, datum, vodmena)
     return sum(socialne_zam.values()), sum(socialne_prac.values()), sum(zdravotne_zam.values()), sum(zdravotne_prac.values())
 
-def ZamestnanecOdvody(meno_suboru, odmena, typ, datum):
-    ts_z, ts_p, tz_z, tz_p = TabulkaOdvodov(meno_suboru, "zamestnanec", typ, datum)
+def ZamestnanecOdvody(odmena, typ, datum, vylucitelnost=False):
+    if vylucitelnost:
+        #trace()
+        pass
+    ts_z, ts_p, tz_z, tz_p = TabulkaOdvodov("zamestnanec", typ, datum, vylucitelnost=vylucitelnost)
+    #for item in ts_z: ts_z[item] = round(odmena*ts_z[item], 2)
     for item in ts_z: 
         aodmena = odmena if item == socialne_klas['urazove'] else min(odmena, MAX_VZ[datum.year])
-        aodmena = aodmena if aodmena > MIN_VZ else 0 
         ts_z[item] = round(aodmena*ts_z[item], 2)
     for item in ts_p: ts_p[item] = round(odmena*ts_p[item], 2)
     for item in tz_z: tz_z[item] = round(odmena*tz_z[item], 2)
     for item in tz_p: tz_p[item] = round(odmena*tz_p[item], 2)
     return ts_z, ts_p, tz_z, tz_p
 
-def ZamestnanecOdvodySpolu(meno_suboru, odmena, typ, datum):
-    socialne_zam, socialne_prac, zdravotne_zam, zdravotne_prac = ZamestnanecOdvody(meno_suboru, odmena, typ, datum)
+def ZamestnanecOdvodySpolu(odmena, typ, datum, vylucitelnost):
+    socialne_zam, socialne_prac, zdravotne_zam, zdravotne_prac = ZamestnanecOdvody(odmena, typ, datum, vylucitelnost)
     return sum(socialne_zam.values()), sum(socialne_prac.values()), sum(zdravotne_zam.values()), sum(zdravotne_prac.values())
 
 smeno = '/home/milos/Beliana/Django/enu_django-dev/data/Subory/SablonyASubory/OdvodyZamestnanciDohodari.xlsx'
