@@ -228,12 +228,12 @@ class CerpanieRozpoctuAdmin(ModelAdminTotals):
         md1list = [date(rok, mm+1, 1) for mm in range(12)]
         md1list.append(date(rok+1, 1, 1))
 
-        typyOstatne = [PravidelnaPlatba, PrijataFaktura, DoVP, DoPC, PlatbaAutorskaSumar, VytvarnaObjednavkaPlatba, NajomneFaktura, PrispevokNaStravne, RozpoctovaPolozka, PlatbaBezPrikazu, Pokladna, PrispevokNaRekreaciu,InternyPrevod]
+        typyOstatne = [PravidelnaPlatba, PrijataFaktura, PlatbaAutorskaSumar, VytvarnaObjednavkaPlatba, NajomneFaktura, PrispevokNaStravne, RozpoctovaPolozka, PlatbaBezPrikazu, Pokladna, PrispevokNaRekreaciu,InternyPrevod]
 
         cerpanie_rok = defaultdict(dict)
         polozky_riadok = []
         for zden in md1list[:-1]:    # po mesiacoch
-            polozky_riadok, cerpanie_rok = generovat_mzdove(polozky_riadok, cerpanie_rok, request, zden)
+            cerpanie_rok = generovat_mzdove(request, zden)
 
             for typ in typyOstatne:
                 for polozka in typ.objects.filter():
@@ -253,6 +253,8 @@ class CerpanieRozpoctuAdmin(ModelAdminTotals):
                                                item['ekoklas'].kod
                                                ])
 
+                        #Unfinished
+                        trace()
                         if not identif in cerpanie_rok:
                             cerpanie_rok[identif] = item
                             cerpanie_rok[identif]['zden'] = zden
@@ -431,7 +433,7 @@ def generovat_mzdove(request, zden):
 
     polozky_socfond =       vymer_odmena
     polozky_dds =           vymer_odmena + ["Plat odchodné", "Plat odstupné"]
-    polozky_soczdrav_zam =  vymer_odmena + ["Náhrada mzdy - osobné prekážky", "Náhrada mzdy - dovolenka"]
+    polozky_soczdrav_zam =  vymer_odmena + ["Náhrada mzdy - osobné prekážky", "Náhrada mzdy - dovolenka", "Plat odchodné", "Plat odstupné"]
     polozky_soczdrav_dovp = ["DoVP odmena"]
     polozky_soczdrav_dopc = ["DoPC odmena"]
     polozka_vylucitelnost = ["Plat tarifný plat"]   #0 znamená, že zamestnane celý mesiac nepracoval, teda bol vylúčiteľný (bol na PN)
@@ -465,8 +467,6 @@ def generovat_mzdove(request, zden):
                 zaklad_soczdrav_dopc += item['suma']
                 dohoda_vynimka = AnoNie.ANO if item['vynimka'] == AnoNie.ANO else dohoda_vynimka    #pre prípad, že má dohodár, ktorý si uplatňuje výnimku, viac dohôd
 
-        print(meno,zaklad_soczdrav_zam) 
-    
         #Výpočet položiek, ktoré sa rátajú zo sumárnych hodnôt
         if type(osoba) == Zamestnanec and osoba.dds == AnoNie.ANO:
             if not osoba.dds_od:
@@ -475,15 +475,11 @@ def generovat_mzdove(request, zden):
                 dds_od = date(osoba.dds_od.year, osoba.dds_od.month, 1)
             if zden >= dds_od:
                 cerpanie = cerpanie + gen_dds(osoba, zaklad_dds, zden, PlatovyVymer.td_konv(osoba))
-        if "Nitry" in meno:
-            #trace()
-            pass
         cerpanie = cerpanie + gen_socfond(osoba, zaklad_socfond, zden)
         vylucitelnost = False if zaklad_vylucitelnost else True
         cerpanie = cerpanie + gen_soczdrav(osoba, "plat", zaklad_soczdrav_zam, zden, PlatovyVymer.td_konv(osoba), vylucitelnost=vylucitelnost)
         cerpanie = cerpanie + gen_soczdrav(osoba, "dovp", zaklad_soczdrav_dovp, zden, DoVP.td_konv(osoba), vynimka=dohoda_vynimka)
         cerpanie = cerpanie + gen_soczdrav(osoba, "dopc", zaklad_soczdrav_dopc, zden, DoPC.td_konv(osoba), vynimka=dohoda_vynimka)
-
     return cerpanie
 
 #Generovať položky pre socialne a zdravotne poistenie
