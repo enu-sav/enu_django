@@ -281,6 +281,19 @@ class PlatovaRekapitulacia(models.Model):
             storage=OverwriteStorage(), 
             upload_to=pr_file_path
             )
+    rozdiel_minus = models.DecimalField("Max. záporný rozdiel",
+            help_text = "Vypočíta sa akciou 'Porovnať mzdové údaje s platovou rekapituláciou'",
+            max_digits=8, 
+            decimal_places=2, 
+            null=True,
+            blank=True)
+    rozdiel_plus = models.DecimalField("Max. kladný rozdiel",
+            help_text = "Vypočíta sa akciou 'Porovnať mzdové údaje s platovou rekapituláciou'",
+            max_digits=8, 
+            decimal_places=2, 
+            null=True,
+            blank=True)
+
     history = HistoricalRecords()
     class Meta:
         verbose_name = 'Platová rekapitulácia'

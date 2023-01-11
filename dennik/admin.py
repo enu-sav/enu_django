@@ -11,12 +11,15 @@ from django.utils import timezone
 from django.contrib import messages
 from zmluvy.models import ZmluvaAutor, ZmluvaGrafik, VytvarnaObjednavkaPlatba, PlatbaAutorskaSumar
 from uctovnictvo.models import Objednavka, PrijataFaktura, PrispevokNaStravne, DoVP, DoPC, DoBPS
-from uctovnictvo.models import PlatovyVymer, PravidelnaPlatba, NajomneFaktura, InternyPrevod
+from uctovnictvo.models import PlatovyVymer, PravidelnaPlatba, NajomneFaktura, InternyPrevod, Poistovna
 from uctovnictvo.models import RozpoctovaPolozka, PlatbaBezPrikazu, Pokladna, PrispevokNaRekreaciu, OdmenaOprava
+from uctovnictvo.models import TypDochodku, AnoNie, Zdroj, TypZakazky, EkonomickaKlasifikacia, Zamestnanec, SystemovySubor
+from uctovnictvo.odvody import Poistne
 import re
 from import_export.admin import ImportExportModelAdmin
 from datetime import date
 from collections import defaultdict
+from beliana.settings import DDS_PRISPEVOK, SOCFOND_PRISPEVOK, ODVODY_VYNIMKA
 
 from admin_totals.admin import ModelAdminTotals
 from django.db.models import Sum
@@ -206,7 +209,7 @@ class CerpanieRozpoctuAdmin(ModelAdminTotals):
                     if not cc in fw: fw[cc] = 0
                     if fw[cc] < 12: fw[cc] = 12 
                 else:
-                    ws.cell(row=riadok, column=cc+1).value = str(value)
+                    ws.cell(row=riadok, column=cc+1).value = value
                     if not cc in fw: fw[cc] = 0
                     if fw[cc] < len(str(value))+2: fw[cc] = len(str(value))+2
     
@@ -225,55 +228,79 @@ class CerpanieRozpoctuAdmin(ModelAdminTotals):
         md1list = [date(rok, mm+1, 1) for mm in range(12)]
         md1list.append(date(rok+1, 1, 1))
 
-        cerpanie = defaultdict(dict)
+        typyOstatne = [PravidelnaPlatba, PrijataFaktura, PlatbaAutorskaSumar, VytvarnaObjednavkaPlatba, NajomneFaktura, PrispevokNaStravne, RozpoctovaPolozka, PlatbaBezPrikazu, Pokladna, PrispevokNaRekreaciu,InternyPrevod]
+
+        cerpanie_spolu = defaultdict(dict) # Obsah cerpanie_spolu zapísať do databázy a do hárka Prehľad
+        polozky_riadok = [] #individuálne položky do hárka Položky
+        for zden in md1list[:-1]:    # po mesiacoch
+            #Načítať jednotlivé položky
+            cerpanie_mzdove = generovat_mzdove(request, zden, rekapitulacia=False)
+            cerpanie_ostatne = []
+            for typ in typyOstatne:
+                for polozka in typ.objects.filter():
+                    data = polozka.cerpanie_rozpoctu(zden)
+                    cerpanie_ostatne += data
+
+            #Vytvoriť sumárne
+            for item in cerpanie_mzdove+cerpanie_ostatne:
+                #na rozlíšenie podtypov poistenia
+                item['nazov'] = item['podnazov'] if 'podnazov' in item else item['nazov']
+                identif = f"{item['nazov']} {item['zdroj']} {item['zakazka']} {item['ekoklas']} {zden}"
+                print(item)
+                polozky_riadok.append([item['nazov'],
+                                       item['suma'],
+                                       item['subjekt'] if "subjekt" in item else "",
+                                       item['datum'] if "datum" in item else "",
+                                       item['cislo'], 
+                                       item['zdroj'].kod,
+                                       item['zakazka'].kod,
+                                       item['ekoklas'].kod
+                                       ])
+
+                if not identif in cerpanie_spolu:
+                    cerpanie_spolu[identif] = item
+                    cerpanie_spolu[identif]['zden'] = zden
+                    nazov = item['podnazov'] if 'podnazov' in item else item['nazov']
+                else:
+                    cerpanie_spolu[identif]['suma'] += item['suma']
+                if 'poznamka' in  item:
+                    messages.warning(request, format_html(item['poznamka']))
+
+        #Obsah poľa polozky_riadok zapísať do hárka Položky
         nazvy = ["Názov", "Suma", "Subjekt", "Dátum", "Číslo", "Zdroj", "Zákazka", "Klasifikácia"]
-        fw = {}
+        fw = {} #field width
         zapisat_riadok(ws_polozky, fw, 1, nazvy, header=True)
         riadok=2
-        #for fn in enumerate(nazvy): fw[fn[0]]=len(fn[1])
-
-        typy = [PravidelnaPlatba, PlatovyVymer, OdmenaOprava, PrijataFaktura, DoVP, DoPC, PlatbaAutorskaSumar, VytvarnaObjednavkaPlatba, NajomneFaktura, PrispevokNaStravne, RozpoctovaPolozka, PlatbaBezPrikazu, Pokladna, PrispevokNaRekreaciu,InternyPrevod]
-        for typ in typy:
-            for polozka in typ.objects.filter():
-                for md1 in md1list[:-1]:
-                    data = polozka.cerpanie_rozpoctu(md1)
-                    for item in data:
-                        if item['nazov'] == "Dotácia":
-                            #print(item)
-                            #trace()
-                            pass
-                        identif = f"{item['nazov']} {item['zdroj'].kod} {item['zakazka'].kod} {item['ekoklas'].kod}, {md1}"
-                        polozky = [item['nazov'], item['suma'], item['subjekt'] if "subjekt" in item else "", item['datum'] if "datum" in item else "", item['cislo'], item['zdroj'].kod, item['zakazka'].kod, item['ekoklas'].kod]
-                        zapisat_riadok(ws_polozky, fw, riadok, polozky)
-                        riadok +=1
-
-                        if not identif in cerpanie:
-                            cerpanie[identif] = item
-                            cerpanie[identif]['md1'] = md1
-                        else:
-                            cerpanie[identif]['suma'] += item['suma']
-                        if 'poznamka' in  item:
-                            messages.warning(request, format_html(item['poznamka']))
+        for priadok in polozky_riadok:
+            if priadok[1] == 0: continue    #nezapisovať nulové položky
+            zapisat_riadok(ws_polozky, fw, riadok, priadok)
+            riadok+=1
         for cc in fw:
             ws_polozky.column_dimensions[get_column_letter(cc+1)].width = fw[cc]
 
-        # zapísať do databázy a do ws_prehlad
+        # Obsah cerpanie_spolu zapísať do databázy a do ws_prehlad
         nazvy = ["Názov", "Mesiac", "Suma", "Zdroj", "Zákazka", "Klasifikácia"]
-        fw = {}
+        fw = {} #field width
         zapisat_riadok(ws_prehlad, fw, 1, nazvy, header=True)
         riadok=2
         # Ak ide o Dotáciu, nepriradiť dátum
-        for item in cerpanie:
+        for item in cerpanie_spolu:
             cr = CerpanieRozpoctu (
                 unikatny = item,
-                polozka = cerpanie[item]['nazov'],
-                mesiac = None if "Dotácia" in item else cerpanie[item]['md1'],
-                suma = cerpanie[item]['suma'],
-                zdroj = cerpanie[item]['zdroj'],
-                zakazka = cerpanie[item]['zakazka'],
-                ekoklas = cerpanie[item]['ekoklas'],
+                polozka = cerpanie_spolu[item]['nazov'],
+                mesiac = None if "Dotácia" in item else cerpanie_spolu[item]['zden'],
+                suma = cerpanie_spolu[item]['suma'],
+                zdroj = cerpanie_spolu[item]['zdroj'],
+                zakazka = cerpanie_spolu[item]['zakazka'],
+                ekoklas = cerpanie_spolu[item]['ekoklas'],
                 ).save()
-            polozky = [cerpanie[item]['nazov'], cerpanie[item]['md1'], cerpanie[item]['suma'], cerpanie[item]['zdroj'].kod, cerpanie[item]['zakazka'].kod, cerpanie[item]['ekoklas'].kod]
+            polozky = [cerpanie_spolu[item]['nazov'],
+                       cerpanie_spolu[item]['zden'],
+                       cerpanie_spolu[item]['suma'],
+                       cerpanie_spolu[item]['zdroj'].kod,
+                       cerpanie_spolu[item]['zakazka'].kod,
+                       cerpanie_spolu[item]['ekoklas'].kod
+                       ]
             zapisat_riadok(ws_prehlad, fw, riadok, polozky)
             riadok +=1
         for cc in fw:
@@ -293,11 +320,12 @@ class CerpanieRozpoctuAdmin(ModelAdminTotals):
 
 @admin.register(PlatovaRekapitulacia)
 class PlatovaRekapitulaciaAdmin(ModelAdminTotals):
-    list_display = ["identifikator","subor"]
+    list_display = ["identifikator","subor", "rozdiel_minus", "rozdiel_plus"]
     search_fields = ["^identifikator"]
     actions = ["kontrola_rekapitulacie"]
 
-    def kontrola_rekapitulacie(self, request, queryset):
+    #queryset: zoznam mesiacov, za ktoré treba spraviť rekapituláciu
+    def kontrola_rekapitulacie(self, request, queryset):    
         def zapisat_riadok(ws, fw, riadok, polozky, header=False):
             for cc, value in enumerate(polozky):
                 ws.cell(row=riadok, column = cc+1).value = value 
@@ -312,27 +340,27 @@ class PlatovaRekapitulaciaAdmin(ModelAdminTotals):
                     if not cc in fw: fw[cc] = 0
                     if fw[cc] < 12: fw[cc] = 12 
                 else:
-                    ws.cell(row=riadok, column=cc+1).value = str(value)
+                    ws.cell(row=riadok, column=cc+1).value = value
+                    ws.cell(row=riadok, column=cc+1).number_format="0.00"
                     if not cc in fw: fw[cc] = 0
                     if fw[cc] < len(str(value))+2: fw[cc] = len(str(value))+2
         polozky= {
-            "Tarifný plat": ["Tarifný plat spolu", 1 ],
-            "Osobný príplatok": ["Osobný príplatok", 1],
-            "Príplatok za riadenie": ["Príplatok za riadenie", 1],
-            "Dovolenka": ["Dovolenka", 1],
-            "Prekážky osobné": [ "Prekážky osobné", 1],
-            "DoPC": ["Dohody o pracovnej činnosti", 1],
-            "DoVP": ["Dohody o vykonaní práce", 1],
+            #"Stravné": ["Fin.prísp.na stravu z-teľ", 0],
+            "Plat tarifný plat": ["Tarifný plat spolu", 1 ],
+            "Plat osobný príplatok": ["Osobný príplatok", 1],
+            "Plat príplatok za riadenie": ["Príplatok za riadenie", 1],
+            "Náhrada mzdy - dovolenka": ["Dovolenka", 1],
+            "Náhrada mzdy - osobné prekážky": [ "Prekážky osobné", 1],
+            "Náhrada mzdy - PN": ["Náhrada príjmu pri DPN", 1],
+            "Plat odmena": ["Odmeny spolu", 0],
+            "Plat odchodné": ["Odchodné", 0],
+            "DoPC odmena": ["Dohody o pracovnej činnosti", 1],
+            "DoVP odmena": ["Dohody o vykonaní práce", 1],
             "Sociálny fond": ["Sociálny fond", 2],
-            #"Príspevok na stravu": ["Fin.prísp.na stravu z-teľ", 0],
             "Zdravotné poistné": ["Zdravotné poistné spolu", 2],
             "Sociálne poistné": ["Sociálne poistné spolu", 1],
-            "DDS": ["Doplnkové dôchodkové sporenie spolu", 1],
-            "Odmeny": ["Odmeny spolu", 0],
-            "DPN": ["Náhrada príjmu pri DPN", 1],
+            "DDS príspevok": ["Doplnkové dôchodkové sporenie spolu", 1],
             }
-        #typy = [PlatovyVymer, DoVP, DoPC, PrispevokNaStravne, PrispevokNaRekreaciu]
-        typy = [PlatovyVymer, OdmenaOprava, DoVP, DoPC]
         #Vytvoriť workbook
         file_name = f"KontrolaRekapitulacie-{date.today().isoformat()}"
         wb = Workbook()
@@ -340,53 +368,59 @@ class PlatovaRekapitulaciaAdmin(ModelAdminTotals):
         ws_prehlad.title = "Prehľad"
         harky={}
         fw ={}  #Šírka poľa
-        zapisat_riadok(ws_prehlad, fw, 1, ["Mesiac", "Softip", "Django", "Rozdiel"], header=True) 
-        for qn, qs in enumerate(queryset):
-            ws = wb.create_sheet(title=qs.identifikator)
+        zapisat_riadok(ws_prehlad, fw, 1, ["Mesiac", "Softip", "Django", "Rozdiel mínus", "Rozdiel plus"], header=True) 
+        for qn, za_mesiac in enumerate(sorted(queryset, key=lambda x: x.identifikator)):  #queryset: zoznam mesiacov, za ktoré treba spraviť rekapituláciu
+            ws = wb.create_sheet(title=za_mesiac.identifikator)
             zapisat_riadok(ws, fw, 1, ["Položka", "Softip", "Django", "Rozdiel"], header=True) 
             #datum
 
             #Načítať dáta z Djanga
             #Dátum pre čerpanie
-            datum=date(int(qs.identifikator[:4]), int(qs.identifikator[-2:]), 1)
-            cerpanie = {}
-            for typ in typy:
-                for polozka in typ.objects.filter():
-                    data = polozka.cerpanie_rozpoctu(datum)
-                    for item in data:
-                        identif = item['rekapitulacia']
-                        if not identif: 
-                            continue  #vyplácanie DoVP interným prevodom
-                        if not identif in cerpanie:
-                            cerpanie[identif] = item['suma']
-                        else:
-                            cerpanie[identif] += item['suma']
-                        if 'poznamka' in item:
-                            messages.warning(request, format_html(item['poznamka']))
+            datum=date(int(za_mesiac.identifikator[:4]), int(za_mesiac.identifikator[-2:]), 1)
+            cerpanie = generovat_mzdove(request, datum, rekapitulacia=True)
+
+            #Spočítať po typoch
+            sumarne={}
+            for item in cerpanie:
+                sumarne[item['nazov']] = Decimal(sumarne[item['nazov']]) + Decimal(item['suma']) if item['nazov'] in sumarne else item['suma']
+                pass
 
             #Načítať dáta z pdf a vyplniť hárok
-            fd=open(qs.subor.path, "rb")
+            fd=open(za_mesiac.subor.path, "rb")
             pdf = PdfFileReader(fd)
             s0 = pdf.getPage(0)
-            text = s0.extractText()
+            pdftext = s0.extractText()
+            rozdiel_minus = 0
+            rozdiel_plus = 0
             for nn, polozka in enumerate(polozky):
-                rr=re.findall(r"%s.*"%polozky[polozka][0], text)
+                rr=re.findall(r"%s.*"%polozky[polozka][0], pdftext)
                 if rr:
                     rslt = re.findall(r"[\d,\d]+", rr[0])
+                    zo_suboru = round(Decimal(rslt[polozky[polozka][1]].replace(",",".")),2)
+                    z_databazy = -round(Decimal(sumarne[polozka]),2) if polozka in sumarne else 0
                     zapisat = [
                         polozka, 
-                        round(Decimal(rslt[polozky[polozka][1]].replace(",",".")),2), 
-                        cerpanie[polozka] if polozka in cerpanie else "",
-                        f"=B{nn+2}+C{nn+2}"
+                        zo_suboru,
+                        z_databazy,
+                        f"=B{nn+2}-C{nn+2}"
                         ]
                     zapisat_riadok(ws, fw, nn+2, zapisat)
+                    if  zo_suboru-z_databazy < 0:
+                        rozdiel_minus = min(rozdiel_minus, zo_suboru-z_databazy)
+                    else:
+                        rozdiel_plus = max(rozdiel_plus, zo_suboru-z_databazy)
                 else:
                     zapisat_riadok(ws, fw, nn+2, [polozka])
             nn+=1
             zapisat_riadok(ws, fw, nn+2, ["Spolu",f"=sum(B2:B{nn+1}",f"=sum(C2:C{nn+1}",f"=sum(D2:D{nn+1}"])
             for cc in fw:
                 ws.column_dimensions[get_column_letter(cc+1)].width = fw[cc]
-            zapisat_riadok(ws_prehlad, fw, qn+2, [qs.identifikator, f"='{qs.identifikator}'!B{len(polozky)+2}", f"='{qs.identifikator}'!C{len(polozky)+2}", f"='{qs.identifikator}'!D{len(polozky)+2}"])
+            zapisat_riadok(ws_prehlad, fw, qn+2, [za_mesiac.identifikator, f"='{za_mesiac.identifikator}'!B{len(polozky)+2}", f"='{za_mesiac.identifikator}'!C{len(polozky)+2}", rozdiel_minus, rozdiel_plus])
+            #Uložiť do databázy
+            za_mesiac.rozdiel_plus=rozdiel_plus
+            za_mesiac.rozdiel_minus=rozdiel_minus
+            za_mesiac.save()
+            
 
         #Uložiť a zobraziť 
         response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
@@ -396,3 +430,199 @@ class PlatovaRekapitulaciaAdmin(ModelAdminTotals):
     kontrola_rekapitulacie.short_description = "Porovnať mzdové údaje s platovou rekapituláciou"
     #Oprávnenie na použitie akcie, viazané na 'change'
     kontrola_rekapitulacie.allowed_permissions = ('change',)
+
+# Generovať sumáre mzdové položky
+def generovat_mzdove(request, zden, rekapitulacia):
+    #Po osobách (zamestnanci a dohodári) vytvoriť zoznam všetkých relevantných položiek
+    po_osobach = defaultdict(list)
+    for typ in [PlatovyVymer, OdmenaOprava, DoPC, DoVP, DoBPS]:
+        for polozka in typ.objects.filter():
+            data = polozka.cerpanie_rozpoctu(zden)
+            if not data: continue   #netýka sa akuálneho mesiaca
+            for item in data:
+                po_osobach[item['subjekt']].append(item)
+                if 'poznamka' in  item:
+                    messages.warning(request, format_html(item['poznamka']))
+
+    #Položky, ktoré sa počítajú z celkového príjmu
+    #Položky, ktoré definujú položky pre výpočet vymeriavacích základov
+    vymer_odmena = ["Plat tarifný plat", "Plat osobný príplatok", "Plat príplatok za riadenie", "Plat odmena"]
+    nahrady = ["Náhrada mzdy - osobné prekážky", "Náhrada mzdy - dovolenka", "Náhrada mzdy - PN"]
+
+    polozky_socfond =       vymer_odmena
+    polozky_dds =           vymer_odmena + ["Plat odchodné", "Plat odstupné"]
+    polozky_soczdrav_zam =  vymer_odmena + ["Náhrada mzdy - osobné prekážky", "Náhrada mzdy - dovolenka", "Plat odchodné", "Plat odstupné"]
+    polozky_soczdrav_dopc = ["DoPC odmena"]
+    if rekapitulacia:
+        polozky_soczdrav_dovp = ["DoVP odmena"]
+    else:
+        polozky_soczdrav_dovp = ["DoVP odmena", "DoVP odmena (int. prevod)"]
+
+    polozka_vylucitelnost = ["Plat tarifný plat"]   #0 znamená, že zamestnane celý mesiac nepracoval, teda bol vylúčiteľný (bol na PN)
+
+    cerpanie = []   #zoznam poloziel cerpania
+    for meno in po_osobach:
+        #celková odmena
+        osoba = po_osobach[meno][0]['osoba']
+        zaklad_dds = 0
+        zaklad_socfond = 0
+        zaklad_soczdrav_zam = 0
+        zaklad_soczdrav_dovp = 0
+        zaklad_soczdrav_dopc = 0
+        zaklad_vylucitelnost = 0
+        zam_zdroj = None
+        zam_zakazka = None
+        dopc_zdroj = None
+        dopc_zakazka = None
+        dovp_zdroj = None
+        dovp_zakazka = None
+        dohoda_vynimka = AnoNie.NIE
+        #Vytvoriť čiastočný zoznam položiek čerpania s položkami, ktoré sa prenášajú priamo, a vypočítať sumáre na výpočet ostatných
+        for item in po_osobach[meno]:
+            print(meno, item['zdroj'], item['zakazka'])
+            if "Kvas" in meno and zden == date(2022, 11, 1):
+                #trace()
+                pass
+            cerpanie.append(item)
+            if item['nazov'] in polozka_vylucitelnost:
+                zaklad_vylucitelnost += item['suma']
+            if item['nazov'] in polozky_dds:
+                zaklad_dds += item['suma']
+            if item['nazov'] in polozky_socfond:
+                zaklad_socfond += item['suma']
+            if item['nazov'] in polozky_soczdrav_zam:
+                zaklad_soczdrav_zam += item['suma']
+                zam_zdroj = item['zdroj']
+                zam_zakazka = item['zakazka']
+            if item['nazov'] in polozky_soczdrav_dovp:
+                zaklad_soczdrav_dovp += item['suma']
+                dovp_zdroj = item['zdroj']
+                dovp_zakazka = item['zakazka']
+                dohoda_vynimka = AnoNie.ANO if item['vynimka'] == AnoNie.ANO else dohoda_vynimka    #pre prípad, že má dohodár, ktorý si uplatňuje výnimku, viac dohôd
+            if item['nazov'] in polozky_soczdrav_dopc:
+                zaklad_soczdrav_dopc += item['suma']
+                dopc_zdroj = item['zdroj']
+                dopc_zakazka = item['zakazka']
+                dohoda_vynimka = AnoNie.ANO if item['vynimka'] == AnoNie.ANO else dohoda_vynimka    #pre prípad, že má dohodár, ktorý si uplatňuje výnimku, viac dohôd
+
+        #Výpočet položiek, ktoré sa rátajú zo sumárnych hodnôt
+        smeno = '/home/milos/Beliana/Django/enu_django-dev/data/Subory/SablonyASubory/OdvodyZamestnanciDohodari.xlsx'
+        #Načítať súbor s údajmi o odvodoch
+        nazov_objektu = "Odvody zamestnancov a dohodárov"  #Presne takto musí byť objekt pomenovaný
+        objekt = SystemovySubor.objects.filter(subor_nazov = nazov_objektu)
+        if not objekt:
+            return f"V systéme nie je definovaný súbor '{nazov_objektu}'."
+        poistne = Poistne(objekt[0].subor.file.name)
+        if type(osoba) == Zamestnanec and osoba.dds == AnoNie.ANO:
+            if not osoba.dds_od:
+                messages.warning(request, f"Vypočítaná suma výšky príspevku do DDS je nesprávna. V údajoch zamestnanca '{osoba}' treba vyplniť pole 'DDS od'")
+            else: # Príspevok do DDS sa vypláca od 1. dňa mesiaca, keď bola uzatvorena dohoda
+                dds_od = date(osoba.dds_od.year, osoba.dds_od.month, 1)
+            if zden >= dds_od:
+                cerpanie = cerpanie + gen_dds(poistne, osoba, zaklad_dds, zden, PlatovyVymer.td_konv(osoba))
+        cerpanie = cerpanie + gen_socfond(osoba, zaklad_socfond, zden)
+        vylucitelnost = False if zaklad_vylucitelnost else True
+        if zam_zdroj:
+            cerpanie = cerpanie + gen_soczdrav(poistne, osoba, "Plat", zaklad_soczdrav_zam, zden, PlatovyVymer.td_konv(osoba), zam_zdroj, zam_zakazka, vylucitelnost=vylucitelnost)
+        if dovp_zdroj:
+            cerpanie = cerpanie + gen_soczdrav(poistne, osoba, "DoVP", zaklad_soczdrav_dovp, zden, DoVP.td_konv(osoba), dovp_zdroj, dovp_zakazka, vynimka=dohoda_vynimka)
+        if dopc_zdroj:
+            cerpanie = cerpanie + gen_soczdrav(poistne, osoba, "DoPC", zaklad_soczdrav_dopc, zden, DoPC.td_konv(osoba), dopc_zdroj, dopc_zakazka, vynimka=dohoda_vynimka)
+    return cerpanie
+
+#Generovať položky pre socialne a zdravotne poistenie
+def gen_soczdrav(poistne, osoba, typ, suma, zden, td_konv, zdroj, zakazka, vynimka=AnoNie.NIE, vylucitelnost=False):
+    subjekt = f"{osoba.priezvisko}, {osoba.meno}"
+    if typ == "Plat":
+        socpoist, _, zdravpoist, _ = poistne.ZamestnanecOdvody(-float(suma), td_konv, zden, vylucitelnost)
+    else:
+        socpoist, _, zdravpoist, _ = poistne.DohodarOdvody(-float(suma), td_konv, zden, ODVODY_VYNIMKA if vynimka == AnoNie.ANO else 0)
+    poistne=[]
+    for item in socpoist:
+        soc = {
+            "podnazov": f"{typ} poistenie sociálne",
+            "nazov": f"Sociálne poistné",
+            "suma": -round(Decimal(socpoist[item]),2),
+            "zdroj": zdroj,
+            "zakazka": zakazka,
+            "datum": zden,
+            "subjekt": subjekt,
+            "cislo": "-",
+            "ekoklas": EkonomickaKlasifikacia.objects.get(kod=item)
+        }
+        poistne.append(soc)
+    ekoklas = "621" if osoba.poistovna == Poistovna.VSZP else "623"
+    #Vytvoriť položku pre DDS - zdravotné
+    zdrav = {
+        "podnazov": f"{typ} poistenie zdravotné",
+        "nazov": f"Zdravotné poistné",
+        "suma": -round(Decimal(zdravpoist['zdravotne']),2),
+        "zdroj": zdroj,
+        "zakazka": zakazka,
+        "datum": zden,
+        "subjekt": subjekt,
+        "cislo": "-",
+        "ekoklas": EkonomickaKlasifikacia.objects.get(kod=ekoklas)
+        }
+    poistne.append(zdrav)
+    pass
+    return poistne
+
+#Generovať položky pre DDS
+def gen_dds(poistne, zamestnanec, suma, zden, td_konv):
+    subjekt = f"{zamestnanec.priezvisko}, {zamestnanec.meno}"
+
+    #Vytvoriť položku pre DDS
+    suma = DDS_PRISPEVOK*float(suma)/100
+    dds = {
+        "nazov": "DDS príspevok",
+        "suma": round(Decimal(suma),2),
+        "zdroj": Zdroj.objects.get(kod="111"),
+        "zakazka": TypZakazky.objects.get(kod="11010001 spol. zák."),
+        "datum": zden,
+        "subjekt": subjekt,
+        "cislo": "-",
+        "ekoklas": EkonomickaKlasifikacia.objects.get(kod="627")
+        }
+    _, _, zdravpoist, _ = poistne.ZamestnanecOdvody(suma, td_konv, zden)
+    ekoklas = "621" if zamestnanec.poistovna == Poistovna.VSZP else "623"
+    #Vytvoriť položku pre DDS - zdravotné
+    dds_zdrav = {
+        "podnazov": f"DDS poistenie zdravotné",
+        "nazov": "Zdravotné poistné",   #zdravotné poistné nemá strop, takže môžeme riešiť takto
+        "suma": round(Decimal(zdravpoist['zdravotne']),2),
+        "zdroj": Zdroj.objects.get(kod="111"),
+        "zakazka": TypZakazky.objects.get(kod="11010001 spol. zák."),
+        "datum": zden,
+        "subjekt": subjekt,
+        "cislo": "-",
+        "ekoklas": EkonomickaKlasifikacia.objects.get(kod=ekoklas)
+        }
+    return [dds, dds_zdrav]
+
+
+#Generovať položky pre socialny fond
+def gen_socfond(zamestnanec, suma, zden):
+    zdroj, zakazka = get_zdroj_zakazka(zden)
+    subjekt = f"{zamestnanec.priezvisko}, {zamestnanec.meno}"
+    suma = SOCFOND_PRISPEVOK*float(suma)/100
+    socfond = {
+        "nazov": "Sociálny fond",
+        "suma": round(Decimal(suma),2),
+        "zdroj": zdroj,
+        "zakazka": zakazka,
+        "datum": zden if zden < date.today() else None,
+        "subjekt": subjekt,
+        "cislo": "-",
+        "ekoklas": EkonomickaKlasifikacia.objects.get(kod="637016")
+        }
+    return [socfond]
+ 
+def get_zdroj_zakazka(zden):
+    if zden in [date(2022,1,1), date(2022,2,1)]:   #Počas tychto 3 mesiacov bolo všetko inak :D
+        zdroj = Zdroj.objects.get(kod="131L") 
+        zakazka = TypZakazky.objects.get(kod="131L0001")
+    else:
+        zdroj = Zdroj.objects.get(kod="111") 
+        zakazka = TypZakazky.objects.get(kod="11010001 spol. zák.")
+    return zdroj, zakazka

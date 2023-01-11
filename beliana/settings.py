@@ -187,11 +187,11 @@ ADMIN_EXPORT_ACTION = {
 }
 
 #Parametre
-ODVODY_VYNIMKA = 200    #Vyňatá mesačná suma v prípade, ak dohodár (dôchoidca alebo študent) o ňu požiada
+ODVODY_VYNIMKA = 200    #Vyňatá mesačná suma v prípade, ak dohodár (dôchodca alebo študent) o ňu požiada
 DAN_Z_PRIJMU = 19       #Daň z príjmu, 19 %
 DPH = 20                #DPH
 LITFOND_ODVOD = 0       #Odvod Literárnemu fondu, do konda r. 2021 0, inak 2 %
-MIN_VYPLATIT = 10       #minimálna suma v Eur, ktorá sa vypláca
+MIN_VYPLATIT = 10       #minimálna suma v Eur, ktorá sa vypláca v prípade autorov
 #UCET_ENU = "SK36 8180 0000 0070 0061 8734 - Beliana"    #nahradený
 UCET_ENU = "SK08 8180 0000 0070 0066 7544"
 UCET_LITFOND  = "SK47 0200 0000 0012 2545 9853" 
@@ -200,6 +200,14 @@ PN1= 55                 #náhrada mzdy za prvé 3 dni PN-ky
 PN2= 80                 #náhrada mzdy za dni 3 - 1- PN-ky
 DDS_PRISPEVOK=2         #Doplnkové dôchodkové sporenie, %
 SOCFOND_PRISPEVOK=1.5   #Sociálny fond, %
+
+#https://www.socpoist.sk/news/nove-vymeriavacie-zaklady-pre-platenie-poistneho-od-1-januara-2023-su-uz-zname
+#Maximum vymeriavacích základov pre sociálne poistenie zamestnancov
+MAX_VZ ={
+        2022:7931,
+        2023:8477
+        }
+#Ak má zamestnanec vyplatený príjem počas vylúčiteľnej doby (PN je vylučiteľná doba), ktorá trvá celý mesiac, zamestnávateľ odvedie iba úrazové a zdravotné poistenie z celého dosiahnutého zdaniteľného príjmu. Pozri https://www.kros.sk/forum/odmena-pocas-cerpania-pn/
 
 #Predvolené zobrazenie dátumu v admin
 from django.conf.locale.sk import formats as sk_formats
