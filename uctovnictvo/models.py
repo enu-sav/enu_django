@@ -6,7 +6,6 @@ from django.core.exceptions import ValidationError
 #https://django-simple-history.readthedocs.io/en/latest/admin.html
 from simple_history.models import HistoricalRecords
 from uctovnictvo.storage import OverwriteStorage
-from .odvody import DohodarOdvodySpolu, ZamestnanecOdvodySpolu, ZamestnanecOdvody, DohodarOdvody
 from .rokydni import mesiace, koef_neodprac_dni, prekryv_dni, prac_dni
 from polymorphic.models import PolymorphicModel
 from django.utils.safestring import mark_safe

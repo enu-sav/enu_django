@@ -13,8 +13,8 @@ from zmluvy.models import ZmluvaAutor, ZmluvaGrafik, VytvarnaObjednavkaPlatba, P
 from uctovnictvo.models import Objednavka, PrijataFaktura, PrispevokNaStravne, DoVP, DoPC, DoBPS
 from uctovnictvo.models import PlatovyVymer, PravidelnaPlatba, NajomneFaktura, InternyPrevod, Poistovna
 from uctovnictvo.models import RozpoctovaPolozka, PlatbaBezPrikazu, Pokladna, PrispevokNaRekreaciu, OdmenaOprava
-from uctovnictvo.models import TypDochodku, AnoNie, Zdroj, TypZakazky, EkonomickaKlasifikacia, Zamestnanec
-from uctovnictvo.odvody import ZamestnanecOdvody, DohodarOdvody
+from uctovnictvo.models import TypDochodku, AnoNie, Zdroj, TypZakazky, EkonomickaKlasifikacia, Zamestnanec, SystemovySubor
+from uctovnictvo.odvody import Poistne
 import re
 from import_export.admin import ImportExportModelAdmin
 from datetime import date
@@ -493,30 +493,37 @@ def generovat_mzdove(request, zden, rekapitulacia):
                 dohoda_vynimka = AnoNie.ANO if item['vynimka'] == AnoNie.ANO else dohoda_vynimka    #pre prípad, že má dohodár, ktorý si uplatňuje výnimku, viac dohôd
 
         #Výpočet položiek, ktoré sa rátajú zo sumárnych hodnôt
+        smeno = '/home/milos/Beliana/Django/enu_django-dev/data/Subory/SablonyASubory/OdvodyZamestnanciDohodari.xlsx'
+        #Načítať súbor s údajmi o odvodoch
+        nazov_objektu = "Odvody zamestnancov a dohodárov"  #Presne takto musí byť objekt pomenovaný
+        objekt = SystemovySubor.objects.filter(subor_nazov = nazov_objektu)
+        if not objekt:
+            return f"V systéme nie je definovaný súbor '{nazov_objektu}'."
+        poistne = Poistne(objekt[0].subor.file.name)
         if type(osoba) == Zamestnanec and osoba.dds == AnoNie.ANO:
             if not osoba.dds_od:
                 messages.warning(request, f"Vypočítaná suma výšky príspevku do DDS je nesprávna. V údajoch zamestnanca '{osoba}' treba vyplniť pole 'DDS od'")
             else: # Príspevok do DDS sa vypláca od 1. dňa mesiaca, keď bola uzatvorena dohoda
                 dds_od = date(osoba.dds_od.year, osoba.dds_od.month, 1)
             if zden >= dds_od:
-                cerpanie = cerpanie + gen_dds(osoba, zaklad_dds, zden, PlatovyVymer.td_konv(osoba))
+                cerpanie = cerpanie + gen_dds(poistne, osoba, zaklad_dds, zden, PlatovyVymer.td_konv(osoba))
         cerpanie = cerpanie + gen_socfond(osoba, zaklad_socfond, zden)
         vylucitelnost = False if zaklad_vylucitelnost else True
         if zam_zdroj:
-            cerpanie = cerpanie + gen_soczdrav(osoba, "Plat", zaklad_soczdrav_zam, zden, PlatovyVymer.td_konv(osoba), zam_zdroj, zam_zakazka, vylucitelnost=vylucitelnost)
+            cerpanie = cerpanie + gen_soczdrav(poistne, osoba, "Plat", zaklad_soczdrav_zam, zden, PlatovyVymer.td_konv(osoba), zam_zdroj, zam_zakazka, vylucitelnost=vylucitelnost)
         if dovp_zdroj:
-            cerpanie = cerpanie + gen_soczdrav(osoba, "DoVP", zaklad_soczdrav_dovp, zden, DoVP.td_konv(osoba), dovp_zdroj, dovp_zakazka, vynimka=dohoda_vynimka)
+            cerpanie = cerpanie + gen_soczdrav(poistne, osoba, "DoVP", zaklad_soczdrav_dovp, zden, DoVP.td_konv(osoba), dovp_zdroj, dovp_zakazka, vynimka=dohoda_vynimka)
         if dopc_zdroj:
-            cerpanie = cerpanie + gen_soczdrav(osoba, "DoPC", zaklad_soczdrav_dopc, zden, DoPC.td_konv(osoba), dopc_zdroj, dopc_zakazka, vynimka=dohoda_vynimka)
+            cerpanie = cerpanie + gen_soczdrav(poistne, osoba, "DoPC", zaklad_soczdrav_dopc, zden, DoPC.td_konv(osoba), dopc_zdroj, dopc_zakazka, vynimka=dohoda_vynimka)
     return cerpanie
 
 #Generovať položky pre socialne a zdravotne poistenie
-def gen_soczdrav(osoba, typ, suma, zden, td_konv, zdroj, zakazka, vynimka=AnoNie.NIE, vylucitelnost=False):
+def gen_soczdrav(poistne, osoba, typ, suma, zden, td_konv, zdroj, zakazka, vynimka=AnoNie.NIE, vylucitelnost=False):
     subjekt = f"{osoba.priezvisko}, {osoba.meno}"
     if typ == "Plat":
-        socpoist, _, zdravpoist, _ = ZamestnanecOdvody(-float(suma), td_konv, zden, vylucitelnost)
+        socpoist, _, zdravpoist, _ = poistne.ZamestnanecOdvody(-float(suma), td_konv, zden, vylucitelnost)
     else:
-        socpoist, _, zdravpoist, _ = DohodarOdvody(-float(suma), td_konv, zden, ODVODY_VYNIMKA if vynimka == AnoNie.ANO else 0)
+        socpoist, _, zdravpoist, _ = poistne.DohodarOdvody(-float(suma), td_konv, zden, ODVODY_VYNIMKA if vynimka == AnoNie.ANO else 0)
     poistne=[]
     for item in socpoist:
         soc = {
@@ -549,7 +556,7 @@ def gen_soczdrav(osoba, typ, suma, zden, td_konv, zdroj, zakazka, vynimka=AnoNie
     return poistne
 
 #Generovať položky pre DDS
-def gen_dds(zamestnanec, suma, zden, td_konv):
+def gen_dds(poistne, zamestnanec, suma, zden, td_konv):
     subjekt = f"{zamestnanec.priezvisko}, {zamestnanec.meno}"
 
     #Vytvoriť položku pre DDS
@@ -564,7 +571,7 @@ def gen_dds(zamestnanec, suma, zden, td_konv):
         "cislo": "-",
         "ekoklas": EkonomickaKlasifikacia.objects.get(kod="627")
         }
-    _, _, zdravpoist, _ = ZamestnanecOdvody(suma, td_konv, zden)
+    _, _, zdravpoist, _ = poistne.ZamestnanecOdvody(suma, td_konv, zden)
     ekoklas = "621" if zamestnanec.poistovna == Poistovna.VSZP else "623"
     #Vytvoriť položku pre DDS - zdravotné
     dds_zdrav = {
