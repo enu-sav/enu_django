@@ -24,18 +24,9 @@ class Poistne():
     #https://www.podnikajte.sk/socialne-a-zdravotne-odvody/odvody-z-dohody-2021
     #do roku 2021 sa neplatilo garancne poistenie
     def TabulkaOdvodov(self, zam_doh, typ, datum, vynimka=False, vylucitelnost=False):
-        #Načítať súbor s údajmi o odvodoch
-        nazov_objektu = "Odvody zamestnancov a dohodárov"  #Presne takto musí byť objekt pomenovaný
-        #objekt = SystemovySubor.objects.filter(subor_nazov = nazov_objektu)
-        #if not objekt:
-            #return f"V systéme nie je definovaný súbor '{nazov_objektu}'."
-        #workbook = load_workbook(filename=objekt[0].subor.file.name )
-        workbook = load_workbook(filename=smeno)
-    
-
         if zam_doh == "zamestnanec":
             if datum < date(2022,1,1):
-                ws = workbook["Zamestnanci"]
+                ws = self.workbook["Zamestnanci"]
                 if not ws:
                     return f"V súbore '{nazov_objektu}' sa nenachádza hárok 'Zamestnanci'."
                 socialne = {
@@ -50,7 +41,7 @@ class Poistne():
                     "zdravotne": 12,
                 }
             elif datum < date(2022,3,1):
-                ws = workbook["Zamestnanci"]
+                ws = self.workbook["Zamestnanci"]
                 if not ws:
                     return f"V súbore '{nazov_objektu}' sa nenachádza hárok 'Zamestnanci'."
                 socialne = {
@@ -66,7 +57,7 @@ class Poistne():
                     "zdravotne": 12,
                 }
             else:
-                ws = workbook["Zamestnanci 2022"]
+                ws = self.workbook["Zamestnanci 2022"]
                 if not ws:
                     return f"V súbore '{nazov_objektu}' sa nenachádza hárok 'Zamestnanci'."
                 socialne = {
@@ -97,7 +88,7 @@ class Poistne():
             else:
                 return f"Zadaný neplatný typ zamestnanca {typ}"
         else:   #dohodar
-            ws = workbook["Dohodári"]
+            ws = self.workbook["Dohodári"]
             if not ws:
                 return f"V súbore '{nazov_objektu}' sa nenachádza hárok 'Dohodári'."
             # riadky v tabulke s udajmi o poisteni podľa obdobia platnosti
