@@ -320,7 +320,7 @@ class CerpanieRozpoctuAdmin(ModelAdminTotals):
 
 @admin.register(PlatovaRekapitulacia)
 class PlatovaRekapitulaciaAdmin(ModelAdminTotals):
-    list_display = ["identifikator","subor"]
+    list_display = ["identifikator","subor", "rozdiel_minus", "rozdiel_plus"]
     search_fields = ["^identifikator"]
     actions = ["kontrola_rekapitulacie"]
 
@@ -368,15 +368,15 @@ class PlatovaRekapitulaciaAdmin(ModelAdminTotals):
         ws_prehlad.title = "Prehľad"
         harky={}
         fw ={}  #Šírka poľa
-        zapisat_riadok(ws_prehlad, fw, 1, ["Mesiac", "Softip", "Django", "Rozdiel"], header=True) 
-        for qn, qs in enumerate(sorted(queryset, key=lambda x: x.identifikator)):  #queryset: zoznam mesiacov, za ktoré treba spraviť rekapituláciu
-            ws = wb.create_sheet(title=qs.identifikator)
+        zapisat_riadok(ws_prehlad, fw, 1, ["Mesiac", "Softip", "Django", "Rozdiel mínus", "Rozdiel plus"], header=True) 
+        for qn, za_mesiac in enumerate(sorted(queryset, key=lambda x: x.identifikator)):  #queryset: zoznam mesiacov, za ktoré treba spraviť rekapituláciu
+            ws = wb.create_sheet(title=za_mesiac.identifikator)
             zapisat_riadok(ws, fw, 1, ["Položka", "Softip", "Django", "Rozdiel"], header=True) 
             #datum
 
             #Načítať dáta z Djanga
             #Dátum pre čerpanie
-            datum=date(int(qs.identifikator[:4]), int(qs.identifikator[-2:]), 1)
+            datum=date(int(za_mesiac.identifikator[:4]), int(za_mesiac.identifikator[-2:]), 1)
             cerpanie = generovat_mzdove(request, datum, rekapitulacia=True)
 
             #Spočítať po typoch
@@ -386,28 +386,41 @@ class PlatovaRekapitulaciaAdmin(ModelAdminTotals):
                 pass
 
             #Načítať dáta z pdf a vyplniť hárok
-            fd=open(qs.subor.path, "rb")
+            fd=open(za_mesiac.subor.path, "rb")
             pdf = PdfFileReader(fd)
             s0 = pdf.getPage(0)
             pdftext = s0.extractText()
+            rozdiel_minus = 0
+            rozdiel_plus = 0
             for nn, polozka in enumerate(polozky):
                 rr=re.findall(r"%s.*"%polozky[polozka][0], pdftext)
                 if rr:
                     rslt = re.findall(r"[\d,\d]+", rr[0])
+                    zo_suboru = round(Decimal(rslt[polozky[polozka][1]].replace(",",".")),2)
+                    z_databazy = -round(Decimal(sumarne[polozka]),2) if polozka in sumarne else 0
                     zapisat = [
                         polozka, 
-                        round(Decimal(rslt[polozky[polozka][1]].replace(",",".")),2), 
-                        round(Decimal(sumarne[polozka]),2) if polozka in sumarne else 0,
-                        f"=B{nn+2}+C{nn+2}"
+                        zo_suboru,
+                        z_databazy,
+                        f"=B{nn+2}-C{nn+2}"
                         ]
                     zapisat_riadok(ws, fw, nn+2, zapisat)
+                    if  zo_suboru-z_databazy < 0:
+                        rozdiel_minus = min(rozdiel_minus, zo_suboru-z_databazy)
+                    else:
+                        rozdiel_plus = max(rozdiel_plus, zo_suboru-z_databazy)
                 else:
                     zapisat_riadok(ws, fw, nn+2, [polozka])
             nn+=1
             zapisat_riadok(ws, fw, nn+2, ["Spolu",f"=sum(B2:B{nn+1}",f"=sum(C2:C{nn+1}",f"=sum(D2:D{nn+1}"])
             for cc in fw:
                 ws.column_dimensions[get_column_letter(cc+1)].width = fw[cc]
-            zapisat_riadok(ws_prehlad, fw, qn+2, [qs.identifikator, f"='{qs.identifikator}'!B{len(polozky)+2}", f"='{qs.identifikator}'!C{len(polozky)+2}", f"='{qs.identifikator}'!D{len(polozky)+2}"])
+            zapisat_riadok(ws_prehlad, fw, qn+2, [za_mesiac.identifikator, f"='{za_mesiac.identifikator}'!B{len(polozky)+2}", f"='{za_mesiac.identifikator}'!C{len(polozky)+2}", rozdiel_minus, rozdiel_plus])
+            #Uložiť do databázy
+            za_mesiac.rozdiel_plus=rozdiel_plus
+            za_mesiac.rozdiel_minus=rozdiel_minus
+            za_mesiac.save()
+            
 
         #Uložiť a zobraziť 
         response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
