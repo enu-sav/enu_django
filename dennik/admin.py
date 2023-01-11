@@ -506,7 +506,6 @@ def generovat_mzdove(request, zden, rekapitulacia):
                 dohoda_vynimka = AnoNie.ANO if item['vynimka'] == AnoNie.ANO else dohoda_vynimka    #pre prípad, že má dohodár, ktorý si uplatňuje výnimku, viac dohôd
 
         #Výpočet položiek, ktoré sa rátajú zo sumárnych hodnôt
-        smeno = '/home/milos/Beliana/Django/enu_django-dev/data/Subory/SablonyASubory/OdvodyZamestnanciDohodari.xlsx'
         #Načítať súbor s údajmi o odvodoch
         nazov_objektu = "Odvody zamestnancov a dohodárov"  #Presne takto musí byť objekt pomenovaný
         objekt = SystemovySubor.objects.filter(subor_nazov = nazov_objektu)
