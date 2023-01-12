@@ -228,7 +228,7 @@ class CerpanieRozpoctuAdmin(ModelAdminTotals):
         md1list = [date(rok, mm+1, 1) for mm in range(12)]
         md1list.append(date(rok+1, 1, 1))
 
-        typyOstatne = [PravidelnaPlatba, PrijataFaktura, PlatbaAutorskaSumar, VytvarnaObjednavkaPlatba, NajomneFaktura, PrispevokNaStravne, RozpoctovaPolozka, PlatbaBezPrikazu, Pokladna, PrispevokNaRekreaciu,InternyPrevod]
+        typyOstatne = [PravidelnaPlatba, PrijataFaktura, PlatbaAutorskaSumar, VytvarnaObjednavkaPlatba, NajomneFaktura, RozpoctovaPolozka, PlatbaBezPrikazu, Pokladna, PrispevokNaRekreaciu,InternyPrevod]
 
         cerpanie_spolu = defaultdict(dict) # Obsah cerpanie_spolu zapísať do databázy a do hárka Prehľad
         polozky_riadok = [] #individuálne položky do hárka Položky
@@ -345,7 +345,6 @@ class PlatovaRekapitulaciaAdmin(ModelAdminTotals):
                     if not cc in fw: fw[cc] = 0
                     if fw[cc] < len(str(value))+2: fw[cc] = len(str(value))+2
         polozky= {
-            #"Stravné": ["Fin.prísp.na stravu z-teľ", 0],
             "Plat tarifný plat": ["Tarifný plat spolu", 1 ],
             "Plat osobný príplatok": ["Osobný príplatok", 1],
             "Plat príplatok za riadenie": ["Príplatok za riadenie", 1],
@@ -354,6 +353,8 @@ class PlatovaRekapitulaciaAdmin(ModelAdminTotals):
             "Náhrada mzdy - PN": ["Náhrada príjmu pri DPN", 1],
             "Plat odmena": ["Odmeny spolu", 0],
             "Plat odchodné": ["Odchodné", 0],
+            "Stravné príspevok": ["Fin.prísp.na stravu z-teľ", 0],
+            "Stravné zrážky": ["Spoločné zrážky \(N5241\)", 1],
             "DoPC odmena": ["Dohody o pracovnej činnosti", 1],
             "DoVP odmena": ["Dohody o vykonaní práce", 1],
             "Sociálny fond": ["Sociálny fond", 2],
@@ -371,7 +372,7 @@ class PlatovaRekapitulaciaAdmin(ModelAdminTotals):
         zapisat_riadok(ws_prehlad, fw, 1, ["Mesiac", "Softip", "Django", "Rozdiel mínus", "Rozdiel plus"], header=True) 
         for qn, za_mesiac in enumerate(sorted(queryset, key=lambda x: x.identifikator)):  #queryset: zoznam mesiacov, za ktoré treba spraviť rekapituláciu
             ws = wb.create_sheet(title=za_mesiac.identifikator)
-            zapisat_riadok(ws, fw, 1, ["Položka", "Softip", "Django", "Rozdiel"], header=True) 
+            zapisat_riadok(ws, fw, 1, ["Položka", "Softip", "Django", "Rozdiel B-C"], header=True) 
             #datum
 
             #Načítať dáta z Djanga
@@ -390,6 +391,8 @@ class PlatovaRekapitulaciaAdmin(ModelAdminTotals):
             pdf = PdfFileReader(fd)
             s0 = pdf.getPage(0)
             pdftext = s0.extractText()
+            s1 = pdf.getPage(1)
+            pdftext = pdftext + s1.extractText()
             rozdiel_minus = 0
             rozdiel_plus = 0
             for nn, polozka in enumerate(polozky):
@@ -435,11 +438,15 @@ class PlatovaRekapitulaciaAdmin(ModelAdminTotals):
 def generovat_mzdove(request, zden, rekapitulacia):
     #Po osobách (zamestnanci a dohodári) vytvoriť zoznam všetkých relevantných položiek
     po_osobach = defaultdict(list)
-    for typ in [PlatovyVymer, OdmenaOprava, DoPC, DoVP, DoBPS]:
+    for typ in [PrispevokNaStravne, PlatovyVymer, OdmenaOprava, DoPC, DoVP, DoBPS]:
         for polozka in typ.objects.filter():
             data = polozka.cerpanie_rozpoctu(zden)
             if not data: continue   #netýka sa akuálneho mesiaca
             for item in data:
+                if rekapitulacia and item['nazov'] == 'Stravné príspevok':
+                    item['suma'] += item['socfond']
+                if rekapitulacia and item['nazov'] == 'Stravné zrážky':
+                    item['suma'] = -item['suma'] - item['socfond']
                 po_osobach[item['subjekt']].append(item)
                 if 'poznamka' in  item:
                     messages.warning(request, format_html(item['poznamka']))
@@ -453,6 +460,7 @@ def generovat_mzdove(request, zden, rekapitulacia):
     polozky_dds =           vymer_odmena + ["Plat odchodné", "Plat odstupné"]
     polozky_soczdrav_zam =  vymer_odmena + ["Náhrada mzdy - osobné prekážky", "Náhrada mzdy - dovolenka", "Plat odchodné", "Plat odstupné"]
     polozky_soczdrav_dopc = ["DoPC odmena"]
+    polozky_stravne = ["Stravné príspevok", "Stravné zrážky"]
     if rekapitulacia:
         polozky_soczdrav_dovp = ["DoVP odmena"]
     else:
@@ -483,7 +491,8 @@ def generovat_mzdove(request, zden, rekapitulacia):
             if "Kvas" in meno and zden == date(2022, 11, 1):
                 #trace()
                 pass
-            cerpanie.append(item)
+            cerpanie.append(item)   #priamo prevziať mzdovú položku
+            #spočítať mzdové položky pre výpočet odvodov, SF a DDS
             if item['nazov'] in polozka_vylucitelnost:
                 zaklad_vylucitelnost += item['suma']
             if item['nazov'] in polozky_dds:
@@ -505,7 +514,7 @@ def generovat_mzdove(request, zden, rekapitulacia):
                 dopc_zakazka = item['zakazka']
                 dohoda_vynimka = AnoNie.ANO if item['vynimka'] == AnoNie.ANO else dohoda_vynimka    #pre prípad, že má dohodár, ktorý si uplatňuje výnimku, viac dohôd
 
-        #Výpočet položiek, ktoré sa rátajú zo sumárnych hodnôt
+        #Výpočet položiek (odvody, SF a DDS), ktoré sa rátajú zo sumárnych hodnôt
         #Načítať súbor s údajmi o odvodoch
         nazov_objektu = "Odvody zamestnancov a dohodárov"  #Presne takto musí byť objekt pomenovaný
         objekt = SystemovySubor.objects.filter(subor_nazov = nazov_objektu)
@@ -519,7 +528,8 @@ def generovat_mzdove(request, zden, rekapitulacia):
                 dds_od = date(osoba.dds_od.year, osoba.dds_od.month, 1)
             if zden >= dds_od:
                 cerpanie = cerpanie + gen_dds(poistne, osoba, zaklad_dds, zden, PlatovyVymer.td_konv(osoba))
-        cerpanie = cerpanie + gen_socfond(osoba, zaklad_socfond, zden)
+        if zaklad_socfond:
+            cerpanie = cerpanie + gen_socfond(osoba, zaklad_socfond, zden)
         vylucitelnost = False if zaklad_vylucitelnost else True
         if zam_zdroj:
             cerpanie = cerpanie + gen_soczdrav(poistne, osoba, "Plat", zaklad_soczdrav_zam, zden, PlatovyVymer.td_konv(osoba), zam_zdroj, zam_zakazka, vylucitelnost=vylucitelnost)

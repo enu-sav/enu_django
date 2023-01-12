@@ -908,66 +908,64 @@ class PrispevokNaStravne(Klasifikacia):
     #príspevok na stravné za vypláca za nasledujúci mesiac spolu s výplatou, ktorá je za minulý mesiac
     #zrážka na stravné za zaratúva na konci mesiaca, ktorého sa týka (po sumarizácii neprítomnosti)
     #V pdf je údaj o mesiaci, ktorého sa príspevok alebo zrážka týka
-    #V čerpaní rozpočtu sa uvádza rozdiel príspevok - zrážka na daný mesiac
-    #
-    #Zarátavanie januárového príspevku a zrážok:
-    # príspevok za január 2022 vyplatený z rozpočtu 2021
-    # príspevok za január 2023 vyplatený z rozpočtu 2022
-    #
-    # zrážka za január 2022 prijatá do rozpočtu 2022
-    # zrážka za január 2023 prijatá do rozpočtu 2023
+    #príspevok treba brať za nasledujúci mesiac
+    #zrážku treba brať za aktuálny mesiac
     def cerpanie_rozpoctu(self, zden):
         msc= {
-            "januar": 1,
-            "februar": 2,
-            "marec": 3,
-            "april": 4,
-            "maj": 5,
-            "jun": 6,
-            "jul": 7,
-            "august": 8,
-            "september": 9,
-            "oktober": 10,
-            "november": 11,
-            "december": 12
+            "januar": [1, Mesiace.FEBRUAR],
+            "februar": [2, Mesiace.MAREC],
+            "marec": [3, Mesiace.APRIL],
+            "april": [4, Mesiace.MAJ],
+            "maj": [5, Mesiace.JUN],
+            "jun": [6, Mesiace.JUL],
+            "jul": [7, Mesiace.AUGUST],
+            "august": [8, Mesiace.SEPTEMBER],
+            "september": [9, Mesiace.OKTOBER],
+            "oktober": [10, Mesiace.NOVEMBER],
+            "november": [11, Mesiace.DECEMBER],
+            "december": [12, Mesiace.JANUAR]
             }
-        #príspevok za január budúceho roku zarátať už za december
         if not self.za_mesiac: return []    #pole nie je vyplnené
         if not str(zden.year) in self.cislo: return []  #nesprávny rok
-        if zden.month != msc[self.za_mesiac]: return [] #nesprávny mesiac 
+        if zden.month != msc[self.za_mesiac][0]: return [] #nesprávny mesiac 
         platby = []
-        # V januári sa príspevok nezaratáva
-        if zden.month == 1 and self.suma_zamestnavatel < 0:    
-            return []
-        #v decembri, ak ide o príspevok, pridaj aj január nasledujúceho roka
-        elif zden.month == 12 and self.suma_zamestnavatel < 0:    
-            qs = PrispevokNaStravne.objects.filter(cislo__startswith=f"{PrispevokNaStravne.oznacenie}-{zden.year+1}")
-            qs = qs.filter(za_mesiac=Mesiace.JANUAR,suma_zamestnavatel__lt=0)
+        #príspevok treba brať za nasledujúci mesiac
+        #trace()
+        if self.suma_zamestnavatel < 0:
+            prispevok_mesiac =  msc[self.za_mesiac][1]  #nasledujúci mesiac
+            prispevok_rok = zden.year+1 if self.za_mesiac=="december" else zden.year
+            qs = PrispevokNaStravne.objects.filter(cislo__startswith=f"{PrispevokNaStravne.oznacenie}-{prispevok_rok}")
+            qs = qs.filter(za_mesiac=prispevok_mesiac,suma_zamestnavatel__lt=0)
             if qs:
                 qs=qs[0]
                 platba = {
-                    "nazov":f"Stravné",
+                    "nazov":"Stravné príspevok",
                     "suma": qs.suma_zamestnavatel,
+                    "socfond": qs.suma_socfond,
                     "datum": zden,
                     "subjekt": "Zamestnanci",
+                    "osoba": "Zamestnanci",
                     "cislo": qs.cislo,
                     "zdroj": qs.zdroj,
                     "zakazka": qs.zakazka,
                     "ekoklas": qs.ekoklas
                     }
-            platby = [platba]
-
-        platba = {
-                "nazov":f"Stravné",
+                platby = [platba]
+        else:
+        #zrážku treba brať za aktuálny mesiac
+            platba = {
+                "nazov":"Stravné zrážky",
                 "suma": self.suma_zamestnavatel,
+                "socfond": self.suma_socfond,
                 "datum": zden,
                 "subjekt": "Zamestnanci",
+                "osoba": "Zamestnanci",
                 "cislo": self.cislo,
                 "zdroj": self.zdroj,
                 "zakazka": self.zakazka,
                 "ekoklas": self.ekoklas
                 }
-        platby.append(platba)
+            platby.append(platba)
         return platby
 
     class Meta:
