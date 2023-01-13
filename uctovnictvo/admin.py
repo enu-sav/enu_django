@@ -17,7 +17,7 @@ from .models import InternyPartner, InternyPrevod, Nepritomnost, RozpoctovaPoloz
 from .models import RozpoctovaPolozkaPresun, PlatbaBezPrikazu, Pokladna, TypPokladna
 from .models import nasledujuce_cislo, nasledujuce_VPD, SocialnyFond, PrispevokNaRekreaciu, OdmenaOprava, OdmenaAleboOprava
 from .common import VytvoritPlatobnyPrikaz, VytvoritSuborDohody, VytvoritSuborObjednavky, leapdays
-from .common import VytvoritKryciList, VytvoritKryciListRekreacia, generovatIndividualneOdmeny, zmazatIndividualneOdmeny, generovatNepritomnost
+from .common import VytvoritKryciList, VytvoritKryciListRekreacia, generovatIndividualneOdmeny, zmazatIndividualneOdmeny, generovatNepritomnost, VytvoritKryciListOdmena
 from .common import VytvoritPlatobnyPrikazIP, VytvoritSuborVPD, UlozitStranuPK
 from .forms import PrijataFakturaForm, AutorskeZmluvyForm, ObjednavkaForm, ZmluvaForm, PrispevokNaStravneForm, PravidelnaPlatbaForm
 from .forms import PlatovyVymerForm, NajomneFakturaForm, NajomnaZmluvaForm, PlatbaBezPrikazuForm
@@ -1330,6 +1330,9 @@ class OdmenaOpravaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
         polozka = queryset[0]
         if polozka.subor_kl:
             self.message_user(request, f"Krycí list už bol vytvorený, opakovanie nie je možné", messages.ERROR)
+            #return
+        if polozka.typ in [OdmenaAleboOprava.OPRAVATARIF, OdmenaAleboOprava.OPRAVARIAD, OdmenaAleboOprava.OPRAVAOSOB]:
+            self.message_user(request, f"Krycí list sa pre opravy nevytvára.", messages.ERROR)
             return
         #overiť, či nejde o generovaný záznam
         cisla = re.findall(r"(..-....-...)-(..)", polozka.cislo)
@@ -1340,22 +1343,22 @@ class OdmenaOpravaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
             rslt = generovatIndividualneOdmeny(polozka)
             if len(rslt) == 1:  #Chyba
                 self.message_user(request, rslt[0], messages.ERROR)
+                return
             else:
                 pocet, celkova_suma = rslt
-                self.message_user(request, f"Vygenerované boli individuálne záznamy o odmenách: počet {pocet}, celková suma {celkova_suma}.",messages.INFO)
-                if celkova_suma != -polozka.suma:
-                    self.message_user(request, f"Zadaná suma {polozka.suma}€ nesúhlasí so súčtom jednotlivých odmien {celkova_suma}€ v súbore.",messages.ERROR)
-        else:
-            self.message_user(request, f"Položka {polozka.cislo} neobsahuje súbor.", messages.ERROR)
+                self.message_user(request, f"Vygenerované boli individuálne záznamy o odmenách: počet {pocet}, celková suma {celkova_suma} €.",messages.INFO)
+                if celkova_suma != -float(polozka.suma):
+                    self.message_user(request, f"Zadaná suma {polozka.suma} € nesúhlasí so súčtom jednotlivých odmien {celkova_suma} € v súbore.",messages.ERROR)
+                    return
 
-        #status, msg, vytvoreny_subor = VytvoritKryciListRekreacia(prispevok, request.user)
-        #if status != messages.ERROR:
+        status, msg, vytvoreny_subor = VytvoritKryciListOdmena(polozka, request.user)
+        if status != messages.ERROR:
             ##prispevok.dane_na_uhradu = timezone.now()
-            #prispevok.subor_kl = vytvoreny_subor
-            #prispevok.save()
-        #self.message_user(request, msg, status)
-        self.message_user(request, f"Generovanie krycích listov ešte nie je implementované",messages.WARNING)
-    vytvorit_kryci_list.short_description = "Vytvoriť krycí list"
+            polozka.subor_kl = vytvoreny_subor
+            polozka.save()
+        self.message_user(request, msg, status)
+        #self.message_user(request, f"Generovanie krycích listov ešte nie je implementované",messages.WARNING)
+    vytvorit_kryci_list.short_description = "Vytvoriť krycí list (a generovať individuálne odmeny)"
     #Oprávnenie na použitie akcie, viazané na 'change'
     vytvorit_kryci_list.allowed_permissions = ('change',)
 

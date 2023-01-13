@@ -1002,6 +1002,14 @@ class FyzickaOsoba(PersonCommon):
     rodne_cislo = models.CharField("Rodné číslo", max_length=20, null=True)
     poznamka = models.CharField("Poznámka", max_length=200, blank=True)
 
+    def priezviskomeno(self, oddelovac=""):
+        return f"{self.priezvisko}{oddelovac}{self.meno}"
+
+    def menopriezvisko(self, titul=False):
+        titul_pred = f"{self.titul_pred_menom} " if titul else ""
+        titul_za = f", {self.titul_za_menom} " if titul else ""
+        return f"{titul_pred}{self.meno} {self.priezvisko}{titul_za}"
+
     class Meta:
         abstract = True
     def __str__(self):
@@ -1470,7 +1478,7 @@ class OdmenaOprava(Klasifikacia):
             null = True,
             max_length=10)
     zdovodnenie = models.TextField("Zdôvodnenie", 
-            help_text = "Zadajte dôvod vyplatenia odmeny alebo vykonania opravy",
+            help_text = "Zadajte dôvod vyplatenia odmeny alebo vykonania opravy. <br />Začnite 'za' a text neukončite bodkou",
             max_length=500,
             null=True)
     subor_kl = models.FileField("Príkaz a krycí list",
@@ -1501,6 +1509,9 @@ class OdmenaOprava(Klasifikacia):
         if self.vyplatene_v_obdobi:
             if not OdmenaOprava.check_vyplatene_v(self.vyplatene_v_obdobi):
                 errors["vyplatene_v_obdobi"] = "Údaj v poli 'Vyplatené v' musí byť v tvare MM/RRRR (napr. 07/2022)"
+        if self.subor_odmeny:
+            if self.subor_odmeny.name.split(".")[-1] != "xlsx":
+                errors["subor_odmeny"] = "Súbor so zoznamom odmien musí byť vo formáte xlsx."
         if errors:
             raise ValidationError(errors)
 

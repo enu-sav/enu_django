@@ -132,6 +132,61 @@ def VytvoritKryciListRekreacia(platba, pouzivatel):
  
 
 # pouzivatel: aktualny pouzivatel
+def VytvoritKryciListOdmena(platba, pouzivatel):
+    #úvodné testy
+    if not os.path.isdir(settings.PLATOBNE_PRIKAZY_DIR):
+        os.makedirs(settings.PLATOBNE_PRIKAZY_DIR)
+    
+    lt="[["
+    gt="]]"
+
+    #Načítať súbor šablóny
+    nazov_objektu = "Šablóna pre odmenu"  #Presne takto musí byť objekt pomenovaný
+    sablona = SystemovySubor.objects.filter(subor_nazov = nazov_objektu)
+    if not sablona:
+        return messages.ERROR, f"V systéme nie je definovaný súbor '{nazov_objektu}'.", None
+    nazov_suboru = sablona[0].subor.file.name 
+ 
+    try:
+        with open(nazov_suboru, "r") as f:
+            text = f.read()
+    except:
+        return messages.ERROR, f"Chyba pri vytváraní súboru krycieho listu: chyba pri čítaní šablóny '{nazov_suboru}'", None
+    
+    # vložiť údaje
+    #
+    locale.setlocale(locale.LC_ALL, 'sk_SK.UTF-8')
+    text = text.replace(f"{lt}datum{gt}", timezone.now().strftime("%d. %m. %Y"))
+    text = text.replace(f"{lt}zdroj{gt}", f"{platba.zdroj.kod} ({platba.zdroj.popis})")
+    text = text.replace(f"{lt}zakazka{gt}", f"{platba.zakazka.kod} ({platba.zakazka.popis})")
+    text = text.replace(f"{lt}ekoklas{gt}", f"{platba.ekoklas.kod} ({platba.ekoklas.nazov})")
+    text = text.replace(f"{lt}cinnost{gt}", f"{platba.cinnost.kod} ({platba.cinnost.nazov})")
+    trace()
+    text = text.replace(f"{lt}doklad{gt}", platba.cislo)
+    if platba.typ == OdmenaAleboOprava.ODMENAS:
+        text = text.replace(f"{lt}coho{gt}", "odmien")
+        text = text.replace('text:name="Zdovodnenie"', f'text:name="Zdovodnenie" text:display="none"')
+        nazov = f"Odmeny-{platba.cislo}.fodt"
+    else:
+        if platba.typ == OdmenaAleboOprava.ODMENA:
+            typ = "odmeny"
+        if platba.typ == OdmenaAleboOprava.ODCHODNE:
+            typ = "odchodného"
+        if platba.typ == OdmenaAleboOprava.ODSTUPNE:
+            typ = "odstupného"
+        text = text.replace(f"{lt}coho{gt}", typ)
+        text = text.replace(f"{lt}menotitul{gt}", platba.zamestnanec.menopriezvisko(titul=True))
+        text = text.replace(f"{lt}osobnecislo{gt}", platba.zamestnanec.cislo_zamestnanca)
+        text = text.replace(f"{lt}odmena1{gt}", str(-platba.suma))
+        text = text.replace(f"{lt}dovod{gt}", platba.zdovodnenie)
+        nazov = f"{platba.zamestnanec.priezviskomeno()}-{platba.cislo}.fodt".replace(' ','-').replace("/","-")
+    #ulozit
+    opath = os.path.join(settings.ODMENY_DIR,nazov)
+    with open(os.path.join(settings.MEDIA_ROOT,opath), "w") as f:
+        f.write(text)
+    return messages.SUCCESS, mark_safe(f"Súbor priznania odmeny/odchodného/odstupného a krycieho listu {platba.cislo} bol úspešne vytvorený ({opath}). <br />Krycí list a priznanie dajte na podpis. Po odoslaní krycieho listu a priznania vyplňte pole 'Dátum odoslania KL'."), opath
+
+# pouzivatel: aktualny pouzivatel
 def VytvoritKryciList(platba, pouzivatel):
     #úvodné testy
     if not os.path.isdir(settings.PLATOBNE_PRIKAZY_DIR):
