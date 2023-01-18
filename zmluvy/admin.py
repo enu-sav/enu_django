@@ -489,6 +489,7 @@ class VytvarnaObjednavkaPlatbaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, M
     actions = ['vytvorit_objednavku', "vytvorit_platobny_prikaz"]
 
     def _vyplatene(self, obj):
+        if not obj.honorar or obj.odvedena_dan == None: return "-"
         return obj.honorar - obj.odvedena_dan
     _vyplatene.short_description = "Vyplatené"
 
