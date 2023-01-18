@@ -269,6 +269,9 @@ class VytvarnaObjednavkaPlatba(models.Model):
     datum_objednavky = models.DateField('Dátum objednávky',
             help_text = "Dátum odoslania objednávky autorovi (mailom)",
             null=True)
+    datum_dodania = models.DateField('Dátum dodania',
+            help_text = "Dátum dodania objednaných položiek",
+            null=True)
     honorar = models.DecimalField("Honorár", 
             help_text = "Honorár. Vyplní sa automaticky na základe položiek objednávky spustením akcie 'Vytvoriť súbor objednávky'.<br />Ak autor nedodá všetky objednané položky, pred generovaním príkazu na vyplatenie sumu upravte a do poľa 'Poznámka' uveďte zoznam nedodaných položiek.",
             max_digits=8, 
