@@ -173,7 +173,7 @@ class Formular(models.Model):
     # opakované uploadovanie súboru prepíše existujúci súbor (nevytvorí novú verziu)
     #fodt súbor šablóny
     sablona = models.FileField("Šablóna dokumentu", storage=OverwriteStorage(),
-            help_text = "FODT súbor šablóny na generovanie dokumentu. <br />Polia na vyplnenie musia byť definované ako [[tokeny]] s dvojitými hranatými zátvorkami.<br />Posledná strana šablóny musí byť vyplnená prázdnymi riadkami až po koniec strany. <br />Tokeny sa musia presne zhodovať s názvami stĺpcov v dátovom súbore.",
+            help_text = "FODT súbor šablóny na generovanie dokumentu. <br />Polia na vyplnenie musia byť definované ako [[tokeny]] s dvojitými hranatými zátvorkami.<br />Za posledným riadkom strany musí byť vložené <em>zalomenie strany</em>.<br />Tokeny sa musia presne zhodovať s názvami stĺpcov v dátovom súbore.",
             upload_to=form_file_path,
             validators=[FileExtensionValidator(allowed_extensions=['fodt'])],
             null = True,

@@ -133,7 +133,7 @@ def VyplnitAVygenerovatAHZrazena(formular, sablona, iws, hdr):
 
     #Sčítať vyplatené odmeny autorov za daný rok
     autori = defaultdict(dict)
-    platby = PlatbaAutorskaOdmena.objects.filter(obdobie__startswith=f"{za_rok}")
+    platby = PlatbaAutorskaOdmena.objects.filter(cislo__startswith=f"AH-{za_rok}")
     nn = 2
     for platba in platby:
         login = platba.autor.rs_login
@@ -169,11 +169,11 @@ def VyplnitAVygenerovatAHZrazena(formular, sablona, iws, hdr):
             autori[login]["nhonor"] = 0
             autori[login]["nfond"] = 0
             autori[login]["nvypl"] = 0
-            autori[login]["T1"] = f'=ALEBO(Q{nn}="nie";R{nn}="nie")'    #AA
+            autori[login]["T1"] = f'=OR(Q{nn}="nie";R{nn}="nie")'    #AA
             autori[login]["T2"] = f'=U{nn}=0'                           #AB
             autori[login]["Test"] = f'=AA{nn}=AB{nn}'                   #AC
             nn += 1
-        autori[login]["obdobie"] += f"{platba.obdobie} "
+        autori[login]["obdobie"] += f"{platba.cislo} "
         if platba.odvedena_dan:
             autori[login]["zhonor"] += platba.honorar
             autori[login]["zfond"] += platba.odvod_LF
@@ -264,6 +264,7 @@ def VyplnitAVygenerovatAHZrazena(formular, sablona, iws, hdr):
         text = text.replace("[[nfond]]", str(autori[login]["nfond"]).replace(".",","))
         text = text.replace("[[nvypl]]", str(autori[login]["nvypl"]).replace(".",","))
         text = text.replace("[[datum]]", datetime.today().strftime('%-d. %-m. %Y'))
+        text = text.replace("[[obd]]", str(za_rok))
 
         #Dôvod nezdanenia
         dovod=""
