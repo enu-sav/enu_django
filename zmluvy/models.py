@@ -101,6 +101,19 @@ class FyzickaOsoba(PersonCommon):
     def pm(self):
         return f"{self.priezvisko}, {self.meno}"
 
+    #meno priezvisko
+    def mp(self):
+        return f"{self.meno} {self.priezvisko}"
+
+    #meno priezvisko, tituly
+    def mpt(self):
+        mpt = self.mp()
+        if self.titul_pred_menom:
+            mpt = f"{self.titul_pred_menom} {mpt}"
+        if self.titul_za_menom:
+            mpt = f"{mpt}, {self.titul_za_menom}"
+        return mpt
+
     class Meta:
         abstract = True
 
