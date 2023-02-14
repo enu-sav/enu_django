@@ -277,4 +277,8 @@ EMAIL_HOST_PASSWORD = os.environ['EMAIL_HOST_PASSWORD']
 SITE_URL = "http://samba.enu.sav.sk:8000/"
 SITE_HOST = "samba"
 
+#Vedenie 
+HEAD_NAME=os.environ['HEAD_NAME']
+HEAD_ROLE=os.environ['HEAD_ROLE']
+
 mimetypes.add_type("application/vnd.oasis.opendocument.text", ".fodt", True)

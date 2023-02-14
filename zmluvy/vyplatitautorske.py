@@ -25,6 +25,8 @@ class VyplatitOdmeny():
     KSFondVU  = settings.KS_FVU
     VSFondVU  = settings.VS_FVU
     ucetFin = settings.UCET_FIN_URAD
+    headName = settings.HEAD_NAME
+    headRole = settings.HEAD_ROLE
 
     def meno_priezvisko(self, autor):
         return f"{autor.meno} {autor.priezvisko}"
@@ -505,16 +507,16 @@ class VyplatitAutorskeOdmeny(VyplatitOdmeny):
         a,b,c,d,e,f = range(pos, pos+6)
         if self.datum_vyplatenia:
             vyplatit[f"A{a}"] = "V Bratislave dňa {}".format(date.today().strftime("%d.%m.%Y"))
-            vyplatit[f"E{a}"] = "Ing. Tatiana Šrámková"
-            vyplatit[f"E{b}"] = "riaditeľka org. zložky EnÚ SAV"
+            vyplatit[f"E{a}"] = self.headName
+            vyplatit[f"E{b}"] = self.headRole
         else:
             vyplatit.merge_cells(f'A{a}:G{a}')
             vyplatit[f"A{a}"] = "Výpočet autorských odmien bol realizovaný softvérovo na základe údajov z redakčného systému Encyclopaedie Beliany"
             vyplatit[f"A{a}"].alignment = Alignment(wrapText=True, horizontal='left')
             vyplatit.row_dimensions[a].height = 30
             vyplatit[f"A{d}"] = "V Bratislave dňa {}".format(date.today().strftime("%d.%m.%Y"))
-            vyplatit[f"E{d}"] = "Ing. Tatiana Šrámková"
-            vyplatit[f"E{e}"] = "riaditeľka org. zložky EnÚ SAV"
+            vyplatit[f"E{d}"] = self.headName
+            vyplatit[f"E{e}"] = self.headRole
         vyplatit.print_area = []    #Zrušiť oblasť tlače
 
         #Všetky súbory, ktoré majú byť uložené do DB, musia mať záznam logu, ktorý končí na 'uložené do súboru {fpath}'
@@ -1086,8 +1088,8 @@ class VyplatitOdmenyGrafik(VyplatitOdmeny):
 
         a,b,c,d,e,f = range(pos, pos+6)
         vyplatit[f"A{a}"] = "V Bratislave dňa {}".format(date.today().strftime("%d.%m.%Y"))
-        vyplatit[f"E{a}"] = "Ing. Tatiana Šrámková"
-        vyplatit[f"E{b}"] = "riaditeľka org. zložky EnÚ SAV"
+        vyplatit[f"E{a}"] = self.headName
+        vyplatit[f"E{b}"] = self.headRole
         vyplatit.print_area = []    #Zrušiť oblasť tlače
 
         # upraviť hárok Krycí list
