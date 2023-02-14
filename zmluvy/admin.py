@@ -490,11 +490,10 @@ class VytvarnaObjednavkaPlatbaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, M
 
     def _vyplatene(self, obj):
         if not obj.honorar or obj.odvedena_dan == None: return "-"
-        return obj.honorar - obj.odvedena_dan
+        return obj.honorar - obj.odvedena_dan - obj.odvod_LF
     _vyplatene.short_description = "Vyplatené"
 
     def get_readonly_fields(self, request, obj=None):
-        return []
         readonly = ["cislo", "vytvarna_zmluva", "objednane_polozky", "datum_objednavky", "subor_objednavky", "honorar", "subor_prikaz", "dane_na_uhradu", "datum_uhradenia", "datum_oznamenia", "odvod_LF", "odvedena_dan", "poznamka"]
         editable = []
         if not obj:                                                 #nová položka
