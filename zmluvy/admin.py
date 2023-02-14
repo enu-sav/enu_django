@@ -494,6 +494,7 @@ class VytvarnaObjednavkaPlatbaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, M
     _vyplatene.short_description = "Vyplatené"
 
     def get_readonly_fields(self, request, obj=None):
+        return []
         readonly = ["cislo", "vytvarna_zmluva", "objednane_polozky", "datum_objednavky", "subor_objednavky", "honorar", "subor_prikaz", "dane_na_uhradu", "datum_uhradenia", "datum_oznamenia", "odvod_LF", "odvedena_dan", "poznamka"]
         editable = []
         if not obj:                                                 #nová položka
@@ -538,8 +539,8 @@ class VytvarnaObjednavkaPlatbaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, M
         if not platba.datum_objednavky:
             self.message_user(request, f"Platobný príkaz nemožno vytvoriť, lebo objednávka ešte nebola odoslaná.", messages.ERROR)
             return
-        platba.odvedena_dan = platba.honorar*settings.DAN_Z_PRIJMU/100 if platba.vytvarna_zmluva.zmluvna_strana.zdanit == AnoNie.ANO else 0
         platba.odvod_LF = platba.honorar*settings.LITFOND_ODVOD/100
+        platba.odvedena_dan = (platba.honorar- platba.odvod_LF)*settings.DAN_Z_PRIJMU/100 if platba.vytvarna_zmluva.zmluvna_strana.zdanit == AnoNie.ANO else 0
         prikaz = VyplatitOdmenyGrafik(platba)
         status, msg, vytvoreny_subor = prikaz.vytvorit_prikaz()
         if status != messages.ERROR:

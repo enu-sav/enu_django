@@ -21,6 +21,9 @@ class VyplatitOdmeny():
     min_vyplatit = settings.MIN_VYPLATIT    #minimálna suma v Eur, ktorá sa vypláca
     ucetEnÚ = settings.UCET_ENU
     ucetLitFond  = settings.UCET_LITFOND
+    ucetFondVU  = settings.UCET_FVU
+    KSFondVU  = settings.KS_FVU
+    VSFondVU  = settings.VS_FVU
     ucetFin = settings.UCET_FIN_URAD
 
     def meno_priezvisko(self, autor):
@@ -1030,6 +1033,25 @@ class VyplatitOdmenyGrafik(VyplatitOdmeny):
             for n, cellObj in enumerate(rowOfCellObjects):
                 cellObj.fill = PatternFill("solid", fgColor="FFFF00")
         pos = 10
+        #Fond VÚ
+        a,b,c,d,e,f = range(pos, pos+6)
+        vyplatit[f"A{a}"] = "Komu:"
+        vyplatit[f"B{a}"] = f"Odvod Fond VÚ ({VyplatitAutorskeOdmeny.litfond_odvod} %)"
+        vyplatit[f"A{b}"] = "Názov:"
+        vyplatit[f"B{b}"] = "Fond výtvarných umení"
+        vyplatit[f"A{c}"] = "IBAN:"
+        vyplatit[f"B{c}"] = VyplatitAutorskeOdmeny.ucetFondVU
+        vyplatit[f"A{d}"] = "VS:"
+        vyplatit[f"B{d}"] = self.VSFondVU
+        vyplatit[f"A{e}"] = "KS:"
+        vyplatit[f"B{e}"] = self.KSFondVU
+        vyplatit[f"A{f}"] = "Suma na úhradu:"
+        vyplatit[f"B{f}"] = self.platba.odvod_LF
+        vyplatit[f"B{f}"].number_format= "0.00"
+        vyplatit[f"B{f}"].alignment = aleft
+        vyplatit[f"B{f}"].font = self.fbold
+        pos += 7
+
         #daň
         a,b,c,d,e,f = range(pos, pos+6)
         vyplatit[f"A{a}"] = "Komu:"
