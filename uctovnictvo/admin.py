@@ -197,7 +197,7 @@ class ObjednavkaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, 
 
 @admin.register(Rozhodnutie)
 class RozhodnutieAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
-    list_display = ("cislo", "predmet", "dodavatel_link", "poznamka" )
+    list_display = ("cislo", "predmet", "dodavatel_link", "datum_vydania", "poznamka" )
 
     # ^: v poli vyhľadávať len od začiatku
     search_fields = ["cislo", "dodavatel__nazov"]
