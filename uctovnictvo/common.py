@@ -390,6 +390,7 @@ def VytvoritPlatobnyPrikaz(faktura, pouzivatel):
     else:   #Rozhodnutie
         text = text.replace(f"{lt}obj_zmluva{gt}", "rozhodnutie")
         text = text.replace(f"{lt}oz_cislo{gt}", faktura.objednavka_zmluva.rozhodnutie.cislo)
+        text = text.replace(f"{lt}zo_dna{gt}", faktura.objednavka_zmluva.rozhodnutie.datum_vydania.strftime("%d. %m. %Y"))
         pass
 
     text = text.replace(f"{lt}ekoklas{gt}", faktura.ekoklas.kod)

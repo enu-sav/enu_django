@@ -314,6 +314,10 @@ class Objednavka(ObjednavkaZmluva):
         return f"{self.dodavatel}, objednávka, {self.cislo}"
 
 class Rozhodnutie(ObjednavkaZmluva):
+    datum_vydania = models.DateField('Dátum vydania',
+            help_text = "Zadajte dátum vyvydania rozhodnutia/povolenia",
+            default=datetime.now,
+            blank=True, null=True)
     history = HistoricalRecords()
     class Meta:
         verbose_name = 'Rozhodnutie / Povolenie'
