@@ -1633,6 +1633,7 @@ class PlatovyVymerAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
                 platova_trieda = star.platova_trieda,
                 platovy_stupen = star.platovy_stupen,
                 uvazok = star.uvazok,
+                uvazok_denne = star.uvazok_denne,
                 program = Program.objects.get(id=4),    #nealokovaný
                 ekoklas = star.ekoklas,
                 zakazka = star.zakazka,
