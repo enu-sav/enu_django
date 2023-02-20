@@ -982,7 +982,7 @@ class DohodarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelA
 
 @admin.register(Zamestnanec)
 class ZamestnanecAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
-    list_display = ("priezvisko", "meno", "cislo_zamestnanca", "zamestnanie_od", "zamestnanie_enu_od", "rod_priezvisko", "email", "rodne_cislo", "datum_nar", "miesto_nar", "adresa", "_dochodok", "_ztp","poistovna", "dds","cop", "stav")
+    list_display = ("priezvisko", "meno", "cislo_zamestnanca", "stupnica", "zamestnanie_od", "zamestnanie_enu_od", "rod_priezvisko", "email", "rodne_cislo", "datum_nar", "miesto_nar", "adresa", "_dochodok", "_ztp","poistovna", "dds","cop", "stav")
     # ^: v poli vyhľadávať len od začiatku
     search_fields = ["priezvisko", "meno"]
     def adresa(self, obj):

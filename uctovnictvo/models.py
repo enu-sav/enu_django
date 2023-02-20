@@ -31,6 +31,11 @@ class OdmenaAleboOprava(models.TextChoices):
     ODCHODNE = 'odchodne', 'Odchodné'
 
 #access label: AnoNie('ano').label
+class PlatovaStupnica(models.TextChoices):
+    ZAKLADNA = 'zakladna', 'Základná'
+    OSOBITNA = 'osobitna', 'Osobitná'
+
+#access label: AnoNie('ano').label
 class AnoNie(models.TextChoices):
     ANO = 'ano', 'Áno'
     NIE = 'nie', 'Nie'
@@ -1073,6 +1078,13 @@ class Zamestnanec(ZamestnanecDohodar):
             help_text = "Dátum nástupu do 1. zamestnania. Preberá sa zo Softipu, kde sa vypočíta z dátumu nástupu do EnÚ a započítanej praxe",
             blank=True,
             null=True)
+    stupnica = models.CharField("Platová stupnica",
+            max_length=10, 
+            help_text = "Uveďte typ stupnice platovej tarify zamestnanca",
+            null = True,
+            choices=PlatovaStupnica.choices,
+            default=PlatovaStupnica.OSOBITNA
+            )
     zamestnanie_enu_od = models.DateField('Zamestnanie v EnÚ od',
             help_text = "Dátum nástupu do zamestnania v EnÚ.",
             blank=True,
