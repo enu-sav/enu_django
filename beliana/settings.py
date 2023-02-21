@@ -199,7 +199,7 @@ UCET_LITFOND  = "SK47 0200 0000 0012 2545 9853" #Literárny fond
 #http://www.fvu.sk/stranka/clanok/6-ochranna-organizacia-autorska
 UCET_FVU  = "SK02 0200 0100 1400 0973 5062"     #Fond výtvarných umení
 KS_FVU = "0558"
-VS_FVU = "922 000"
+VS_FVU = "922 859"
 
 UCET_FIN_URAD = "SK61 8180 5002 6780 2710 3305"
 PN1= 55                 #náhrada mzdy za prvé 3 dni PN-ky
