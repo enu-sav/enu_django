@@ -1201,6 +1201,23 @@ class PlatovyVymer(Klasifikacia):
         td = osoba.typ_doch
         return "InvDoch30" if td==TypDochodku.INVALIDNY30 else "InvDoch70" if td== TypDochodku.INVALIDNY70 else "StarDoch" if td==TypDochodku.STAROBNY else "VyslDoch" if td==TypDochodku.INVAL_VYSL else "Bezny"
 
+    def duplikovat(self):
+        novy = PlatovyVymer.objects.create(
+                cislo_zamestnanca = self.cislo_zamestnanca,
+                zamestnanec = self.zamestnanec,
+                tarifny_plat = self.tarifny_plat,
+                osobny_priplatok = self.osobny_priplatok,
+                funkcny_priplatok = self.funkcny_priplatok,
+                platova_trieda = self.platova_trieda,
+                platovy_stupen = self.platovy_stupen,
+                uvazok = self.uvazok,
+                uvazok_denne = self.uvazok_denne,
+                program = Program.objects.get(id=4),    #nealokovaný
+                ekoklas = self.ekoklas,
+                zakazka = self.zakazka,
+                zdroj = self.zdroj
+            )
+        return novy
 
     #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
     #Mzdy sa vyplácajú spätne, t.j. v máji sa vypláca mzda za apríl

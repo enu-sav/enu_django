@@ -10,6 +10,7 @@ from django.utils.html import format_html
 from .models import SystemovySubor, PrijataFaktura, AnoNie, Objednavka, PrijataFaktura, Rozhodnutie, Zmluva
 from .models import DoVP, DoPC, DoBPS, Poistovna, TypDochodku, Mena, PravidelnaPlatba, TypPP, TypPokladna, Pokladna
 from .models import NajomneFaktura, PrispevokNaRekreaciu, Zamestnanec, OdmenaOprava, OdmenaAleboOprava, TypNepritomnosti, Nepritomnost
+from .models import PlatovaStupnica 
 
 from openpyxl import load_workbook
 from openpyxl.styles import Font, Color, colors, Alignment, PatternFill , numbers
@@ -870,3 +871,37 @@ def generovatNepritomnostAnita(cislo,ws):
         pass
     return zpocet, npocet
 
+#načítať výšku tarifného platu z aktuálnej tabuľky
+class TarifnyPlatTabulky():
+    def __init__(self,rok):
+        #načítať tabuľky stupnice pre daný rok
+        nazov_objektu = "Stupnice platových taríf"  #Presne takto musí byť objekt pomenovaný
+        sablona = SystemovySubor.objects.filter(subor_nazov = nazov_objektu)
+        if not sablona:
+            return messages.ERROR, f"V systéme nie je definovaný súbor '{nazov_objektu}'.", None
+        nazov_suboru = sablona[0].subor.file.name 
+        workbook = load_workbook(filename=nazov_suboru)
+        self.tabulky={}
+        for ws_name in workbook.get_sheet_names():
+            if not str(rok) in ws_name: continue
+            spl = ws_name.replace(" ",".").split(".")
+            vdate = datetime.date(int(spl[-1]),int(spl[-2]), int(spl[-3]))
+            if not vdate in self.tabulky: self.tabulky[vdate] = {}
+            self.tabulky[vdate][spl[0]] = workbook.get_sheet_by_name(ws_name)
+
+    def DatumyValorizacie(self):
+        return [k for k in self.tabulky.keys()]
+
+    def TarifnyPlat(self,datum, stupnica, platova_trieda, platovy_stupen):
+        #Určiť dátum valorizácie
+        for dv in self.DatumyValorizacie():
+            if dv > datum: break
+            datum_valorizacie = dv
+        #Určiť stupnicu
+        if stupnica == PlatovaStupnica.ZAKLADNA:
+            ws = self.tabulky[datum_valorizacie]['ZS']
+            tarifny = ws.cell(row=platovy_stupen+3, column=platova_trieda+2).value
+        else:
+            ws = self.tabulky[datum_valorizacie]['OS']
+            tarifny = ws.cell(row=platovy_stupen+3, column=platova_trieda-3).value
+        return tarifny
