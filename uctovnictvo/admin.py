@@ -5,7 +5,9 @@ from django.contrib import messages
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 from django.db.models.functions import Collate, Length
+from django.db.models import Q
 import re, os
+from decimal import Decimal
 from datetime import date, datetime, timedelta
 from ipdb import set_trace as trace
 from .models import EkonomickaKlasifikacia, TypZakazky, Zdroj, Program, Dodavatel, ObjednavkaZmluva
@@ -25,7 +27,7 @@ from .forms import DoPCForm, DoVPForm, DoBPSForm, VyplacanieDohodForm
 from .forms import InternyPrevodForm, NepritomnostForm, RozpoctovaPolozkaDotaciaForm, RozpoctovaPolozkaPresunForm, RozpoctovaPolozkaForm
 from .forms import PokladnaForm, SocialnyFondForm, PrispevokNaRekreaciuForm, OdmenaOpravaForm
 from .rokydni import datum_postupu, vypocet_prax, vypocet_zamestnanie, postup_roky, roky_postupu
-from beliana.settings import DPH, MEDIA_ROOT, MEDIA_URL
+from beliana.settings import DPH, MEDIA_ROOT, MEDIA_URL, UVAZOK_TYZDENNE
 from dennik.models import Dokument, TypDokumentu, InOut
 
 #zobrazenie histórie
@@ -1479,7 +1481,7 @@ class PlatovyVymerAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
     list_display = ["cislo", "mp","zamestnanec_link", "zamestnanie_enu_od", "stav_vymeru","zamestnanie_od", "aktualna_prax", "datum_postup", "_postup_roky", "_uvazok", "datum_od", "datum_do", "_zamestnanie_roky_dni", "_top", "_ts", "suborvymer"]
     # ^: v poli vyhľadávať len od začiatku
     search_fields = ["cislo", "zamestnanec__meno", "zamestnanec__priezvisko"]
-    actions = ['duplikovat_zaznam', 'platovy_postup', export_selected_objects]
+    actions = ['duplikovat_zaznam', 'postup_a_valorizacia', export_selected_objects]
     # skryť vo formulári na úpravu
     exclude = ["program"]
 
@@ -1573,7 +1575,6 @@ class PlatovyVymerAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
 
     #ukončí platnosť starého výmeru a aktualizuje prax
     def save_model(self, request, obj, form, change):
-        trace()
         if obj.datum_do:    # ukončený prac. pomer, aktualizovať prax
             years, days = vypocet_zamestnanie(obj.zamestnanec.zamestnanie_enu_od, obj.datum_do)
             obj.zamestnanieroky = years
@@ -1636,13 +1637,16 @@ class PlatovyVymerAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
         kr = date(today.year,12,31)
         tp = TarifnyPlatTabulky(today.year)
         qs = PlatovyVymer.objects.filter(datum_postup__gte=zr, datum_postup__lte=kr)
+        self.message_user(request, f"Nové výmery na základe platového postupu:", messages.WARNING)
         for stary in qs:
             print(stary.datum_postup)
             novy = stary.duplikovat()
             novy.datum_od = stary.datum_postup
             novy.cislo = nasledujuce_cislo(PlatovyVymer)
             novy.platovy_stupen = stary.platovy_stupen+1
-            novy.tarifny_plat = tp.TarifnyPlat(novy.datum_od, novy.zamestnanec.stupnica, novy.platova_trieda, novy.platovy_stupen)
+            tarifny = Decimal(tp.TarifnyPlat(novy.datum_od, novy.zamestnanec.stupnica, novy.platova_trieda, novy.platovy_stupen))
+            tarifny = tarifny*stary.uvazok/Decimal(UVAZOK_TYZDENNE)
+            novy.tarifny_plat = tarifny
             # aktualizácia novy na zaklade udajov v stary
             if stary.datum_do:  #ak je stary ukonceny
                 novy.datum_do = stary.datum_do
@@ -1663,16 +1667,86 @@ class PlatovyVymerAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
             stary.datum_postup = None
             stary.save()
             novy.save()
-            self.message_user(request, f"Platový výmer pre {stary.zamestnanec} č. {stary.cislo} bol ukončený k {stary.datum_do}, (pl. stupeň {stary.platovy_stupen}).", messages.SUCCESS)
-            self.message_user(request, f"Pre {novy.zamestnanec} bol vytvorený nový pl. výmer č. {novy.cislo} platný od {novy.datum_od} (pl. stupeň {novy.platovy_stupen} stupnice {novy.zamestnanec.stupnica}).", messages.SUCCESS)
-        if qs:
-            self.message_user(request, f"Novovytvoreným výmerom boli priradené čísla v tvare ({PlatovyVymer.oznacenie}-YYYY-NNN). Postupne ich nahraďte CSČ číslami pridajte súbory výmerov.", messages.WARNING)
-        else:
-            self.message_user(request, f"Žiadne výmery na .", messages.WARNING)
+            self.message_user(request, f"{stary.zamestnanec}: Ukončený výmer č. {stary.cislo} k {stary.datum_do} (trieda {stary.platova_trieda}, stupeň {stary.platovy_stupen}). Nový výmer č. {novy.cislo} platný od {novy.datum_od} (trieda {novy.platova_trieda}, stupeň {novy.platovy_stupen}, stupnica {novy.zamestnanec.stupnica}).", messages.SUCCESS)
+        nove_text = ""
+        if len(qs):
+            nove_text = f"Novovytvoreným výmerom boli priradené čísla v tvare ({PlatovyVymer.oznacenie}-YYYY-NNN). Postupne ich nahraďte CSČ číslami a pridajte súbory výmerov."
+        self.message_user(request, f"Počet nových výmerov na základe platového postupu: {len(qs)}. {nove_text}", messages.WARNING)
 
     platovy_postup.short_description = "Vytvoriť výmery podľa platového postupu za aktuálny rok"
     #Oprávnenie na použitie akcie, viazané na 'change'
     platovy_postup.allowed_permissions = ('change',)
+
+    #Vytvoriť nové výmery na základe valorizácie
+    def valorizacia(self, request, queryset):
+        #určiť výmery, ktorých sa to týka
+        #začiatok a koniec roka
+        today=date.today()
+        zr = date(today.year,1,1)
+        kr = date(today.year,12,31)
+        tp = TarifnyPlatTabulky(today.year)
+        for dv in tp.DatumyValorizacie():
+            if dv < zr: continue
+            if dv > kr: continue
+            self.message_user(request, f"Nové výmery na základe valorizácie k {dv}:", messages.WARNING)
+            #Výmery, do ktorých zasahuje dátum dv
+            qs = PlatovyVymer.objects.filter(Q(datum_od__lte=dv, datum_do__gt=dv) | Q(datum_od__lte=dv, datum_do__isnull=True))
+            pocet_novych = 0
+            for stary in qs:
+                if stary.zamestnanec.priezvisko=="Lapúniková":
+                    #trace()
+                    pass
+                #Vylúčiť výmery, ktoré už majú aktuálnu hodnory tarifného
+                tarifny = Decimal(tp.TarifnyPlat(dv, stary.zamestnanec.stupnica, stary.platova_trieda, stary.platovy_stupen))
+                tarifny = tarifny*stary.uvazok/Decimal(UVAZOK_TYZDENNE)
+                if stary.tarifny_plat == tarifny: continue
+                pocet_novych += 1
+                print(stary.datum_postup)
+                novy = stary.duplikovat()
+                novy.datum_od = dv
+                novy.cislo = nasledujuce_cislo(PlatovyVymer)
+                #novy.platovy_stupen = stary.platovy_stupen+1
+                #novy.tarifny_plat = tp.TarifnyPlat(novy.datum_od, novy.zamestnanec.stupnica, novy.platova_trieda, novy.platovy_stupen)
+                novy.tarifny_plat = tarifny
+                # aktualizácia novy na zaklade udajov v stary
+                if stary.datum_do:  #ak je stary ukonceny
+                    novy.datum_do = stary.datum_do
+                    years, days = vypocet_zamestnanie(novy.zamestnanec.zamestnanie_enu_od, novy.datum_do)
+                    novy.zamestnanieroky = years
+                    novy.zamestnaniedni = days
+                    novy.datum_postup = None
+                else:   #ak stary nie je ukonceny
+                    dp = datum_postupu( novy.zamestnanec.zamestnanie_od, novy.datum_od + timedelta(30))
+                    #ak ďalší postup už nie je možný, dp je rovné novy.datum_od. Vtedy ho nezobrazovať 
+                    novy.datum_postup = dp if dp > novy.datum_od else None
+                # ukonciť/skrátiť platnosť starého nastavením datum_do
+                stary.datum_do = novy.datum_od-timedelta(1)
+                # aktualizácia praxe v stary, hodnotu použiť aj v aktuálnom
+                years, days = vypocet_zamestnanie(novy.zamestnanec.zamestnanie_enu_od, stary.datum_do)
+                stary.zamestnanieroky = years
+                stary.zamestnaniedni = days
+                stary.datum_postup = None
+                stary.save()
+                print(novy.zamestnanec, novy.__dict__)
+                novy.save()
+                self.message_user(request, f"{stary.zamestnanec}: Ukončený výmer č. {stary.cislo} k {stary.datum_do} (tarifný plat {stary.tarifny_plat}). Vytvorený nový výmer č. {novy.cislo} platný od {novy.datum_od} (tarifný plat {novy.tarifny_plat}, stupnica {novy.zamestnanec.stupnica}).", messages.SUCCESS)
+            nove_text = ""
+            if pocet_novych:
+                nove_text = f"Novovytvoreným výmerom boli priradené čísla v tvare ({PlatovyVymer.oznacenie}-YYYY-NNN). Postupne ich nahraďte CSČ číslami a pridajte súbory výmerov."
+            self.message_user(request, f"Počet nových výmerov na základe platového postupu k {dv}: {pocet_novych}. {nove_text}", messages.WARNING)
+
+    valorizacia.short_description = "Vytvoriť výmery na základe valorizácie za aktuálny rok"
+    #Oprávnenie na použitie akcie, viazané na 'change'
+    valorizacia.allowed_permissions = ('change',)
+
+    def postup_a_valorizacia(self, request, queryset):
+        self.platovy_postup(request, queryset)
+        self.valorizacia(request, queryset)
+    postup_a_valorizacia.short_description = "Vytvoriť nové výmery na základe platového postupu a valorizácie za aktuálny rok (vyberte ľubovolný výmer)"
+    #Oprávnenie na použitie akcie, viazané na 'change'
+    postup_a_valorizacia.allowed_permissions = ('change',)
+
+
 
 @admin.register(SocialnyFond)
 class SocialnyFondAdmin(ZobrazitZmeny, SimpleHistoryAdmin, ImportExportModelAdmin):

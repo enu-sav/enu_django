@@ -207,6 +207,8 @@ PN2= 80                 #náhrada mzdy za dni 3 - 1- PN-ky
 DDS_PRISPEVOK=2         #Doplnkové dôchodkové sporenie, %
 SOCFOND_PRISPEVOK=1.5   #Sociálny fond, %
 
+UVAZOK_TYZDENNE=37.5
+
 #https://www.socpoist.sk/news/nove-vymeriavacie-zaklady-pre-platenie-poistneho-od-1-januara-2023-su-uz-zname
 #Maximum vymeriavacích základov pre sociálne poistenie zamestnancov
 MAX_VZ ={
