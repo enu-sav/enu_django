@@ -162,7 +162,6 @@ def VytvoritKryciListOdmena(platba, pouzivatel):
     text = text.replace(f"{lt}zakazka{gt}", f"{platba.zakazka.kod} ({platba.zakazka.popis})")
     text = text.replace(f"{lt}ekoklas{gt}", f"{platba.ekoklas.kod} ({platba.ekoklas.nazov})")
     text = text.replace(f"{lt}cinnost{gt}", f"{platba.cinnost.kod} ({platba.cinnost.nazov})")
-    trace()
     text = text.replace(f"{lt}doklad{gt}", platba.cislo)
     if platba.typ == OdmenaAleboOprava.ODMENAS:
         text = text.replace(f"{lt}coho{gt}", "odmien")
