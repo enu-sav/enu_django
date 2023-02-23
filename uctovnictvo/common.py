@@ -524,6 +524,7 @@ def VytvoritSuborDohody(dohoda):
     text = text.replace("[[dohodnuta_cinnost]]", dohoda.predmet)
     text = text.replace("[[cislo]]", dohoda.cislo)
     text = text.replace("[[miesto_vykonu]]", dohoda.miesto_vykonu)
+    text = text.replace("[[rozvrh_prac_casu]]", dohoda.pracovny_cas)
     text = text.replace("[[datum_od]]", dohoda.datum_od.strftime("%d. %m. %Y"))
     text = text.replace("[[datum_do]]", dohoda.datum_do.strftime("%d. %m. %Y"))
     text = text.replace("[[datum]]", timezone.now().strftime("%d. %m. %Y"))
@@ -543,6 +544,7 @@ def VytvoritSuborDohody(dohoda):
             text = text.replace("[[osobne_pomoc]]", "osobne")
             text = text.replace("[[pomocnik]]", "")
         text = text.replace("[[vyplatny_termin]]", dohoda.datum_do.strftime("%m/%Y")) 
+        text = text.replace("[[dohodnuty_predpokladany]]", "Predpokladaný")
         text = dohoda_skryt_sekcie(text, "DoVP")
         if dohodar.poberatel_doch == AnoNie.NIE:
             text = dohoda_skryt_sekciu(text, 'text:name="DoPC_DoVP_vyhlasenie"')
@@ -555,6 +557,7 @@ def VytvoritSuborDohody(dohoda):
         text = text.replace("[[zakony]]", "§ 223 – § 225 a § 228a")
         text = text.replace("[[odmena]]", f"{dohoda.odmena_mesacne} Eur mesačne")
         text = text.replace("[[rozsah_prace_cas]]", f"{dohoda.hod_mesacne} hodín mesačne")
+        text = text.replace("[[dohodnuty_predpokladany]]", "Predpokladaný")
         text = dohoda_skryt_sekcie(text, "DoPC")
         if dohodar.poberatel_doch == AnoNie.NIE:
             text = dohoda_skryt_sekciu(text, 'text:name="DoPC_DoVP_vyhlasenie"')
@@ -564,6 +567,7 @@ def VytvoritSuborDohody(dohoda):
         text = text.replace("[[zakony]]", "§ 223 – § 225, § 227 a § 228")
         text = text.replace("[[odmena]]", f"{dohoda.odmena_mesacne} Eur mesačne")
         text = text.replace("[[rozsah_prace_cas]]", "asdf")
+        text = text.replace("[[dohodnuty_predpokladany]]", "Dohodnutý")
         text = dohoda_skryt_sekcie(text, "DoBPS")
         #text.replace("[[preberajuca_osoba]]", "asdf")
 

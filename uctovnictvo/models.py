@@ -1712,6 +1712,10 @@ class Dohoda(PolymorphicModel, Klasifikacia):
             max_length=200, 
             help_text = "Miesto výkonu práce: presná adresa alebo presné adresy, prípadne ak je viac adries, určenie hlavného miesta výkonu práce, <br />alebo znenie: Miesto výkonu práce určuje zamestnanec",
             null = True)
+    pracovny_cas = models.CharField("Pracovný čas", 
+            max_length=200, 
+            help_text = 'Uviesť jednu z možností:<ul><li>1. znenie: "Zamestnanec si sám rozvrhuje pracovný čas"</li> <li>2. znenie: uviesť presnú informáciu o dňoch a časových úsekoch, v ktorých sa od zamestnanca vyžaduje vykonávanie práce, a o lehote, v ktorej má byť zamestnanec informovaný o výkone práce pred jej začiatkom, ktorá nesmie byť kratšia ako 24 hodín</li></ul>',
+            null = True)
     datum_od = models.DateField('Dátum od',
             help_text = "Zadajte dátum začiatku platnosti dohody",
             null=True)
