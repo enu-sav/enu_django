@@ -523,6 +523,7 @@ def VytvoritSuborDohody(dohoda):
 
     text = text.replace("[[dohodnuta_cinnost]]", dohoda.predmet)
     text = text.replace("[[cislo]]", dohoda.cislo)
+    text = text.replace("[[miesto_vykonu]]", dohoda.miesto_vykonu)
     text = text.replace("[[datum_od]]", dohoda.datum_od.strftime("%d. %m. %Y"))
     text = text.replace("[[datum_do]]", dohoda.datum_do.strftime("%d. %m. %Y"))
     text = text.replace("[[datum]]", timezone.now().strftime("%d. %m. %Y"))

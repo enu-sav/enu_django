@@ -1708,6 +1708,10 @@ class Dohoda(PolymorphicModel, Klasifikacia):
             help_text = "Zadajte stručný popis práce (max. 250 znakov, 3 riadky)",
             max_length=500,
             null=True)
+    miesto_vykonu = models.CharField("Miesto výkonu", 
+            max_length=200, 
+            help_text = "Miesto výkonu práce: presná adresa alebo presné adresy, prípadne ak je viac adries, určenie hlavného miesta výkonu práce, <br />alebo znenie: Miesto výkonu práce určuje zamestnanec",
+            null = True)
     datum_od = models.DateField('Dátum od',
             help_text = "Zadajte dátum začiatku platnosti dohody",
             null=True)
