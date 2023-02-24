@@ -432,7 +432,6 @@ def dohoda_skryt_sekcie(text, dtype):
         'text:name="DoPC_DoVP_vyhlasenie"',
         'text:name="DoBPS_vyhlasenie"',
         'text:name="DoBPS_priloha"',
-        'text:name="DoVP_pomocnik"'
     ]
     for sekcia in sekcie:
        if not dtype in sekcia:
@@ -530,6 +529,12 @@ def VytvoritSuborDohody(dohoda):
     text = text.replace("[[datum]]", timezone.now().strftime("%d. %m. %Y"))
     text = text.replace("[[zdroj]]", dohoda.zdroj.kod)
     text = text.replace("[[zakazka]]", dohoda.zakazka.kod)
+    if dohoda.pomocnik:
+        text = text.replace("[[osobne_pomoc]]", "za pomoci rod. príslušníkov ")
+        text = text.replace("[[pomocnik]]", dohoda.pomocnik)
+    else:
+        text = text.replace("[[osobne_pomoc]]", "osobne")
+        text = text.replace("[[pomocnik]]", "")
 
     # vložiť údaje DoVP
     if type(dohoda) == DoVP:
@@ -537,12 +542,9 @@ def VytvoritSuborDohody(dohoda):
         text = text.replace("[[zakony]]", "§ 223 – § 225 a § 226")
         text = text.replace("[[odmena]]", f"{dohoda.odmena_celkom} Eur")
         text = text.replace("[[rozsah_prace_cas]]", f"{dohoda.hod_celkom} hodín")
-        if dohoda.pomocnik:
-            text = text.replace("[[osobne_pomoc]]", "za pomoci rod. príslušníkov ")
-            text = text.replace("[[pomocnik]]", dohoda.pomocnik)
-        else:
-            text = text.replace("[[osobne_pomoc]]", "osobne")
-            text = text.replace("[[pomocnik]]", "")
+        text = text.replace("[[doba_text]]", f"v ktorej sa má pracovná úloha vykonať")
+        text = text.replace("[[odmena_text]]", f"odmena za vykonanie celej prac. úlohy je")
+        text = text.replace("[[rozsah_text]]", f"Predpokladaný rozsah práce (pracovnej úlohy)")
         text = text.replace("[[vyplatny_termin]]", dohoda.datum_do.strftime("%m/%Y")) 
         text = text.replace("[[dohodnuty_predpokladany]]", "Predpokladaný")
         text = dohoda_skryt_sekcie(text, "DoVP")
@@ -555,9 +557,12 @@ def VytvoritSuborDohody(dohoda):
         else:
             text = text.replace("[[typ_dohody]]", "o pracovnej činnosti")
         text = text.replace("[[zakony]]", "§ 223 – § 225 a § 228a")
-        text = text.replace("[[odmena]]", f"{dohoda.odmena_mesacne} Eur mesačne")
-        text = text.replace("[[rozsah_prace_cas]]", f"{dohoda.hod_mesacne} hodín mesačne")
+        text = text.replace("[[odmena]]", f"{dohoda.odmena_mesacne} Eur / mesiac")
+        text = text.replace("[[rozsah_prace_cas]]", f"{dohoda.hod_mesacne} hodín / mesiac")
         text = text.replace("[[dohodnuty_predpokladany]]", "Predpokladaný")
+        text = text.replace("[[doba_text]]", f"na ktorú sa dohoda uzatvára")
+        text = text.replace("[[rozsah_text]]", f"Predpokladaný rozsah práce")
+        text = text.replace("[[odmena_text]]", "")
         text = dohoda_skryt_sekcie(text, "DoPC")
         if dohodar.poberatel_doch == AnoNie.NIE:
             text = dohoda_skryt_sekciu(text, 'text:name="DoPC_DoVP_vyhlasenie"')
@@ -568,6 +573,9 @@ def VytvoritSuborDohody(dohoda):
         text = text.replace("[[odmena]]", f"{dohoda.odmena_mesacne} Eur mesačne")
         text = text.replace("[[rozsah_prace_cas]]", "asdf")
         text = text.replace("[[dohodnuty_predpokladany]]", "Dohodnutý")
+        text = text.replace("[[doba_text]]", f"na ktorú sa dohoda uzatvára")
+        text = text.replace("[[rozsah_text]]", f"Dohodnutý rozsah pracovného času")
+        text = text.replace("[[odmena_text]]", "")
         text = dohoda_skryt_sekcie(text, "DoBPS")
         #text.replace("[[preberajuca_osoba]]", "asdf")
 

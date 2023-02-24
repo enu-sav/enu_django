@@ -1710,11 +1710,11 @@ class Dohoda(PolymorphicModel, Klasifikacia):
             null=True)
     miesto_vykonu = models.CharField("Miesto výkonu", 
             max_length=200, 
-            help_text = "Miesto výkonu práce: presná adresa alebo presné adresy, prípadne ak je viac adries, určenie hlavného miesta výkonu práce, <br />alebo znenie: Miesto výkonu práce určuje zamestnanec",
+            help_text = "Miesto výkonu práce: presná adresa alebo presné adresy, prípadne ak je viac adries, určenie hlavného miesta výkonu práce, <br />alebo znenie: <strong>miesto výkonu práce určuje zamestnanec</strong>",
             null = True)
     pracovny_cas = models.CharField("Pracovný čas", 
             max_length=200, 
-            help_text = 'Uviesť jednu z možností:<ul><li>1. znenie: "Zamestnanec si sám rozvrhuje pracovný čas"</li> <li>2. znenie: uviesť presnú informáciu o dňoch a časových úsekoch, v ktorých sa od zamestnanca vyžaduje vykonávanie práce, a o lehote, v ktorej má byť zamestnanec informovaný o výkone práce pred jej začiatkom, ktorá nesmie byť kratšia ako 24 hodín</li></ul>',
+            help_text = 'Uviesť jednu z možností:<ul><li>1. znenie: "<strong>zamestnanec si sám rozvrhuje pracovný čas</strong></li> <li>2. znenie: uviesť presnú informáciu o <ul><li>a) dňoch a časových úsekoch, v ktorých môže od zamestnanca vyžadovať vykonávanie práce,</li> <li>b) lehote, v ktorej má byť zamestnanec informovaný o výkone práce pred jej začiatkom, ktorá nesmie byť kratšia ako 24 hodín.</li> </ul> </li></ul>',
             null = True)
     datum_od = models.DateField('Dátum od',
             help_text = "Zadajte dátum začiatku platnosti dohody",
@@ -1722,6 +1722,10 @@ class Dohoda(PolymorphicModel, Klasifikacia):
     datum_do = models.DateField('Dátum do',
             help_text = "Zadajte dátum konca platnosti dohody",
             null=True)
+    pomocnik = models.CharField("Pomoc rod. príslušníkov", 
+            help_text = "Uveďte zoznam rod. príslušníkov, ktorí budú pomáhať pri vykonávaní činnosti, alebo nechajte prázdne. Pre každého uveďte meno a priezvisko.",
+            null = True, blank = True,
+            max_length=100)
     #Vypĺňa sa pri vytvorení vyplácania, pri opakovanej platbe obsahuje dátum za každú platbu
     vyplatene = models.CharField("Vyplatené", 
             help_text = "Dátum odoslania podkladov na vyplatenie, vypĺňa sa automaticky pri vyplnení položky 'PAM Vyplatenie dohody'",
@@ -1764,10 +1768,6 @@ class DoVP(Dohoda):
             choices=AnoNie.choices)
     id_tsh = models.CharField("Číslo priradené THS",
             help_text = "Uveďte číslo, pod ktorým dohody vedie THS",
-            null = True, blank = True,
-            max_length=100)
-    pomocnik = models.CharField("Pomoc rod. príslušníkov", 
-            help_text = "Uveďte zoznam rod. príslušníkov, ktorí budú pomáhať pri vykonávaní činnosti, alebo nechajte prázdne. Pre každého uveďte meno a priezvisko.",
             null = True, blank = True,
             max_length=100)
     history = HistoricalRecords()
