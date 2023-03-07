@@ -21,7 +21,7 @@ class AnoNie(models.TextChoices):
 
 class StavZmluvy(models.TextChoices):
     #POZIADAVKA = "odoslana_poziadavka", "Odoslaná požiadavka na sekretariát"#Autorovi bol odoslaný dotazník na vyplnenie
-    ODOSLANY_DOTAZNIK = "odoslany_dotaznik", "Odoslaný dotazník autorovi"#Autorovi bol odoslaný dotazník na vyplnenie
+    #ODOSLANY_DOTAZNIK = "odoslany_dotaznik", "Odoslaný dotazník autorovi"#Autorovi bol odoslaný dotazník na vyplnenie
     VYTVORENA = "vytvorena", "Vytvorená"                        #Úvodný stav, ak sa zmluva vytvára v EnÚ
     ODOSLANA_AUTOROVI = "odoslana_autorovi", "Daná autorovi na podpis"
     VRATENA_OD_AUTORA = "vratena_od_autora", "Vrátená od autora"
@@ -157,9 +157,14 @@ class Zmluva(models.Model):
     cislo = models.CharField("Číslo zmluvy", max_length=50)
     datum_pridania = models.DateField('Dátum pridania', auto_now_add=True)
     datum_aktualizacie = models.DateTimeField('Dátum aktualizácie', auto_now=True)
+    poznamka = models.CharField("Poznámka", 
+        help_text="Nepovinná poznámka",
+        max_length=200, 
+        blank=True)
     stav_zmluvy = models.CharField(max_length=20,
             #help_text = "Z ponuky zvoľte aktuálny stav zmluvy. Autorský honorár môže byť vyplatený len vtedy, keď je v stave 'Platná / Zverejnená v CRZ.",
-            help_text = '<font color="#aa0000">Zvoliť aktuálny stav zmluvy</font> (po každej jeho zmene).',
+            #help_text = '<font color="#aa0000">Zvoliť aktuálny stav zmluvy</font> (po každej jeho zmene).',
+            help_text = f"Hodnotu poľa <strong>netreba vypĺňať</strong>, aktualizuje sa automaticky. Superpoužívateľ môže v prípade potreby nastaviť stav <strong>{StavZmluvy.NEPLATNA.label}</strong>. ",
             choices=StavZmluvy.choices, blank=True) 
     url_zmluvy = models.URLField('URL zmluvy', 
             help_text = "Zadajte URL pdf súboru zmluvy zo stránky CRZ.",
@@ -209,6 +214,15 @@ class ZmluvaAutor(Zmluva):
     class Meta:
         verbose_name = 'Autorská zmluva'
         verbose_name_plural = 'Autorské zmluvy'
+
+    def clean(self):
+        #trace()
+        if self.stav_zmluvy == StavZmluvy.VYTVORENA and self.zmluva_odoslana: 
+            self.stav_zmluvy = StavZmluvy.ODOSLANA_AUTOROVI
+        elif self.stav_zmluvy == StavZmluvy.ODOSLANA_AUTOROVI and self.zmluva_vratena: 
+            self.stav_zmluvy = StavZmluvy.VRATENA_OD_AUTORA
+        elif self.stav_zmluvy == StavZmluvy.VRATENA_OD_AUTORA and self.datum_zverejnenia_CRZ: 
+            self.stav_zmluvy = StavZmluvy.ZVEREJNENA_V_CRZ
 
 class ZmluvaGrafik(Zmluva):
     oznacenie = "V"    #v čísle faktúry, A-2021-123

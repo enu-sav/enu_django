@@ -34,7 +34,7 @@ class OsobaGrafikForm(PopisZmeny):
         model = OsobaGrafik
         fields = "__all__"
 
-class ZmluvaForm(PopisZmeny):
+class ZmluvaForm(forms.ModelForm):
     # Skontrolovať platnost a keď je všetko OK, spraviť záznam do denníka
     def clean(self):
         zo_name = ZmluvaAutor._meta.get_field('zmluva_odoslana').verbose_name
@@ -145,7 +145,7 @@ class ZmluvaAutorForm(ZmluvaForm):
         model = ZmluvaAutor
         fields = "__all__"
         fields = ['cislo', 'stav_zmluvy', 'zmluva_odoslana', 'zmluva_vratena', 'zmluvna_strana',
-            'honorar_ah', 'url_zmluvy', 'datum_zverejnenia_CRZ']
+            'honorar_ah', 'url_zmluvy', 'datum_zverejnenia_CRZ', 'poznamka']
 
 class ZmluvaGrafikForm(ZmluvaForm):
     #inicializácia polí

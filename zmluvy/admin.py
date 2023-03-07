@@ -198,9 +198,11 @@ class ZmluvaAdmin():
     #obj is None during the object creation, but set to the object being edited during an edit
     def get_readonly_fields(self, request, obj=None):
         fields = [f.name for f in Zmluva._meta.get_fields()]
+        is_superuser=request.user.is_superuser
         if obj:
-            if obj.stav_zmluvy:
+            if obj.stav_zmluvy and is_superuser:
                 fields.remove("stav_zmluvy")
+                fields.remove("poznamka")
             if obj.stav_zmluvy == StavZmluvy.VYTVORENA:
                 fields.remove("zmluva_odoslana")
             elif obj.stav_zmluvy == StavZmluvy.ODOSLANA_AUTOROVI:
@@ -265,9 +267,7 @@ class ZmluvaAdmin():
 
     def vytvorit_subory_zmluvy(self, request, queryset):
         for zmluva  in queryset:
-            if not zmluva.stav_zmluvy or zmluva.stav_zmluvy in (
-                            StavZmluvy.ODOSLANY_DOTAZNIK,  
-                            StavZmluvy.VYTVORENA):  
+            if not zmluva.stav_zmluvy or zmluva.stav_zmluvy in ( StavZmluvy.VYTVORENA):  
                 #vytvorene_subory: s cestou vzhľadom na MEDIA_ROOT 'AutorskeZmluvy/AdamAnton-1298/AdamAnton-1298.fodt'
                 status, msg, vytvorene_subory = self.VytvoritZmluvu(zmluva)
                 if status != messages.ERROR:
@@ -326,7 +326,7 @@ class ZmluvaAutorAdmin(ZmluvaAdmin, AdminChangeLinksMixin, SimpleHistoryAdmin, I
         for f in fields_cur - fields_par:   #pridať rozdiel po jednom
             fields += (f,)
         if obj:
-            if not obj.stav_zmluvy or obj.stav_zmluvy in [StavZmluvy.VYTVORENA, StavZmluvy.ODOSLANY_DOTAZNIK]:
+            if not obj.stav_zmluvy or obj.stav_zmluvy in [StavZmluvy.VYTVORENA]:
                 fields.remove("honorar_ah")
         else:
             # V novej zmluve povoliť (teda pouzit remove) len: 
