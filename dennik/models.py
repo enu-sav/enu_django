@@ -135,6 +135,10 @@ podpísaná</em> v zmluve</li>
     def clean(self):
         if self.zrusene == AnoNie.ANO and not self.poznamka:
             raise ValidationError({'poznamka':"V prípade zrušenia záznamu v poli 'Poznámka' uveďte príčinu"})
+        elif self.zrusene == AnoNie.ANO:
+            self.inout=None
+            self.datum=None
+            self.sposob=None
 
     history = HistoricalRecords()
     class Meta:

@@ -119,7 +119,7 @@ class DokumentForm(forms.ModelForm):
             else: #cislo nie je podľa schémy X-RRRR-NNN
                 if not self.cleaned_data['adresat']:
                     raise ValidationError({'adresat':"Ak nie je zadaná položka databázy, tak pole 'Odosielateľ / Adresát' treba vyplniť"})
-            if self.cleaned_data['inout'] == InOut.PRIJATY and not self.cleaned_data['naspracovanie']:
+            if 'inout' in self.cleaned_data and self.cleaned_data['inout'] == InOut.PRIJATY and not self.cleaned_data['naspracovanie']:
                 raise ValidationError({'naspracovanie':"Ak ide o prijatý dokument, treba vyplniť pole 'Na spracovanie'"})
         return self.cleaned_data
 
