@@ -42,10 +42,11 @@ class ZmluvaForm(forms.ModelForm):
         vs_name = ZmluvaAutor._meta.get_field('vygenerovana_subor').verbose_name
         try:
             #kontrola
-            if not 'stav_zmluvy' in self.cleaned_data:
-                messages.warning(self.request, f"Akciou 'Vytvoriť súbory zmluvy' vytvorte súbory zmluvy")
-                return self.cleaned_data
-            elif 'honorar_ah' in self.changed_data:
+            #if not 'stav_zmluvy' in self.cleaned_data:
+                #messages.warning(self.request, f"Akciou 'Vytvoriť súbory zmluvy' vytvorte súbory zmluvy")
+                #return self.cleaned_data
+            #elif 'honorar_ah' in self.changed_data:
+            if 'honorar_ah' in self.changed_data:
                 messages.warning(self.request, f"Akciou 'Vytvoriť súbory zmluvy' treba aktualizovať súbory zmluvy")
                 return self.cleaned_data
             elif 'zmluva_odoslana' in self.changed_data:
