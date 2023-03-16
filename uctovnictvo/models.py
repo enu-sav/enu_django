@@ -1354,7 +1354,7 @@ class PlatovyVymer(Klasifikacia):
             denny_vz, text_vz = self.urcit_VZ(zden)
             nahrada_pn = {
                     "nazov": "Náhrada mzdy - PN",
-                    "suma": -round(Decimal((dpn1*PN1+dpn2*PN2)*denny_vz/100),2),
+                    "suma": -round(Decimal((dpn1*PN1(zden)+dpn2*PN2(zden))*denny_vz/100),2),
                     "zdroj": zdroj,
                     "zakazka": zakazka,
                     "datum": zden if zden < date.today() else None,

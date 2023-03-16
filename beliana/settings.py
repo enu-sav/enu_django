@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/3.1/ref/settings/
 """
 
 import os, dotenv
+from datetime import date
 from pathlib import Path
 import mimetypes
 
@@ -202,8 +203,13 @@ KS_FVU = "0558"
 VS_FVU = "922 859"
 
 UCET_FIN_URAD = "SK61 8180 5002 6780 2710 3305"
-PN1= 55                 #náhrada mzdy za prvé 3 dni PN-ky
-PN2= 80                 #náhrada mzdy za dni 3 - 1- PN-ky
+def PN1(month):         #náhrada mzdy za prvé 3 dni PN-ky
+    if month < date(2023,1,1):
+        return 55
+    else: 
+        return 80
+def PN2(month):         #náhrada mzdy za dni 3 - 10 PN-ky
+    return 80
 DDS_PRISPEVOK=2         #Doplnkové dôchodkové sporenie, %
 SOCFOND_PRISPEVOK=1.5   #Sociálny fond, %
 
