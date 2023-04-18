@@ -664,7 +664,7 @@ def VytvoritSuborObjednavky(objednavka):
     nazov = f'{objednavka.cislo}-{objednavka.dodavatel.nazov.replace(" ","").replace(".","").replace(",","-")}.xlsx'
     opath = os.path.join(settings.OBJEDNAVKY_DIR,nazov)
     workbook.save(os.path.join(settings.MEDIA_ROOT,opath))
-    return messages.SUCCESS, f"Súbor objednávky {objednavka.cislo} bol úspešne vytvorený ({opath}).", opath
+    return messages.SUCCESS, f"Súbor objednávky {objednavka.cislo} bol úspešne vytvorený ({opath}). Súbor dajte na podpis.", opath
 
 def VytvoritSuborVPD(vpd):
     #úvodné testy
