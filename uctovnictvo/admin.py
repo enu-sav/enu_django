@@ -188,7 +188,6 @@ class ObjednavkaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, 
         objednavka = queryset[0]
         #Ide o opakované vytváranie súboru?
         opakovane = bool(objednavka.subor_objednavky.name)
-        trace()
         status, msg, vytvoreny_subor = VytvoritSuborObjednavky(objednavka)
         self.message_user(request, msg, status)
         if status != messages.ERROR:
