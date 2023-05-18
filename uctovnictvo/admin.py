@@ -1137,6 +1137,10 @@ class DoVPAdmin(DohodaAdmin):
                 return AdminForm(*args, **kwargs)
         return AdminFormMod
 
+    # Zoradiť položky v pulldown menu
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        return formfield_for_foreignkey(self, db_field, request, **kwargs)
+
     # od februára 2022 sa id_tsh nepoužíva
     exclude = ["id_tsh"]
     list_totals = [
