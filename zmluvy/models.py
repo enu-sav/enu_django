@@ -424,7 +424,7 @@ class PlatbaAutorskaSumar(models.Model):
             blank = True,
             max_length=2500)
     vyplatene = models.FileField("Finálny prehľad",
-            help_text = f"Súbor generovaný akciou '{zaznamenat_platby_do_db_name}'.<br /><strong>Hárky <em>Na vyplatenie</em> a <em>Krycí list</em> s údajmi na vyplatenie zrážkovej dane a odvodov do fondov treba dať na sekretariát na odoslanie do účtárne THS</strong>. V prípade odosielania e-mailom treba odoslať PDF súbor. Následne <strong>vyplňte pole <em>Daň – pre THS</em></strong>.<br /><strong>Hárok <em>Po autoroch</em> treba vytlačiť a po autoroch založiť do šanonov</strong>.", 
+            help_text = f"Súbor generovaný akciou '{zaznamenat_platby_do_db_name}'.<br /><strong>Hárky <em>Na vyplatenie</em> a <em>Krycí list</em> s údajmi na vyplatenie zrážkovej dane a odvodov do fondov treba dať na sekretariát na odoslanie do účtárne THS</strong>. V prípade odosielania e-mailom treba odoslať PDF súbor. Následne <strong>vyplňte pole <em>Daň – pre THS</em></strong>.", 
             upload_to=platba_autorska_sumar_upload_location, 
             null = True, 
             blank = True)
