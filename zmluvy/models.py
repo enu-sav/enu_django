@@ -390,6 +390,7 @@ class PlatbaAutorskaSumar(models.Model):
             help_text = "Dátum importovania do RS/WEBRS",
             null=True, 
             blank=True)
+    #datum_zalozenia not used anymore since may 2023
     datum_zalozenia = models.DateField('Založené do šanonov', 
             help_text = "Dátum založenia hárku <em>Po autoroch</em> do šanonov.",
             null=True, 
