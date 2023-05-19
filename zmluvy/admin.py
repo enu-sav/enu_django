@@ -280,7 +280,7 @@ class ZmluvaAdmin():
                             zmluva.vygenerovana_subor=subor
                     zmluva.save()
                 self.message_user(request, msg, status)
-                self.message_user(request, f"Vytvorenú zmluvu dajte ju na podpis vedeniu Enú.\n Podpísanú zmluvu dajte na sekretariát na odoslanie autorovi a vyplňte pole 'Autorovi na podpis'", messages.WARNING)
+                self.message_user(request, f"Vytvorenú zmluvu dajte na sekretariát na podpis vedeniu Enú a na odoslanie autorovi a vyplňte pole 'Odovzdaná dňa'", messages.WARNING)
             else:
                 self.message_user(request, f"Súbory zmluvy {zmluva.cislo} neboli vytvorené, lebo zmluva je už v stave '{StavZmluvy(zmluva.stav_zmluvy).label}'", messages.ERROR)
                 continue

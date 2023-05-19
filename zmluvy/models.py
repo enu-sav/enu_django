@@ -169,8 +169,8 @@ class Zmluva(models.Model):
     url_zmluvy = models.URLField('URL zmluvy', 
             help_text = "Zadajte URL pdf súboru zmluvy zo stránky CRZ.",
             null = True)
-    zmluva_odoslana= models.DateField('Autorovi na podpis ',
-            help_text = 'Dátum odovzdania zmluvy na sekretariát na odoslanie na podpis (poštou). Vytvorí sa záznam v <a href="/admin/dennik/dokument/">denníku prijatej a odoslanej pošty</a>.',
+    zmluva_odoslana= models.DateField('Odovzdaná dňa ',
+                                      help_text = 'Dátum odovzdania zmluvy na sekretariát na podpis vedeniu a na odoslanie na podpis (poštou). Vytvorí sa záznam v <a href="/admin/dennik/dokument/">denníku prijatej a odoslanej pošty</a>.',
             null=True,
             blank=True)
     zmluva_vratena= models.DateField('Vrátená podpísaná ',

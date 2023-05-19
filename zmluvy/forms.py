@@ -66,8 +66,8 @@ class ZmluvaForm(forms.ModelForm):
                 dok.save()
                 messages.warning(self.request, 
                     format_html(
-                        'Do denníka prijatej a odoslanej pošty bol pridaný záznam č. {}: <em>{}</em>, treba v ňom doplniť údaje o odoslaní.',
-                        mark_safe(f'<a href="/admin/dennik/dokument/{dok.id}/change/">{cislo}</a>'),
+                        'Do denníka prijatej a odoslanej pošty bol pridaný záznam č. {}: <em>{}</em>.',
+                        f"{cislo}",
                         vec
                         )
                     )
@@ -95,7 +95,21 @@ class ZmluvaForm(forms.ModelForm):
                         vec
                         )
                     )
-                messages.warning(self.request, f"Zmluvu treba dať príslušnej osobe na vloženie do CRZ.")
+                messages.warning(self.request, f"Zmluvu z poľa 'Vygenerovaný súbor zmluvy pre CRZ' treba dať príslušnej osobe na vloženie do CRZ.")
+                messages.warning(self.request, f"Podpísanú zmluvu treba založiť do šanonu.")
+                #url zmluvy
+                if type(self.instance)==ZmluvaAutor:
+                    url =f'<a href="/admin/zmluvy/osobaautor/{self.instance.zmluvna_strana.id}/change/">{self.instance.zmluvna_strana.priezvisko}{self.instance.zmluvna_strana.meno}</a>'
+                    kto = "autora"
+                else:
+                    kto = "grafika"
+                    url =f'<a href="/admin/zmluvy/osobagrafik/{self.instance.zmluvna_strana.id}/change/">{self.instance.zmluvna_strana.priezvisko}{self.instance.zmluvna_strana.meno}</a>'
+                messages.warning(self.request, 
+                    format_html(
+                        "Ak bola podpísaná dohoda o nezdaňovaní treba vyplniť príslušné polia v zázname {}: {} .",
+                        kto, mark_safe(url),
+                        )
+                    )
                 self.cleaned_data['stav_zmluvy'] = StavZmluvy.VRATENA_OD_AUTORA
                 return self.cleaned_data
             elif 'datum_zverejnenia_CRZ' in self.changed_data and 'url_zmluvy' in self.changed_data:
