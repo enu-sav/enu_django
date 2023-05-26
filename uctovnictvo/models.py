@@ -331,6 +331,11 @@ class Rozhodnutie(ObjednavkaZmluva):
         return f"{self.dodavatel} - Ro/Po - {self.cislo}"
 
 class Zmluva(ObjednavkaZmluva):
+    oznacenie = "ZE"    #v čísle faktúry, Fa-2021-123
+    nase_cislo = models.CharField("Naše číslo", 
+            #help_text: definovaný vo forms
+            null=True,
+            max_length=50)
     url_zmluvy = models.URLField('URL zmluvy', 
             help_text = "Zadajte URL pdf súboru zmluvy zo stránky CRZ.",
             null=True,
