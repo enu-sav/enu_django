@@ -433,6 +433,8 @@ class VyplatitAutorskeOdmeny(VyplatitOdmeny):
                 if autor in self.zoznam_autorov:
                     self.import_rs_webrs(autor)
                     self.po_autoroch(autor)
+            vyplatit[f"A{pos}"].value = f"Dátum vyplatenia honorárov: {self.datum_vyplatenia.strftime('%-d.%-m.%Y')}"
+            pos +=1
         else:   #podklady pre THS, uvedú sa autori s IBAN
             pos = pos0 
             #nevyplácaní autori
