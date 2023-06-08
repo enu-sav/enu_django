@@ -344,7 +344,7 @@ class VyplatitAutorskeOdmeny(VyplatitOdmeny):
         # vyplniť hárok Krycí list
         if self.datum_vyplatenia:
             self.kryci_list["A2"].value = self.kryci_list["A2"].value.replace("[[coho]]", "zrážkovej dane a odvodu do fondov")
-            self.kryci_list["A3"].value = f"Dátum vyplatenia honorárov: {self.datum_vyplatenia.strftime('%-d.%-m.%Y')}"
+            #self.kryci_list["A3"].value = f"Dátum vyplatenia honorárov: {self.datum_vyplatenia.strftime('%-d.%-m.%Y')}"
         else:
             self.kryci_list["A2"].value = self.kryci_list["A2"].value.replace("[[coho]]", "autorských honorárov") 
         self.kryci_list["A2"].value = self.kryci_list["A2"].value.replace("[[xx-xxxx]]", self.cislo)
