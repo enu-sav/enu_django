@@ -428,50 +428,11 @@ class VyplatitAutorskeOdmeny(VyplatitOdmeny):
             for i, autor in enumerate(self.suma_preplatok):
                 self.import_rs_webrs(autor)
                 self.po_autoroch(autor)
-
             #prehľad zrážania dane
-            vyplatit.merge_cells(f'A{pos}:E{pos}')
-            vyplatit[f"A{pos}"] = "Prehľad zrážkovej dane a odvodov do fondov po autoroch"
-            vyplatit[f"A{pos}"].font = self.fbold
-            pos += 1
-            prehlad = ["Autor", "Vypl. honorár", "Zrazená daň", "Odv. do fondov","Dôvod nezrazenia"]
-            vyplatit.merge_cells(f'A{pos}:B{pos}')
-            vyplatit[f"A{pos}"] = prehlad[0]
-            vyplatit[f"A{pos}"].font = self.fbold
-            vyplatit[f"C{pos}"] = prehlad[1]
-            vyplatit[f"C{pos}"].font = self.fbold
-            vyplatit[f"D{pos}"] = prehlad[2]
-            vyplatit[f"D{pos}"].font = self.fbold
-            vyplatit[f"E{pos}"] = prehlad[3]
-            vyplatit[f"E{pos}"].font = self.fbold
-            vyplatit[f"F{pos}"] = prehlad[4]
-            vyplatit[f"F{pos}"].font = self.fbold
-            pos += 1
             for i, autor in enumerate(self.suma_vyplatit):
                 if autor in self.zoznam_autorov:
                     self.import_rs_webrs(autor)
                     self.po_autoroch(autor)
-                vyplatit.merge_cells(f'A{pos}:B{pos}')
-                vyplatit[f"A{pos}"] = f"=Výpočet!A{i+2}" 
-                vyplatit[f"C{pos}"] = f"=Výpočet!L{i+2}"
-                vyplatit[f"C{pos}"].number_format= "0.00"
-                vyplatit[f"D{pos}"] = f"=Výpočet!K{i+2}"
-                vyplatit[f"D{pos}"].number_format= "0.00"
-                vyplatit[f"E{pos}"] = f"=Výpočet!I{i+2}"
-                vyplatit[f"E{pos}"].number_format= "0.00"
-                vyplatit[f"F{pos}"] = f"Platba neprešla" if self.vypocet[f"M{i+2}"].value else "Nerezident SR" if  self.vypocet[f"D{i+2}"].value!="ano"  else "Dohoda o nezdanení" if self.vypocet[f"C{i+2}"].value=="ano" else ""
-                #vyplatit[f"B{pos}"].alignment = aleft
-                #vyplatit[f"B{d}"].font = self.fbold
-                pos += 1
-            vyplatit[f"A{pos}"] = "Spolu"
-            vyplatit[f"A{pos}"].font = self.fbold
-            vyplatit[f"D{pos}"] = f"=Výpočet!K{i+2+1}"
-            vyplatit[f"D{pos}"].font = self.fbold
-            vyplatit[f"D{pos}"].number_format= "0.00"
-            vyplatit[f"E{pos}"] = f"=Výpočet!I{i+2+1}"
-            vyplatit[f"E{pos}"].font = self.fbold
-            vyplatit[f"E{pos}"].number_format= "0.00"
-            pos += 1
         else:   #podklady pre THS, uvedú sa autori s IBAN
             pos = pos0 
             #nevyplácaní autori
