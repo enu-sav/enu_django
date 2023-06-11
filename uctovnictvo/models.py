@@ -476,7 +476,7 @@ class FakturaPravidelnaPlatba(Platba, Klasifikacia2):
             related_name='%(class)s_faktury')    
 
     # Koho uviesť ako adresata v denniku
-    def adresat(self):
+    def adresat_text(self):
         return self.objednavka_zmluva.dodavatel.nazov if self.objednavka_zmluva else ""
 
     def clean(self):
@@ -733,7 +733,7 @@ class NajomneFaktura(Klasifikacia):
     history = HistoricalRecords()
 
     # Koho uviesť ako adresata v denniku
-    def adresat(self):
+    def adresat_text(self):
         return self.objednavka_zmluva.najomnik.nazov if self.objednavka_zmluva else ""
 
     #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
@@ -1809,7 +1809,7 @@ class Dohoda(PolymorphicModel, Klasifikacia):
             upload_to=dohoda_upload_location, 
             null = True, blank = True)
     # Koho uviesť ako adresata v denniku
-    def adresat(self):
+    def adresat_text(self):
         return self.zmluvna_strana
 
     class Meta:
