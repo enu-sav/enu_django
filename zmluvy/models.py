@@ -208,7 +208,7 @@ class ZmluvaAutor(Zmluva):
     history = HistoricalRecords()
 
     # Koho uviesť ako adresata v denniku
-    def adresat(self):
+    def adresat_text(self):
         return self.zmluvna_strana.rs_login
 
     class Meta:
@@ -232,7 +232,7 @@ class ZmluvaGrafik(Zmluva):
     zmluvna_strana = models.ForeignKey(OsobaGrafik, on_delete=models.PROTECT, related_name='zmluvagrafik')
     history = HistoricalRecords()
     # Koho uviesť ako adresata v denniku
-    def adresat(self):
+    def adresat_text(self):
         return self.zmluvna_strana
 
     #priezvisko, meno

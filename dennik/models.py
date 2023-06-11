@@ -32,6 +32,7 @@ class TypDokumentu(models.TextChoices):
     INTERNYPREVOD = 'internyprevod', 'Interný prevod'
     POKLADNICNAKNIHA = 'pokladnicnakniha', 'Pokladničná kniha'
     REKREACIA = 'rekreacia', 'Príspevok na rekreáciu'
+    DOKUMENT = 'posta', 'Pošta'
     INY = 'iny', 'Iný'
 
 # Typy šablón na vyplňovanie. Určuje, zoznam povolených tokenov v šablóne
@@ -139,6 +140,9 @@ podpísaná</em> v zmluve</li>
             self.inout=None
             self.datum=None
             self.sposob=None
+
+    def adresat_text(self):
+        return self.adresat
 
     history = HistoricalRecords()
     class Meta:
