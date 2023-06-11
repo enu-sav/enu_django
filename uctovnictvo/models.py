@@ -10,6 +10,8 @@ from .rokydni import mesiace, koef_neodprac_dni, prekryv_dni, prac_dni
 from polymorphic.models import PolymorphicModel
 from django.utils.safestring import mark_safe
 from decimal import Decimal
+from django.core.validators import MinValueValidator, MaxValueValidator
+PERCENTAGE_VALIDATOR = [MinValueValidator(0), MaxValueValidator(100)]
 
 from beliana.settings import TMPLTS_DIR_NAME, PLATOVE_VYMERY_DIR, DOHODY_DIR, PRIJATEFAKTURY_DIR, PLATOBNE_PRIKAZY_DIR
 from beliana.settings import ODVODY_VYNIMKA, DAN_Z_PRIJMU, OBJEDNAVKY_DIR, STRAVNE_DIR, REKREACIA_DIR
@@ -45,6 +47,13 @@ class Mena(models.TextChoices):
     CZK = 'CZK'
     USD = 'USD'
     GBP = 'GBP'
+
+class SadzbaDPH(models.TextChoices):
+    P20 = "20", "20 %"
+    P10 = "10", "10 %"
+    P5 = "5", "5 %"
+    P0 = "0", "0 %"
+    def __str__(self): return self.label
 
 priblizny_kurz = {
         Mena.CZK: 24.36,
@@ -387,11 +396,53 @@ class Klasifikacia(models.Model):
     class Meta:
         abstract = True
 
+
+#Klasifikácia pre prípad dvoch zdrojov
+class Klasifikacia2(Klasifikacia):
+    zdroj2 = models.ForeignKey(Zdroj,
+            help_text = "Druhý zdroj v prípade delenia faktúry, inak nechajte prázdne",
+            verbose_name = "Zdroj 2",
+            on_delete=models.PROTECT,
+            related_name='%(class)s_klasifikacia2',  
+            blank = True,
+            null = True
+            )
+    zakazka2 = models.ForeignKey(TypZakazky,
+            help_text = "Druhá zákazka v prípade delenia faktúry, inak nechajte prázdne",
+            on_delete=models.PROTECT,
+            verbose_name = "Typ zákazky 2",
+            related_name='%(class)s_klasifikacia2',
+            blank = True,
+            null = True
+            )
+    podiel2 = models.DecimalField(max_digits=5, 
+            help_text = "Podiel druhého zdroja/zákazky v prípade delenia faktúry, inak 0 %",
+            verbose_name = "Podiel 2",
+            decimal_places=2, 
+            default=Decimal(0), 
+            blank = True,
+            null = True,
+            validators=PERCENTAGE_VALIDATOR)
+    def clean(self):
+        # test, či sú všetky vyplnené alebo či sú všetky prázdne
+        values =[not self.zdroj2 is None, not self.zakazka2 is None, self.podiel2 != Decimal(0.00)]
+        if len(set(values)) > 1:
+            raise ValidationError({
+                "zdroj2":"Polia 'Zdroj 2', 'Typ zákazky 2' a 'Podiel 2' musia byť buď všetky vyplnené alebo žiadne nesmie byť vyplnené",
+                "zakazka2":"Polia 'Zdroj 2', 'Typ zákazky 2' a 'Podiel 2' musia byť buď všetky vyplnené alebo žiadne nesmie byť vyplnené", 
+                "podiel2":"Polia 'Zdroj 2', 'Typ zákazky 2' a 'Podiel 2' musia byť buď všetky vyplnené alebo žiadne nesmie byť vyplnené", 
+                }
+            )
+
+        pass
+    class Meta:
+        abstract = True
+
 #https://stackoverflow.com/questions/55543232/how-to-upload-multiple-files-from-the-django-admin
 #Vykoná sa len pri vkladaní suborov cez GUI. Pri programovom vytváraní treba cestu nastaviť
 def platobny_prikaz_upload_location(instance, filename):
     return os.path.join(PLATOBNE_PRIKAZY_DIR, filename)
-class Platba(Klasifikacia):
+class Platba(models.Model):
     # Polia
     cislo = models.CharField("Číslo", 
             #help_text: definovaný vo forms
@@ -401,10 +452,15 @@ class Platba(Klasifikacia):
             blank=True, null=True)
     splatnost_datum = models.DateField('Dátum splatnosti',
             null=True)
-    suma = models.DecimalField("Suma [EUR]", 
+    suma = models.DecimalField("Suma (EUR, s DPH)", 
             max_digits=8, 
             decimal_places=2, 
             null=True)
+    sadzbadph = models.CharField("Sadzba DPH", 
+            max_length=10, 
+            help_text = "Uveďte sadzbu DPH",
+            null = True,
+            choices=SadzbaDPH.choices)
     platobny_prikaz = models.FileField("Platobný príkaz pre THS-ku",
             help_text = "Súbor s platobným príkazom a krycím listom pre THS-ku. Generuje sa akciou 'Vytvoriť platobný príkaz a krycí list pre THS'",
             upload_to=platobny_prikaz_upload_location, 
@@ -412,7 +468,7 @@ class Platba(Klasifikacia):
     class Meta:
         abstract = True
 
-class FakturaPravidelnaPlatba(Platba):
+class FakturaPravidelnaPlatba(Platba, Klasifikacia2):
     objednavka_zmluva = models.ForeignKey(ObjednavkaZmluva, 
             null=True, 
             verbose_name = "Objednávka / zmluva",
@@ -423,10 +479,13 @@ class FakturaPravidelnaPlatba(Platba):
     def adresat(self):
         return self.objednavka_zmluva.dodavatel.nazov if self.objednavka_zmluva else ""
 
+    def clean(self):
+        super(FakturaPravidelnaPlatba, self).clean()
+
     class Meta:
         abstract = True
 
-class InternyPrevod(Platba):
+class InternyPrevod(Platba, Klasifikacia):
     oznacenie = "IP"    #v čísle faktúry, IP-2021-123
     partner = models.ForeignKey(InternyPartner,
             on_delete=models.PROTECT, 
@@ -479,7 +538,7 @@ class PrijataFaktura(FakturaPravidelnaPlatba):
             max_length=100)
     doslo_datum = models.DateField('Došlo dňa',
             null=True)
-    sumacm = models.DecimalField("Suma v cudzej mene", 
+    sumacm = models.DecimalField("Suma v cudzej mene (s DPH)", 
             help_text = "V prípade uvedenia sumy v cudzej mene vložte do poľa 'Suma' nulu. Pole 'Suma vypňte až bude známa skutočne uhradená suma v EUR",
             max_digits=8, 
             decimal_places=2, 
@@ -499,6 +558,8 @@ class PrijataFaktura(FakturaPravidelnaPlatba):
     def clean(self):
         if type(self.objednavka_zmluva) == PrijataFaktura and self.objednavka_zmluva.platna_do and self.splatnost_datum > self.objednavka_zmluva.platna_do:
             raise ValidationError(f"Faktúra nemôže byť vytvorená, lebo zmluva {self.objednavka_zmluva} je platná len do {self.objednavka_zmluva.platna_do}.")
+        super(PrijataFaktura, self).clean()
+
 
     #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
     def cerpanie_rozpoctu(self, zden):
@@ -538,6 +599,9 @@ class PravidelnaPlatba(FakturaPravidelnaPlatba):
     typ = models.CharField("Typ platby", 
             max_length=25, 
             choices=TypPP.choices)
+
+    def clean(self):
+        super(PravidelnaPlatba, self).clean()
 
     #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
     def cerpanie_rozpoctu(self, zden):

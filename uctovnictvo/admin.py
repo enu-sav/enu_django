@@ -550,6 +550,9 @@ class PrijataFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdm
                 ekoklas = stara.ekoklas,
                 zakazka = stara.zakazka,
                 zdroj = stara.zdroj,
+                zakazka2 = stara.zakazka2,
+                zdroj2 = stara.zdroj2,
+                podiel2 = stara.podiel2,
                 cinnost = stara.cinnost,
                 predmet = stara.predmet,
                 objednavka_zmluva = stara.objednavka_zmluva

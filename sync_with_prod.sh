@@ -21,6 +21,6 @@ sudo service $curdir stop
 rsync -avh $remote:$remote_data_dir .
 # skopírovať databázu
 scp $remote:$remote_django_dir/db.sqlite3 .
-./manage.py migrate
+venv/bin/python3 manage.py migrate
 #./manage.py loaddata dump-$dt.json
 sudo service $curdir start

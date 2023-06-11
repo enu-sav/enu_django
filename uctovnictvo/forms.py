@@ -69,6 +69,9 @@ class PrijataFakturaForm(forms.ModelForm):
         # do Admin treba pridať metódu get_form
         self.request = kwargs.pop('request', None)
         super().__init__(*args, **kwargs)
+        #trieda PrijataFaktura dedí od triedy Platba, tak tu nastavíme help text
+        self.fields['zdroj'].help_text = f"Primárny zdroj platby a súvisiacej DPH"
+        self.fields['zakazka'].help_text = f"Primárna zákazka platby a súvisiacej DPH"
         polecislo = "cislo"
         # Ak je pole readonly, tak sa nenachádza vo fields. Preto testujeme fields aj initial
         if polecislo in self.fields:
@@ -120,8 +123,11 @@ class InternyPrevodForm(forms.ModelForm):
         # do Admin treba pridať metódu get_form
         self.request = kwargs.pop('request', None)
         super().__init__(*args, **kwargs)
-        polecislo = "cislo"
+        #trieda InternyPrevod dedí od triedy Platba, tak tu nastavíme help text
+        self.fields['zdroj'].help_text = f"Primárny zdroj platby a súvisiacej DPH"
+        self.fields['zakazka'].help_text = f"Primárna zákazka platby a súvisiacej DPH"
         # Ak je pole readonly, tak sa nenachádza vo fields. Preto testujeme fields aj initial
+        polecislo = "cislo"
         if polecislo in self.fields:
             if not polecislo in self.initial:
                 nasledujuce = nasledujuce_cislo(InternyPrevod)
@@ -201,8 +207,8 @@ class PravidelnaPlatbaForm(forms.ModelForm):
         # do Admin treba pridať metódu get_form
         self.request = kwargs.pop('request', None)
         super().__init__(*args, **kwargs)
-        polecislo = "cislo"
         # Ak je pole readonly, tak sa nenachádza vo fields. Preto testujeme fields aj initial
+        polecislo = "cislo"
         if polecislo in self.fields:
             if not polecislo in self.initial:
                 nasledujuce = nasledujuce_cislo(PravidelnaPlatba)

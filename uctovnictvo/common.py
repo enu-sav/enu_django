@@ -15,6 +15,7 @@ from .models import PlatovaStupnica
 from openpyxl import load_workbook
 from openpyxl.styles import Font, Color, colors, Alignment, PatternFill , numbers
 from openpyxl.utils import get_column_letter
+from decimal import Decimal
 
 import datetime, calendar, re
 
@@ -341,16 +342,48 @@ def VytvoritPlatobnyPrikaz(faktura, pouzivatel):
     if not faktura.suma and not faktura.sumacm:
         return messages.ERROR, "Vytváranie príkazu zlyhalo, lebo nebola zadaná suma v Eur a ani suma v cudzej mene.", None
     if jePF:    #faktúra môže byť aj v cudzej mene
+        sadzbadph = Decimal(faktura.sadzbadph)
         if faktura.mena == Mena.EUR:
-            text = text.replace(f"{lt}DM{gt}", f"{locale_format(-faktura.suma)} €")     # suma je záporná, vo formulári chceme kladné
+            mena = "€"
+            suma = -faktura.suma
+            zaklad_dane = 100 *  suma / (100+sadzbadph)
+            text = text.replace(f"{lt}DM{gt}", f"{locale_format(suma)} {mena}")     # suma je záporná, vo formulári chceme kladné
             text = text.replace(f"{lt}CM{gt}", "")
         else:
-            text = text.replace(f"{lt}CM{gt}", f"{locale_format(-faktura.sumacm)} {faktura.mena}")    # suma je záporná, vo formulári chceme kladné
+            mena = faktura.mena
+            suma = -faktura.sumacm
+            zaklad_dane = 100 *  suma / (100+sadzbadph)
             text = text.replace(f"{lt}DM{gt}", "")
+            text = text.replace(f"{lt}CM{gt}", f"{locale_format(suma)} {mena}")     # suma je záporná, vo formulári chceme kladné
+
+        text = text.replace(f"{lt}sadzbadph{gt}", faktura.sadzbadph)
+        text = text.replace(f"{lt}sumadph{gt}", f"{locale_format(round(suma-zaklad_dane,2))} {mena}")
+        text = text.replace(f"{lt}suma1{gt}", f"{locale_format(round((1-faktura.podiel2/100)*zaklad_dane,2))} {mena}")
+        if faktura.podiel2 > 0:
+            text = text.replace(f"{lt}suma2{gt}", f"{locale_format(round((faktura.podiel2)*zaklad_dane/100,2))} {mena}")
+        else:
+            text = text.replace(f"{lt}suma2{gt}", f"0 {mena}")
     else:   #len v EUR
-        text = text.replace(f"{lt}DM{gt}", f"{locale_format(-faktura.suma)} €")     # suma je záporná, o formulári chceme kladné
+        text = text.replace(f"{lt}DM{gt}", f"{locale_format(faktura.suma)} €")     # suma je záporná, o formulári chceme kladné
         text = text.replace(f"{lt}CM{gt}", "")
+
+    text = text.replace(f"{lt}ekoklas{gt}", faktura.ekoklas.kod)
+    text = text.replace(f"{lt}zdroj1{gt}", faktura.zdroj.kod)
+    text = text.replace(f"{lt}podiel1{gt}", f"{locale_format(100-faktura.podiel2)}") 
+    text = text.replace(f"{lt}zakazka1{gt}", faktura.zakazka.kod)
+    if faktura.podiel2 > 0:
+        text = text.replace(f"{lt}zakazka2{gt}", faktura.zakazka2.kod)
+        text = text.replace(f"{lt}zdroj2{gt}", faktura.zdroj2.kod)
+        text = text.replace(f"{lt}podiel2{gt}", f"{locale_format(faktura.podiel2)}") 
+    else:
+        text = text.replace(f"{lt}zakazka2{gt}", "-")
+        text = text.replace(f"{lt}zdroj2{gt}", "-")
+        text = text.replace(f"{lt}podiel2{gt}", "0")
+    text = text.replace(f"{lt}program{gt}", faktura.program.kod)
+    text = text.replace(f"{lt}cinnost{gt}", faktura.cinnost.kod)
+    text = text.replace(f"{lt}akt_datum{gt}", timezone.now().strftime("%d. %m. %Y"))
     text = text.replace(f"{lt}dodavatel{gt}", faktura.objednavka_zmluva.dodavatel.nazov)
+
     # ulica ne nepovinná (malá obec)
     if faktura.objednavka_zmluva.dodavatel.adresa_ulica:
         text = text.replace(f"{lt}adresa1{gt}", faktura.objednavka_zmluva.dodavatel.adresa_ulica)
@@ -393,16 +426,6 @@ def VytvoritPlatobnyPrikaz(faktura, pouzivatel):
         text = text.replace(f"{lt}zo_dna{gt}", faktura.objednavka_zmluva.rozhodnutie.datum_vydania.strftime("%d. %m. %Y"))
         pass
 
-    text = text.replace(f"{lt}ekoklas{gt}", faktura.ekoklas.kod)
-    text = text.replace(f"{lt}zdroj{gt}", faktura.zdroj.kod)
-    if faktura.zdroj.kod == '111' or faktura.zdroj.kod == '131L':
-        text = text.replace(f"{lt}dph_neuctovat{gt}", "DPH neúčtovať")
-    else:
-        text = text.replace(f"{lt}dph_neuctovat{gt}", "")
-    text = text.replace(f"{lt}program{gt}", faktura.program.kod)
-    text = text.replace(f"{lt}cinnost{gt}", faktura.cinnost.kod)
-    text = text.replace(f"{lt}zakazka{gt}", faktura.zakazka.kod)
-    text = text.replace(f"{lt}akt_datum{gt}", timezone.now().strftime("%d. %m. %Y"))
     #ulozit
     #Create directory admin.rs_login if necessary
     nazov = faktura.objednavka_zmluva.dodavatel.nazov
