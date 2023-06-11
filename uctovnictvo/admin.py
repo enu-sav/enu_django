@@ -567,7 +567,7 @@ class PrijataFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdm
             datumvytvorenia = date.today(),
             typdokumentu = TypDokumentu.FAKTURA,
             inout = InOut.PRIJATY,
-            adresat = stara.adresat(),
+            adresat = stara.adresat_text(),
             #vec = f'<a href="{self.instance.platobny_prikaz.url}">{vec}</a>',
             vec = vec,
             prijalodoslal=request.user.username, #zámena mien prijalodoslal - zaznamvytvoril
@@ -597,7 +597,7 @@ class PrijataFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdm
                 datumvytvorenia = date.today(),
                 typdokumentu = TypDokumentu.FAKTURA,
                 inout = InOut.PRIJATY,
-                adresat = obj.adresat(),
+                adresat = obj.adresat_text(),
                 #vec = f'<a href="{self.instance.platobny_prikaz.url}">{vec}</a>',
                 vec = vec,
                 prijalodoslal=request.user.username, #zámena mien prijalodoslal - zaznamvytvoril

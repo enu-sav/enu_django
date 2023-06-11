@@ -578,7 +578,7 @@ class PrijataFaktura(FakturaPravidelnaPlatba):
                 "suma": round(Decimal(suma),2),
                 "datum": self.dane_na_uhradu,
                 "cislo": self.cislo,
-                "subjekt": self.adresat(),
+                "subjekt": self.adresat_text(),
                 "zdroj": self.zdroj,
                 "zakazka": self.zakazka,
                 "ekoklas": self.ekoklas
@@ -613,7 +613,7 @@ class PravidelnaPlatba(FakturaPravidelnaPlatba):
                 "nazov":nazov,
                 "suma": self.suma,
                 "datum": self.dane_na_uhradu,
-                "subjekt": f"{self.adresat()}, (za {zden.year}/{zden.month})", 
+                "subjekt": f"{self.adresat_text()}, (za {zden.year}/{zden.month})", 
                 "cislo": self.cislo,
                 "zdroj": self.zdroj,
                 "zakazka": self.zakazka,
