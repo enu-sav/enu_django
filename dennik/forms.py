@@ -27,7 +27,8 @@ triedy = {
     NajomneFaktura.oznacenie: NajomneFaktura,
     PravidelnaPlatba.oznacenie: PravidelnaPlatba,
     InternyPrevod.oznacenie: InternyPrevod,
-    PrispevokNaRekreaciu.oznacenie: PrispevokNaRekreaciu
+    PrispevokNaRekreaciu.oznacenie: PrispevokNaRekreaciu,
+    Dokument.oznacenie: Dokument
 }
 
     #
@@ -52,7 +53,8 @@ def normalizovat_cislo(cislo):
         NajomneFaktura.oznacenie.lower(): NajomneFaktura.oznacenie,
         PravidelnaPlatba.oznacenie.lower(): PravidelnaPlatba.oznacenie,
         InternyPrevod.oznacenie.lower(): InternyPrevod.oznacenie,
-        PrispevokNaRekreaciu.oznacenie.lower(): PrispevokNaRekreaciu.oznacenie
+        PrispevokNaRekreaciu.oznacenie.lower(): PrispevokNaRekreaciu.oznacenie,
+        Dokument.oznacenie.lower(): Dokument.oznacenie
     }
     aux = parse_cislo(cislo)
     if aux:
@@ -115,7 +117,7 @@ class DokumentForm(forms.ModelForm):
             if podla_schemy: #cislo je podľa schémy X-RRRR-NNN
                 td_str = parse_cislo(cp)[0][0]
                 if not self.cleaned_data['adresat']:
-                    self.cleaned_data['adresat'] = triedy[td_str].objects.filter(cislo = cp)[0].adresat()
+                    self.cleaned_data['adresat'] = triedy[td_str].objects.filter(cislo = cp)[0].adresat_text()
             else: #cislo nie je podľa schémy X-RRRR-NNN
                 if not self.cleaned_data['adresat']:
                     raise ValidationError({'adresat':"Ak nie je zadaná položka databázy, tak pole 'Odosielateľ / Adresát' treba vyplniť"})
