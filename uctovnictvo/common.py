@@ -157,6 +157,9 @@ def VytvoritKryciListOdmena(platba, pouzivatel):
     
     # vložiť údaje
     #
+    #autor a dátum
+    text=re.sub("<dc:creator>[^<]*</dc:creator>", f"<dc:creator>{pouzivatel.get_full_name()}</dc:creator>", text)
+    text=re.sub("<dc:date>[^<]*</dc:date>", f"<dc:date>{timezone.now().strftime('%Y-%m-%dT%H:%M:%S.%f')}</dc:date>", text)
     locale.setlocale(locale.LC_ALL, 'sk_SK.UTF-8')
     text = text.replace(f"{lt}datum{gt}", timezone.now().strftime("%d. %m. %Y"))
     text = text.replace(f"{lt}zdroj{gt}", f"{platba.zdroj.kod} ({platba.zdroj.popis})")
@@ -211,6 +214,9 @@ def VytvoritKryciList(platba, pouzivatel):
     
     # vložiť údaje
     #
+    #autor a dátum
+    text=re.sub("<dc:creator>[^<]*</dc:creator>", f"<dc:creator>{pouzivatel.get_full_name()}</dc:creator>", text)
+    text=re.sub("<dc:date>[^<]*</dc:date>", f"<dc:date>{timezone.now().strftime('%Y-%m-%dT%H:%M:%S.%f')}</dc:date>", text)
     if type(platba) == NajomneFaktura:
         text = text.replace(f"{lt}popis{gt}", f"Platba č. {platba.cislo_softip}")
         nazov = platba.zmluva.najomnik.nazov
@@ -255,7 +261,10 @@ def VytvoritPlatobnyPrikazIP(faktura, pouzivatel):
     
     # vložiť údaje
     #
-    text = text.replace(f"{lt}prevod_cislo{gt}", faktura.cislo)
+    #autor a dátum
+    text=re.sub("<dc:creator>[^<]*</dc:creator>", f"<dc:creator>{pouzivatel.get_full_name()}</dc:creator>", text)
+    text=re.sub("<dc:date>[^<]*</dc:date>", f"<dc:date>{timezone.now().strftime('%Y-%m-%dT%H:%M:%S.%f')}</dc:date>", text)
+    text = text = text.replace(f"{lt}prevod_cislo{gt}", faktura.cislo)
     locale.setlocale(locale.LC_ALL, 'sk_SK.UTF-8')
     if faktura.suma:
         text = text.replace(f"{lt}DM{gt}", f"{locale_format(abs(faktura.suma))} €")     # vo formulári chceme kladné
@@ -337,6 +346,9 @@ def VytvoritPlatobnyPrikaz(faktura, pouzivatel):
     
     # vložiť údaje
     #
+    #autor a dátum
+    text=re.sub("<dc:creator>[^<]*</dc:creator>", f"<dc:creator>{pouzivatel.get_full_name()}</dc:creator>", text)
+    text=re.sub("<dc:date>[^<]*</dc:date>", f"<dc:date>{timezone.now().strftime('%Y-%m-%dT%H:%M:%S.%f')}</dc:date>", text)
     text = text.replace(f"{lt}nasa_faktura_cislo{gt}", faktura.cislo)
     locale.setlocale(locale.LC_ALL, 'sk_SK.UTF-8')
     if not faktura.suma and not faktura.sumacm:
