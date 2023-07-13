@@ -458,7 +458,8 @@ class Platba(models.Model):
             null=True)
     sadzbadph = models.CharField("Sadzba DPH", 
             max_length=10, 
-            help_text = "Uveďte sadzbu DPH",
+            help_text = "Uveďte sadzbu DPH.",
+            #help_text = "Uveďte sadzbu DPH. Ak je faktúra v režime prenesenia daňovej povinnosti zadajte 20 %",
             default = SadzbaDPH.P20, 
             null = True,
             choices=SadzbaDPH.choices)
@@ -554,11 +555,18 @@ class PrijataFaktura(FakturaPravidelnaPlatba):
             upload_to=prijata_faktura_upload_location, 
             blank = True,
             null = True)
+    prenosDP = models.CharField("Prenos DP", 
+            max_length=3, 
+            help_text = "Uveďte 'Áno', ak je faktúra v režime prenesenia daňovej povinnosti.",
+            default = AnoNie.NIE,
+            choices=AnoNie.choices)
     history = HistoricalRecords()
 
     def clean(self):
         if type(self.objednavka_zmluva) == PrijataFaktura and self.objednavka_zmluva.platna_do and self.splatnost_datum > self.objednavka_zmluva.platna_do:
             raise ValidationError(f"Faktúra nemôže byť vytvorená, lebo zmluva {self.objednavka_zmluva} je platná len do {self.objednavka_zmluva.platna_do}.")
+        if self.prenosDP == AnoNie.ANO and self.sadzbadph == SadzbaDPH.P0:
+            raise ValidationError(f"Ak je faktúra v režime prenesenia daňovej povinnosti, tak Sadzba DPH nemôže byť 0 %")
         super(PrijataFaktura, self).clean()
 
 

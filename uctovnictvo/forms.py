@@ -81,7 +81,8 @@ class PrijataFakturaForm(forms.ModelForm):
                 self.initial[polecislo] = nasledujuce
             else: 
                 self.fields[polecislo].help_text = f"Číslo faktúry v tvare {PrijataFaktura.oznacenie}-RRRR-NNN."
-        self.fields['suma'].help_text = f"Ak ide o platbu v cudzej mene, vyplňte polia 'Suma v cudzej mene' a 'Mena' a do tohoto poľa vložte nulu.<br />Toto pole vyplňte až po určení skutočne vyplatenej sumy v EUR"
+        self.fields['suma'].help_text = f"Vložte sumu s DPH.<br />Ak ide o <strong>platbu v cudzej mene</strong>, vyplňte polia 'Suma v cudzej mene' a 'Mena' a do tohoto poľa vložte nulu. Toto pole <strong>vyplňte až po určení</strong> skutočne vyplatenej sumy v EUR (podľa SOFTIPu).<br >Ak je <strong>faktúra v režime prenesenia daňovej povinnosti</strong>, zadajte <em>Áno</em> v poli <em>Prenos DP</em> a sem vložte sumu s DPH. Na takejto faktúre je uvedená suma bez DPH, vloženú sumu treba preto <strong>vypočítať ručne</strong>."
+
 
     # Skontrolovať platnost a keď je všetko OK, spraviť záznam do denníka
     def clean(self):
