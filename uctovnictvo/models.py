@@ -452,13 +452,14 @@ class Platba(models.Model):
             blank=True, null=True)
     splatnost_datum = models.DateField('Dátum splatnosti',
             null=True)
-    suma = models.DecimalField("Suma (EUR, s DPH)", 
+    suma = models.DecimalField("Suma", 
             max_digits=8, 
             decimal_places=2, 
             null=True)
     sadzbadph = models.CharField("Sadzba DPH", 
             max_length=10, 
             help_text = "Uveďte sadzbu DPH",
+            default = SadzbaDPH.P20, 
             null = True,
             choices=SadzbaDPH.choices)
     platobny_prikaz = models.FileField("Platobný príkaz pre THS-ku",
@@ -573,9 +574,9 @@ class PrijataFaktura(FakturaPravidelnaPlatba):
         else:
             suma = self.suma
 
-        platba = {
+        platba1 = {
                 "nazov":f"Faktúra {typ}",
-                "suma": round(Decimal(suma),2),
+                "suma": round(Decimal(float(suma)*(100-float(self.podiel2))/100),2),
                 "datum": self.dane_na_uhradu,
                 "cislo": self.cislo,
                 "subjekt": self.adresat_text(),
@@ -583,9 +584,21 @@ class PrijataFaktura(FakturaPravidelnaPlatba):
                 "zakazka": self.zakazka,
                 "ekoklas": self.ekoklas
                 }
+        if self.podiel2 > 0:
+            platba2 = {
+                "nazov":f"Faktúra {typ}",
+                "suma": round(Decimal(float(suma)*(float(self.podiel2))/100),2),
+                "datum": self.dane_na_uhradu,
+                "cislo": self.cislo,
+                "subjekt": self.adresat_text(),
+                "zdroj": self.zdroj2,
+                "zakazka": self.zakazka2,
+                "ekoklas": self.ekoklas
+                }
         if self.mena != Mena.EUR and not self.suma: 
             platba["poznamka"] = f"Čerpanie rozpočtu: uhradená suma v EUR faktúry {self.cislo} v cudzej mene je približná. Správnu sumu v EUR vložte do poľa 'Suma' na základe údajov o platbe zo Softipu."
-        return [platba]
+        return [platba1, platba2] if self.podiel2 > 0 else [platba1] 
+
     class Meta:
         verbose_name = 'Prijatá faktúra'
         verbose_name_plural = 'Faktúry - Prijaté faktúry'
