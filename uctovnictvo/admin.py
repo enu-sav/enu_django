@@ -566,6 +566,7 @@ class PrijataFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdm
                 podiel2 = stara.podiel2,
                 cinnost = stara.cinnost,
                 predmet = stara.predmet,
+                prenosDP = stara.prenosDP,
                 objednavka_zmluva = stara.objednavka_zmluva
             )
         nova_faktura.save()
