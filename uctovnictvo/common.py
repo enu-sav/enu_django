@@ -722,6 +722,7 @@ def VytvoritSuborPD(vpd):
     if vpd.typ_transakcie == TypPokladna.PPD:
         obj["G1"].value = "PRÍJMOVÝ"
         obj["B7"].value = "Prijaté od"
+        obj["G14"].value = "Dal - účet"
 
     obj["J2"].value = cislovpd
     obj["H5"].value = vpd.datum_transakcie.strftime("%d. %m. %Y")
