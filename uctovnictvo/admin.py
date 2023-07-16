@@ -20,7 +20,7 @@ from .models import RozpoctovaPolozkaPresun, PlatbaBezPrikazu, Pokladna, TypPokl
 from .models import nasledujuce_cislo, nasledujuce_VPD, SocialnyFond, PrispevokNaRekreaciu, OdmenaOprava, OdmenaAleboOprava
 from .common import VytvoritPlatobnyPrikaz, VytvoritSuborDohody, VytvoritSuborObjednavky, leapdays
 from .common import VytvoritKryciList, VytvoritKryciListRekreacia, generovatIndividualneOdmeny, zmazatIndividualneOdmeny, generovatNepritomnost, VytvoritKryciListOdmena
-from .common import VytvoritPlatobnyPrikazIP, VytvoritSuborVPD, UlozitStranuPK, TarifnyPlatTabulky
+from .common import VytvoritPlatobnyPrikazIP, VytvoritSuborPD, UlozitStranuPK, TarifnyPlatTabulky
 from .forms import PrijataFakturaForm, AutorskeZmluvyForm, ObjednavkaForm, ZmluvaForm, PrispevokNaStravneForm, PravidelnaPlatbaForm
 from .forms import PlatovyVymerForm, NajomneFakturaForm, NajomnaZmluvaForm, PlatbaBezPrikazuForm
 from .forms import DoPCForm, DoVPForm, DoBPSForm, VyplacanieDohodForm
@@ -436,15 +436,15 @@ class PokladnaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, Mo
             return
         vpd = queryset[0]
         if vpd.typ_transakcie == TypPokladna.DOTACIA:
-            self.message_user(request, f"Vybraná položka je dotácia, VPD nemožno vytvoriť.", messages.ERROR)
+            self.message_user(request, f"Vybraná položka je dotácia, pokladničný doklad nemožno vytvoriť.", messages.ERROR)
             return
-        status, msg, vytvoreny_subor = VytvoritSuborVPD(vpd)
+        status, msg, vytvoreny_subor = VytvoritSuborPD(vpd)
         if status != messages.ERROR:
             vpd.subor_vpd = vytvoreny_subor
             vpd.save()
         self.message_user(request, msg, status)
 
-    vytvorit_vpd.short_description = "Vytvoriť VPD"
+    vytvorit_vpd.short_description = "Vytvoriť PD"
     #Oprávnenie na použitie akcie, viazané na 'change'
     vytvorit_vpd.allowed_permissions = ('change',)
 

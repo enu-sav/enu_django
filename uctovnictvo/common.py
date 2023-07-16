@@ -702,7 +702,7 @@ def VytvoritSuborObjednavky(objednavka):
     workbook.save(os.path.join(settings.MEDIA_ROOT,opath))
     return messages.SUCCESS, f"Súbor objednávky {objednavka.cislo} bol úspešne vytvorený ({opath}). Súbor dajte na podpis.", opath
 
-def VytvoritSuborVPD(vpd):
+def VytvoritSuborPD(vpd):
     #úvodné testy
     pokladna_dir_path  = os.path.join(settings.MEDIA_ROOT,settings.POKLADNA_DIR)
     if not os.path.isdir(pokladna_dir_path):
@@ -718,7 +718,11 @@ def VytvoritSuborVPD(vpd):
 
     rok = re.findall(r"%s-([0-9]*).*"%Pokladna.oznacenie, vpd.cislo)[0]
     cislovpd = f"{vpd.cislo_VPD}/{rok}"
-    obj = workbook["VPD"]
+    obj = workbook["PD"]
+    if vpd.typ_transakcie == TypPokladna.PPD:
+        obj["G1"].value = "PRÍJMOVÝ"
+        obj["B7"].value = "Prijaté od"
+
     obj["J2"].value = cislovpd
     obj["H5"].value = vpd.datum_transakcie.strftime("%d. %m. %Y")
     obj["D7"].value = meno_priezvisko(vpd.zamestnanec)
@@ -737,7 +741,10 @@ def VytvoritSuborVPD(vpd):
     #ulozit
     #Create directory admin.rs_login if necessary
 
-    nazov = f'VPD-{cislovpd}.xlsx'.replace("/","-")
+    if vpd.typ_transakcie == TypPokladna.PPD:
+        nazov = f'PPD-{cislovpd}.xlsx'.replace("/","-")
+    else:
+        nazov = f'VPD-{cislovpd}.xlsx'.replace("/","-")
     opath = os.path.join(settings.POKLADNA_DIR,nazov)
     workbook.save(os.path.join(settings.MEDIA_ROOT,opath))
     return messages.SUCCESS, f"Súbor {nazov} bol úspešne vytvorený.", opath
@@ -763,12 +770,16 @@ def UlozitStranuPK(request, queryset, strana):
         ws[f'C{riadok}'].value = item.popis
         if item.typ_transakcie == TypPokladna.DOTACIA:
             ws[f'G{riadok}'].value = item.suma
-        else:
+        elif item.typ_transakcie == TypPokladna.VPD:
             ws[f'H{riadok}'].value = -item.suma
             rok = re.findall(r"%s-([0-9]*).*"%Pokladna.oznacenie, item.cislo)[0]
-            ws[f'B{riadok}'].value = f"{item.cislo_VPD}/{rok}"
+            ws[f'B{riadok}'].value = f"VPD {item.cislo_VPD}/{rok}"
+        else:
+            ws[f'G{riadok}'].value = item.suma
+            rok = re.findall(r"%s-([0-9]*).*"%Pokladna.oznacenie, item.cislo)[0]
+            ws[f'B{riadok}'].value = f"PPD {item.cislo_VPD}/{rok}"
         riadok += 1
-    ws[f'A55'].value = f"Vygenerované programom DjangoBel {timezone.now().strftime('%d. %m. %Y')}"
+    ws[f'A54'].value = f"Vygenerované programom DjangoBel {timezone.now().strftime('%d. %m. %Y')}"
 
     #ulozit
     #Create directory admin.rs_login if necessary

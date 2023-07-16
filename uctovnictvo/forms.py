@@ -5,7 +5,7 @@ from django.core.exceptions import ValidationError
 from ipdb import set_trace as trace
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
-from .models import nasledujuce_cislo, nasledujuce_VPD
+from .models import nasledujuce_cislo, nasledujuce_VPD, nasledujuce_PPD
 from .models import PrijataFaktura, Objednavka, PrispevokNaStravne, DoPC, DoVP, DoBPS, PlatovyVymer
 from .models import VyplacanieDohod, StavDohody, Dohoda, PravidelnaPlatba, TypPP, InternyPrevod, Nepritomnost, TypNepritomnosti
 from .models import Najomnik, NajomnaZmluva, NajomneFaktura, TypPN, RozpoctovaPolozkaDotacia, RozpoctovaPolozkaPresun, RozpoctovaPolozka, Zmluva
@@ -845,9 +845,10 @@ class PokladnaForm(forms.ModelForm):
             else:
                 self.fields[polecislo].help_text = f"Číslo záznamu pokladne v tvare {Pokladna.oznacenie}-RRRR-NNN."
 
-        nasledujuce = nasledujuce_VPD()
+        nasledujuceVPD = nasledujuce_VPD()
+        nasledujucePPD = nasledujuce_PPD()
         # nasledujúce číslo Výdavkového pokladničného dokladu
-        self.fields["cislo_VPD"].help_text = f"Poradové číslo VPD (výdavkového pokladničného dokladu).<br />Ak necháte prázdne a nejde o dotáciu, <strong>doplní sa nasledujúce číslo '{nasledujuce}'</strong>, ktoré bolo určené na základe čísiel existujúcich VPD ako nasledujúce v poradí."
+        self.fields["cislo_VPD"].help_text = f"Poradové číslo PD (pokladničného dokladu).<br />Ak necháte prázdne a nejde o dotáciu, <strong>doplní sa nasledujúce číslo PD</strong> (VPD: {nasledujuceVPD}, PPD: {nasledujucePPD}), ktoré bolo určené na základe čísiel existujúcich PD ako nasledujúce v poradí."
 
     # Skontrolovať platnost a prípadne spraviť zmeny
     def clean(self):

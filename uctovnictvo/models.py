@@ -81,7 +81,15 @@ def nasledujuce_cislo(classname, rok=None):
 def nasledujuce_VPD():
         # zoznam VPD zoradený podľa cislo_VPD vzostupne
         ozn_rok = f"{Pokladna.oznacenie}-{datetime.now().year}-"
-        qs = Pokladna.objects.filter(cislo__istartswith=ozn_rok)
+        qs = Pokladna.objects.filter(cislo__istartswith=ozn_rok, typ_transakcie=TypPokladna.VPD)
+        itemlist=qs.exclude(cislo_VPD__isnull=True).order_by("cislo_VPD")
+        return itemlist.last().cislo_VPD+1 if itemlist else 1
+
+# nasledujúce číslo Výdavkového pokladničného dokladu
+def nasledujuce_PPD():
+        # zoznam PPD zoradený podľa cislo_VPD vzostupne
+        ozn_rok = f"{Pokladna.oznacenie}-{datetime.now().year}-"
+        qs = Pokladna.objects.filter(cislo__istartswith=ozn_rok ,typ_transakcie=TypPokladna.PPD)
         itemlist=qs.exclude(cislo_VPD__isnull=True).order_by("cislo_VPD")
         return itemlist.last().cislo_VPD+1 if itemlist else 1
 
@@ -112,7 +120,8 @@ class TypNepritomnosti(models.TextChoices):
 #access label: AnoNie('ano').label
 class TypPokladna(models.TextChoices):
     DOTACIA = 'prijem_do_pokladne', 'Príjem do pokladne'
-    VPD = 'vystavenie_vpd', 'Vystavenie VPD'
+    VPD = 'vystavenie_vpd', 'Výdavkový PD'
+    PPD = 'vystavenie_ppd', 'Príjmový PD'
 
 class Poistovna(models.TextChoices):
     VSZP = 'VsZP', 'VšZP'
@@ -2141,7 +2150,7 @@ class Pokladna(models.Model):
     oznacenie = "Po"
     cislo = models.CharField("Číslo záznamu", 
         max_length=50)
-    typ_transakcie = models.CharField("Typ transakcie", 
+    typ_transakcie = models.CharField("Typ záznamu", 
             max_length=25, 
             null=True, 
             choices=TypPokladna.choices
@@ -2156,7 +2165,7 @@ class Pokladna(models.Model):
             help_text = "Dátum prijatia dotácie alebo preplatenia výdavku",
             null=True
             )
-    cislo_VPD = models.IntegerField("Poradové číslo VPD",
+    cislo_VPD = models.IntegerField("Poradové číslo PD",
             blank = True,
             null = True
         )
@@ -2167,17 +2176,17 @@ class Pokladna(models.Model):
             blank = True,
             null = True
             )
-    subor_vpd = models.FileField("Súbor VPD",
-            help_text = "Súbor s VPD. Generuje sa akciou 'Vytvoriť VPD'",
+    subor_vpd = models.FileField("Súbor PD",
+            help_text = "Súbor pokladničného dokladu (VPD, PPD). Generuje sa akciou 'Vytvoriť PD'",
             upload_to=pokladna_upload_location, 
             null = True, blank = True)
     datum_softip = models.DateField('Dátum THS',
-            help_text = "Dátum vytvorenia zoznamu VPD pre THS. Vypĺňa sa automaticky akciou 'vytvoriť zoznam VPD pre THS'",
+            help_text = "Dátum vytvorenia zoznamu PD pre THS. Vypĺňa sa automaticky akciou 'vytvoriť zoznam PD pre THS'",
             blank = True,
             null=True
             )
     popis = models.CharField("Popis platby", 
-            help_text = "Stručný popis transakcie.",
+            help_text = "Stručný popis transakcie. Ak sa dá, v prípade PPD uveďte číslo súvisiaveho VPD",
             max_length=30,
             null=True
             )
@@ -2187,7 +2196,7 @@ class Pokladna(models.Model):
             null=True
             )
     zdroj = models.ForeignKey(Zdroj,
-            help_text = "V prípade výdavku je pole povinné, v prípade dotácie nechajte prázdne",
+            help_text = "V prípade dotácie nechajte prázdne, inak je povinné",
             on_delete=models.PROTECT,
             related_name='%(class)s_pokladna',
             blank = True,
@@ -2195,7 +2204,7 @@ class Pokladna(models.Model):
             )
     zakazka = models.ForeignKey(TypZakazky,
             on_delete=models.PROTECT,
-            help_text = "V prípade výdavku je pole povinné, v prípade dotácie nechajte prázdne",
+            help_text = "V prípade dotácie nechajte prázdne, inak je povinné",
             verbose_name = "Typ zákazky",
             related_name='%(class)s_pokladna',
             blank = True,
@@ -2203,7 +2212,7 @@ class Pokladna(models.Model):
             )
     ekoklas = models.ForeignKey(EkonomickaKlasifikacia,
             on_delete=models.PROTECT,
-            help_text = "V prípade výdavku je pole povinné, v prípade dotácie nechajte prázdne",
+            help_text = "V prípade dotácie nechajte prázdne, inak je povinné",
             verbose_name = "Ekonomická klasifikácia",
             related_name='%(class)s_pokladna',
             blank = True,
@@ -2211,7 +2220,7 @@ class Pokladna(models.Model):
             )
     cinnost = models.ForeignKey(Cinnost,
             on_delete=models.PROTECT,
-            help_text = "V prípade výdavku je pole povinné, v prípade dotácie nechajte prázdne",
+            help_text = "V prípade dotácie nechajte prázdne, inak je povinné",
             verbose_name = "Činnosť",
             related_name='%(class)s_pokladna',
             blank = True,
@@ -2225,20 +2234,26 @@ class Pokladna(models.Model):
             if self.suma <= 0:
                 chyby["suma"] = "V prípade dotácie musí byť pole 'Suma' kladné"
         else:
-            if not self.cislo_VPD:
-                self.cislo_VPD = nasledujuce_VPD()
-            if self.suma >= 0:
-                chyby["suma"] = "V prípade VPD musí byť pole 'Suma' záporné"
+            if self.typ_transakcie == TypPokladna.VPD:
+                if not self.cislo_VPD:
+                    self.cislo_VPD = nasledujuce_VPD()
+                    if self.suma >= 0:
+                        chyby["suma"] = "V prípade  výdavkového PD musí byť pole 'Suma' záporné"
+            else:
+                if not self.cislo_VPD:
+                    self.cislo_VPD = nasledujuce_PPD()
+                    if self.suma <= 0:
+                        chyby["suma"] = "V prípade príjmového PD musí byť pole 'Suma' kladné"
             if not self.zamestnanec:
-                chyby["zamestnanec"] = "V prípade VPD treba pole 'Zamestnanec' vyplniť"
+                chyby["zamestnanec"] = "V prípade PD treba pole 'Zamestnanec' vyplniť"
             if not self.zakazka:
-                chyby["zakazka"] = "V prípade VPD treba pole 'Typ zákazky' vyplniť"
+                chyby["zakazka"] = "V prípade PD treba pole 'Typ zákazky' vyplniť"
             if not self.zdroj:
-                chyby["zdroj"] = "V prípade VPD treba pole 'Zdroj' vyplniť"
+                chyby["zdroj"] = "V prípade PD treba pole 'Zdroj' vyplniť"
             if not self.ekoklas:
-                chyby["ekoklas"] = "V prípade VPD treba pole 'Ekonomická klasifikácia' vyplniť"
+                chyby["ekoklas"] = "V prípade PD treba pole 'Ekonomická klasifikácia' vyplniť"
             if not self.cinnost:
-                chyby["cinnost"] = "V prípade VPD treba pole 'Činnosť' vyplniť"
+                chyby["cinnost"] = "V prípade PD treba pole 'Činnosť' vyplniť"
             pass
         if chyby:
             raise ValidationError(chyby)
