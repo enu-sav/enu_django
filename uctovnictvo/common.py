@@ -359,7 +359,13 @@ def VytvoritPlatobnyPrikaz(faktura, pouzivatel):
             mena = "€"
             suma = -faktura.suma
             zaklad_dane = 100 *  suma / (100+sadzbadph)
-            text = text.replace(f"{lt}DM{gt}", f"{locale_format(suma)} {mena}")     # suma je záporná, vo formulári chceme kladné
+            if faktura.prenosDP == AnoNie.ANO:
+                zaklad = 100*suma/(100+sadzbadph)
+                text = text.replace(f"{lt}DM{gt}", f"{locale_format(zaklad)} {mena}")
+                text = text.replace(f"{lt}PDP{gt}", f"{locale_format(zaklad*sadzbadph/100)} {mena}")
+            else:
+                text = text.replace(f"{lt}DM{gt}", f"{locale_format(suma)} {mena}")
+                text = text.replace(f"{lt}PDP{gt}", "Nie")
             text = text.replace(f"{lt}CM{gt}", "")
         else:
             mena = faktura.mena
@@ -368,7 +374,6 @@ def VytvoritPlatobnyPrikaz(faktura, pouzivatel):
             text = text.replace(f"{lt}DM{gt}", "")
             text = text.replace(f"{lt}CM{gt}", f"{locale_format(suma)} {mena}")     # suma je záporná, vo formulári chceme kladné
 
-        text = text.replace(f"{lt}PDP{gt}", AnoNie(faktura.prenosDP).label)
         text = text.replace(f"{lt}sadzbadph{gt}", faktura.sadzbadph)
         text = text.replace(f"{lt}sumadph{gt}", f"{locale_format(round(suma-zaklad_dane,2))} {mena}")
         text = text.replace(f"{lt}suma1{gt}", f"{locale_format(round((1-faktura.podiel2/100)*zaklad_dane,2))} {mena}")
