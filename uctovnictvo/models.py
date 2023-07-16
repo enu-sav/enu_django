@@ -469,7 +469,6 @@ class Platba(models.Model):
             max_length=10, 
             help_text = "Uveďte sadzbu DPH.",
             #help_text = "Uveďte sadzbu DPH. Ak je faktúra v režime prenesenia daňovej povinnosti zadajte 20 %",
-            default = SadzbaDPH.P20, 
             null = True,
             choices=SadzbaDPH.choices)
     platobny_prikaz = models.FileField("Platobný príkaz pre THS-ku",
