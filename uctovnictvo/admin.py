@@ -16,7 +16,7 @@ from .models import Dohoda, DoVP, DoPC, DoBPS, VyplacanieDohod, AnoNie, PlatovyV
 from .models import ZamestnanecDohodar, Zamestnanec, Dohodar, StavDohody, PravidelnaPlatba
 from .models import Najomnik, NajomnaZmluva, NajomneFaktura, TypPP, TypPN, Cinnost
 from .models import InternyPartner, InternyPrevod, Nepritomnost, RozpoctovaPolozka, RozpoctovaPolozkaDotacia
-from .models import RozpoctovaPolozkaPresun, PlatbaBezPrikazu, Pokladna, TypPokladna
+from .models import RozpoctovaPolozkaPresun, PlatbaBezPrikazu, Pokladna, TypPokladna, SadzbaDPH
 from .models import nasledujuce_cislo, nasledujuce_VPD, SocialnyFond, PrispevokNaRekreaciu, OdmenaOprava, OdmenaAleboOprava
 from .common import VytvoritPlatobnyPrikaz, VytvoritSuborDohody, VytvoritSuborObjednavky, leapdays
 from .common import VytvoritKryciList, VytvoritKryciListRekreacia, generovatIndividualneOdmeny, zmazatIndividualneOdmeny, generovatNepritomnost, VytvoritKryciListOdmena
@@ -496,7 +496,7 @@ class PrijataFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdm
     list_totals = [
         ('suma', Sum),
     ]
-    actions = ['vytvorit_platobny_prikaz', 'duplikovat_zaznam']
+    actions = ['vytvorit_platobny_prikaz', 'duplikovat_zaznam', "fix_dph"]
 
     # Zoradiť položky v pulldown menu
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
@@ -526,6 +526,17 @@ class PrijataFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdm
             return ["program", "cislo", "platobny_prikaz", "dane_na_uhradu"]
         else:   #všetko hotové, možno odoslať, ale stále možno aj editovať
             return ["program", "cislo"]
+
+    #temporary hepler
+    def fix_dph(self, request, queryset):
+        for faktura in queryset:
+            faktura.sadzbadph = SadzbaDPH.P20
+            faktura.save()
+
+    fix_dph.short_description = "Fix DPH"
+    #Oprávnenie na použitie akcie, viazané na 'change'
+    #fix_dph.allowed_permissions = ('change',)
+
 
     def vytvorit_platobny_prikaz(self, request, queryset):
         if len(queryset) != 1:
@@ -567,6 +578,7 @@ class PrijataFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdm
                 cinnost = stara.cinnost,
                 predmet = stara.predmet,
                 prenosDP = stara.prenosDP,
+                sadzbadph = stara.sadzbadph,
                 objednavka_zmluva = stara.objednavka_zmluva
             )
         nova_faktura.save()
