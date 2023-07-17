@@ -2186,7 +2186,7 @@ class Pokladna(models.Model):
             )
     popis = models.CharField("Popis platby", 
             help_text = "Stručný popis transakcie. Ak sa dá, v prípade PPD uveďte číslo súvisiaveho VPD",
-            max_length=30,
+            max_length=60,
             null=True
             )
     poznamka = models.CharField("Poznámka", 
