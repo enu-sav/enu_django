@@ -375,9 +375,6 @@ class PokladnaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, Mo
 
     #generuje prehľad pre ths, queryset je ignorované
     def generovat_stranu_PD(self, request, queryset):
-        if len(queryset) < 2:
-            self.message_user(request, f"Na vytvorenie strany pokladničnej knihy treba vybrať aspoň dve (ľubovolné) položky.", messages.ERROR)
-            return
         # všetky záznamy, na zistenie počtu už vytvorených strán
         qs = Pokladna.objects.filter().order_by("datum_transakcie")
         if not qs:
@@ -389,7 +386,7 @@ class PokladnaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, Mo
                 datumy.add(item.datum_softip)
         strana = len(datumy) + 1
 
-        qs = qs.filter(datum_softip__isnull=True).order_by("datum_transakcie")
+        qs = queryset.filter(datum_softip__isnull=True).order_by("datum_transakcie")
         if not qs:
             self.message_user(request, f"Žiadne nové položky na zaznamenanie do PK neboli nájdené.", messages.INFO)
             return
