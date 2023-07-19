@@ -735,7 +735,7 @@ def VytvoritSuborPD(vpd):
     obj["H10"].value = vpd.suma.copy_abs()
     #suma textom
     obj["D11"].value = decimal2text(vpd.suma)
-    obj["C13"].value = f"Účel: {vpd.popis}"
+    obj["C13"].value = vpd.popis
     obj["E21"].value = vpd.cislo
 
     kl = workbook["Krycí list"]
