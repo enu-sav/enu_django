@@ -383,31 +383,13 @@ class VyplatitAutorskeOdmeny(VyplatitOdmeny):
         pos0 = 10   #Pozícia začiatku rozdielnych položiek
         if self.datum_vyplatenia:   #Uvedú sa len daň a odvody a za autorov len sumárna tabuľka
             pos = pos0
-            #Litfond
-            a,b,c,d,e,f = range(pos, pos+6)
-            vyplatit[f"A{a}"] = "Komu:"
-            vyplatit[f"B{a}"] = f"Odvod Lit. fond ({VyplatitAutorskeOdmeny.litfond_odvod} %)"
-            vyplatit[f"A{b}"] = "Názov:"
-            vyplatit[f"B{b}"] = "Literárny fond"
-            vyplatit[f"A{c}"] = "IBAN:"
-            vyplatit[f"B{c}"] = VyplatitAutorskeOdmeny.ucetLitFond
-            vyplatit[f"A{d}"] = "VS:"
-            vyplatit[f"B{d}"] = "2001"
-            vyplatit[f"A{e}"] = "KS:"
-            vyplatit[f"B{e}"] = "558"
-            vyplatit[f"A{f}"] = "Suma na úhradu:"
-            vyplatit[f"B{f}"] = f"=Výpočet!I{sum_row}"  if  self.datum_vyplatenia else "Ešte neurčené"
-            vyplatit[f"B{f}"].number_format= "0.00"
-            vyplatit[f"B{f}"].alignment = aleft
-            vyplatit[f"B{f}"].font = self.fbold
-            pos += 7
         
             #daň
             a,b,c,d,e,f = range(pos, pos+6)
             vyplatit[f"A{a}"] = "Komu:"
-            vyplatit[f"B{a}"] = "Zrážková daň z odmeny"
+            vyplatit[f"B{a}"] = "Finančná správa"
             vyplatit[f"A{b}"] = "Názov:"
-            vyplatit[f"B{b}"] = "Finančná správa"
+            vyplatit[f"B{b}"] = "Zrážková daň z odmeny"
             vyplatit[f"A{c}"] = "IBAN:"
             vyplatit[f"B{c}"] = VyplatitAutorskeOdmeny.ucetFin
             vyplatit[f"A{d}"] = "VS:"

@@ -192,6 +192,7 @@ ODVODY_VYNIMKA = 200    #Vyňatá mesačná suma v prípade, ak dohodár (dôcho
 DAN_Z_PRIJMU = 19       #Daň z príjmu, 19 %
 DPH = 20                #DPH
 LITFOND_ODVOD = 2       #Odvod do fondov (napr. Literárny), do konca r. 2022 0, inak 2 %
+LITFOND_ODVOD = 0       #Od 1. 7. 2023 odvod zušený. Parameter nechávame, čo keď ho znova zavedú
 MIN_VYPLATIT = 10       #minimálna suma v Eur, ktorá sa vypláca v prípade autorov
 #UCET_ENU = "SK36 8180 0000 0070 0061 8734 - Beliana"    #nahradený
 UCET_ENU = "SK08 8180 0000 0070 0066 7544"
