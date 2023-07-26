@@ -353,7 +353,7 @@ def VytvoritPlatobnyPrikaz(faktura, pouzivatel):
     locale.setlocale(locale.LC_ALL, 'sk_SK.UTF-8')
     if not faktura.suma and not faktura.sumacm:
         return messages.ERROR, "Vytváranie príkazu zlyhalo, lebo nebola zadaná suma v Eur a ani suma v cudzej mene.", None
-    if jePF:    #faktúra môže byť aj v cudzej mene
+    if jePF:    #prijatá faktúra môže byť aj v cudzej mene
         sadzbadph = Decimal(faktura.sadzbadph)
         if faktura.mena == Mena.EUR:
             mena = "€"
@@ -381,9 +381,17 @@ def VytvoritPlatobnyPrikaz(faktura, pouzivatel):
             text = text.replace(f"{lt}suma2{gt}", f"{locale_format(round((faktura.podiel2)*suma/100,2))} {mena}")
         else:
             text = text.replace(f"{lt}suma2{gt}", f"0 {mena}")
-    else:   #len v EUR
-        text = text.replace(f"{lt}DM{gt}", f"{locale_format(faktura.suma)} €")     # suma je záporná, o formulári chceme kladné
+    else:   #PravidelnaPlatba, len v EUR
+        suma = -faktura.suma
+        mena = "€"
+        text = text.replace(f"{lt}DM{gt}", f"{locale_format(suma)} €")     # suma je záporná, o formulári chceme kladné
         text = text.replace(f"{lt}CM{gt}", "")
+        text = text.replace(f"{lt}suma1{gt}", f"{locale_format(round((1-faktura.podiel2/100)*suma,2))} {mena}")
+        if faktura.podiel2 > 0:
+            text = text.replace(f"{lt}suma2{gt}", f"{locale_format(round((faktura.podiel2)*suma/100,2))} {mena}")
+        else:
+            text = text.replace(f"{lt}suma2{gt}", f"0 {mena}")
+        text = text.replace(f"{lt}PDP{gt}", "Nie")
 
     text = text.replace(f"{lt}ekoklas{gt}", faktura.ekoklas.kod)
     text = text.replace(f"{lt}zdroj1{gt}", faktura.zdroj.kod)
