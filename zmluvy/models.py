@@ -165,9 +165,12 @@ class Zmluva(models.Model):
             #help_text = "Z ponuky zvoľte aktuálny stav zmluvy. Autorský honorár môže byť vyplatený len vtedy, keď je v stave 'Platná / Zverejnená v CRZ.",
             #help_text = '<font color="#aa0000">Zvoliť aktuálny stav zmluvy</font> (po každej jeho zmene).',
             help_text = f"Hodnotu poľa <strong>netreba vypĺňať</strong>, aktualizuje sa automaticky. Superpoužívateľ môže v prípade potreby nastaviť stav <strong>{StavZmluvy.NEPLATNA.label}</strong>. ",
-            choices=StavZmluvy.choices, blank=True) 
+            choices=StavZmluvy.choices, 
+            null=True,
+            blank=True) 
     url_zmluvy = models.URLField('URL zmluvy', 
             help_text = "Zadajte URL pdf súboru zmluvy zo stránky CRZ.",
+            blank=True,
             null = True)
     zmluva_odoslana= models.DateField('Odovzdaná dňa ',
                                       help_text = 'Dátum odovzdania zmluvy na sekretariát na podpis vedeniu a na odoslanie na podpis (poštou). Vytvorí sa záznam v <a href="/admin/dennik/dokument/">denníku prijatej a odoslanej pošty</a>.',
@@ -179,6 +182,7 @@ class Zmluva(models.Model):
             blank=True)
     datum_zverejnenia_CRZ = models.DateField('Platná od / dátum CRZ', 
             help_text = "Zadajte dátum účinnosti zmluvy (dátum zverejnenia v CRZ + 1 deň). <br />Ak autor podpísal dohodu o nezdaňovaní, vyplňte súvisiace polia v údajoch autora.",
+            blank=True,
             null=True)
     vygenerovana_subor = models.FileField("Vygenerovaný súbor zmluvy", 
             help_text = "Súbor zmluvy na poslanie autorovi na podpis, vygenerovaný akciou 'Vytvoriť súbory zmluvy'.",
