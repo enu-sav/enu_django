@@ -332,7 +332,9 @@ class ZmluvaAutorAdmin(ZmluvaAdmin, AdminChangeLinksMixin, SimpleHistoryAdmin, I
             # V novej zmluve povoliť (teda pouzit remove) len: 
             fields.remove("honorar_ah")
             fields.remove("zmluvna_strana")
-        return fields
+        #return fields
+        # needs to be fixed
+        return []
 
     # do AdminForm pridať request, aby v jej __init__ bolo request dostupné
     def get_form(self, request, obj=None, **kwargs):
