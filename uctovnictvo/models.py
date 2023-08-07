@@ -908,8 +908,12 @@ class RozpoctovaPolozkaDotacia(Klasifikacia):
                 cinnost=self.cinnost,
                 ekoklas=self.ekoklas
             )
+        #trace()
         if qs:
-            qs[0].suma += self.suma
+            if qs[0].suma:
+                qs[0].suma += self.suma
+            else:
+                qs[0].suma = self.suma
             qs[0].save()
             self.rozpoctovapolozka = qs[0]
         else:
