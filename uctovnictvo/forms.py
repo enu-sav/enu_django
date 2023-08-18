@@ -639,10 +639,10 @@ class NepritomnostForm(forms.ModelForm):
     def clean(self): 
         if self.cleaned_data["nepritomnost_typ"] in [TypNepritomnosti.LEKAR, TypNepritomnosti.LEKARDOPROVOD] and not self.cleaned_data["dlzka_nepritomnosti"]:
             zamestnanec = self.cleaned_data["zamestnanec"]
-            #Doplniť denný úväzok zamestnanca
-            qs = PlatovyVymer.objects.filter(zamestnanec=zamestnanec, datum_od__lte=date.today(), datum_do__gte=date.today() )
+            #Doplniť denný úväzok zamestnanca v deň neprítomnosti
+            qs = PlatovyVymer.objects.filter(zamestnanec=zamestnanec, datum_od__lte=self.cleaned_data['nepritomnost_od'], datum_do__gte=self.cleaned_data['nepritomnost_od'] )
             if not qs:  #Aktuálny výmer nie je ukončený
-                qs = PlatovyVymer.objects.filter(zamestnanec=zamestnanec, datum_od__lte=date.today(), datum_do__isnull=True)
+                qs = PlatovyVymer.objects.filter(zamestnanec=zamestnanec, datum_od__lte=self.cleaned_data['nepritomnost_od'], datum_do__isnull=True)
             self.cleaned_data["dlzka_nepritomnosti"] = qs[0].uvazok_denne
             messages.warning(self.request, f"Dĺžka neprítomnosti nebola vyplnená. Doplnená bola doba {self.cleaned_data['dlzka_nepritomnosti']} hod., t.j. jeden pracovný deň zamestnanca.")
         elif not self.cleaned_data["nepritomnost_typ"] in [TypNepritomnosti.LEKAR, TypNepritomnosti.LEKARDOPROVOD] and self.cleaned_data["dlzka_nepritomnosti"]:
