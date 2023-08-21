@@ -343,7 +343,7 @@ class VytvarnaObjednavkaPlatba(models.Model):
     def cerpanie_rozpoctu(self, zden):
         if not self.datum_uhradenia: return []
         if self.datum_uhradenia <zden: return []
-        kdatum =  date(zden.year, zden.month+1, zden.day) if zden.month+1 <= 12 else  date(zden.year+1, zden.month, zden.day)
+        kdatum =  date(zden.year, zden.month+1, zden.day) if zden.month+1 <= 12 else  date(zden.year+1, 1, 1)
         if self.datum_uhradenia >= kdatum: return []
 
         if zden.year==2022 and zden.month < 4:
@@ -455,8 +455,8 @@ class PlatbaAutorskaSumar(models.Model):
     #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
     def cerpanie_rozpoctu(self, zden):
         if not self.datum_uhradenia: return []
-        if self.datum_uhradenia <zden: return []
-        kdatum =  date(zden.year, zden.month+1, zden.day) if zden.month+1 <= 12 else  date(zden.year+1, zden.month, zden.day)
+        if self.datum_uhradenia < zden: return []
+        kdatum =  date(zden.year, zden.month+1, zden.day) if zden.month+1 <= 12 else  date(zden.year+1, 1, 1)
         if self.datum_uhradenia >= kdatum: return []
 
         if zden.year==2022 and zden.month < 4:
