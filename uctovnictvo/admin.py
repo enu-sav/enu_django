@@ -18,6 +18,7 @@ from .models import Najomnik, NajomnaZmluva, NajomneFaktura, TypPP, TypPN, Cinno
 from .models import InternyPartner, InternyPrevod, Nepritomnost, RozpoctovaPolozka, RozpoctovaPolozkaDotacia
 from .models import RozpoctovaPolozkaPresun, PlatbaBezPrikazu, Pokladna, TypPokladna, SadzbaDPH
 from .models import nasledujuce_cislo, nasledujuce_VPD, SocialnyFond, PrispevokNaRekreaciu, OdmenaOprava, OdmenaAleboOprava
+from .models import TypNepritomnosti
 from .common import VytvoritPlatobnyPrikaz, VytvoritSuborDohody, VytvoritSuborObjednavky, leapdays
 from .common import VytvoritKryciList, VytvoritKryciListRekreacia, generovatIndividualneOdmeny, zmazatIndividualneOdmeny, generovatNepritomnost, VytvoritKryciListOdmena
 from .common import VytvoritPlatobnyPrikazIP, VytvoritSuborPD, UlozitStranuPK, TarifnyPlatTabulky
@@ -1333,6 +1334,31 @@ class NepritomnostAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
                 kwargs['request'] = request
                 return AdminForm(*args, **kwargs)
         return AdminFormMod
+
+    # Použiť vlastnú message v save_model
+    def message_user(self, *args): pass
+
+    def save_model(self, request, obj, form, change):
+        #testovať, či náhodou neexistuje neukončená PN
+        if obj.zamestnanec:
+            qs = Nepritomnost.objects.filter(zamestnanec=obj.zamestnanec, 
+                                         nepritomnost_typ=TypNepritomnosti.PN,
+                                         nepritomnost_do__isnull=True)
+            if qs:
+                messages.error(request, f"Neprítomnosť nebola vytvorená, lebo pre zamestnanca {obj.zamestnanec} existuje neukončená PN od {qs[0].nepritomnost_od}.")
+                #trace()
+                pass
+            else:
+                super(NepritomnostAdmin, self).save_model(request, obj, form, change)
+                messages.success(request, f"Neprítomnosť pre {obj.zamestnanec} bola úspešne vytvorená.")
+        elif obj.subor_nepritomnost:
+            super(NepritomnostAdmin, self).save_model(request, obj, form, change)
+            messages.success(request, f"Importovaný bol súbor so zoznamom neprítomností.")
+            messages.warning(request, "Akciou 'Generovať záznamy neprítomnosti' treba vytvoriť jednotlivé záznamy. Ak za daný mesiac pribudnú ešte ďalšie neprítomnosti, treba ich pridať individuálne.")
+        else:
+            super(NepritomnostAdmin, self).save_model(request, obj, form, change)
+            messages.success(request, f"Neprítomnosť bola úspešne vytvorená.")
+    
 
     def generovat_nepritomnost(self, request, queryset):
         if len(queryset) != 1:

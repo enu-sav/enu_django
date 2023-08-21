@@ -1569,11 +1569,15 @@ class Nepritomnost(models.Model):
         else:
             return "Neprítomnosť - súbor"
 
-
     def clean(self): 
+        errors={}
+        if self.zamestnanec and self.nepritomnost_typ != TypNepritomnosti.PN and not self.nepritomnost_do:
+            errors['nepritomnost_do'] ="Neprítomnosť musí byť ukončená (okrem PN)."
+            raise ValidationError(errors)
         if self.nepritomnost_typ in [TypNepritomnosti.LEKAR, TypNepritomnosti.LEKARDOPROVOD]:
             if self.nepritomnost_do - self.nepritomnost_od > timedelta(0): 
-                raise ValidationError("Neprítonmosť v prípade návštevy u lekára alebo doprovodu k lekárovi možno zadať len na jeden deň.")
+                errors['nepritomnost_do'] ="Neprítomnosť v prípade návštevy u lekára alebo doprovodu k lekárovi možno zadať len na jeden deň."
+                raise ValidationError(errors)
 
 def odmena_upload_location(instance, filename):
     return os.path.join(ODMENY_DIR, filename)
