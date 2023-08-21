@@ -1712,7 +1712,7 @@ class PlatovyVymerAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
             self.message_user(request, f"Vybrať možno len jeden výmer.", messages.ERROR)
             return
         queryset[0].duplikovat().save()
-        self.message_user(request, f"Vytvorený bol nový platový výmer pre {self.zamestnanec}.", messages.SUCCESS)
+        self.message_user(request, f"Vytvorený bol nový platový výmer pre {queryset[0].zamestnanec}.", messages.SUCCESS)
     duplikovat_zaznam.short_description = "Duplikovať platobný výmer"
     #Oprávnenie na použitie akcie, viazané na 'change'
     duplikovat_zaznam.allowed_permissions = ('change',)
