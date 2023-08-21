@@ -44,7 +44,7 @@ class VyplatitAutorskeOdmeny(VyplatitOdmeny):
         self.kstart = 5 #prvý riadok záznamu o autoroch v hárku 'Krycí list', strana 1
         self.klstart = 34 #prvý riadok krycieho listu
         self.kpos = self.kstart #aktuálny riadok záznamu o autorovi v hárku 'Krycí list', strana 1
-        self.vyplacanie_max = 50 #max počet riadkov s údajmi o autoroch sumárne na oboch krycích listoch. Viac sa nevypláca
+        self.vyplacanie_max = 500 #max počet riadkov s údajmi o autoroch sumárne na oboch krycích listoch. Viac sa nevypláca
         self.kstart2 = 35 #prvý riadok záznamu o autoroch v hárku 'Krycí list', strana 2
         self.klstart2 = 66 #prvý riadok krycieho listu
         self.s2start2 = 32 #prvý riadok druhej strany krycieho listu
