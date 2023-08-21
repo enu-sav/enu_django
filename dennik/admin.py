@@ -19,7 +19,7 @@ import re
 from import_export.admin import ImportExportModelAdmin
 from datetime import date
 from collections import defaultdict
-from beliana.settings import DDS_PRISPEVOK, SOCFOND_PRISPEVOK, ODVODY_VYNIMKA
+from beliana.settings import DDS_PRISPEVOK, SOCFOND_PRISPEVOK, ODVODY_VYNIMKA, MAX_VZ
 
 from admin_totals.admin import ModelAdminTotals
 from django.db.models import Sum
@@ -214,6 +214,9 @@ class CerpanieRozpoctuAdmin(ModelAdminTotals):
                     if not cc in fw: fw[cc] = 0
                     if fw[cc] < len(str(value))+2: fw[cc] = len(str(value))+2
     
+        if not rok in MAX_VZ:
+            messages.error(request, f"Nie je zadaný maximálny vymeriavací základ na rok {rok} (v beliana/settings.py). Kontaktujte programátora.")
+            return
         #najskôr všetko zmazať
         # Nemazať  "Pomocná položka", potrebujeme
         CerpanieRozpoctu.objects.filter().exclude(polozka="Pomocná položka").delete()
