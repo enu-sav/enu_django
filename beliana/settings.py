@@ -216,9 +216,10 @@ SOCFOND_PRISPEVOK=1.5   #Sociálny fond, %
 
 UVAZOK_TYZDENNE=37.5
 
-#https://www.socpoist.sk/news/nove-vymeriavacie-zaklady-pre-platenie-poistneho-od-1-januara-2023-su-uz-zname
 #Maximum vymeriavacích základov pre sociálne poistenie zamestnancov
+#https://www.socpoist.sk/navigacia/768-tabulky-platenia-poistneho
 MAX_VZ ={
+        2021:7644,
         2022:7931,
         2023:8477
         }
