@@ -869,6 +869,15 @@ def generovatNepritomnost(sumarna_nepritomnost):
         return [f"Neznámy súbor. Údaje o neprítomnosti sa načítajú z prvého hárka"]
 
 def generovatNepritomnostAnita(cislo,ws):
+    def check_value(value):
+        if not value: return None
+        svalue = value.replace("  "," ").split(" ")
+        if not (svalue[0] in itypy or svalue[0] in typy):
+            return f"Neznáma položka '{value}'";
+        if svalue[0] == "D" and len(svalue) > 1:
+            return f"Chybná položka 'D'. Mǒže byť len 'D' alebo 'D2' ale nie '{value}'."
+        #Všetko OK
+        return None
     #Typy neprítomnosti
     typy = {
             "D": TypNepritomnosti.DOVOLENKA,
@@ -884,7 +893,7 @@ def generovatNepritomnostAnita(cislo,ws):
             "SC": TypNepritomnosti.SLUZOBNA,
             "Šk": TypNepritomnosti.SKOLENIE,
             "KZ VS": TypNepritomnosti.PZV,
-            "POH": TypNepritomnosti.POHREB
+            "POH": TypNepritomnosti.PZV
             }
     #ignorovať
     itypy = ["S", "PnD", "SSZ", None]
@@ -893,25 +902,26 @@ def generovatNepritomnostAnita(cislo,ws):
     if not len(a1split) == 2:
         return [f"V bunke A1 sa nenachádza údaj 'Mesiac rok'."]
     if not a1split[0] in mesiace:
-        trace()
         return [f"V bunke A1 je nesprávny údaj 'Mesiac rok'."]
     mesiac = mesiace.index(a1split[0])+1
     rok = int(a1split[1])
 
-    #Kontrola tabulky
+    #Určenie počtu riadkov
     prvy = 1
     nriadok = 1
     while ws[f"A{nriadok}"].value: nriadok += 1
+
+    #Kontrola tabulky
     nstlpec = 1
     while ws.cell(row=1, column=nstlpec).value: nstlpec += 1
     for r in range (2,nriadok):
         print(ws[f"A{r}"].value)
         for s in range(2,nstlpec):
-            value = ws.cell(row=r, column=s).value
-            if not (value in itypy or value in typy):
+            rslt = check_value(ws.cell(row=r, column=s).value)
+            if rslt:
                 trace()
-                return [f"Neznáma položka '{value}' v pozícii ({r},{s})"]
-    
+                pass
+                return [f"Chyba v pozícii ({r},{s}): {rslt}"]
     zpocet=0  
     npocet=0
     for r in range (2,nriadok):
@@ -920,15 +930,19 @@ def generovatNepritomnostAnita(cislo,ws):
         zamestnanec = Zamestnanec.objects.get(priezvisko=priezvisko)
         s=2
         while s < nstlpec:
-            value = ws.cell(row=r, column=s).value 
-            if value in ["D", "PN", "NV"]:
-                atyp = value
+            value = ws.cell(row=r, column=s).value
+            if value:
+                scell = value.replace("  "," ").split(" ")
+                ntyp = scell[0]
+            else:
+                ntyp = None
+            if ntyp in ["D", "PN", "NV", "OČR"]:  #intervalové neprítomnosti
                 sstart = s
-                while ws.cell(row=r, column=s).value == atyp: s+=1
+                while ws.cell(row=r, column=s).value == ntyp: s+=1
                 nepr = Nepritomnost(
                     cislo = "%s-%02d"%(cislo, npocet+1),
                     zamestnanec = zamestnanec,
-                    nepritomnost_typ = typy[atyp],
+                    nepritomnost_typ = typy[ntyp],
                     nepritomnost_od = datetime.date(rok, mesiac,sstart-1),
                     nepritomnost_do = datetime.date(rok, mesiac,s-2)
                     )
@@ -936,17 +950,20 @@ def generovatNepritomnostAnita(cislo,ws):
                 s -=1
                 npocet += 1
                 nepr.save()
-            elif value in typy:
+            elif ntyp in typy: #Jednodňové neprítomnosti
                 nepr = Nepritomnost(
                     cislo = "%s-%02d"%(cislo, npocet+1),
                     zamestnanec = zamestnanec,
-                    nepritomnost_typ = typy[value],
+                    nepritomnost_typ = typy[ntyp],
                     nepritomnost_od = datetime.date(rok, mesiac,s-1),
                     nepritomnost_do = datetime.date(rok, mesiac,s-1)
                     )
+                if len(scell) > 1:
+                    nepr.dlzka_nepritomnosti = Decimal(float(scell[1].replace(",",".")))
                 npocet += 1
                 nepr.save()
                 pass
+
             s+=1
         zpocet += 1
         pass
