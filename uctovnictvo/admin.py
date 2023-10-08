@@ -1336,7 +1336,8 @@ class NepritomnostAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
         return AdminFormMod
 
     # Použiť vlastnú message v save_model
-    def message_user(self, *args): pass
+    #Potlačí výpis "Objekt ... bol úspešne pridaný"
+    #def message_user(self, *args): pass
 
     def save_model(self, request, obj, form, change):
         #testovať, či náhodou neexistuje neukončená PN
@@ -1357,27 +1358,28 @@ class NepritomnostAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
             messages.warning(request, "Akciou 'Generovať záznamy neprítomnosti' treba vytvoriť jednotlivé záznamy. Ak za daný mesiac pribudnú ešte ďalšie neprítomnosti, treba ich pridať individuálne.")
         else:
             super(NepritomnostAdmin, self).save_model(request, obj, form, change)
-            messages.success(request, f"Neprítomnosť bola úspešne vytvorená.")
+            self.messages.success(request, f"Neprítomnosť bola úspešne vytvorená.")
     
 
     def generovat_nepritomnost(self, request, queryset):
         if len(queryset) != 1:
-            self.message_user(request, f"Vybrať možno len jednu položku", messages.ERROR)
+            #self.message_user(request, f"Vybrať možno len jednu položku", messages.ERROR)
+            messages.error(request, "Vybrať možno len jednu položku")
             return
         polozka = queryset[0]
         uz_generovane = Nepritomnost.objects.filter(cislo="%s-01"%polozka.cislo)
         if uz_generovane:
-            self.message_user(request, f"Záznamy boli už pre súbor {polozka.cislo} vygenerovane.", messages.ERROR)
+            messages.error(request, f"Záznamy boli už pre súbor {polozka.cislo} vygenerovane.")
             return
         if polozka.subor_nepritomnost:
             rslt = generovatNepritomnost(polozka)
             if len(rslt) == 1:  #Chyba
-                self.message_user(request, rslt[0], messages.ERROR)
+                messages.error(request, rslt[0])
             else:
                 nzamestnanci, nnepritomnosti = rslt
-                self.message_user(request, f"Vygenerovaných bolo {nnepritomnosti} záznamov o neprítomnosti pre {nzamestnanci} zamestnancov.",messages.INFO)
+                messages.success(request, f"Vygenerovaných bolo {nnepritomnosti} záznamov o neprítomnosti pre {nzamestnanci} zamestnancov.")
         else:
-            self.message_user(request, f"Položka {polozka.cislo} neobsahuje súbor.", messages.ERROR)
+            messages.error(request, f"Položka {polozka.cislo} neobsahuje súbor so zoznamom neprítomností.")
 
     generovat_nepritomnost.short_description = "Generovať záznamy neprítomnosti"
     #Oprávnenie na použitie akcie, viazané na 'change'
