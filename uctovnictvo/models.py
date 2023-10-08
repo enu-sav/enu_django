@@ -1299,9 +1299,12 @@ class PlatovyVymer(Klasifikacia):
 
     #Konverzia typu dochodku na pozadovany typ vo funkcii ZamestnanecOdvody
     @staticmethod
-    def td_konv(osoba):
-        td = osoba.typ_doch
-        return "InvDoch30" if td==TypDochodku.INVALIDNY30 else "InvDoch70" if td== TypDochodku.INVALIDNY70 else "StarDoch" if td==TypDochodku.STAROBNY else "VyslDoch" if td==TypDochodku.INVAL_VYSL else "Bezny"
+    def td_konv(osoba, zden):
+        if osoba.poberatel_doch == AnoNie.ANO and osoba.datum_doch <= zden:
+            td = osoba.typ_doch
+            return "InvDoch30" if td==TypDochodku.INVALIDNY30 else "InvDoch70" if td== TypDochodku.INVALIDNY70 else "StarDoch" if td==TypDochodku.STAROBNY else "VyslDoch" if td==TypDochodku.INVAL_VYSL else "Bezny"
+        else:
+            return "Bezny"
 
     def duplikovat(self):
         novy = PlatovyVymer.objects.create(
@@ -1880,7 +1883,7 @@ class DoVP(Dohoda):
 
     #Konverzia typu dochodku na pozadovany typ vo funkcii DohodarOdvody
     @staticmethod
-    def td_konv(osoba):
+    def td_konv(osoba, zden):
         td = osoba.typ_doch
         return "StarDoch" if td==TypDochodku.STAROBNY else "InvDoch" if td== TypDochodku.INVALIDNY else "StarDoch" if td==TypDochodku.STAROBNY else "DoVP"
 
@@ -1975,7 +1978,7 @@ class DoPC(Dohoda):
 
     #Konverzia typu dochodku na pozadovany typ vo funkcii DohodarOdvody
     @staticmethod
-    def td_konv(osoba):
+    def td_konv(osoba, zden):
         td = osoba.typ_doch
         return "StarDoch" if td==TypDochodku.STAROBNY else "InvDoch" if td== TypDochodku.INVALIDNY else "StarDoch" if td==TypDochodku.STAROBNY else "DoPC"
 

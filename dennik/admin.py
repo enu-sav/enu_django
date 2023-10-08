@@ -531,16 +531,16 @@ def generovat_mzdove(request, zden, rekapitulacia):
             else: # Príspevok do DDS sa vypláca od 1. dňa mesiaca, keď bola uzatvorena dohoda
                 dds_od = date(osoba.dds_od.year, osoba.dds_od.month, 1)
             if zden >= dds_od:
-                cerpanie = cerpanie + gen_dds(poistne, osoba, zaklad_dds, zden, PlatovyVymer.td_konv(osoba))
+                cerpanie = cerpanie + gen_dds(poistne, osoba, zaklad_dds, zden, PlatovyVymer.td_konv(osoba, zden))
         if zaklad_socfond:
             cerpanie = cerpanie + gen_socfond(osoba, zaklad_socfond, zden)
         vylucitelnost = False if zaklad_vylucitelnost else True
         if zam_zdroj:
-            cerpanie = cerpanie + gen_soczdrav(poistne, osoba, "Plat", zaklad_soczdrav_zam, zden, PlatovyVymer.td_konv(osoba), zam_zdroj, zam_zakazka, vylucitelnost=vylucitelnost)
+            cerpanie = cerpanie + gen_soczdrav(poistne, osoba, "Plat", zaklad_soczdrav_zam, zden, PlatovyVymer.td_konv(osoba, zden), zam_zdroj, zam_zakazka, vylucitelnost=vylucitelnost)
         if dovp_zdroj:
-            cerpanie = cerpanie + gen_soczdrav(poistne, osoba, "DoVP", zaklad_soczdrav_dovp, zden, DoVP.td_konv(osoba), dovp_zdroj, dovp_zakazka, vynimka=dohoda_vynimka)
+            cerpanie = cerpanie + gen_soczdrav(poistne, osoba, "DoVP", zaklad_soczdrav_dovp, zden, DoVP.td_konv(osoba, zden), dovp_zdroj, dovp_zakazka, vynimka=dohoda_vynimka)
         if dopc_zdroj:
-            cerpanie = cerpanie + gen_soczdrav(poistne, osoba, "DoPC", zaklad_soczdrav_dopc, zden, DoPC.td_konv(osoba), dopc_zdroj, dopc_zakazka, vynimka=dohoda_vynimka)
+            cerpanie = cerpanie + gen_soczdrav(poistne, osoba, "DoPC", zaklad_soczdrav_dopc, zden, DoPC.td_konv(osoba, zden), dopc_zdroj, dopc_zakazka, vynimka=dohoda_vynimka)
     return cerpanie
 
 #Generovať položky pre socialne a zdravotne poistenie
