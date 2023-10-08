@@ -11,6 +11,7 @@ from .models import SystemovySubor, PrijataFaktura, AnoNie, Objednavka, PrijataF
 from .models import DoVP, DoPC, DoBPS, Poistovna, TypDochodku, Mena, PravidelnaPlatba, TypPP, TypPokladna, Pokladna
 from .models import NajomneFaktura, PrispevokNaRekreaciu, Zamestnanec, OdmenaOprava, OdmenaAleboOprava, TypNepritomnosti, Nepritomnost
 from .models import PlatovaStupnica 
+from .rokydni import mesiace
 
 from openpyxl import load_workbook
 from openpyxl.styles import Font, Color, colors, Alignment, PatternFill , numbers
@@ -864,9 +865,11 @@ def generovatNepritomnost(sumarna_nepritomnost):
     #ktorý súbor máme?
     if ws["B1"].value == 1 and ws["C1"].value == 2 and ws["D1"].value == 3: #Od Anity
         return generovatNepritomnostAnita(sumarna_nepritomnost.cislo,ws)
+    else:
+        return [f"Neznámy súbor. Údaje o neprítomnosti sa načítajú z prvého hárka"]
 
 def generovatNepritomnostAnita(cislo,ws):
-    #Vyhľadať prvý riadok tabuľky
+    #Typy neprítomnosti
     typy = {
             "D": TypNepritomnosti.DOVOLENKA,
             "D2": TypNepritomnosti.DOVOLENKA2,
@@ -880,10 +883,21 @@ def generovatNepritomnostAnita(cislo,ws):
             "RV": TypNepritomnosti.PZV,
             "SC": TypNepritomnosti.SLUZOBNA,
             "Šk": TypNepritomnosti.SKOLENIE,
-            "KZ VS": TypNepritomnosti.PZV
+            "KZ VS": TypNepritomnosti.PZV,
+            "POH": TypNepritomnosti.POHREB
             }
     #ignorovať
     itypy = ["S", "PnD", "SSZ", None]
+    # rok a mesiac
+    a1split = ws["A1"].value.lower().replace("  ", " ").split(" ")
+    if not len(a1split) == 2:
+        return [f"V bunke A1 sa nenachádza údaj 'Mesiac rok'."]
+    if not a1split[0] in mesiace:
+        trace()
+        return [f"V bunke A1 je nesprávny údaj 'Mesiac rok'."]
+    mesiac = mesiace.index(a1split[0])+1
+    rok = int(a1split[1])
+
     #Kontrola tabulky
     prvy = 1
     nriadok = 1
@@ -895,15 +909,9 @@ def generovatNepritomnostAnita(cislo,ws):
         for s in range(2,nstlpec):
             value = ws.cell(row=r, column=s).value
             if not (value in itypy or value in typy):
+                trace()
                 return [f"Neznáma položka '{value}' v pozícii ({r},{s})"]
     
-    if ws["A1"].value == "November 2022":
-        rok = 2022
-        mesiac = 11
-    elif ws["A1"].value == "December 2022":
-        rok = 2022
-        mesiac = 12
-
     zpocet=0  
     npocet=0
     for r in range (2,nriadok):

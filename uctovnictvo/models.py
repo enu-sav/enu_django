@@ -115,7 +115,8 @@ class TypNepritomnosti(models.TextChoices):
     NEPLATENE = "neplatene", "Neplatené voľno"  # nič sa neplatí
     SLUZOBNA = "sluzobna", "Služobná cesta"     # normálna mzda
     PRACADOMA = "pracadoma", "Práca na doma"    # normálna mzda
-    SKOLENIE = "skolenie", "Školenie"    # normálna mzda
+    SKOLENIE = "skolenie", "Školenie"           # normálna mzda
+    POHREB = "pohreb", "Pohreb"                 # Náhrada mzdy - prekážky osobné
 
 #access label: AnoNie('ano').label
 class TypPokladna(models.TextChoices):
