@@ -1345,7 +1345,7 @@ class NepritomnostAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
             qs = Nepritomnost.objects.filter(zamestnanec=obj.zamestnanec, 
                                          nepritomnost_typ=TypNepritomnosti.PN,
                                          nepritomnost_do__isnull=True)
-            if qs:
+            if qs and qs[0].cislo != obj.cislo:
                 messages.error(request, f"Neprítomnosť nebola vytvorená, lebo pre zamestnanca {obj.zamestnanec} existuje neukončená PN od {qs[0].nepritomnost_od}.")
                 #trace()
                 pass
