@@ -349,6 +349,7 @@ class PlatovaRekapitulaciaAdmin(ModelAdminTotals):
                     if not cc in fw: fw[cc] = 0
                     if fw[cc] < len(str(value))+2: fw[cc] = len(str(value))+2
         polozky= {
+            #"Názov tu": ["Názov v pdf", poradie_poľa_v_riadku]
             "Plat tarifný plat": ["Tarifný plat spolu", 1 ],
             "Plat osobný príplatok": ["Osobný príplatok", 1],
             "Plat príplatok za riadenie": ["Príplatok za riadenie", 1],
@@ -357,14 +358,22 @@ class PlatovaRekapitulaciaAdmin(ModelAdminTotals):
             "Náhrada mzdy - PN": ["Náhrada príjmu pri DPN", 1],
             "Plat odmena": ["Odmeny spolu", 0],
             "Plat odchodné": ["Odchodné", 0],
+            "DDS príspevok": ["Doplnkové dôchodkové sporenie spolu", 1],
             "Stravné príspevok": ["Fin.prísp.na stravu z-teľ", 0],
             "Stravné zrážky": ["Spoločné zrážky \(N5241\)", 1],
             "DoPC odmena": ["Dohody o pracovnej činnosti", 1],
             "DoVP odmena": ["Dohody o vykonaní práce", 1],
             "Sociálny fond": ["Sociálny fond", 2],
             "Zdravotné poistné": ["Zdravotné poistné spolu", 2],
-            "Sociálne poistné": ["Sociálne poistné spolu", 1],
-            "DDS príspevok": ["Doplnkové dôchodkové sporenie spolu", 1],
+            #"Sociálne poistné": ["Sociálne poistné spolu", 1],
+            "Sociálne poistné 625001": ["Nemocenské poistné", 2],
+            "Sociálne poistné 625002": ["Starobné poistné", 2],
+            "Sociálne poistné 625003": ["Úrazové poistné", 1],
+            "Sociálne poistné 625004": ["Invalidné poistné", 2],
+            "Sociálne poistné 625005ne": ["Poistenie v nezamestnanosti", 2],
+            "Sociálne poistné 625006": ["Garančné poistné", 1],
+            "Sociálne poistné 625007": ["Rezervný fond solidarity", 1],
+            "Sociálne poistné 625005po": ["Poistné na financovanie podpory v čase skr. práce", 1],
             }
         #Vytvoriť workbook
         file_name = f"KontrolaRekapitulacie-{date.today().isoformat()}"
@@ -373,21 +382,22 @@ class PlatovaRekapitulaciaAdmin(ModelAdminTotals):
         ws_prehlad.title = "Prehľad"
         harky={}
         fw ={}  #Šírka poľa
-        zapisat_riadok(ws_prehlad, fw, 1, ["Mesiac", "Softip", "Django", "Rozdiel mínus", "Rozdiel plus"], header=True) 
+        zapisat_riadok(ws_prehlad, fw, 1, ["Mesiac", "Mzdová účtáreň", "Django", "Rozdiel mínus", "Rozdiel plus"], header=True) 
         for qn, za_mesiac in enumerate(sorted(queryset, key=lambda x: x.identifikator)):  #queryset: zoznam mesiacov, za ktoré treba spraviť rekapituláciu
             ws = wb.create_sheet(title=za_mesiac.identifikator)
-            zapisat_riadok(ws, fw, 1, ["Položka", "Softip", "Django", "Rozdiel B-C"], header=True) 
+            zapisat_riadok(ws, fw, 1, ["Položka", "Mzdová účtáreň", "Django", "Rozdiel B-C"], header=True) 
             #datum
 
-            #Načítať dáta z Djanga
+            #Načítať mzdové údaje metódou "cerpanie_rozpoctu"
             #Dátum pre čerpanie
             datum=date(int(za_mesiac.identifikator[:4]), int(za_mesiac.identifikator[-2:]), 1)
             cerpanie = generovat_mzdove(request, datum, rekapitulacia=True)
 
-            #Spočítať po typoch
+            #Spočítať po typoch a po osobách
             sumarne={}
             for item in cerpanie:
-                sumarne[item['nazov']] = Decimal(sumarne[item['nazov']]) + Decimal(item['suma']) if item['nazov'] in sumarne else item['suma']
+                #sumarne[item['nazov']] = Decimal(sumarne[item['nazov']]) + Decimal(item['suma']) if item['nazov'] in sumarne else item['suma']
+                sumarne[item['nazov']] = sumarne[item['nazov']] + item['suma'] if item['nazov'] in sumarne else item['suma']
                 pass
 
             #Načítať dáta z pdf a vyplniť hárok
@@ -427,7 +437,6 @@ class PlatovaRekapitulaciaAdmin(ModelAdminTotals):
             za_mesiac.rozdiel_plus=rozdiel_plus
             za_mesiac.rozdiel_minus=rozdiel_minus
             za_mesiac.save()
-            
 
         #Uložiť a zobraziť 
         response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
@@ -472,7 +481,7 @@ def generovat_mzdove(request, zden, rekapitulacia):
 
     polozka_vylucitelnost = ["Plat tarifný plat"]   #0 znamená, že zamestnane celý mesiac nepracoval, teda bol vylúčiteľný (bol na PN)
 
-    cerpanie = []   #zoznam poloziel cerpania
+    cerpanie = []   #zoznam poloziek cerpania
     for meno in po_osobach:
         #celková odmena
         osoba = po_osobach[meno][0]['osoba']
@@ -535,13 +544,14 @@ def generovat_mzdove(request, zden, rekapitulacia):
         if zaklad_socfond:
             cerpanie = cerpanie + gen_socfond(osoba, zaklad_socfond, zden)
         vylucitelnost = False if zaklad_vylucitelnost else True
+
         if zam_zdroj:
             cerpanie = cerpanie + gen_soczdrav(poistne, osoba, "Plat", zaklad_soczdrav_zam, zden, PlatovyVymer.td_konv(osoba, zden), zam_zdroj, zam_zakazka, vylucitelnost=vylucitelnost)
         if dovp_zdroj:
             cerpanie = cerpanie + gen_soczdrav(poistne, osoba, "DoVP", zaklad_soczdrav_dovp, zden, DoVP.td_konv(osoba, zden), dovp_zdroj, dovp_zakazka, vynimka=dohoda_vynimka)
         if dopc_zdroj:
             cerpanie = cerpanie + gen_soczdrav(poistne, osoba, "DoPC", zaklad_soczdrav_dopc, zden, DoPC.td_konv(osoba, zden), dopc_zdroj, dopc_zakazka, vynimka=dohoda_vynimka)
-    return cerpanie
+    return cerpanie #generovat_mzdove
 
 #Generovať položky pre socialne a zdravotne poistenie
 def gen_soczdrav(poistne, osoba, typ, suma, zden, td_konv, zdroj, zakazka, vynimka=AnoNie.NIE, vylucitelnost=False):
@@ -552,16 +562,17 @@ def gen_soczdrav(poistne, osoba, typ, suma, zden, td_konv, zdroj, zakazka, vynim
         socpoist, _, zdravpoist, _ = poistne.DohodarOdvody(-float(suma), td_konv, zden, ODVODY_VYNIMKA if vynimka == AnoNie.ANO else 0)
     poistne=[]
     for item in socpoist:
+        ek =  EkonomickaKlasifikacia.objects.get(kod=item)
         soc = {
             "podnazov": f"{typ} poistenie sociálne",
-            "nazov": f"Sociálne poistné",
+            "nazov": f"Sociálne poistné {ek.kod}",
             "suma": -round(Decimal(socpoist[item]),2),
             "zdroj": zdroj,
             "zakazka": zakazka,
             "datum": zden,
             "subjekt": subjekt,
             "cislo": "-",
-            "ekoklas": EkonomickaKlasifikacia.objects.get(kod=item)
+            "ekoklas": ek
         }
         poistne.append(soc)
     ekoklas = "621" if osoba.poistovna == Poistovna.VSZP else "623"
@@ -578,7 +589,6 @@ def gen_soczdrav(poistne, osoba, typ, suma, zden, td_konv, zdroj, zakazka, vynim
         "ekoklas": EkonomickaKlasifikacia.objects.get(kod=ekoklas)
         }
     poistne.append(zdrav)
-    pass
     return poistne
 
 #Generovať položky pre DDS

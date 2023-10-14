@@ -13,10 +13,10 @@ class Poistne():
             "starobne": "625002",
             "urazove": "625003",
             "invalidne": "625004",
-            "nezamestnanecke": "625005",
+            "nezamestnanecke": "625005ne",
             "garancne": "625006",
             "rezervny": "625007",
-            "financovanie_podpory": "625005",
+            "financovanie_podpory": "625005po",
         }
 
 
