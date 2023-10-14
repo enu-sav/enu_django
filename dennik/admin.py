@@ -438,6 +438,29 @@ class PlatovaRekapitulaciaAdmin(ModelAdminTotals):
             za_mesiac.rozdiel_minus=rozdiel_minus
             za_mesiac.save()
 
+        #Pridať hárok spolu
+        wsheets = wb.get_sheet_names()[1:]  #názvy dátových hárkov
+        fs = wsheets[0]
+        ls = wsheets[-1]
+        ws = wb.create_sheet(title="Spolu")
+        zapisat_riadok(ws, fw, 1, ["Položka", "Mzdová účtáreň", "Django", "Rozdiel B-C"], header=True) 
+        #podľa prvého dátového hárka
+        ws1 = wb[fs]
+        row = 2
+        ws.column_dimensions["A"].width = 35
+        ws.column_dimensions["B"].width = 15
+        ws.column_dimensions["C"].width = 15
+        ws.column_dimensions["D"].width = 15
+        while ws1[f"A{row}"].value:
+            #=$'2023-01'.A2
+            ws[f"A{row}"].value = f"='{fs}'!A{row}"
+            #=SUM($'2023-01'.B2:$'2023-03'.B2)
+            ws[f"b{row}"].value = f"=SUM('{fs}'!B{row}:'{ls}'!B{row})"
+            ws[f"c{row}"].value = f"=SUM('{fs}'!c{row}:'{ls}'!c{row})"
+            ws[f"d{row}"].value = f"=b{row}-c{row}"
+            ws.cell(row=row, column=4).number_format="0.00"
+            row += 1
+
         #Uložiť a zobraziť 
         response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
         response['Content-Disposition'] = f'attachment; filename={file_name}.xlsx'
