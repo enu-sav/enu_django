@@ -282,7 +282,7 @@ class PlatbaBezPrikazuAdmin(ZobrazitZmeny, SimpleHistoryAdmin):
     #Oprávnenie na použitie akcie, viazané na 'change'
     duplikovat_zaznam.allowed_permissions = ('change',)
 
-    def save_model(self, request, obj, form, change):
+    def __save_model(self, request, obj, form, change): #Dočasne vyradené, do vyriešenia automatického plnenia obsahu SocialnyFond
         if 'suma' in form.changed_data:
             if obj.suma >= 0:
                 messages.add_message(request, messages.WARNING, "Do poľa 'Suma' sa obvykle vkladajú výdavky (záporná suma), vložili ste však 0 alebo kladnú hodnotu sumy. <br />Ak ide o omyl, hodnotu opravte.") 
@@ -981,7 +981,7 @@ class PrispevokNaStravneAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistor
         else:
             return []
 
-    def save_model(self, request, obj, form, change):
+    def __save_model(self, request, obj, form, change): #Dočasne vyradené, do vyriešenia automatického plnenia obsahu SocialnyFond
         #Ak ide o novú platbu, vytvoriť položku SF
         qs = PrispevokNaStravne.objects.filter(cislo = obj.cislo)
         if not qs:
