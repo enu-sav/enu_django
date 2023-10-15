@@ -1016,54 +1016,42 @@ class PrispevokNaStravne(Klasifikacia):
             raise ValidationError("Položky 'Príspevok zamestnávateľa' a 'Príspevok zo soc. fondu' musia byť buď len kladné alebo len záporné.")
 
     #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
-    #príspevok na stravné za vypláca za nasledujúci mesiac spolu s výplatou, ktorá je za minulý mesiac
-    #zrážka na stravné za zaratúva na konci mesiaca, ktorého sa týka (po sumarizácii neprítomnosti)
-    #V pdf je údaj o mesiaci, ktorého sa príspevok alebo zrážka týka
-    #príspevok treba brať za nasledujúci mesiac
-    #zrážku treba brať za aktuálny mesiac
+    #V starších pdf s príspevkami (do 08/2023) je v hlavičke nesprávny údaj o mesiaci, ktorého sa príspevok týka.
+    #V tom prípade sa mesiac zadáva na základe dátumu vytvorenia dokumentu dolu pod tabuľkou
     def cerpanie_rozpoctu(self, zden):
         msc= {
-            "januar": [1, Mesiace.FEBRUAR],
-            "februar": [2, Mesiace.MAREC],
-            "marec": [3, Mesiace.APRIL],
-            "april": [4, Mesiace.MAJ],
-            "maj": [5, Mesiace.JUN],
-            "jun": [6, Mesiace.JUL],
-            "jul": [7, Mesiace.AUGUST],
-            "august": [8, Mesiace.SEPTEMBER],
-            "september": [9, Mesiace.OKTOBER],
-            "oktober": [10, Mesiace.NOVEMBER],
-            "november": [11, Mesiace.DECEMBER],
-            "december": [12, Mesiace.JANUAR]
+            "januar": [1, Mesiace.JANUAR],
+            "februar": [2, Mesiace.FEBRUAR],
+            "marec": [3, Mesiace.MAREC],
+            "april": [4, Mesiace.APRIL],
+            "maj": [5, Mesiace.MAJ],
+            "jun": [6, Mesiace.JUN],
+            "jul": [7, Mesiace.JUL],
+            "august": [8, Mesiace.AUGUST],
+            "september": [9, Mesiace.SEPTEMBER],
+            "oktober": [10, Mesiace.OKTOBER],
+            "november": [11, Mesiace.NOVEMBER],
+            "december": [12, Mesiace.DECEMBER]
             }
         if not self.za_mesiac: return []    #pole nie je vyplnené
         if not str(zden.year) in self.cislo: return []  #nesprávny rok
         if zden.month != msc[self.za_mesiac][0]: return [] #nesprávny mesiac 
         platby = []
-        #príspevok treba brať za nasledujúci mesiac
-        #trace()
         if self.suma_zamestnavatel < 0:
-            prispevok_mesiac =  msc[self.za_mesiac][1]  #nasledujúci mesiac
-            prispevok_rok = zden.year+1 if self.za_mesiac=="december" else zden.year
-            qs = PrispevokNaStravne.objects.filter(cislo__startswith=f"{PrispevokNaStravne.oznacenie}-{prispevok_rok}")
-            qs = qs.filter(za_mesiac=prispevok_mesiac,suma_zamestnavatel__lt=0)
-            if qs:
-                qs=qs[0]
-                platba = {
-                    "nazov":"Stravné príspevok",
-                    "suma": qs.suma_zamestnavatel,
-                    "socfond": qs.suma_socfond,
-                    "datum": zden,
-                    "subjekt": "Zamestnanci",
-                    "osoba": "Zamestnanci",
-                    "cislo": qs.cislo,
-                    "zdroj": qs.zdroj,
-                    "zakazka": qs.zakazka,
-                    "ekoklas": qs.ekoklas
-                    }
-                platby = [platba]
+            platba = {
+                "nazov":"Stravné príspevok",
+                "suma": self.suma_zamestnavatel,
+                "socfond": self.suma_socfond,
+                "datum": zden,
+                "subjekt": "Zamestnanci",
+                "osoba": "Zamestnanci",
+                "cislo": self.cislo,
+                "zdroj": self.zdroj,
+                "zakazka": self.zakazka,
+                "ekoklas": self.ekoklas
+                }
+            platby.append(platba)
         else:
-        #zrážku treba brať za aktuálny mesiac
             platba = {
                 "nazov":"Stravné zrážky",
                 "suma": self.suma_zamestnavatel,
