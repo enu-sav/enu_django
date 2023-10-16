@@ -5,7 +5,7 @@ from django.core.exceptions import ValidationError
 from ipdb import set_trace as trace
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
-from .models import nasledujuce_cislo, nasledujuce_VPD, nasledujuce_PPD
+from .models import nasledujuce_cislo, nasledujuce_VPD, nasledujuce_PPD, nasledujuce_Zmluva
 from .models import PrijataFaktura, Objednavka, PrispevokNaStravne, DoPC, DoVP, DoBPS, PlatovyVymer
 from .models import VyplacanieDohod, StavDohody, Dohoda, PravidelnaPlatba, TypPP, InternyPrevod, Nepritomnost, TypNepritomnosti
 from .models import Najomnik, NajomnaZmluva, NajomneFaktura, TypPN, RozpoctovaPolozkaDotacia, RozpoctovaPolozkaPresun, RozpoctovaPolozka, Zmluva
@@ -51,7 +51,7 @@ class ZmluvaForm(forms.ModelForm):
     #inicializácia polí
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        polecislo = "cislo"
+        polecislo = "nase_cislo"
         # Ak je pole readonly, tak sa nenachádza vo fields. Preto testujeme fields aj initial
         if polecislo in self.fields and not polecislo in self.initial:
             self.fields[polecislo].help_text = "Zadajte číslo zmluvy (naše číslo alebo číslo dodávateľa). Na jednoduché rozlíšenie viacerých zmlúv toho istého dodávateľa možno v zátvorke uviesť krátku doplnkovú informáciu, napr. '2/2018 (dodávka plynu)'"
@@ -59,7 +59,7 @@ class ZmluvaForm(forms.ModelForm):
         # Ak je pole readonly, tak sa nenachádza vo fields. Preto testujeme fields aj initial
         if polecislo in self.fields and not polecislo in self.initial:
             self.fields[polecislo].help_text = "Zadajte číslo zmluvy (naše číslo alebo číslo dodávateľa). Na jednoduché rozlíšenie viacerých zmlúv toho istého dodávateľa možno v zátvorke uviesť krátku doplnkovú informáciu, napr. '2/2018 (dodávka plynu)'."
-            nasledujuce = nasledujuce_cislo(Zmluva)
+            nasledujuce = nasledujuce_Zmluva()
             self.fields[polecislo].help_text = f"Zadajte naše číslo novej zmluvy v tvare {Zmluva.oznacenie}-RRRR-NNN. Predvolené číslo '{nasledujuce}' bolo určené na základe čísel existujúcich zmlúv ako nasledujúce v poradí."
             self.initial[polecislo] = nasledujuce
 

@@ -61,7 +61,7 @@ priblizny_kurz = {
         Mena.GBP: 0.857
     }
 
-        # Pre triedu classname určí číslo nasledujúceho záznamu v pvare X-2021-NNN
+# Pre triedu classname určí číslo nasledujúceho záznamu v tvare X-2021-NNN
 def nasledujuce_cislo(classname, rok=None):
         # zoznam faktúr s číslom "PS-2021-123" zoradený vzostupne
         if rok:
@@ -73,6 +73,24 @@ def nasledujuce_cislo(classname, rok=None):
             latest = itemlist.last().cislo
             nove_cislo = int(re.findall(f"{ozn_rok}([0-9]+)",latest)[0]) + 1
             return "%s%03d"%(ozn_rok, nove_cislo)
+        else:
+            #sme v novom roku alebo trieda este nema instanciu
+            return f"{ozn_rok}001"
+
+        # Pre triedu classname určí číslo nasledujúceho záznamu v pvare X-2021-NNN
+
+# Pre triedu Zmluva určí číslo nasledujúceho záznamu v tvare ZE-2021-NNN
+def nasledujuce_Zmluva(rok=None):
+        # zoznam faktúr s číslom "PS-2021-123" zoradený vzostupne
+        if rok:
+            ozn_rok = f"{Zmluva.oznacenie}-{rok}-"
+        else:
+            ozn_rok = f"{Zmluva.oznacenie}-{datetime.now().year}-"
+        itemlist = Zmluva.objects.filter(nase_cislo__istartswith=ozn_rok).order_by("nase_cislo")
+        if itemlist:
+            latest = itemlist.last().nase_cislo
+            nove_nase_cislo = int(re.findall(f"{ozn_rok}([0-9]+)",latest)[0]) + 1
+            return "%s%03d"%(ozn_rok, nove_nase_cislo)
         else:
             #sme v novom roku alebo trieda este nema instanciu
             return f"{ozn_rok}001"
@@ -349,7 +367,7 @@ class Rozhodnutie(ObjednavkaZmluva):
         return f"{self.dodavatel} - Ro/Po - {self.cislo}"
 
 class Zmluva(ObjednavkaZmluva):
-    oznacenie = "ZE"    #v čísle faktúry, Fa-2021-123
+    oznacenie = "ZE"    #v čísle faktúry, ZE-2021-123
     nase_cislo = models.CharField("Naše číslo", 
             #help_text: definovaný vo forms
             null=True,
