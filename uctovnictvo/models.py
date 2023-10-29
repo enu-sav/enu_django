@@ -608,9 +608,10 @@ class PrijataFaktura(FakturaPravidelnaPlatba):
         else:
             suma = self.suma
 
+        podiel2 = self.podiel2 if self.podiel2 else 0.0
         platba1 = {
                 "nazov":f"Faktúra {typ}",
-                "suma": round(Decimal(float(suma)*(100-float(self.podiel2))/100),2),
+                "suma": round(Decimal(float(suma)*(100-float(podiel2))/100),2),
                 "datum": self.dane_na_uhradu,
                 "cislo": self.cislo,
                 "subjekt": self.adresat_text(),
@@ -618,10 +619,10 @@ class PrijataFaktura(FakturaPravidelnaPlatba):
                 "zakazka": self.zakazka,
                 "ekoklas": self.ekoklas
                 }
-        if self.podiel2 > 0:
+        if podiel2 > 0:
             platba2 = {
                 "nazov":f"Faktúra {typ}",
-                "suma": round(Decimal(float(suma)*(float(self.podiel2))/100),2),
+                "suma": round(Decimal(float(suma)*(float(podiel2))/100),2),
                 "datum": self.dane_na_uhradu,
                 "cislo": self.cislo,
                 "subjekt": self.adresat_text(),
@@ -631,7 +632,7 @@ class PrijataFaktura(FakturaPravidelnaPlatba):
                 }
         if self.mena != Mena.EUR and not self.suma: 
             platba["poznamka"] = f"Čerpanie rozpočtu: uhradená suma v EUR faktúry {self.cislo} v cudzej mene je približná. Správnu sumu v EUR vložte do poľa 'Suma' na základe údajov o platbe zo Softipu."
-        return [platba1, platba2] if self.podiel2 > 0 else [platba1] 
+        return [platba1, platba2] if podiel2 > 0 else [platba1] 
 
     class Meta:
         verbose_name = 'Prijatá faktúra'
