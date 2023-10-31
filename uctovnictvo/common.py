@@ -362,8 +362,8 @@ def VytvoritPlatobnyPrikaz(faktura, pouzivatel):
             #zaklad_dane = 100 *  suma / (100+sadzbadph)
             if faktura.prenosDP == AnoNie.ANO:
                 zaklad = 100*suma/(100+sadzbadph)
-                text = text.replace(f"{lt}DM{gt}", f"{locale_format(zaklad)} {mena}")
-                text = text.replace(f"{lt}PDP{gt}", f"{locale_format(zaklad*sadzbadph/100)} {mena}")
+                text = text.replace(f"{lt}DM{gt}", f"{locale_format(round(zaklad, 2))} {mena}")
+                text = text.replace(f"{lt}PDP{gt}", f"{locale_format(round(zaklad*sadzbadph/100,2))} {mena}")
             else:
                 text = text.replace(f"{lt}DM{gt}", f"{locale_format(suma)} {mena}")
                 text = text.replace(f"{lt}PDP{gt}", "Nie")
