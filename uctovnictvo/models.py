@@ -61,6 +61,10 @@ priblizny_kurz = {
         Mena.GBP: 0.857
     }
 
+class Stravne(models.TextChoices):
+    PRISPEVKY = "prispevky", "Príspevky na stravné"
+    ZRAZKY = "zrazky", "Zrážky za stravné"
+
 # Pre triedu classname určí číslo nasledujúceho záznamu v tvare X-2021-NNN
 def nasledujuce_cislo(classname, rok=None):
         # zoznam faktúr s číslom "PS-2021-123" zoradený vzostupne
@@ -1007,19 +1011,27 @@ def prispevok_stravne_upload_location(instance, filename):
 class PrispevokNaStravne(Klasifikacia):
     oznacenie = "PS"    #v čísle faktúry, FS-2021-123
     cislo = models.CharField("Poradové číslo príspevku", max_length=50)
+
     za_mesiac = models.CharField("Za mesiac", 
             max_length=20, 
             help_text = "Zvoľte mesiac, za ktorý príspevok je. <br />Príspevok za január sa vypláca v decembri predchádzajúceho roku (v čísle príspevku má byť uvedený rok, v ktorom sa príspevok vyplácal).",
             null = True,
             choices=Mesiace.choices)
+
+    typ_zoznamu = models.CharField("Typ zoznamu",
+            max_length=20,
+            help_text = "Zvoľte typ zoznamu.<br/>Položku uložte a následne príslušnou akciou 'Generovať zoznam príspevkov/zrážok' vytvorte súbor 'Prehľad po zamestnancoch' za nasledujúci mesiac.",
+            null = True,
+            choices=Stravne.choices)
+
     suma_zamestnavatel = models.DecimalField("Príspevok (zrážka) zamestnávateľ", 
-            help_text = "Príspevok zamestnávateľa (Ek. klas. 642014) na stravné.<br />Ak ide o vyplatenie zamestnancovi, uveďte zápornú hodnotu, ak ide o zrážku, tak kladnú hodnotu.",
+            help_text = "Príspevok zamestnávateľa (Ek. klas. 642014) na stravné.<br />Ak ide o vyplatenie zamestnancovi, uveďte zápornú hodnotu, ak ide o zrážku, tak kladnú hodnotu.<br /> Suma sa automaticky generuje akciou 'Generovať zoznam príspevkov/zrážok'",
             max_digits=8, 
             decimal_places=2, 
             default=0)
     # Položka suma_socfond nemá Ek. klasifikáciu, soc. fond nie sú peniaze EnÚ
     suma_socfond = models.DecimalField("Príspevok (zrážka) soc. fond", 
-            help_text = "Príspevok zo sociálneho fondu (Ek. klas. 642014) na stravné.<br />Ak ide o vyplatenie zamestnancovi, uveďte zápornú hodnotu, ak ide o zrážku, tak kladnú hodnotu.<br />Vytvorením Príspevku na stravné sa automaticky vytvorí položka sociálneho fondu.",
+            help_text = "Príspevok zo sociálneho fondu (Ek. klas. 642014) na stravné.<br />Ak ide o vyplatenie zamestnancovi, uveďte zápornú hodnotu, ak ide o zrážku, tak kladnú hodnotu.<br />Vytvorením Príspevku na stravné sa automaticky vytvorí položka sociálneho fondu. <br /> Suma sa automaticky generuje akciou 'Generovať zoznam príspevkov/zrážok'",
             max_digits=8, 
             decimal_places=2, 
             default=0)
