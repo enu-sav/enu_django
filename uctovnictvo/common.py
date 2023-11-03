@@ -998,16 +998,17 @@ def generovatStravne(polozka):
 
     #Nájsť správnu sadzbu
     rok = polozka.cislo.split("-")[1]
-    mesiac_prispevku = datetime.datetime(int(rok), mesiace_num[polozka.za_mesiac][0], 1) 
+    mesiac_prispevku = datetime.date(int(rok), mesiace_num[polozka.za_mesiac][0], 1) 
     prispevok_sadzba = None
     for den in sorted([*sadzby])[::-1]: #reverzne usporiadany zoznam dni v sadzby
-        if den <= mesiac_prispevku:
+        dden = datetime.date(den.year,den.month,den.day)
+        if dden <= mesiac_prispevku:
             prispevok_sadzba = sadzby[den]
             break
 
     #Nájsť zamestnancov zamestnaných v danom mesiaci, t.j.
     #Najst platové výmery aktívne v danom mesiaci
-    qs = PlatovyVymer.objects.filter(datum_od__lt=mesiac_prispevku)
+    qs = PlatovyVymer.objects.filter(datum_od__lte=mesiac_prispevku)
     qs1 = qs.exclude(datum_do__lt=mesiac_prispevku)
     #zoznam výmerov zoradený podľa priezviska
     vymer_list = sorted([*qs1], key=lambda x: x.zamestnanec.priezvisko)
@@ -1041,12 +1042,22 @@ def generovatStravne(polozka):
         ws.cell(row=2, column=1).value = f"za mesiac/rok: {Mesiace(polozka.za_mesiac).label}/{rok}"
         nn=6    #prvý riadok
         for vymer in vymer_list:
+            nepritomnost = vymer.nepritomnost_za_mesiac(mesiac_prispevku)
+            if not nepritomnost: 
+                pocet_dni = 0
+            else:
+                pdni, ddov, ddov2, dosob, dnepl, dpn1, dpn2, docr = nepritomnost
+                #Tu definovať, za čo sú zrážky
+                pocet_dni = ddov + dosob + dnepl + dpn1 + dpn2 + docr
+
             ws.cell(row=nn, column=1).value = n_zam+1
             ws.cell(row=nn, column=2).value = vymer.zamestnanec.cislo_zamestnanca
             ws.cell(row=nn, column=3).value = vymer.zamestnanec.priezviskomeno(",")
-            pocet_dni = 2
             ws.cell(row=nn, column=4).value = pocet_dni
-            ws.cell(row=nn, column=5).value = pocet_dni*(prispevok_sadzba[0]+prispevok_sadzba[1])
+            if pocet_dni:
+                ws.cell(row=nn, column=5).value = pocet_dni*(prispevok_sadzba[0]+prispevok_sadzba[1])
+            else:
+                ws.cell(row=nn, column=5).value = "-"
             suma_enu += pocet_dni*prispevok_sadzba[0]
             suma_sf += pocet_dni*prispevok_sadzba[1]
             nn += 1

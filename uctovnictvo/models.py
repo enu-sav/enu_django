@@ -1375,6 +1375,7 @@ class PlatovyVymer(Klasifikacia):
         qs2 = qs1.exclude(nepritomnost_od__gte=next_month)  # vylúčiť nevyhovujúce
 
         ddov = 0         #počet dní dovolenky. Za všetky sa platí náhrada mzdy vo výške platu
+        ddov2 = 0        #počet poldní dovolenky.
         dosob = 0        #Počet dní osobných prekážok v práci (lekár a podobne). Platí sa náhrada mzdy vo výške platu 
         dnepl = 0        #neplatené dni. Materská, PN a neplatené voľno. Náhrada za PN sa ráta inak
         dpn1 = 0         #počet dní práceneschopnosti v dňoch 1-3. Platí sa náhrada 55 %
@@ -1397,7 +1398,7 @@ class PlatovyVymer(Klasifikacia):
                 #Vypočítať počet dní neprítomnosti
                 #Predpokladáme, že v prípade, keď zamestnanec pracuje len napr. Utorok - Štvrtok, neprítomnosť je zadaná len na tieto dni
                 if nn.nepritomnost_typ == TypNepritomnosti.DOVOLENKA2:
-                    ddov += 0.5
+                    ddov2 += 1
                 elif nn.nepritomnost_typ == TypNepritomnosti.DOVOLENKA:
                     ddov += prac_dni(prvy,posledny, pdni, zahrnut_sviatky=False)    #Sviatky sa nezarátajú do dovolenky, ale ako bežný prac. deň
                 elif nn.nepritomnost_typ == TypNepritomnosti.NEPLATENE:
@@ -1422,7 +1423,7 @@ class PlatovyVymer(Klasifikacia):
             except TypeError:
                 raise TypeError(f"Chyba pri spracovaní platového výmeru '{self}', neprítomnosť '{nn}'")
 
-        return [pdni, ddov, dosob, dnepl, dpn1, dpn2, docr]
+        return [pdni, ddov, ddov2, dosob, dnepl, dpn1, dpn2, docr]
 
     #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
     #Mzdy sa vyplácajú spätne, t.j. v máji sa vypláca mzda za apríl
@@ -1434,7 +1435,11 @@ class PlatovyVymer(Klasifikacia):
 
         nepritomnost = self.nepritomnost_za_mesiac(zden)
         if not nepritomnost: return []
-        pdni, ddov, dosob, dnepl, dpn1, dpn2, docr = nepritomnost
+        pdni, ddov, ddov2, dosob, dnepl, dpn1, dpn2, docr = nepritomnost
+        #Pridať OČR k neplateným, tu sa rátajú spolu
+        dnepl += docr
+        #Pripočítať poldni dovolenky
+        ddov += ddov2/2
 
         #if zden == date(2022,7,1) and self.zamestnanec.meno=="Helena":
             #print(self.zamestnanec.priezvisko, ddov, dosob, dnepl, dpn1, dpn2)
@@ -1444,9 +1449,6 @@ class PlatovyVymer(Klasifikacia):
         #pri častočnom úväzku len približné, na presný výpočet by sme asi potrebovali vedieť, v ktorých dňoch zamestnanec pracuje.
         #Tento údaj nie je ani v Softipe
         dprac = prac_dni(zden, ppd=pdni, zahrnut_sviatky=False) #Sviatky sa rátajú ako pracovné dni
-
-        #Pridať OČR k neplateným, tu sa rátajú spolu
-        dnepl += docr
 
         koef_prac = 1 - float(ddov+dosob+dnepl) / dprac    #Koeficient odpracovaných dní
         koef_osob = dosob / dprac
