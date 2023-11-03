@@ -10,8 +10,8 @@ from django.utils.html import format_html
 from .models import SystemovySubor, PrijataFaktura, AnoNie, Objednavka, PrijataFaktura, Rozhodnutie, Zmluva
 from .models import DoVP, DoPC, DoBPS, Poistovna, TypDochodku, Mena, PravidelnaPlatba, TypPP, TypPokladna, Pokladna
 from .models import NajomneFaktura, PrispevokNaRekreaciu, Zamestnanec, OdmenaOprava, OdmenaAleboOprava, TypNepritomnosti, Nepritomnost
-from .models import PlatovaStupnica 
-from .rokydni import mesiace
+from .models import PlatovaStupnica, Stravne, mesiace_num, PlatovyVymer, Mesiace
+from .rokydni import mesiace, prac_dni
 
 from openpyxl import load_workbook
 from openpyxl.styles import Font, Color, colors, Alignment, PatternFill , numbers
@@ -969,6 +969,101 @@ def generovatNepritomnostAnita(cislo,ws):
         zpocet += 1
         pass
     return zpocet, npocet
+
+def generovatStravne(polozka):
+    #načítať tabuľky stupnice pre daný rok
+    nazov_objektu = "Šablóna stravné"  #Presne takto musí byť objekt pomenovaný
+    sablona = SystemovySubor.objects.filter(subor_nazov = nazov_objektu)
+    if not sablona:
+        return [f"V systéme nie je definovaný súbor '{nazov_objektu}'."]
+    nazov_suboru = sablona[0].subor.file.name 
+    workbook = load_workbook(filename=nazov_suboru)
+    #testovať správnosť
+    for harok in ['Sadzba', 'Príspevky', 'Zrážky']:
+        if not harok in workbook.sheetnames:
+            return [f"Súbor '{nazov_objektu}' nemá hárok {harok}"]
+    #Načítať sadzby
+    sadzba = {}
+    #testovať správnosť
+    ws_sadzba = workbook["Sadzba"]
+    sadzba_cols = ["Dátum od", "Sadzba EnÚ", "Sadzba SF"]
+    sadzba_hdr = [cell.value for cell in  list(ws_sadzba)[0]]
+    if len(set(sadzba_cols).intersection(set(sadzba_hdr))) != 3:
+        return [f"Hárok 'Sadzba' nemá všetky požadované stĺpce: {','.join(sadzba_cols)}"]
+
+    #Dátumy platnosti jednotlivých sadzieb príspevkov
+    sadzby={}
+    for row in list(ws_sadzba)[1:]:
+        sadzby[row[0].value] = [row[1].value, row[2].value]
+
+    #Nájsť správnu sadzbu
+    rok = polozka.cislo.split("-")[1]
+    mesiac_prispevku = datetime.datetime(int(rok), mesiace_num[polozka.za_mesiac][0], 1) 
+    prispevok_sadzba = None
+    for den in sorted([*sadzby])[::-1]: #reverzne usporiadany zoznam dni v sadzby
+        if den <= mesiac_prispevku:
+            prispevok_sadzba = sadzby[den]
+            break
+
+    #Nájsť zamestnancov zamestnaných v danom mesiaci, t.j.
+    #Najst platové výmery aktívne v danom mesiaci
+    qs = PlatovyVymer.objects.filter(datum_od__lt=mesiac_prispevku)
+    qs1 = qs.exclude(datum_do__lt=mesiac_prispevku)
+    #zoznam výmerov zoradený podľa priezviska
+    vymer_list = sorted([*qs1], key=lambda x: x.zamestnanec.priezvisko)
+ 
+    #Vyplniť hárok
+    suma_enu = 0
+    suma_sf = 0
+    n_zam = 0
+    if polozka.typ_zoznamu == Stravne.PRISPEVKY:
+        ws = workbook["Príspevky"] 
+        ws.cell(row=2, column=1).value = f"za mesiac/rok: {Mesiace(polozka.za_mesiac).label}/{rok}"
+        nn=6    #prvý riadok
+        for vymer in vymer_list:
+            ws.cell(row=nn, column=1).value = n_zam+1
+            ws.cell(row=nn, column=2).value = vymer.zamestnanec.cislo_zamestnanca
+            ws.cell(row=nn, column=3).value = vymer.zamestnanec.priezviskomeno(",")
+            pocet_dni = prac_dni(mesiac_prispevku, ppd=0 if vymer.uvazok > 37 else 3)
+            ws.cell(row=nn, column=4).value = pocet_dni
+            ws.cell(row=nn, column=5).value = pocet_dni*prispevok_sadzba[0]
+            suma_enu += pocet_dni*prispevok_sadzba[0]
+            ws.cell(row=nn, column=6).value = pocet_dni*prispevok_sadzba[1]
+            ws.cell(row=nn, column=7).value = f"=D{nn}+E{nn}"
+            suma_sf += pocet_dni*prispevok_sadzba[1]
+            nn += 1
+            n_zam += 1
+            pass
+        workbook.remove_sheet(workbook.get_sheet_by_name("Sadzba"))
+        workbook.remove_sheet(workbook.get_sheet_by_name("Zrážky"))
+    else:
+        ws = workbook["Zrážky"] 
+        ws.cell(row=2, column=1).value = f"za mesiac/rok: {Mesiace(polozka.za_mesiac).label}/{rok}"
+        nn=6    #prvý riadok
+        for vymer in vymer_list:
+            ws.cell(row=nn, column=1).value = n_zam+1
+            ws.cell(row=nn, column=2).value = vymer.zamestnanec.cislo_zamestnanca
+            ws.cell(row=nn, column=3).value = vymer.zamestnanec.priezviskomeno(",")
+            pocet_dni = 2
+            ws.cell(row=nn, column=4).value = pocet_dni
+            ws.cell(row=nn, column=5).value = pocet_dni*(prispevok_sadzba[0]+prispevok_sadzba[1])
+            suma_enu += pocet_dni*prispevok_sadzba[0]
+            suma_sf += pocet_dni*prispevok_sadzba[1]
+            nn += 1
+            n_zam += 1
+            pass
+        ws.cell(row=40, column=4).value = prispevok_sadzba[0]
+        ws.cell(row=40, column=5).value = suma_enu
+        ws.cell(row=41, column=4).value = prispevok_sadzba[1]
+        ws.cell(row=41, column=5).value = suma_sf
+        workbook.remove_sheet(workbook.get_sheet_by_name("Sadzba"))
+        workbook.remove_sheet(workbook.get_sheet_by_name("Príspevky"))
+        pass
+    #Save the workbook
+    nazov = f"Stravne-{polozka.typ_zoznamu}-{rok}-{polozka.za_mesiac}.xlsx"
+    opath = os.path.join(settings.STRAVNE_DIR,nazov)
+    workbook.save(os.path.join(settings.MEDIA_ROOT,opath))
+    return suma_enu, suma_sf, n_zam, "pokec", opath
 
 #načítať výšku tarifného platu z aktuálnej tabuľky
 class TarifnyPlatTabulky():

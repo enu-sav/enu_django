@@ -18,9 +18,10 @@ from .models import Najomnik, NajomnaZmluva, NajomneFaktura, TypPP, TypPN, Cinno
 from .models import InternyPartner, InternyPrevod, Nepritomnost, RozpoctovaPolozka, RozpoctovaPolozkaDotacia
 from .models import RozpoctovaPolozkaPresun, PlatbaBezPrikazu, Pokladna, TypPokladna, SadzbaDPH
 from .models import nasledujuce_cislo, nasledujuce_VPD, SocialnyFond, PrispevokNaRekreaciu, OdmenaOprava, OdmenaAleboOprava
-from .models import TypNepritomnosti
+from .models import TypNepritomnosti, Stravne
 from .common import VytvoritPlatobnyPrikaz, VytvoritSuborDohody, VytvoritSuborObjednavky, leapdays
-from .common import VytvoritKryciList, VytvoritKryciListRekreacia, generovatIndividualneOdmeny, zmazatIndividualneOdmeny, generovatNepritomnost, VytvoritKryciListOdmena
+from .common import VytvoritKryciList, VytvoritKryciListRekreacia, generovatIndividualneOdmeny
+from .common import zmazatIndividualneOdmeny, generovatNepritomnost, VytvoritKryciListOdmena, generovatStravne
 from .common import VytvoritPlatobnyPrikazIP, VytvoritSuborPD, UlozitStranuPK, TarifnyPlatTabulky
 from .forms import PrijataFakturaForm, AutorskeZmluvyForm, ObjednavkaForm, ZmluvaForm, PrispevokNaStravneForm, PravidelnaPlatbaForm
 from .forms import PlatovyVymerForm, NajomneFakturaForm, NajomnaZmluvaForm, PlatbaBezPrikazuForm
@@ -981,8 +982,11 @@ class PrispevokNaStravneAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistor
         else:
             return []
 
+    actions = ['generovat_prispevky_zrazky']
+
     def __save_model(self, request, obj, form, change): #Dočasne vyradené, do vyriešenia automatického plnenia obsahu SocialnyFond
         #Ak ide o novú platbu, vytvoriť položku SF
+        trace()
         qs = PrispevokNaStravne.objects.filter(cislo = obj.cislo)
         if not qs:
             sf = SocialnyFond(
@@ -1008,6 +1012,40 @@ class PrispevokNaStravneAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistor
             )
 
         super(PrispevokNaStravneAdmin, self).save_model(request, obj, form, change)
+
+    # Vygeneruje príspevky na stravné za EnÚ aj SF za nasledujúci nevyplnený mesiac
+    def generovat_prispevky_zrazky(self, request, queryset):
+        if len(queryset) != 1:
+            messages.error(request, "Vybrať možno len jednu položku")
+            return
+        obj = queryset[0]
+        rslt = generovatStravne(obj)
+        if len(rslt) == 1:  #Chyba
+            messages.error(request, rslt[0])
+            return
+        suma_enu, suma_sf, nzam, pokec, vytvoreny_subor = rslt
+        obj.po_zamestnancoch = vytvoreny_subor
+        if obj.typ_zoznamu == Stravne.PRISPEVKY:
+            obj.suma_zamestnavatel = -suma_enu
+            obj.suma_socfond = -suma_sf
+        else:
+            obj.suma_zamestnavatel = suma_enu
+            obj.suma_socfond = suma_sf
+        obj.save()
+        messages.success(request, f"Vytvorený bol súbor '{Stravne(obj.typ_zoznamu).label}' pre {nzam} zamestnancov. Ak chcete súbor upraviť, stiahnite si ho, upravte a ručne vložte. Sumy v zázname následne upravte podľa novej verzie súboru (neaktualizujú sa automaticky)")
+
+        #vytvoriť alebo aktualizovať súvisiacu položku v účte SF
+        sf_id, sf_cislo = obj.aktualizovat_SF()
+        messages.warning(request, 
+            format_html(
+                'Pridaná/aktualizovaná bola položka sociálneho fondu č. <em>{}</em>.',
+                mark_safe(f'<a href="/admin/uctovnictvo/socialnyfond/{sf_id}/change/">{sf_cislo}</a>'),
+                )
+        )
+
+    generovat_prispevky_zrazky.short_description = "Generovať zoznam príspevkov/zrážok"
+    #Oprávnenie na použitie akcie, viazané na 'change'
+    generovat_prispevky_zrazky.allowed_permissions = ('change',)
 
 @admin.register(SystemovySubor)
 class SystemovySuborAdmin(ZobrazitZmeny, admin.ModelAdmin):

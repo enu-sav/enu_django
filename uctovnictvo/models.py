@@ -164,6 +164,21 @@ class Mesiace(models.TextChoices):
     NOVEMBER = "november", "november"
     DECEMBER = "december", "december"
 
+mesiace_num= {
+    "januar": [1, Mesiace.JANUAR],
+    "februar": [2, Mesiace.FEBRUAR],
+    "marec": [3, Mesiace.MAREC],
+    "april": [4, Mesiace.APRIL],
+    "maj": [5, Mesiace.MAJ],
+    "jun": [6, Mesiace.JUN],
+    "jul": [7, Mesiace.JUL],
+    "august": [8, Mesiace.AUGUST],
+    "september": [9, Mesiace.SEPTEMBER],
+    "oktober": [10, Mesiace.OKTOBER],
+    "november": [11, Mesiace.NOVEMBER],
+    "december": [12, Mesiace.DECEMBER]
+    }
+
 class TypDochodku(models.TextChoices):
     STAROBNY = 'starobny', "starobný"
     INVALIDNY = 'invalidny', "invalidný (len dohodári)"
@@ -1038,35 +1053,40 @@ class PrispevokNaStravne(Klasifikacia):
     po_zamestnancoch = models.FileField("Prehľad po zamestnancoch",
             help_text = "Súbor s mesačným prehľadom príspevkov na stravné po zamestnancoch",
             upload_to=prispevok_stravne_upload_location, 
-            null = True)
+            null = True,
+            blank=True)
     history = HistoricalRecords()
 
     # test platnosti dát
     def clean(self): 
-        if self.suma_zamestnavatel * self.suma_socfond <= 0:
+        if self.suma_zamestnavatel * self.suma_socfond < 0:
             raise ValidationError("Položky 'Príspevok zamestnávateľa' a 'Príspevok zo soc. fondu' musia byť buď len kladné alebo len záporné.")
+        if not self.suma_zamestnavatel or not self.suma_socfond: self.aktualizovat_SF
+
+    #vytvoriť alebo aktualizovať súvisiacu položku v účte SF
+    def aktualizovat_SF(self):
+        qs = SocialnyFond.objects.filter(predmet__startswith = self.cislo)
+        if not qs:
+            sf = SocialnyFond(
+                cislo = nasledujuce_cislo(SocialnyFond),
+                suma = self.suma_socfond,
+                datum_platby = date.today(),
+                predmet = f'{self.cislo} - {"príspevok na stravné" if self.typ_zoznamu==Stravne.PRISPEVKY else "zrážka za stravné"} za {Mesiace(self.za_mesiac).label}'
+            )
+        else:
+            sf = qs[0]
+            sf.datum_platby = date.today()
+            sf.suma = self.suma_socfond
+        sf.save()
+        return sf.id, sf.cislo
 
     #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
     #V starších pdf s príspevkami (do 08/2023) je v hlavičke nesprávny údaj o mesiaci, ktorého sa príspevok týka.
     #V tom prípade sa mesiac zadáva na základe dátumu vytvorenia dokumentu dolu pod tabuľkou
     def cerpanie_rozpoctu(self, zden):
-        msc= {
-            "januar": [1, Mesiace.JANUAR],
-            "februar": [2, Mesiace.FEBRUAR],
-            "marec": [3, Mesiace.MAREC],
-            "april": [4, Mesiace.APRIL],
-            "maj": [5, Mesiace.MAJ],
-            "jun": [6, Mesiace.JUN],
-            "jul": [7, Mesiace.JUL],
-            "august": [8, Mesiace.AUGUST],
-            "september": [9, Mesiace.SEPTEMBER],
-            "oktober": [10, Mesiace.OKTOBER],
-            "november": [11, Mesiace.NOVEMBER],
-            "december": [12, Mesiace.DECEMBER]
-            }
         if not self.za_mesiac: return []    #pole nie je vyplnené
         if not str(zden.year) in self.cislo: return []  #nesprávny rok
-        if zden.month != msc[self.za_mesiac][0]: return [] #nesprávny mesiac 
+        if zden.month != mesiace_num[self.za_mesiac][0]: return [] #nesprávny mesiac 
         platby = []
         if self.suma_zamestnavatel < 0:
             platba = {
