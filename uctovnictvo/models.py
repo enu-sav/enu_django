@@ -1363,11 +1363,8 @@ class PlatovyVymer(Klasifikacia):
             )
         return novy
 
-    #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
-    #Mzdy sa vyplácajú spätne, t.j. v máji sa vypláca mzda za apríl
-    #Decembrová výplata sa vypláca už v decembri, v decembri teda zamestnanec dostane výplatu dvakrát, v januári výplatu nedostane
-    #Spôsob výpočtu bol skontrolovaný z hľadiska zaťažovanie rozpočtu aj z hľadiska mzdovej rekapitulácie.
-    def cerpanie_rozpoctu(self, zden):
+    #vypočíta počet dní neprítomnosti vo viacerých kategóriách
+    def nepritomnost_za_mesiac(self, zden):
         if zden < self.datum_od: return []
         if self.datum_do and zden > self.datum_do: return []
 
@@ -1382,6 +1379,7 @@ class PlatovyVymer(Klasifikacia):
         dnepl = 0        #neplatené dni. Materská, PN a neplatené voľno. Náhrada za PN sa ráta inak
         dpn1 = 0         #počet dní práceneschopnosti v dňoch 1-3. Platí sa náhrada 55 %
         dpn2 = 0         #počet dní práceneschopnosti v dňoch 4-10. Platí sa náhrada 80 %
+        docr = 0         #Počet dní OČR
 
         pdni = int(self.uvazok/self.uvazok_denne)    #počet pracovných dní v týždni, napr. 18.85/6.25=3
         for nn in qs2:  #môže byť viac neprítomností za mesiac
@@ -1410,7 +1408,9 @@ class PlatovyVymer(Klasifikacia):
                     dpn1 += prekryv_dni(zden, nn.nepritomnost_od, nn.nepritomnost_od+timedelta(days=2))
                     #Dni 4 až 10, 80%
                     dpn2 += prekryv_dni(zden, nn.nepritomnost_od+timedelta(days=3), min(nn.nepritomnost_od+timedelta(days=9), posledny))
-                elif nn.nepritomnost_typ in [TypNepritomnosti.MATERSKA, TypNepritomnosti.OCR, TypNepritomnosti.NEPLATENE]:
+                elif nn.nepritomnost_typ in [TypNepritomnosti.OCR]:
+                    docr += prac_dni(prvy,posledny, pdni, zahrnut_sviatky=True)    #Sviatky sa zarátajú, nie sú platené
+                elif nn.nepritomnost_typ in [TypNepritomnosti.MATERSKA, TypNepritomnosti.NEPLATENE]:
                     dnepl += prac_dni(prvy,posledny, pdni, zahrnut_sviatky=True)    #Sviatky sa zarátajú, nie sú platené
                 elif nn.nepritomnost_typ in [TypNepritomnosti.LEKARDOPROVOD, TypNepritomnosti.LEKAR]:
                     dlzka_nepritomnosti = nn.dlzka_nepritomnosti if nn.dlzka_nepritomnosti else self.uvazok_denne
@@ -1422,8 +1422,19 @@ class PlatovyVymer(Klasifikacia):
             except TypeError:
                 raise TypeError(f"Chyba pri spracovaní platového výmeru '{self}', neprítomnosť '{nn}'")
 
-            #trace()
-                pass
+        return [pdni, ddov, dosob, dnepl, dpn1, dpn2, docr]
+
+    #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
+    #Mzdy sa vyplácajú spätne, t.j. v máji sa vypláca mzda za apríl
+    #Decembrová výplata sa vypláca už v decembri, v decembri teda zamestnanec dostane výplatu dvakrát, v januári výplatu nedostane
+    #Spôsob výpočtu bol skontrolovaný z hľadiska zaťažovanie rozpočtu aj z hľadiska mzdovej rekapitulácie.
+    def cerpanie_rozpoctu(self, zden):
+        if zden < self.datum_od: return []
+        if self.datum_do and zden > self.datum_do: return []
+
+        nepritomnost = self.nepritomnost_za_mesiac(zden)
+        if not nepritomnost: return []
+        pdni, ddov, dosob, dnepl, dpn1, dpn2, docr = nepritomnost
 
         #if zden == date(2022,7,1) and self.zamestnanec.meno=="Helena":
             #print(self.zamestnanec.priezvisko, ddov, dosob, dnepl, dpn1, dpn2)
@@ -1433,6 +1444,9 @@ class PlatovyVymer(Klasifikacia):
         #pri častočnom úväzku len približné, na presný výpočet by sme asi potrebovali vedieť, v ktorých dňoch zamestnanec pracuje.
         #Tento údaj nie je ani v Softipe
         dprac = prac_dni(zden, ppd=pdni, zahrnut_sviatky=False) #Sviatky sa rátajú ako pracovné dni
+
+        #Pridať OČR k neplateným, tu sa rátajú spolu
+        dnepl += docr
 
         koef_prac = 1 - float(ddov+dosob+dnepl) / dprac    #Koeficient odpracovaných dní
         koef_osob = dosob / dprac
