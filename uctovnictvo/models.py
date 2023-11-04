@@ -1245,6 +1245,10 @@ class Zamestnanec(ZamestnanecDohodar):
             help_text = "Dátum, odkedy sa zamestnanec zúčastňuje doplnkového dôchodkového sporenia.",
             blank=True,
             null=True)
+    bez_stravneho_od = models.DateField('Bez stravného od',
+            help_text = "Dátum, odkedy sa zamestnanec z dôvodu dlhej neprítomnosti (materská, PN) <strong>nemá evidovať</strong> za účelom príspevku na stravné<br />Zadať príp. zmazať pred výpočtom príspevku za nasledujúci mesiac.",
+            blank=True,
+            null=True)
     history = HistoricalRecords()
     class Meta:
         verbose_name = "Zamestnanec"
