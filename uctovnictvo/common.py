@@ -666,9 +666,9 @@ def VytvoritSuborObjednavky(objednavka):
         riadok = prvy_riadok+rr
         prvky = polozka.split(";")
         if len(prvky) == 2:  #zlúčiť bunky
-            obj.merge_cells(f'B{riadok}:F{riadok}')
+            obj.merge_cells(f'B{riadok}:G{riadok}')
             obj[f"B{riadok}"].value = prvky[0]
-            obj.cell(row=riadok, column=2+5).value = prvky[4]
+            obj.cell(row=riadok, column=2+6).value = prvky[1]
             add_sum = False
         elif len(prvky) == 5:
             obj.cell(row=riadok, column=2+0).value = prvky[0]
