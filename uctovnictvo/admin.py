@@ -1572,7 +1572,7 @@ class PlatovyVymerAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
     list_display = ["cislo", "mp","zamestnanec_link", "zamestnanie_enu_od", "stav_vymeru","zamestnanie_od", "aktualna_prax", "datum_postup", "_postup_roky", "_uvazok", "datum_od", "datum_do", "_zamestnanie_roky_dni", "_top", "_ts", "suborvymer"]
     # ^: v poli vyhľadávať len od začiatku
     search_fields = ["cislo", "zamestnanec__meno", "zamestnanec__priezvisko"]
-    actions = ['duplikovat_zaznam', 'postup_a_valorizacia', export_selected_objects]
+    actions = ['duplikovat_zaznam', 'postup_a_valorizacia_aktualny', 'postup_a_valorizacia_nasledujuci', export_selected_objects]
     # skryť vo formulári na úpravu
     exclude = ["program"]
 
@@ -1719,16 +1719,13 @@ class PlatovyVymerAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
     #Oprávnenie na použitie akcie, viazané na 'change'
     duplikovat_zaznam.allowed_permissions = ('change',)
 
-    #Vytvoriť nové výmery na základe zmeny platového stupňa
-    def platovy_postup(self, request, queryset):
+    #Vytvoriť nové výmery na základe zmeny platového stupňa za nasledujúci rok
+    def platovy_postup(self, request, queryset, zr, kr):
         #určiť výmery, ktorých sa to týka
         #začiatok a koniec roka
-        today=date.today()
-        zr = date(today.year,1,1)
-        kr = date(today.year,12,31)
-        tp = TarifnyPlatTabulky(today.year)
+        tp = TarifnyPlatTabulky(zr.year)
         qs = PlatovyVymer.objects.filter(datum_postup__gte=zr, datum_postup__lte=kr)
-        self.message_user(request, f"Nové výmery na základe platového postupu:", messages.WARNING)
+        self.message_user(request, f"Nové výmery na základe platového postupu za {zr.year}:", messages.WARNING)
         for stary in qs:
             print(stary.datum_postup)
             novy = stary.duplikovat()
@@ -1762,20 +1759,17 @@ class PlatovyVymerAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
         nove_text = ""
         if len(qs):
             nove_text = f"Novovytvoreným výmerom boli priradené čísla v tvare ({PlatovyVymer.oznacenie}-YYYY-NNN). Postupne ich nahraďte CSČ číslami a pridajte súbory výmerov."
-        self.message_user(request, f"Počet nových výmerov na základe platového postupu: {len(qs)}. {nove_text}", messages.WARNING)
+        self.message_user(request, f"Počet nových výmerov na základe platového postupu za {zr.year}: {len(qs)}. {nove_text}", messages.WARNING)
 
-    platovy_postup.short_description = "Vytvoriť výmery podľa platového postupu za aktuálny rok"
+    platovy_postup.short_description = "Vytvoriť výmery podľa platového postupu za aktuálny budúci rok"
     #Oprávnenie na použitie akcie, viazané na 'change'
     platovy_postup.allowed_permissions = ('change',)
 
-    #Vytvoriť nové výmery na základe valorizácie
-    def valorizacia(self, request, queryset):
+    #Vytvoriť nové výmery na základe valorizácie za nasledujúci rok
+    def valorizacia(self, request, queryset, zr, kr):
         #určiť výmery, ktorých sa to týka
         #začiatok a koniec roka
-        today=date.today()
-        zr = date(today.year,1,1)
-        kr = date(today.year,12,31)
-        tp = TarifnyPlatTabulky(today.year)
+        tp = TarifnyPlatTabulky(zr.year)
         for dv in tp.DatumyValorizacie():
             if dv < zr: continue
             if dv > kr: continue
@@ -1830,12 +1824,25 @@ class PlatovyVymerAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
     #Oprávnenie na použitie akcie, viazané na 'change'
     valorizacia.allowed_permissions = ('change',)
 
-    def postup_a_valorizacia(self, request, queryset):
-        self.platovy_postup(request, queryset)
-        self.valorizacia(request, queryset)
-    postup_a_valorizacia.short_description = "Vytvoriť nové výmery na základe platového postupu a valorizácie za aktuálny rok (vyberte ľubovolný výmer)"
+    def postup_a_valorizacia_aktualny(self, request, queryset):
+        today=date.today()
+        zr = date(today.year,1,1)
+        kr = date(today.year,12,31)
+        self.platovy_postup(request, queryset, zr, kr)
+        self.valorizacia(request, queryset, zr, kr)
+    postup_a_valorizacia_aktualny.short_description = "Vytvoriť nové výmery na základe platového postupu a valorizácie za aktuálny rok (vyberte ľubovolný výmer)"
     #Oprávnenie na použitie akcie, viazané na 'change'
-    postup_a_valorizacia.allowed_permissions = ('change',)
+    postup_a_valorizacia_aktualny.allowed_permissions = ('change',)
+
+    def postup_a_valorizacia_nasledujuci(self, request, queryset):
+        today=date.today()
+        zr = date(today.year+1,1,1)
+        kr = date(today.year+1,12,31)
+        self.platovy_postup(request, queryset, zr, kr)
+        self.valorizacia(request, queryset, zr, kr)
+    postup_a_valorizacia_nasledujuci.short_description = "Vytvoriť nové výmery na základe platového postupu a valorizácie za nasledujúci rok (vyberte ľubovolný výmer)"
+    #Oprávnenie na použitie akcie, viazané na 'change'
+    postup_a_valorizacia_nasledujuci.allowed_permissions = ('change',)
 
 
 

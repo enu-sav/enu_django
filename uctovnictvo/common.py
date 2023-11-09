@@ -981,12 +981,34 @@ class TarifnyPlatTabulky():
         nazov_suboru = sablona[0].subor.file.name 
         workbook = load_workbook(filename=nazov_suboru)
         self.tabulky={}
+        #posledná platová tabuľka za predchádzajúce roky
+        predch_datum = datetime.date(2000,1,1)
+        #všetky relevantné tabuľky
+        relevantne_datumy = []
         for ws_name in workbook.get_sheet_names():
-            if not str(rok) in ws_name: continue
+            if not ws_name[:2] in ("ZS", "OS"): continue
             spl = ws_name.replace(" ",".").split(".")
             vdate = datetime.date(int(spl[-1]),int(spl[-2]), int(spl[-3]))
-            if not vdate in self.tabulky: self.tabulky[vdate] = {}
-            self.tabulky[vdate][spl[0]] = workbook.get_sheet_by_name(ws_name)
+            #posledná za predchádzajúce
+            if vdate < datetime.date(rok, 1, 1):
+                predch_datum = max(vdate, predch_datum)
+            #všetky aktuálne
+            if str(rok) in ws_name:
+                relevantne_datumy.append(vdate)
+        if predch_datum > datetime.date(2000,1,1):
+            relevantne_datumy.append(predch_datum)
+
+        #platové tabuľky za 'rok'
+        for ws_name in workbook.get_sheet_names():
+            if not ws_name[:2] in ("ZS", "OS"): continue
+            spl = ws_name.replace(" ",".").split(".")
+            vdate = datetime.date(int(spl[-1]),int(spl[-2]), int(spl[-3]))
+            if vdate in relevantne_datumy:
+                if not vdate in self.tabulky:
+                    self.tabulky[vdate] = {}
+                self.tabulky[vdate][spl[0]] = workbook.get_sheet_by_name(ws_name)
+        #ak za 'rok' nie je žiadna valorizácia zadaná
+        pass
 
     def DatumyValorizacie(self):
         return [k for k in self.tabulky.keys()]
