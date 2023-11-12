@@ -2002,10 +2002,7 @@ class DoPC(Dohoda):
         zakazka = None
         odmena_mesacne = None
         if self.zmena_zdroja:
-            if zden == date(2022,5,1):
-                #trace()
-                pass
-            zz = re.findall(r"%s/0*%s +([0-9]+) +([0-9,.]+)"%(zden.year, zden.month), self.zmena_zdroja)
+            zz = re.findall(r"%d/%02d[,; ]+([0-9]+)[,; ]+([0-9,.]+)"%(zden.year, zden.month), self.zmena_zdroja)
             if zz:
                 if zz[0][0]== "42":
                     zdroj = Zdroj.objects.get(kod="42")
