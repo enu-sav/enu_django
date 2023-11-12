@@ -31,6 +31,7 @@ class OdmenaAleboOprava(models.TextChoices):
     OPRAVARIAD = 'opravariad', 'Oprava pr. za riadenie'
     ODSTUPNE = 'odstupne', 'Odstupné'
     ODCHODNE = 'odchodne', 'Odchodné'
+    DOVOLENKA = 'dovolenka', 'Náhrada mzdy - dovolenka'
 
 #access label: AnoNie('ano').label
 class PlatovaStupnica(models.TextChoices):
@@ -1682,6 +1683,8 @@ class OdmenaOprava(Klasifikacia):
             nazov = "Plat osobný príplatok"
         elif self.typ == OdmenaAleboOprava.OPRAVARIAD:
             nazov = "Plat príplatok za riadenie"
+        elif self.typ == OdmenaAleboOprava.DOVOLENKA:
+            nazov = "Náhrada mzdy - dovolenka"
 
         platba = {
             "nazov": nazov,
