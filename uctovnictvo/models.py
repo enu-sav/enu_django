@@ -1899,8 +1899,7 @@ class DoVP(Dohoda):
 
     #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
     def cerpanie_rozpoctu(self, zden):
-        datum_od_1 = date(self.datum_od.year, self.datum_od.month, 1)
-        if zden < datum_od_1: return []
+        if self.datum_do <zden: return []
         kdatum =  date(zden.year, zden.month+1, zden.day) if zden.month+1 <= 12 else  date(zden.year+1, 1, 1)
         if self.datum_do >= kdatum: return []
         platba = {
