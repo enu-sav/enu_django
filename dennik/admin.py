@@ -573,6 +573,14 @@ def generovat_mzdove(request, zden, rekapitulacia):
             cerpanie = cerpanie + gen_socfond(osoba, zaklad_socfond, zden)
         vylucitelnost = False if zaklad_vylucitelnost else True
 
+        if "Balo" in meno:
+            #trace()
+            #Odvody (okrem Úrazového poistenia) sú zhora obmedzené Maximálnym vymeriavacím základom zamestnávateľa.
+            #Výška sa preráta na počet kalendárnych dní mesiaca, keď zamestnanec nemal PN aj NV (brané kontinuálne)
+            #V prípade BB je to 1 deň z 31, teda vymeriavací základ je 1*8477/31 = 273,45 Eur
+            #Namiesto parametra vylucitelnost treba v gen_soczdrav použiť parameter vymeriavaci_zaklad podľa tohto
+            #Dokoncit po dokoncení automatického generovanie stravného
+            pass
         if zam_zdroj:
             cerpanie = cerpanie + gen_soczdrav(poistne, osoba, "Plat", zaklad_soczdrav_zam, zden, PlatovyVymer.td_konv(osoba, zden), zam_zdroj, zam_zakazka, vylucitelnost=vylucitelnost)
         if dovp_zdroj:
