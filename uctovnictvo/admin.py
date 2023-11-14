@@ -1038,8 +1038,9 @@ class PrispevokNaStravneAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistor
         sf_id, sf_cislo = obj.aktualizovat_SF()
         messages.warning(request, 
             format_html(
-                'Pridaná/aktualizovaná bola položka sociálneho fondu č. <em>{}</em>.',
+                'Pridaná/aktualizovaná bola položka sociálneho fondu č. <em>{}</em>. <br />{}',
                 mark_safe(f'<a href="/admin/uctovnictvo/socialnyfond/{sf_id}/change/">{sf_cislo}</a>'),
+                mark_safe(pokec)
                 )
         )
 
