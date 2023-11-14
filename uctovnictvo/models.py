@@ -31,6 +31,7 @@ class OdmenaAleboOprava(models.TextChoices):
     OPRAVARIAD = 'opravariad', 'Oprava pr. za riadenie'
     ODSTUPNE = 'odstupne', 'Odstupné'
     ODCHODNE = 'odchodne', 'Odchodné'
+    DOVOLENKA = 'dovolenka', 'Náhrada mzdy - dovolenka'
 
 #access label: AnoNie('ano').label
 class PlatovaStupnica(models.TextChoices):
@@ -1734,6 +1735,8 @@ class OdmenaOprava(Klasifikacia):
             nazov = "Plat osobný príplatok"
         elif self.typ == OdmenaAleboOprava.OPRAVARIAD:
             nazov = "Plat príplatok za riadenie"
+        elif self.typ == OdmenaAleboOprava.DOVOLENKA:
+            nazov = "Náhrada mzdy - dovolenka"
 
         platba = {
             "nazov": nazov,
@@ -2043,7 +2046,8 @@ class DoPC(Dohoda):
 
     #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
     def cerpanie_rozpoctu(self, zden):
-        if zden < self.datum_od: return []
+        datum_od_1 = date(self.datum_od.year, self.datum_od.month, 1)
+        if zden < datum_od_1: return []
         if self.datum_ukoncenia and zden > self.datum_ukoncenia: return []
         if zden > self.datum_do: return []
 
@@ -2051,10 +2055,7 @@ class DoPC(Dohoda):
         zakazka = None
         odmena_mesacne = None
         if self.zmena_zdroja:
-            if zden == date(2022,5,1):
-                #trace()
-                pass
-            zz = re.findall(r"%s/0*%s +([0-9]+) +([0-9,.]+)"%(zden.year, zden.month), self.zmena_zdroja)
+            zz = re.findall(r"%d/%02d[,; ]+([0-9]+)[,; ]+([0-9,.]+)"%(zden.year, zden.month), self.zmena_zdroja)
             if zz:
                 if zz[0][0]== "42":
                     zdroj = Zdroj.objects.get(kod="42")

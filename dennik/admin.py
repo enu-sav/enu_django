@@ -169,7 +169,7 @@ class CerpanieRozpoctuAdmin(ModelAdminTotals):
     list_display = ["polozka","mesiac","suma","zdroj","zakazka","ekoklas"]
     #search_fields = ["polozka", "mesiac", "zdroj", "zakazka", "ekoklas"]
     search_fields = ["polozka", "mesiac", "^zdroj__kod", "^zakazka__kod", "^ekoklas__kod"]
-    actions = ['generovat2021', "generovat2022", "generovat2023", export_as_xlsx]
+    actions = ["generovat2022", "generovat2023", "generovat2024", export_as_xlsx]
     list_totals = [
             ('suma', Sum)
             ]
@@ -182,18 +182,23 @@ class CerpanieRozpoctuAdmin(ModelAdminTotals):
 
     def generovat2021(self, request, queryset):
         self.generovat(request, 2021)
-    generovat2021.short_description = f"Generovať prehľad čerpania rozpočtu za 2021"
+    generovat2021.short_description = f"Generovať prehľad čerpania rozpočtu za 2021 (vyberte ľubovoľnú položku)"
     generovat2021.allowed_permissions = ('change',)
 
     def generovat2022(self, request, queryset):
         return self.generovat(request, 2022)
-    generovat2022.short_description = f"Generovať prehľad čerpania rozpočtu za 2022"
+    generovat2022.short_description = f"Generovať prehľad čerpania rozpočtu za 2022 (vyberte ľubovoľnú položku)"
     generovat2022.allowed_permissions = ('change',)
 
     def generovat2023(self, request, queryset):
         return self.generovat(request, 2023)
-    generovat2023.short_description = f"Generovať prehľad čerpania rozpočtu za 2023"
+    generovat2023.short_description = f"Generovať prehľad čerpania rozpočtu za 2023 (vyberte ľubovoľnú položku)"
     generovat2023.allowed_permissions = ('change',)
+
+    def generovat2024(self, request, queryset):
+        return self.generovat(request, 2024)
+    generovat2024.short_description = f"Generovať prehľad čerpania rozpočtu za 2024 (vyberte ľubovoľnú položku)"
+    generovat2024.allowed_permissions = ('change',)
 
     def generovat(self,request,rok):
         def zapisat_riadok(ws, fw, riadok, polozky, header=False):
@@ -568,6 +573,14 @@ def generovat_mzdove(request, zden, rekapitulacia):
             cerpanie = cerpanie + gen_socfond(osoba, zaklad_socfond, zden)
         vylucitelnost = False if zaklad_vylucitelnost else True
 
+        if "Balo" in meno:
+            #trace()
+            #Odvody (okrem Úrazového poistenia) sú zhora obmedzené Maximálnym vymeriavacím základom zamestnávateľa.
+            #Výška sa preráta na počet kalendárnych dní mesiaca, keď zamestnanec nemal PN aj NV (brané kontinuálne)
+            #V prípade BB je to 1 deň z 31, teda vymeriavací základ je 1*8477/31 = 273,45 Eur
+            #Namiesto parametra vylucitelnost treba v gen_soczdrav použiť parameter vymeriavaci_zaklad podľa tohto
+            #Dokoncit po dokoncení automatického generovanie stravného
+            pass
         if zam_zdroj:
             cerpanie = cerpanie + gen_soczdrav(poistne, osoba, "Plat", zaklad_soczdrav_zam, zden, PlatovyVymer.td_konv(osoba, zden), zam_zdroj, zam_zakazka, vylucitelnost=vylucitelnost)
         if dovp_zdroj:
