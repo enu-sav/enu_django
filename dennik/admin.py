@@ -355,21 +355,14 @@ class PlatovaRekapitulaciaAdmin(ModelAdminTotals):
                     if fw[cc] < len(str(value))+2: fw[cc] = len(str(value))+2
         polozky= {
             #"Názov tu": ["Názov v pdf", poradie_poľa_v_riadku]
-            "Plat tarifný plat": ["Tarifný plat spolu", 1 ],
-            "Plat osobný príplatok": ["Osobný príplatok", 1],
-            "Plat príplatok za riadenie": ["Príplatok za riadenie", 1],
-            "Náhrada mzdy - dovolenka": ["Dovolenka", 1],
-            "Náhrada mzdy - osobné prekážky": [ "Prekážky osobné", 1],
-            "Náhrada mzdy - PN": ["Náhrada príjmu pri DPN", 1],
-            "Plat odmena": ["Odmeny spolu", 0],
-            "Plat odchodné": ["Odchodné", 0],
-            "DDS príspevok": ["Doplnkové dôchodkové sporenie spolu", 1],
-            "Stravné príspevok": ["Fin.prísp.na stravu z-teľ", 0],
-            "Stravné zrážky": ["Spoločné zrážky \(N5241\)", 1],
-            "DoPC odmena": ["Dohody o pracovnej činnosti", 1],
-            "DoVP odmena": ["Dohody o vykonaní práce", 1],
-            "Sociálny fond": ["Sociálny fond", 2],
-            "Zdravotné poistné": ["Zdravotné poistné spolu", 2],
+            "Plat tarifný plat 611": ["Tarifný plat spolu", 1 ],
+            "Náhrada mzdy - dovolenka 611": ["Dovolenka", 1],
+            "Náhrada mzdy - osobné prekážky 611": [ "Prekážky osobné", 1],
+            "Plat odmena 611": ["Odmeny spolu", 0],
+            "Plat osobný príplatok 612001": ["Osobný príplatok", 1],
+            "Plat príplatok za riadenie 612002": ["Príplatok za riadenie", 1],
+            "Zdravotné poistné 623": ["Zdravotné poistné spolu", 2],
+            "DDS príspevok 627": ["Doplnkové dôchodkové sporenie spolu", 1],
             #"Sociálne poistné": ["Sociálne poistné spolu", 1],
             "Sociálne poistné 625001": ["Nemocenské poistné", 2],
             "Sociálne poistné 625002": ["Starobné poistné", 2],
@@ -379,6 +372,13 @@ class PlatovaRekapitulaciaAdmin(ModelAdminTotals):
             "Sociálne poistné 625006": ["Garančné poistné", 1],
             "Sociálne poistné 625007": ["Rezervný fond solidarity", 1],
             "Sociálne poistné 625005po": ["Poistné na financovanie podpory v čase skr. práce", 1],
+            "Sociálny fond 637016": ["Sociálny fond", 2],
+            "DoPC odmena 637027": ["Dohody o pracovnej činnosti", 1],
+            "DoVP odmena 637027": ["Dohody o vykonaní práce", 1],
+            "Stravné príspevok 642014": ["Fin.prísp.na stravu z-teľ", 0],
+            "Plat odchodné 642013": ["Odchodné", 0],
+            "Stravné zrážky 642014": ["Spoločné zrážky \(N5241\)", 1],
+            "Náhrada mzdy - PN 642015": ["Náhrada príjmu pri DPN", 1],
             }
         #Vytvoriť workbook
         file_name = f"KontrolaRekapitulacie-{date.today().isoformat()}"
