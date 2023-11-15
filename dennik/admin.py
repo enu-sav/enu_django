@@ -435,7 +435,7 @@ class PlatovaRekapitulaciaAdmin(ModelAdminTotals):
                     else:
                         rozdiel_plus = max(rozdiel_plus, zo_suboru-z_databazy)
                 else:
-                    zapisat_riadok(ws, fw, nn+2, [polozka])
+                    zapisat_riadok(ws, fw, nn+2, [polozka +  f" {polozky[polozka][2]}"])
             nn+=1
             zapisat_riadok(ws, fw, nn+2, ["Spolu",f"=sum(B2:B{nn+1}",f"=sum(C2:C{nn+1}",f"=sum(D2:D{nn+1}"])
             for cc in fw:
