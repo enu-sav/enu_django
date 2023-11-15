@@ -372,6 +372,7 @@ class PlatovaRekapitulaciaAdmin(ModelAdminTotals):
             "Sociálne poistné 625006": ["Garančné poistné", 1, ""],
             "Sociálne poistné 625007": ["Rezervný fond solidarity", 1, ""],
             "Sociálne poistné 625005po": ["Poistné na financovanie podpory v čase skr. práce", 1, ""],
+            "Príspevok na rekreáciu": ["Iné nezdanené príjmy", 0, "637006"],
             "Sociálny fond": ["Sociálny fond", 2, "637016"],
             "DoPC odmena": ["Dohody o pracovnej činnosti", 1, "637027"],
             "DoVP odmena": ["Dohody o vykonaní práce", 1, "637027"],
@@ -481,7 +482,7 @@ class PlatovaRekapitulaciaAdmin(ModelAdminTotals):
 def generovat_mzdove(request, zden, rekapitulacia):
     #Po osobách (zamestnanci a dohodári) vytvoriť zoznam všetkých relevantných položiek
     po_osobach = defaultdict(list)
-    for typ in [PrispevokNaStravne, PlatovyVymer, OdmenaOprava, DoPC, DoVP, DoBPS]:
+    for typ in [PrispevokNaStravne, PlatovyVymer, OdmenaOprava, DoPC, DoVP, DoBPS, PrispevokNaRekreaciu]:
         for polozka in typ.objects.filter():
             data = polozka.cerpanie_rozpoctu(zden)
             if not data: continue   #netýka sa akuálneho mesiaca
