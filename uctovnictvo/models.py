@@ -349,6 +349,16 @@ class Objednavka(ObjednavkaZmluva):
             null=True,
             blank=True)
     history = HistoricalRecords()
+
+    def clean(self):
+        # test počtu riadkov v objednane_polozky
+        pocet_riadkov = 18 #definované v common.VytvoritSuborObjednavky.pocet_riadkov
+        pocet_poloziek = len(self.objednane_polozky.split("\r\n"))
+        if pocet_poloziek > pocet_riadkov:
+            raise ValidationError({
+                "objednane_polozky":f"Zadaných bolo {pocet_poloziek} položiek. Maximálny povolený počet je {pocet_riadkov}."
+                }
+            )
     class Meta:
         verbose_name = 'Objednávka'
         verbose_name_plural = 'Faktúry - Objednávky'
@@ -462,7 +472,6 @@ class Klasifikacia2(Klasifikacia):
                 }
             )
 
-        pass
     class Meta:
         abstract = True
 

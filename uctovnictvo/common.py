@@ -660,7 +660,7 @@ def VytvoritSuborObjednavky(objednavka):
 
     #položky
     prvy_riadok = 15 #prvy riadok tabulky
-    pocet_riadkov = 18
+    pocet_riadkov = 18 # pri zmene zmeniť aj models.Objednavka.clean.pocet_riadkov
     add_sum = True  # či s má do posledného riadka vložiť súčet
     for rr, polozka in enumerate(objednavka.objednane_polozky.split("\n")):
         riadok = prvy_riadok+rr
