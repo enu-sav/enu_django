@@ -660,7 +660,7 @@ def VytvoritSuborObjednavky(objednavka):
 
     #položky
     prvy_riadok = 15 #prvy riadok tabulky
-    pocet_riadkov = 15
+    pocet_riadkov = 18
     add_sum = True  # či s má do posledného riadka vložiť súčet
     for rr, polozka in enumerate(objednavka.objednane_polozky.split("\n")):
         riadok = prvy_riadok+rr
@@ -699,12 +699,12 @@ def VytvoritSuborObjednavky(objednavka):
 
 
     if objednavka.termin_dodania:
-        obj["A32"].value = obj["A32"].value.replace("[[termin_dodania]]", objednavka.termin_dodania)
+        obj[f"A{prvy_riadok+pocet_riadkov+2}"].value = obj[f"A{prvy_riadok+pocet_riadkov+2}"].value.replace("[[termin_dodania]]", objednavka.termin_dodania)
     else:
-        obj["A32"].value = obj["A32"].value.replace("[[termin_dodania]]", "")
+        obj[f"A{prvy_riadok+pocet_riadkov+2}"].value = obj[f"A{prvy_riadok+pocet_riadkov+2}"].value.replace("[[termin_dodania]]", "")
     if not objednavka.datum_vytvorenia:
         return messages.ERROR, "Vytváranie súboru objednávky zlyhalo, lebo objednávka nemá zadaný dátum vytvorenia.", None
-    obj["A34"].value = obj["A34"].value.replace("[[datum]]", objednavka.datum_vytvorenia.strftime("%d. %m. %Y"))
+    obj[f"A{prvy_riadok+pocet_riadkov+4}"].value = obj[f"A{prvy_riadok+pocet_riadkov+4}"].value.replace("[[datum]]", objednavka.datum_vytvorenia.strftime("%d. %m. %Y"))
   
     kl = workbook["Finančná kontrola"]
     kl["A1"].value = kl["A1"].value.replace("[[cislo]]", objednavka.cislo)
