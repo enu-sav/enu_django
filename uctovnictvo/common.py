@@ -1,6 +1,7 @@
 # rozne utilitky
 
 import os, locale
+from unidecode import unidecode
 from ipdb import set_trace as trace
 from django.utils.safestring import mark_safe
 from django.conf import settings
@@ -17,6 +18,8 @@ from openpyxl import load_workbook
 from openpyxl.styles import Font, Color, colors, Alignment, PatternFill , numbers
 from openpyxl.utils import get_column_letter
 from decimal import Decimal
+
+from dateutil.relativedelta import relativedelta
 
 import datetime, calendar, re
 
@@ -994,13 +997,21 @@ def generovatStravne(polozka):
     #Dátumy platnosti jednotlivých sadzieb príspevkov
     sadzby={}
     for row in list(ws_sadzba)[1:]:
-        sadzby[row[0].value] = [row[1].value, row[2].value]
+        if row[0].value:
+            sadzby[row[0].value] = [row[1].value, row[2].value]
 
     #Nájsť správnu sadzbu
     rok = polozka.cislo.split("-")[1]
-    mesiac_prispevku = datetime.date(int(rok), mesiace_num[polozka.za_mesiac][0], 1) 
+    if polozka.typ_zoznamu == Stravne.PRISPEVKY:
+        # Príspevky sú za nasledujúci mesiac
+        if mesiace_num[polozka.za_mesiac][0] == 12:
+            mesiac_prispevku = datetime.date(int(rok)+1, 1, 1) 
+        else:
+            mesiac_prispevku = datetime.date(int(rok), mesiace_num[polozka.za_mesiac][0]+1, 1) 
+    else:
+        mesiac_prispevku = datetime.date(int(rok), mesiace_num[polozka.za_mesiac][0], 1) 
     prispevok_sadzba = None
-    for den in sorted([*sadzby])[::-1]: #reverzne usporiadany zoznam dni v sadzby
+    for den in [*sadzby][::-1]: #reverzne usporiadany zoznam dni v sadzby
         dden = datetime.date(den.year,den.month,den.day)
         if dden <= mesiac_prispevku:
             prispevok_sadzba = sadzby[den]
@@ -1011,16 +1022,24 @@ def generovatStravne(polozka):
     qs = PlatovyVymer.objects.filter(datum_od__lte=mesiac_prispevku)
     qs1 = qs.exclude(datum_do__lt=mesiac_prispevku)
     #zoznam výmerov zoradený podľa priezviska
-    vymer_list = sorted([*qs1], key=lambda x: x.zamestnanec.priezvisko)
+    vymer_list = sorted([*qs1], key=lambda x: unidecode(x.zamestnanec.priezvisko))
  
     #Vyplniť hárok
     suma_enu = 0
     suma_sf = 0
     n_zam = 0
-    bez_prispevku = []  #zamestnanci, ktorým sa nevypláca príspevok
+    msg = ""
+    bez_prispevku = []  #zamestnanci, ktorým sa nevypláca príspevok (pre message)
+    nepritomny_mesiac = []  #zamestnanci, ktorí boli meprítomní celý mesiac ale príspevol sa vypláca
     if polozka.typ_zoznamu == Stravne.PRISPEVKY:
         ws = workbook["Príspevky"] 
-        ws.cell(row=2, column=1).value = f"za mesiac/rok: {Mesiace(polozka.za_mesiac).label}/{rok}"
+        #určiť mesiac(text)
+        za_mesiac = "-"
+        za_rok = mesiac_prispevku.year
+        for mn in mesiace_num:  #Nájsť meno mesiaca
+            if mesiace_num[mn][0] == mesiac_prispevku.month:
+                za_mesiac=mesiace_num[mn][1]
+        ws.cell(row=2, column=1).value = f"na mesiac/rok: {za_mesiac}/{za_rok}"
         nn=6    #prvý riadok
         #Príspevok vyplácať za každý mesiac, pokiaľ nie je splnená podmienka vymer.zamestnanec.bez_stravneho_od <= mesiac_prispevku
         #vymer.zamestnanec.bez_stravneho_od sa nastavuje pred výpočtom príspevku a ručí po výpočte zrážok
@@ -1028,33 +1047,49 @@ def generovatStravne(polozka):
         # tak sa ukončí neprítomnosť, ktorá súvisí so zamestnanec.bez_stravneho_od. Keďže však zamestnanec.bez_stravneho_od je stále 
         # nastavené zrážka za vypočíta za dni v meziaci PO ukončení neprítomnosti s opačným znamienkom.
         #
-        for vymer in vymer_list:
+        for vymer in vymer_list:    #výmery všetkých zamestnancov aktívne v aktuálnom mesiaci 
             #bez stavného kvôli dlhodobej neprítomnosti?
             ws.cell(row=nn, column=1).value = n_zam+1
             ws.cell(row=nn, column=2).value = vymer.zamestnanec.cislo_zamestnanca
             ws.cell(row=nn, column=3).value = vymer.zamestnanec.priezviskomeno(",")
-            if vymer.zamestnanec.bez_stravneho_od and vymer.zamestnanec.bez_stravneho_od <= mesiac_prispevku:
-                bez_prispevku.append(vymer.zamestnanec)
-                pocet_dni = 0
-            else:
-                pocet_dni = prac_dni(mesiac_prispevku, ppd=0 if vymer.uvazok > 37 else 3)
-            ws.cell(row=nn, column=4).value = pocet_dni
-            ws.cell(row=nn, column=5).value = pocet_dni*prispevok_sadzba[0]
-            suma_enu += pocet_dni*prispevok_sadzba[0]
-            ws.cell(row=nn, column=6).value = pocet_dni*prispevok_sadzba[1]
-            ws.cell(row=nn, column=7).value = f"=D{nn}+E{nn}"
-            suma_sf += pocet_dni*prispevok_sadzba[1]
+            # Počet pracovných dní v aktuálnom mesiaci
+            od = mesiac_prispevku
+            next_month = od + relativedelta(months=1, day=1)  # 1. deň nasl. mesiaca
+            do=next_month - relativedelta(days=1) # koniec mesiaca
+            pocet_prac_dni = prac_dni(od, do, ppd=0 if vymer.uvazok > 37 else 3)
+            #dlhodobá neprítomnost
+            #bez_stravneho_od brat do úvahy len vtedy, keď aktuálne známa neprítomnost je celý mesiac 
+            nepritomnost = vymer.nepritomnost_za_mesiac(mesiac_prispevku, pre_stravne = True)
+            pdni, ddov, ddov2, dosob, dnepl, dpn1, dpn2, docr = nepritomnost
+            if vymer.zamestnanec.meno == "Eva":
+                #trace()
+                pass
+            if dnepl == pocet_prac_dni: #nutná podmienka nevyplácania
+                if vymer.zamestnanec.nevyplacat_stravne(mesiac_prispevku):
+                    bez_prispevku.append(vymer.zamestnanec)
+                    pocet_prac_dni = 0
+                else:
+                    nepritomny_mesiac.append(vymer.zamestnanec)
+
+            ws.cell(row=nn, column=4).value = pocet_prac_dni
+            ws.cell(row=nn, column=5).value = pocet_prac_dni*prispevok_sadzba[0]
+            suma_enu += pocet_prac_dni*prispevok_sadzba[0]
+            ws.cell(row=nn, column=6).value = pocet_prac_dni*prispevok_sadzba[1]
+            ws.cell(row=nn, column=7).value = f"=E{nn}+F{nn}"
+            suma_sf += pocet_prac_dni*prispevok_sadzba[1]
             nn += 1
             n_zam += 1
             pass
         workbook.remove_sheet(workbook.get_sheet_by_name("Sadzba"))
         workbook.remove_sheet(workbook.get_sheet_by_name("Zrážky"))
-    else:
+    else:   #zrážky
+        za_mesiac = polozka.za_mesiac
+        za_rok = mesiac_prispevku.year
         ws = workbook["Zrážky"] 
         ws.cell(row=2, column=1).value = f"za mesiac/rok: {Mesiace(polozka.za_mesiac).label}/{rok}"
         nn=6    #prvý riadok
         for vymer in vymer_list:
-            nepritomnost = vymer.nepritomnost_za_mesiac(mesiac_prispevku)
+            nepritomnost = vymer.nepritomnost_za_mesiac(mesiac_prispevku, pre_stravne = True)
             if not nepritomnost: 
                 pocet_dni = 0
             elif vymer.zamestnanec.bez_stravneho_od and vymer.zamestnanec.bez_stravneho_od <= mesiac_prispevku:
@@ -1063,7 +1098,7 @@ def generovatStravne(polozka):
             else:
                 pdni, ddov, ddov2, dosob, dnepl, dpn1, dpn2, docr = nepritomnost
                 #Tu definovať, za čo sú zrážky
-                pocet_dni = ddov + dosob + dnepl + dpn1 + dpn2 + docr
+                pocet_dni = ddov + ddov2 + dosob + dnepl + docr #dpn1 a dpn2 sa neráta, je zahrnuté v dnepl
 
             ws.cell(row=nn, column=1).value = n_zam+1
             ws.cell(row=nn, column=2).value = vymer.zamestnanec.cislo_zamestnanca
@@ -1086,15 +1121,24 @@ def generovatStravne(polozka):
         workbook.remove_sheet(workbook.get_sheet_by_name("Príspevky"))
         pass
     #Save the workbook
-    msg = "Zamestnanci bez príspevku/zrážky z dôvodu dlhodobej neprítomnosti:"
-    for zam in bez_prispevku:
-        msg = f"{msg}: {zam}"
+    if nepritomny_mesiac:
+        mmm = f"{msg}<br />Zamestnanci, ktorí neodpracovali/neodpracujú celý mesiac {mesiac_prispevku.month}/{mesiac_prispevku.year}, avšak ich príspevok na stravné bude v súbore uvedený:"
+        for zam in nepritomny_mesiac:
+            mmm = f"{mmm}: <strong>{zam}</strong>"
+        msg = f"{mmm}"
+    if bez_prispevku:
+        mmm = f"{msg}<br />Zamestnanci bez príspevku/zrážky z dôvodu dlhodobej neprítomnosti:"
+        for zam in bez_prispevku:
+            mmm = f"{mmm}: <strong>{zam}</strong>"
+        msg = f"{mmm}"
 
-    msg = f"{msg}.<br />Ak treba, dlhodobú neprítomnosť zamestnancov upravte a súbor s príspevkmi/zrážkami vygenerujte znovu." 
-    nazov = f"Stravne-{polozka.typ_zoznamu}-{rok}-{polozka.za_mesiac}.xlsx"
+    if bez_prispevku or nepritomny_mesiac:
+        msg = f"{msg}<br />"
+        msg = f"{msg}.<br />Ak treba, dlhodobú neprítomnosť zamestnancov upravte (vyplňte pole <em>Zamestnanec > Bez stravného od / do</em>) a súbor s príspevkmi/zrážkami vygenerujte znovu." 
+    nazov = f"Stravne-{polozka.typ_zoznamu}-{za_rok}-{za_mesiac}.xlsx"
     opath = os.path.join(settings.STRAVNE_DIR,nazov)
     workbook.save(os.path.join(settings.MEDIA_ROOT,opath))
-    return suma_enu, suma_sf, n_zam, msg, opath
+    return float(suma_enu), float(suma_sf), n_zam, msg, opath
 
 #načítať výšku tarifného platu z aktuálnej tabuľky
 class TarifnyPlatTabulky():

@@ -967,10 +967,15 @@ class RozpoctovaPolozkaPresunAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleH
 @admin.register(PrispevokNaStravne)
 class PrispevokNaStravneAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
     form = PrispevokNaStravneForm
-    list_display = ["cislo", "typ_zoznamu", "za_mesiac", "po_zamestnancoch", "suma_zamestnavatel", "suma_socfond"]
+    list_display = ["cislo", "typ_zoznamu", "za_mesiac", "po_zamestnancoch", "suma_zamestnavatel", "suma_socfond", "_suma_spolu"]
     search_fields = ["cislo","^typ_zoznamu", "^za_mesiac"]
     # určiť poradie poli v editovacom formulári
-    fields = ["cislo", "za_mesiac", "typ_zoznamu", "suma_zamestnavatel", "suma_socfond", "po_zamestnancoch", "zdroj", "zakazka", "ekoklas", "cinnost" ]
+    fields = ["cislo", "typ_zoznamu", "za_mesiac", "suma_zamestnavatel", "suma_socfond", "po_zamestnancoch", "zdroj", "zakazka", "ekoklas", "cinnost" ]
+
+    def _suma_spolu(self, obj):
+        return obj.suma_zamestnavatel + obj.suma_socfond
+    _suma_spolu.short_description = "Spolu"
+
 
     list_totals = [
         ('suma_zamestnavatel', Sum),
@@ -1083,7 +1088,7 @@ class DohodarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelA
 
 @admin.register(Zamestnanec)
 class ZamestnanecAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
-    list_display = ("priezvisko", "meno", "cislo_zamestnanca", "dds", "bez_stravneho_od","stupnica", "zamestnanie_od", "zamestnanie_enu_od", "rod_priezvisko", "email", "rodne_cislo", "datum_nar", "miesto_nar", "adresa", "_dochodok", "_ztp","poistovna", "cop", "stav")
+    list_display = ("priezvisko", "meno", "cislo_zamestnanca", "dds", "stupnica", "zamestnanie_od", "zamestnanie_enu_od", "rod_priezvisko", "email", "rodne_cislo", "datum_nar", "miesto_nar", "adresa", "_dochodok", "_ztp","poistovna", "cop", "stav")
     # ^: v poli vyhľadávať len od začiatku
     search_fields = ["priezvisko", "meno"]
     def adresa(self, obj):

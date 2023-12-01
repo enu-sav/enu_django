@@ -13,7 +13,7 @@ from decimal import Decimal
 from django.core.validators import MinValueValidator, MaxValueValidator
 PERCENTAGE_VALIDATOR = [MinValueValidator(0), MaxValueValidator(100)]
 
-from beliana.settings import TMPLTS_DIR_NAME, PLATOVE_VYMERY_DIR, DOHODY_DIR, PRIJATEFAKTURY_DIR, PLATOBNE_PRIKAZY_DIR
+from beliana.settings import TMPLTS_DIR_NAME, PLATOVE_VYMERY_DIR, DOHODY_DIR, PRIJATEFAKTURY_DIR, PLATOBNE_PRIKAZY_DIR, STRAVNE_HOD
 from beliana.settings import ODVODY_VYNIMKA, DAN_Z_PRIJMU, OBJEDNAVKY_DIR, STRAVNE_DIR, REKREACIA_DIR
 from beliana.settings import PN1, PN2, BEZ_PRIKAZU_DIR, DDS_PRISPEVOK, ODMENY_DIR, NEPRITOMNOST_DIR, SOCFOND_PRISPEVOK
 import os,re
@@ -1028,28 +1028,33 @@ class PrispevokNaStravne(Klasifikacia):
     oznacenie = "PS"    #v čísle faktúry, FS-2021-123
     cislo = models.CharField("Poradové číslo príspevku", max_length=50)
 
-    za_mesiac = models.CharField("Za mesiac", 
+    za_mesiac = models.CharField("Mesiac", 
             max_length=20, 
-            help_text = "Zvoľte mesiac, za ktorý príspevok je. <br />Príspevok za január sa vypláca v decembri predchádzajúceho roku (v čísle príspevku má byť uvedený rok, v ktorom sa príspevok vyplácal).",
+            help_text = "Zadajte uplynulý kalendárny mesiac.<br /> <strong>Príspevok na stravné</strong> sa vypočíta na nasledujúci mesiac. Napr. ak koncom mája chcete vytvoriť zoznam príspevkov na jún, zvoľte 'máj'. Vytvorí sa zoznam na jún, v zozname aj bude uvedené 'na jún'.<br /><strong>Zrážka za stravné</strong> sa vypočíta za uplynulý mesiac.",
             null = True,
             choices=Mesiace.choices)
 
     typ_zoznamu = models.CharField("Typ zoznamu",
             max_length=20,
-            help_text = "Zvoľte typ zoznamu.<br/>Položku uložte a následne príslušnou akciou 'Generovať zoznam príspevkov/zrážok' vytvorte súbor 'Prehľad po zamestnancoch' za nasledujúci mesiac.",
+            help_text = "Zvoľte typ zoznamu.<br/>Položku uložte a následne akciou 'Generovať zoznam príspevkov/zrážok' vytvorte súbor so zoznamom.",
             null = True,
             choices=Stravne.choices)
 
     suma_zamestnavatel = models.DecimalField("Príspevok (zrážka) zamestnávateľ", 
-            help_text = "Príspevok zamestnávateľa (Ek. klas. 642014) na stravné.<br />Ak ide o vyplatenie zamestnancovi, uveďte zápornú hodnotu, ak ide o zrážku, tak kladnú hodnotu.<br /> Suma sa automaticky generuje akciou 'Generovať zoznam príspevkov/zrážok'",
+            help_text = "Príspevok zamestnávateľa (Ek. klas. 642014) na stravné.<br />Ak ide o vyplatenie zamestnancovi, uveďte zápornú hodnotu, ak ide o zrážku, tak kladnú hodnotu.<br />Suma sa automaticky generuje akciou 'Generovať zoznam príspevkov/zrážok'",
             max_digits=8, 
             decimal_places=2, 
+            null = True,
+            blank=True,
             default=0)
+
     # Položka suma_socfond nemá Ek. klasifikáciu, soc. fond nie sú peniaze EnÚ
     suma_socfond = models.DecimalField("Príspevok (zrážka) soc. fond", 
             help_text = "Príspevok zo sociálneho fondu (Ek. klas. 642014) na stravné.<br />Ak ide o vyplatenie zamestnancovi, uveďte zápornú hodnotu, ak ide o zrážku, tak kladnú hodnotu.<br />Vytvorením Príspevku na stravné sa automaticky vytvorí položka sociálneho fondu. <br /> Suma sa automaticky generuje akciou 'Generovať zoznam príspevkov/zrážok'",
             max_digits=8, 
             decimal_places=2, 
+            null = True,
+            blank=True,
             default=0)
     po_zamestnancoch = models.FileField("Prehľad po zamestnancoch",
             help_text = "Súbor s mesačným prehľadom príspevkov na stravné po zamestnancoch",
@@ -1120,8 +1125,8 @@ class PrispevokNaStravne(Klasifikacia):
         return platby
 
     class Meta:
-        verbose_name = 'Príspevok na stravné'
-        verbose_name_plural = 'PaM - Príspevky na stravné'
+        verbose_name = 'Príspevok na stravné / zrážka za stravné'
+        verbose_name_plural = 'PaM - Stravné'
     def __str__(self):
         return f'Príspevok na stravné {self.cislo}'
 
@@ -1246,11 +1251,71 @@ class Zamestnanec(ZamestnanecDohodar):
             help_text = "Dátum, odkedy sa zamestnanec zúčastňuje doplnkového dôchodkového sporenia.",
             blank=True,
             null=True)
-    bez_stravneho_od = models.DateField('Bez stravného od',
-            help_text = "Dátum, odkedy sa zamestnanec z dôvodu dlhej neprítomnosti (materská, PN) <strong>nemá evidovať</strong> za účelom príspevku na stravné<br />Zadať príp. zmazať pred výpočtom príspevku za nasledujúci mesiac.<br />Zadávajte vždy len 1. deň v mesiaci.",
+    bez_stravneho = models.TextField('Bez stravného od / do',
+            help_text = "Zadajte obdobie, v ktorom sa zamestnancovi z dôvodu dlhej neprítomnosti (materská, PN, NV) <strong>nemá vyplácať</strong> príspevok na stravné. <br />Obdobie zadajte ako <em>prvy_den_v_prvom_mesiaci, posledny_den_v_poslednom_mesiaci</em>, napr. <em>1.2.2022, 31.8.2022</em>. Ak druhý dátum nie je známy, tak ho neuveďte.<br />Prvý dátum treba zadať pred výpočtom príspevku za mesiac, v ktorom sa príspevok nemá vyplatiť.<br />Príspevok sa v danom mesiaci nevyplatí len vtedy, ak neprítomnosť zadaná v PaM - Neprítomnosť trvá celý tento mesiac (napr. neukončená PN, MD alebo NV na celý mesiac. <br />Za dátumami možno zadať poznámku, v ktorej sa nenachádza dátum.)",
             blank=True,
             null=True)
     history = HistoricalRecords()
+
+    def clean(self): 
+        pocet_datumov=[] #Neukončený môže byť len jeden, a to posledný mesiac
+        datumy1 = []    #kontrola poradia
+        for nn, riadok in enumerate(self.bez_stravneho.split("\r\n")):
+            if not riadok: continue
+            datumy = re.findall("([0-9]*[.][0-9]*[.][0-9]{4})", riadok)
+            if len(datumy) == 0:
+                raise ValidationError({"bez_stravneho": f"Na riadku {nn+1} nebol nájdený žiaden dátum v tvare 'DD.MM.RRRR'."})
+            elif len(datumy) > 2:
+                 raise ValidationError({"bez_stravneho": f"Na riadku {nn+1} sa nachádzajú viac ako dva dátumy."})
+            else:
+                try:
+                    datum1 = datetime.strptime(datumy[0], "%d.%m.%Y")
+                except:
+                    raise ValidationError({"bez_stravneho": f"Prvý dátum {datumy[0]} na riadku {nn+1} nie je v tvare 'DD.MM.RRRR' alebo ide o neexistujúci dátum."})
+                if datum1.day != 1:
+                    raise ValidationError({"bez_stravneho": f"Prvý dátum  {datumy[0]} na riadku {nn+1} nie je prvý deň v mesiaci alebo nie je v tvare 'DD.MM.RRRR."})
+                if len(datumy) == 2:
+                    try:
+                        datum2 = datetime.strptime(datumy[1], "%d.%m.%Y")
+                    except:
+                        raise ValidationError({"bez_stravneho": f"Druhý dátum {datumy[1]} na riadku {nn+1} nie je v tvare 'DD.MM.RRRR' alebo ide o neexistujúci dátum."})
+                    if (datum2 + timedelta(days=1)).day != 1:  # 1. deň nasl. mesiaca
+                        raise ValidationError({"bez_stravneho": f"Druhý dátum {datumy[1]} na riadku {nn+1} nie je posledný deň v mesiaci  alebo nie je v tvare 'DD.MM.RRRR."})
+                    if datum2 < datum1:
+                        raise ValidationError({"bez_stravneho": f"Dátumy na riadku {nn+1} nie sú v správnom poradí od,do."})
+            pocet_datumov.append(len(datumy))
+            datumy1.append(datum1)
+        jeden_datum = [1 if nn==1 else 0 for nn in pocet_datumov]
+        if sum(jeden_datum) > 1:
+            raise ValidationError({"bez_stravneho": f"Len jeden mesiac môže byť neukončený (posledný v zozname)."})
+        if sum(jeden_datum) == 1 and jeden_datum[-1] != 1:
+            raise ValidationError({"bez_stravneho": f"Neukončený môže byť len posledný mesiac v zozname."})
+        if len(datumy1) > 1:
+            for d1,d2 in zip(datumy1[:-1], datumy1[1:]):
+                if d2 < d1:
+                    raise ValidationError({"bez_stravneho": f"Riadky {d1.strftime('%d.%m.%Y')} a {d2.strftime('%d.%m.%Y')} sú v nesprávnom poradí."})
+
+        pass
+
+    #Či vyplatiť príspevok na stravné za mesiac, ktorý začína zden
+    def nevyplacat_stravne(self, zden):
+        if not self.bez_stravneho: return False
+        for riadok in self.bez_stravneho.split("\r\n"):
+            if not riadok: continue
+            datumy = re.findall("([0-9]*[.][0-9]*[.][0-9]{4})", riadok)
+            if len(datumy) == 1:
+                datum1 = datetime.strptime(datumy[0], "%d.%m.%Y")
+                #Porovnávame len 1. deň v mesiaci
+                if datum1.date() <= zden:
+                    return True
+            else:
+                datum1 = datetime.strptime(datumy[0], "%d.%m.%Y")
+                datum2 = datetime.strptime(datumy[1], "%d.%m.%Y")
+                #Porovnávame len 1. deň v mesiaci
+                if datum1.date() <= zden and zden < datum2.date():
+                    return True
+        return False
+
     class Meta:
         verbose_name = "Zamestnanec"
         verbose_name_plural = "PaM - Zamestnanci"
@@ -1369,7 +1434,7 @@ class PlatovyVymer(Klasifikacia):
         return novy
 
     #vypočíta počet dní neprítomnosti vo viacerých kategóriách
-    def nepritomnost_za_mesiac(self, zden):
+    def nepritomnost_za_mesiac(self, zden, pre_stravne=False):
         if zden < self.datum_od: return []
         if self.datum_do and zden > self.datum_do: return []
 
@@ -1403,13 +1468,15 @@ class PlatovyVymer(Klasifikacia):
                 #Vypočítať počet dní neprítomnosti
                 #Predpokladáme, že v prípade, keď zamestnanec pracuje len napr. Utorok - Štvrtok, neprítomnosť je zadaná len na tieto dni
                 if nn.nepritomnost_typ == TypNepritomnosti.DOVOLENKA2:
+                    #Stravné: pri poldni dovolenky sa nevypláca
                     ddov2 += 1
                 elif nn.nepritomnost_typ == TypNepritomnosti.DOVOLENKA:
                     ddov += prac_dni(prvy,posledny, pdni, zahrnut_sviatky=False)    #Sviatky sa nezarátajú do dovolenky, ale ako bežný prac. deň
-                elif nn.nepritomnost_typ == TypNepritomnosti.NEPLATENE:
-                    dnepl += prac_dni(prvy,posledny, pdni, zahrnut_sviatky=True)    #Sviatky sa do NV zarátajú, náhrada sa ráta inak
                 elif nn.nepritomnost_typ == TypNepritomnosti.PN:
-                    dnepl += prac_dni(prvy,posledny, pdni, zahrnut_sviatky=True)    #Sviatky sa do PN zarátajú, náhrada sa ráta inak
+                    if pre_stravne:
+                        dnepl += prac_dni(prvy,posledny, pdni, zahrnut_sviatky=False)
+                    else:
+                        dnepl += prac_dni(prvy,posledny, pdni, zahrnut_sviatky=True)    #Sviatky sa do PN zarátajú, náhrada sa ráta inak
                     #Prvé 3 dni, 55%
                     dpn1 += prekryv_dni(zden, nn.nepritomnost_od, nn.nepritomnost_od+timedelta(days=2))
                     #Dni 4 až 10, 80%
@@ -1417,10 +1484,17 @@ class PlatovyVymer(Klasifikacia):
                 elif nn.nepritomnost_typ in [TypNepritomnosti.OCR]:
                     docr += prac_dni(prvy,posledny, pdni, zahrnut_sviatky=True)    #Sviatky sa zarátajú, nie sú platené
                 elif nn.nepritomnost_typ in [TypNepritomnosti.MATERSKA, TypNepritomnosti.NEPLATENE]:
-                    dnepl += prac_dni(prvy,posledny, pdni, zahrnut_sviatky=True)    #Sviatky sa zarátajú, nie sú platené
+                    if pre_stravne:
+                        dnepl += prac_dni(prvy,posledny, pdni, zahrnut_sviatky=False)    #Sviatky sa zarátajú, nie sú platené
+                    else:
+                        dnepl += prac_dni(prvy,posledny, pdni, zahrnut_sviatky=True)    #Sviatky sa zarátajú, nie sú platené
                 elif nn.nepritomnost_typ in [TypNepritomnosti.LEKARDOPROVOD, TypNepritomnosti.LEKAR]:
                     dlzka_nepritomnosti = nn.dlzka_nepritomnosti if nn.dlzka_nepritomnosti else self.uvazok_denne
-                    dosob += float(dlzka_nepritomnosti*prac_dni(prvy,posledny, pdni, zahrnut_sviatky=True)/self.uvazok_denne)    #Osobné prekážky vo sviatok sa nemajú čo vyskytovať
+                    dosob_hod = float(dlzka_nepritomnosti*prac_dni(prvy,posledny, pdni, zahrnut_sviatky=True)/self.uvazok_denne)    #Osobné prekážky vo sviatok sa nemajú čo vyskytovať
+                    if pre_stravne:
+                        #Stravné: vypláca sa, len keď osoba pracuje viac ako STRAVNE_HOD
+                        dosob_hod = 1 if self.uvazok_denne*Decimal(dosob_hod) > self.uvazok_denne - STRAVNE_HOD else 0
+                    dosob += dosob_hod
                 elif nn.nepritomnost_typ in [TypNepritomnosti.SLUZOBNA, TypNepritomnosti.PRACADOMA, TypNepritomnosti.SKOLENIE]:
                     pass    #normálna mzda
                 else:   #Osobné prekážky (Pracovné voľno)

@@ -198,6 +198,8 @@ MIN_VYPLATIT = 10       #minimálna suma v Eur, ktorá sa vypláca v prípade au
 UCET_ENU = "SK08 8180 0000 0070 0066 7544"
 UCET_LITFOND  = "SK47 0200 0000 0012 2545 9853" #Literárny fond 
 
+STRAVNE_HOD = 4         #Minimálny odpracovaný čas za deň, aby zamestnanec dostal stravné
+
 #http://www.fvu.sk/stranka/clanok/6-ochranna-organizacia-autorska
 UCET_FVU  = "SK02 0200 0100 1400 0973 5062"     #Fond výtvarných umení
 KS_FVU = "0558"

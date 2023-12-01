@@ -423,7 +423,7 @@ class PlatbaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
 class PlatbaAutorskaOdmenaAdmin(PlatbaAdmin):
     # autor_link: pridá autora zmluvy do zoznamu, vďaka AdminChangeLinksMixin
     def get_list_display(self, request):
-        return ('platba', 'zmluva', 'autor_link', 'zdanit', 'rezident', 'podpis', 'oznamenie','cislo') + super(PlatbaAutorskaOdmenaAdmin, self).get_list_display(request)
+        return ('platba', 'zmluva', 'autor_link', 'zdanit', 'rezident', 'cislo') + super(PlatbaAutorskaOdmenaAdmin, self).get_list_display(request)
     #stránkovanie a 'Zobraziť všetko'
     list_max_show_all = 10000
     list_per_page = 50
