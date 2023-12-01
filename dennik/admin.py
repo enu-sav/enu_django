@@ -355,30 +355,33 @@ class PlatovaRekapitulaciaAdmin(ModelAdminTotals):
                     if fw[cc] < len(str(value))+2: fw[cc] = len(str(value))+2
         polozky= {
             #"Názov tu": ["Názov v pdf", poradie_poľa_v_riadku]
-            "Plat tarifný plat": ["Tarifný plat spolu", 1 ],
-            "Plat osobný príplatok": ["Osobný príplatok", 1],
-            "Plat príplatok za riadenie": ["Príplatok za riadenie", 1],
-            "Náhrada mzdy - dovolenka": ["Dovolenka", 1],
-            "Náhrada mzdy - osobné prekážky": [ "Prekážky osobné", 1],
-            "Náhrada mzdy - PN": ["Náhrada príjmu pri DPN", 1],
-            "Plat odmena": ["Odmeny spolu", 0],
-            "Plat odchodné": ["Odchodné", 0],
-            "DDS príspevok": ["Doplnkové dôchodkové sporenie spolu", 1],
-            "Stravné príspevok": ["Fin.prísp.na stravu z-teľ", 0],
-            "Stravné zrážky": ["Spoločné zrážky \(N5241\)", 1],
-            "DoPC odmena": ["Dohody o pracovnej činnosti", 1],
-            "DoVP odmena": ["Dohody o vykonaní práce", 1],
-            "Sociálny fond": ["Sociálny fond", 2],
-            "Zdravotné poistné": ["Zdravotné poistné spolu", 2],
+            "Plat tarifný plat": ["Tarifný plat spolu", 1, "611" ],
+            "Náhrada mzdy - dovolenka": ["Dovolenka", 1, "611"],
+            "Náhrada mzdy - osobné prekážky": [ "Prekážky osobné", 1, "611"],
+            "Plat odmena": ["Odmeny spolu", 0, "611"],
+            "Plat osobný príplatok": ["Osobný príplatok", 1, "612001"],
+            "Plat príplatok za riadenie": ["Príplatok za riadenie", 1, "612002"],
+            "Zdravotné poistné": ["Zdravotné poistné spolu", 2, "623"],
+            "DDS príspevok": ["Doplnkové dôchodkové sporenie spolu", 1, "627"],
             #"Sociálne poistné": ["Sociálne poistné spolu", 1],
-            "Sociálne poistné 625001": ["Nemocenské poistné", 2],
-            "Sociálne poistné 625002": ["Starobné poistné", 2],
-            "Sociálne poistné 625003": ["Úrazové poistné", 1],
-            "Sociálne poistné 625004": ["Invalidné poistné", 2],
-            "Sociálne poistné 625005ne": ["Poistenie v nezamestnanosti", 2],
-            "Sociálne poistné 625006": ["Garančné poistné", 1],
-            "Sociálne poistné 625007": ["Rezervný fond solidarity", 1],
-            "Sociálne poistné 625005po": ["Poistné na financovanie podpory v čase skr. práce", 1],
+            "Sociálne poistné 625001": ["Nemocenské poistné", 2, ""],
+            "Sociálne poistné 625002": ["Starobné poistné", 2, ""],
+            "Sociálne poistné 625003": ["Úrazové poistné", 1, ""],
+            "Sociálne poistné 625004": ["Invalidné poistné", 2, ""],
+            "Sociálne poistné 625005ne": ["Poistenie v nezamestnanosti", 2, ""],
+            "Sociálne poistné 625006": ["Garančné poistné", 1, ""],
+            "Sociálne poistné 625007": ["Rezervný fond solidarity", 1, ""],
+            "Sociálne poistné 625005po": ["Poistné na financovanie podpory v čase skr. práce", 1, ""],
+            "Príspevok na rekreáciu": ["Iné nezdanené príjmy", 0, "637006"],
+            "Sociálny fond": ["Sociálny fond", 2, "637016"],
+            "DoPC odmena": ["Dohody o pracovnej činnosti", 1, "637027"],
+            "DoVP odmena": ["Dohody o vykonaní práce", 1, "637027"],
+            "Stravné príspevok": ["Fin.prísp.na stravu z-teľ", 0, "642014"],
+            "Stravné zrážky": ["Spoločné zrážky \(N5241\)", 1, "642014"],
+            "Plat odstupné": ["Odstupné", 0, "642012"],     #zatiaľ sa nevyskytlo
+            "Plat odchodné": ["Odchodné", 0, "642013"],     #zatiaľ sa nevyskytlo
+            "Stravné zrážky": ["Spoločné zrážky \(N5241\)", 1, "642014"],
+            "Náhrada mzdy - PN": ["Náhrada príjmu pri DPN", 1, "642015"],
             }
         #Vytvoriť workbook
         file_name = f"KontrolaRekapitulacie-{date.today().isoformat()}"
@@ -421,7 +424,7 @@ class PlatovaRekapitulaciaAdmin(ModelAdminTotals):
                     zo_suboru = round(Decimal(rslt[polozky[polozka][1]].replace(",",".")),2)
                     z_databazy = -round(Decimal(sumarne[polozka]),2) if polozka in sumarne else 0
                     zapisat = [
-                        polozka, 
+                        polozka + f" {polozky[polozka][2]}", 
                         zo_suboru,
                         z_databazy,
                         f"=B{nn+2}-C{nn+2}"
@@ -432,7 +435,7 @@ class PlatovaRekapitulaciaAdmin(ModelAdminTotals):
                     else:
                         rozdiel_plus = max(rozdiel_plus, zo_suboru-z_databazy)
                 else:
-                    zapisat_riadok(ws, fw, nn+2, [polozka])
+                    zapisat_riadok(ws, fw, nn+2, [polozka +  f" {polozky[polozka][2]}"])
             nn+=1
             zapisat_riadok(ws, fw, nn+2, ["Spolu",f"=sum(B2:B{nn+1}",f"=sum(C2:C{nn+1}",f"=sum(D2:D{nn+1}"])
             for cc in fw:
@@ -479,7 +482,7 @@ class PlatovaRekapitulaciaAdmin(ModelAdminTotals):
 def generovat_mzdove(request, zden, rekapitulacia):
     #Po osobách (zamestnanci a dohodári) vytvoriť zoznam všetkých relevantných položiek
     po_osobach = defaultdict(list)
-    for typ in [PrispevokNaStravne, PlatovyVymer, OdmenaOprava, DoPC, DoVP, DoBPS]:
+    for typ in [PrispevokNaStravne, PlatovyVymer, OdmenaOprava, DoPC, DoVP, DoBPS, PrispevokNaRekreaciu]:
         for polozka in typ.objects.filter():
             data = polozka.cerpanie_rozpoctu(zden)
             if not data: continue   #netýka sa akuálneho mesiaca
