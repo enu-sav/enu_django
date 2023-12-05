@@ -1036,6 +1036,8 @@ def generovatStravne(polozka):
     msg = ""
     bez_prispevku = []  #zamestnanci, ktorým sa nevypláca príspevok (pre message)
     nepritomny_mesiac = []  #zamestnanci, ktorí boli meprítomní celý mesiac ale príspevol sa vypláca
+
+    kryci_list =  workbook["Krycí list"]
     if polozka.typ_zoznamu == Stravne.PRISPEVKY:
         ws = workbook["Príspevky"] 
         #určiť mesiac(text)
@@ -1079,8 +1081,11 @@ def generovatStravne(polozka):
             nn += 1
             n_zam += 1
             pass
+        ws.cell(row=42, column=3).value = datetime.date.today().strftime('%d. %m. %Y')
         workbook.remove_sheet(workbook.get_sheet_by_name("Sadzba"))
         workbook.remove_sheet(workbook.get_sheet_by_name("Zrážky"))
+        kryci_list.cell(row=2, column=1).value = f"Príspevok na stravné za mesiac {za_mesiac} {za_rok}"
+        kryci_list.cell(row=3, column=1).value = datetime.date.today().strftime('%d. %m. %Y')
     else:   #zrážky
         za_mesiac = polozka.za_mesiac
         za_rok = mesiac_prispevku.year
@@ -1112,13 +1117,18 @@ def generovatStravne(polozka):
             nn += 1
             n_zam += 1
             pass
-        ws.cell(row=40, column=4).value = prispevok_sadzba[0]
-        ws.cell(row=40, column=5).value = suma_enu
-        ws.cell(row=41, column=4).value = prispevok_sadzba[1]
-        ws.cell(row=41, column=5).value = suma_sf
+        ws.cell(row=43, column=4).value = prispevok_sadzba[0]
+        ws.cell(row=43, column=5).value = suma_enu
+        ws.cell(row=44, column=4).value = prispevok_sadzba[1]
+        ws.cell(row=44, column=5).value = suma_sf
+        ws.cell(row=47, column=2).value = datetime.date.today().strftime('%d. %m. %Y')
         workbook.remove_sheet(workbook.get_sheet_by_name("Sadzba"))
         workbook.remove_sheet(workbook.get_sheet_by_name("Príspevky"))
+        kryci_list.cell(row=2, column=1).value = f"Zrážky za prekážky v práci za mesiac {za_mesiac} {za_rok}"
+        kryci_list.cell(row=3, column=1).value = datetime.date.today().strftime('%d. %m. %Y')
         pass
+    #Aktualizovať hárok Krycí list
+    
     #Save the workbook
     if nepritomny_mesiac:
         mmm = f"{msg}<br />Zamestnanci, ktorí neodpracovali/neodpracujú celý mesiac {mesiac_prispevku.month}/{mesiac_prispevku.year}, avšak ich príspevok na stravné bude v súbore uvedený:"
