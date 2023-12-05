@@ -1008,7 +1008,7 @@ def generovatStravne(polozka):
             mesiac_prispevku = datetime.date(int(rok)+1, 1, 1) 
         else:
             mesiac_prispevku = datetime.date(int(rok), mesiace_num[polozka.za_mesiac][0]+1, 1) 
-    else:
+    else: #zrážky
         mesiac_prispevku = datetime.date(int(rok), mesiace_num[polozka.za_mesiac][0], 1) 
     prispevok_sadzba = None
     for den in [*sadzby][::-1]: #reverzne usporiadany zoznam dni v sadzby
@@ -1016,6 +1016,11 @@ def generovatStravne(polozka):
         if dden <= mesiac_prispevku:
             prispevok_sadzba = sadzby[den]
             break
+
+    #mesiac od - do
+    od = mesiac_prispevku
+    next_month = od + relativedelta(months=1, day=1)  # 1. deň nasl. mesiaca
+    do=next_month - relativedelta(days=1) # koniec mesiaca
 
     #Nájsť zamestnancov zamestnaných v danom mesiaci, t.j.
     #Najst platové výmery aktívne v danom mesiaci
@@ -1053,17 +1058,11 @@ def generovatStravne(polozka):
             ws.cell(row=nn, column=2).value = vymer.zamestnanec.cislo_zamestnanca
             ws.cell(row=nn, column=3).value = vymer.zamestnanec.priezviskomeno(",")
             # Počet pracovných dní v aktuálnom mesiaci
-            od = mesiac_prispevku
-            next_month = od + relativedelta(months=1, day=1)  # 1. deň nasl. mesiaca
-            do=next_month - relativedelta(days=1) # koniec mesiaca
             pocet_prac_dni = prac_dni(od, do, ppd=0 if vymer.uvazok > 37 else 3)
             #dlhodobá neprítomnost
             #bez_stravneho_od brat do úvahy len vtedy, keď aktuálne známa neprítomnost je celý mesiac 
             nepritomnost = vymer.nepritomnost_za_mesiac(mesiac_prispevku, pre_stravne = True)
             pdni, ddov, ddov2, dosob, dnepl, dpn1, dpn2, docr = nepritomnost
-            if vymer.zamestnanec.meno == "Eva":
-                #trace()
-                pass
             if dnepl == pocet_prac_dni: #nutná podmienka nevyplácania
                 if vymer.zamestnanec.nevyplacat_stravne(mesiac_prispevku):
                     bez_prispevku.append(vymer.zamestnanec)
@@ -1089,14 +1088,14 @@ def generovatStravne(polozka):
         ws.cell(row=2, column=1).value = f"za mesiac/rok: {Mesiace(polozka.za_mesiac).label}/{rok}"
         nn=6    #prvý riadok
         for vymer in vymer_list:
+            # Počet pracovných dní v aktuálnom mesiaci
+            pocet_prac_dni = prac_dni(od, do, ppd=0 if vymer.uvazok > 37 else 3)
             nepritomnost = vymer.nepritomnost_za_mesiac(mesiac_prispevku, pre_stravne = True)
-            if not nepritomnost: 
-                pocet_dni = 0
-            elif vymer.zamestnanec.bez_stravneho_od and vymer.zamestnanec.bez_stravneho_od <= mesiac_prispevku:
+            pdni, ddov, ddov2, dosob, dnepl, dpn1, dpn2, docr = nepritomnost
+            if dnepl == pocet_prac_dni and vymer.zamestnanec.nevyplacat_stravne(mesiac_prispevku):
                 bez_prispevku.append(vymer.zamestnanec)
                 pocet_dni = 0
             else:
-                pdni, ddov, ddov2, dosob, dnepl, dpn1, dpn2, docr = nepritomnost
                 #Tu definovať, za čo sú zrážky
                 pocet_dni = ddov + ddov2 + dosob + dnepl + docr #dpn1 a dpn2 sa neráta, je zahrnuté v dnepl
 
