@@ -1672,10 +1672,16 @@ class Nepritomnost(models.Model):
             #help_text: definovaný vo forms
             null = True,
             max_length=50)
-    subor_nepritomnost = models.FileField("Súbor so zoznamom",
+    subor_nepritomnost = models.FileField("Import. súbor",
             help_text = "XLSX súbor so zoznamom neprítomností.<br />Po vložení treba akciou 'Generovať záznamy neprítomnosti' vytvoriť jednotlivé záznamy.",
             upload_to=nepritomnost_upload_location,
             blank=True, 
+            null=True
+            )
+    subor_nepritomnost_exp = models.FileField("Export. súbor",
+            help_text = "XLSX súbor so zoznamom neprítomností pre učtáreň.<br />Súbor sa vytvára akciou 'Exportovať neprítomnosť pre učtáreň', tak že sa zvolí riadok kde je importovaný súbor, a to za rovnaký mesiac.<br />Súbor sa vytvára z jednotlivých položiek neprítomnosti, nie z dát v importovanom súbore.",
+            upload_to=nepritomnost_upload_location,
+            blank=True,
             null=True
             )
     zamestnanec = models.ForeignKey(Zamestnanec,
