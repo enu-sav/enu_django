@@ -345,11 +345,16 @@ class Objednavka(ObjednavkaZmluva):
     objednane_polozky = models.TextField("Objednané položky", 
             help_text = mark_safe("<p>Po riadkoch zadajte objednávané položky:</p>\
                 <ol>\
-                <li>možnosť: so 5 poľami oddelenými bodkočiarkou v poradí: <b>názov položky</b>; <b>merná jednotka</b> - ks, kg, l, m, m2, m3; <b>množstvo</b>; <b>cena za jednotku bez DPH; CPV kód</b>, napr. <em>Euroobal A4;bal;10;7,50;30193300-1</em>. <br />Cena za jednotlivé položky a celková suma sa dopočíta. Pri výpočte sa berie do úvahy, či dodávateľ účtuje alebo neúčtuje cenu s DPH. </li>\
-                <li>možnosť: ako jednoduchý text s jednou bodkočiarlou, za ktorou nasleduje CPV kód, napr. <em>Objednávame tovar podľa priloženej ponuky / priloženého zoznamu; 45321000-3</em> (súbor takejto ponuky alebo zoznamu vložte do poľa <em>Súbor prílohy</em>).</li>\
+                <li>možnosť: s 5 poľami oddelenými bodkočiarkou v poradí: <b>názov položky</b>; <b>merná jednotka</b> - ks, kg, l, m, m2, m3; <b>množstvo</b>; <b>cena za jednotku bez DPH; CPV kód</b>, napr. <strong>Euroobal A4; bal; 10; 7,50; 30193300-1</strong>. <br />Cena za jednotlivé položky a celková suma sa dopočíta. Pri výpočte sa berie do úvahy, či dodávateľ účtuje alebo neúčtuje cenu s DPH. </li>\
+                <li>možnosť: ako jednoduchý text s jednou bodkočiarkou, za ktorou nasleduje CPV kód, napr. <strong>Objednávame tovar podľa priloženej ponuky / priloženého zoznamu; 45321000-3</strong>.<br />Súbor takejto ponuky alebo zoznamu vložte do poľa <em>Súbor prílohy</em> a <strong>predpokladanú cenu bez DPH</strong> vložte do poľa <em>Predpokladaná cena</em>.</li>\
                 </ol>"),
 
             max_length=5000, null=True, blank=True)
+    predpokladana_cena = models.DecimalField("Predpokladaná cena", 
+            help_text = "Zadajte predpokladanú cenu bez DPH, ak už nie je zadaná v poli <em>Objednané položky</em>. <br />Vo vygenerovanej objednávke sa zoberie do úvahy, či dodávateľ účtuje alebo neúčtuje cenu s DPH.",
+            max_digits=8, 
+            decimal_places=2, 
+            null=True, blank=True)
     datum_vytvorenia = models.DateField('Dátum vytvorenia',
             help_text = "Zadajte dátum vytvorenia objednávky",
             default=datetime.now,
@@ -378,6 +383,26 @@ class Objednavka(ObjednavkaZmluva):
                 "objednane_polozky":f"Zadaných bolo {pocet_poloziek} položiek. Maximálny povolený počet je {pocet_riadkov}."
                 }
             )
+        objednane = self.objednane_polozky.split("\n")
+        pocet_poli = len(objednane[0].split(";"))
+        if not pocet_poli in (2,5):
+            raise ValidationError({
+                "objednane_polozky":f"Prvá položka má {pocet_poli} polí, povolený počet je 2 alebo 5 (skontrolujte bodkočiarky)"
+                }
+            )
+        for rr, polozka in enumerate(objednane):
+            pp = len(polozka.split(";"))
+            if pp != pocet_poli:
+                raise ValidationError({
+                    "objednane_polozky":f"Položka na riadku {rr+1} má {pp} polí, povolený počet je {pocet_poli}  (skontrolujte bodkočiarky)"
+                    }
+                )
+        if pocet_poli == 2 and not self.predpokladana_cena:
+            raise ValidationError({
+                "predpokladana_cena":f"Ak položka v <em>Objednané položky</em> má len dve polia, tak toto pole musí byť vyplnené."
+                }
+            )
+
     class Meta:
         verbose_name = 'Objednávka'
         verbose_name_plural = 'Faktúry - Objednávky'

@@ -671,9 +671,13 @@ def VytvoritSuborObjednavky(objednavka):
         riadok = prvy_riadok+rr
         prvky = polozka.split(";")
         if len(prvky) == 2:  #zlúčiť bunky
-            obj.merge_cells(f'B{riadok}:G{riadok}')
+            obj.merge_cells(f'B{riadok}:E{riadok}')
             obj[f"B{riadok}"].value = prvky[0]
             obj.cell(row=riadok, column=2+6).value = prvky[1]
+            if objednavka.dodavatel.s_danou==AnoNie.ANO:
+                obj[f'G{prvy_riadok+pocet_riadkov}'].value = objednavka.predpokladana_cena * Decimal(DPH)
+            else:
+                obj[f'F{prvy_riadok+pocet_riadkov}'].value = objednavka.predpokladana_cena
             add_sum = False
         elif len(prvky) == 5:
             obj.cell(row=riadok, column=2+0).value = prvky[0]
@@ -693,8 +697,6 @@ def VytvoritSuborObjednavky(objednavka):
             else:
                 obj[f'F{riadok}'] = val2*val3
             add_sum = True
-        else:
-            return messages.ERROR, f"Riadok {rr+1} zoznamu položiek má nesprávny počet polí (počet polí {len(prvky)}, počet bodkočiarok {len(prvky) -1}). Text upravte tak, aby mal práve 5 poli (4 bodkočiarky) alebo 2 polia (1 bodkočiarka). Všetky riadky musia byť členené na polia rovnako.", None
 
         if add_sum: 
             if objednavka.dodavatel.s_danou==AnoNie.ANO:
