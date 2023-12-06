@@ -1,6 +1,7 @@
 # rozne utilitky
 
 import os, locale
+from copy import copy
 from unidecode import unidecode
 from ipdb import set_trace as trace
 from django.utils.safestring import mark_safe
@@ -12,11 +13,12 @@ from .models import SystemovySubor, PrijataFaktura, AnoNie, Objednavka, PrijataF
 from .models import DoVP, DoPC, DoBPS, Poistovna, TypDochodku, Mena, PravidelnaPlatba, TypPP, TypPokladna, Pokladna
 from .models import NajomneFaktura, PrispevokNaRekreaciu, Zamestnanec, OdmenaOprava, OdmenaAleboOprava, TypNepritomnosti, Nepritomnost
 from .models import PlatovaStupnica, Stravne, mesiace_num, PlatovyVymer, Mesiace
-from .rokydni import mesiace, prac_dni
+from .rokydni import mesiace, prac_dni, pden
 
 from openpyxl import load_workbook
 from openpyxl.styles import Font, Color, colors, Alignment, PatternFill , numbers
 from openpyxl.utils import get_column_letter
+from openpyxl.styles import Border, Side, PatternFill, Font, GradientFill, Alignment
 from decimal import Decimal
 
 from dateutil.relativedelta import relativedelta
@@ -862,7 +864,25 @@ def generovatIndividualneOdmeny(sumarna_odmena):
         pass
     return pocet, celkova_suma
 
+def obdobie_nepritomnosti(subor):
+    workbook = load_workbook(filename=subor)
+    ws = workbook.active
+    #ktorý súbor máme?
+    if ws["B1"].value == 1 and ws["C1"].value == 2 and ws["D1"].value == 3: #Od Anity
+        # rok a mesiac
+        a1split = ws["A1"].value.lower().replace("  ", " ").split(" ")
+        if not len(a1split) == 2:
+            return [f"V bunke A1 sa nenachádza údaj 'Mesiac rok'."]
+        if not a1split[0] in mesiace:
+            return [f"V bunke A1 je nesprávny údaj 'Mesiac rok'."]
+        mesiac = mesiace.index(a1split[0])+1
+        rok = int(a1split[1])
+        return datetime.date(rok, mesiac, 1)
+    else:
+        return [f"Neznámy súbor. Údaje o neprítomnosti sa načítajú z prvého hárka"]
 
+
+# generovat jednotlive zaznamy nepritomnosti zamestnancov na zaklade udajov zo suboru
 def generovatNepritomnost(sumarna_nepritomnost):
     workbook = load_workbook(filename=sumarna_nepritomnost.subor_nepritomnost.file.name)
     ws = workbook.active
@@ -872,6 +892,7 @@ def generovatNepritomnost(sumarna_nepritomnost):
     else:
         return [f"Neznámy súbor. Údaje o neprítomnosti sa načítajú z prvého hárka"]
 
+# generovat jednotlive zaznamy nepritomnosti zamestnancov na zaklade farebnej tabuky od Anity
 def generovatNepritomnostAnita(cislo,ws):
     def check_value(value):
         if not value: return None
@@ -972,6 +993,123 @@ def generovatNepritomnostAnita(cislo,ws):
         zpocet += 1
         pass
     return zpocet, npocet
+
+
+#Vytvorit subor (farebnu tabulku) pre učtáreň na základe údajov o neprítomnosti v databáze 
+def exportovatNepritomnostUct(polozka):
+    import holidays
+    ws=None
+    def nacitat_nepritomnosti(od):
+        #Neprítomnosti, ktoré začínajú pred koncom obdobia a končia po začiatku alebo sú neukončené
+        #mesiac od - do
+        next_month = od + relativedelta(months=1, day=1)  # 1. deň nasl. mesiaca
+        do=next_month - relativedelta(days=1) # koniec mesiaca
+        #Neprítomnosti, ktoré začínajú pred koncom obdobia
+        qs = Nepritomnost.objects.filter(nepritomnost_od__lte=do)
+        #Vylúčiť tie, ktoré končia pred začiatkom obdobia
+        return qs.exclude(nepritomnost_do__lt=od)
+    def otvorit_sablonu():
+        nazov_objektu = "Šablóna mesačnej neprítomnosti"  #Presne takto musí byť objekt pomenovaný
+        sablona = SystemovySubor.objects.filter(subor_nazov = nazov_objektu)
+        if not sablona:
+            return [f"V systéme nie je definovaný súbor '{nazov_objektu}'."]
+        nazov_suboru = sablona[0].subor.file.name 
+        wb = load_workbook(filename=nazov_suboru)
+        #načítať formáty buniek neprítomnosti
+        ws = wb.active
+        #Nájdi stlpec s "Typ'
+        typcol=2
+        while ws.cell(row=1, column=typcol).value != "Typ": 
+            typcol+=1
+        #Vytvorit zoznam formátov
+        row = 2
+        formaty = {}
+        while ws.cell(row=row, column=typcol).value:
+            cell = ws.cell(row=row, column=typcol)
+            formaty[cell.value] = {
+                    "alignment": copy(cell.alignment),
+                    "font": copy(cell.font),
+                    "fill": copy(cell.fill),
+                    }
+            row += 1
+        row=2
+        zamestnanci = {}
+        while ws.cell(row=row, column=1).value:
+            priezvisko = ws.cell(row=row, column=1).value.split(",")[0]
+            zamestnanci[priezvisko]=row
+            row += 1
+
+        return wb, formaty, zamestnanci
+    def ozdobit_harok(mesiac, pzam):
+        align = Alignment(horizontal="center", vertical="center")
+        gray1 = PatternFill("solid", fgColor="aaaaaa")
+        gray2 = PatternFill("solid", fgColor="dddddd")
+        nonlocal ws
+        posl_den = pden(mesiac)
+        sviatky_sk = holidays.SK()
+        for dd in range (1, posl_den.day+1):
+            den = datetime.date(mesiac.year, mesiac.month, dd)
+            #Sviatky
+            if den in sviatky_sk:
+                #Vyplnit stlpec
+                for row in range (2, 2+pzam):
+                    cell = ws.cell(row=row, column=1+dd)
+                    if not cell.value:
+                        cell.value = "S"
+                        cell.alignment = align
+                        cell.fill = gray2
+            #Víkendy
+            if den.isoweekday() in (6,7):
+                for row in range (2, 2+pzam):
+                    cell = ws.cell(row=row, column=1+dd)
+                    if not cell.value:
+                        cell.fill = gray1
+        #Zmazať neexistujúce dni
+        for dd in range (posl_den.day+1, 32):
+            ws.cell(row=1, column=1+dd).value = None
+        #mesiac a rok
+        ws.cell(row=1, column=1).value = f"{mesiace[mesiac.month-1]} {mesiac.year}"
+        ws.cell(row=31, column=2).value = datetime.date.today().strftime('%d. %m. %Y')
+        
+
+    konv = {
+        "materská": "MD",
+        "ocr": "OČR",
+        "pn": "PN",
+        "dovolenka": "D",
+        "lekar": "L",
+        "lekardoprovod": "L/D",
+        "pzv": "PV",
+        "neplatene": "NV"
+        }
+
+    m_od = obdobie_nepritomnosti(polozka.subor_nepritomnost.file.name)
+    next_month = m_od + relativedelta(months=1, day=1)  # 1. deň nasl. mesiaca
+    m_do=next_month - relativedelta(days=1) # koniec mesiaca
+    nepritomnosti = nacitat_nepritomnosti(m_od)
+    wb, formaty, zamestnanci = otvorit_sablonu()
+    ws = wb.active
+    for item in nepritomnosti:
+        n_od = max(m_od,item.nepritomnost_od)
+        n_do = min(m_do,item.nepritomnost_do) if item.nepritomnost_do else m_do
+        row = zamestnanci[item.zamestnanec.priezvisko]
+        for den in range(n_od.day, n_do.day+1):
+            cell = ws.cell(row=row, column = den+1)
+            cell.value = konv[item.nepritomnost_typ]
+            cell.alignment = copy(formaty[cell.value]["alignment"])
+            cell.fill = copy(formaty[cell.value]["fill"])
+            cell.font = copy(formaty[cell.value]["font"])
+    ozdobit_harok(m_od, len(zamestnanci))
+    #Uložiť
+    wb.properties.creator = "Encyklopedický ústav"
+    wb.properties.lastModifiedBy = "DjangoBel"
+    wb.properties.title = "Neprítomnosť zamestnancov za %02d/%d"%(m_od.month, m_od.year)
+    wb.properties.revision = 1
+    nazov = f"Nepritomnost_pre_MU-%02d-%d.xlsx"%(m_od.month, m_od.year)
+    opath = os.path.join(settings.NEPRITOMNOST_DIR,nazov)
+    wb.save(os.path.join(settings.MEDIA_ROOT,opath))
+    return messages.SUCCESS, mark_safe(f"Súbor s neprítomnosťou {nazov} bol vytvorený. <br />Dajte ho na podpis a potom ho doručte do mzdovej účtárne <br />Záznam v denníku treba vytvoriť manuálne."), opath
+    pass
 
 def generovatStravne(polozka):
     #načítať tabuľky stupnice pre daný rok
@@ -1143,7 +1281,7 @@ def generovatStravne(polozka):
 
     if bez_prispevku or nepritomny_mesiac:
         msg = f"{msg}<br />"
-        msg = f"{msg}.<br />Ak treba, dlhodobú neprítomnosť zamestnancov upravte (vyplňte pole <em>Zamestnanec > Bez stravného od / do</em>) a súbor s príspevkmi/zrážkami vygenerujte znovu." 
+        msg = f"{msg}.<br />Ak treba, dlhodobú neprítomnosť zamestnancov upravte (vyplňte pole <em>Zamestnanec > Bez stravného od / do</em>) a súbor s príspevkami/zrážkami vygenerujte znovu." 
     nazov = f"Stravne-{polozka.typ_zoznamu}-{za_rok}-{za_mesiac}.xlsx"
     opath = os.path.join(settings.STRAVNE_DIR,nazov)
     workbook.save(os.path.join(settings.MEDIA_ROOT,opath))

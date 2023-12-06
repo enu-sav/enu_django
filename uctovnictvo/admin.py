@@ -21,7 +21,7 @@ from .models import nasledujuce_cislo, nasledujuce_VPD, SocialnyFond, PrispevokN
 from .models import TypNepritomnosti, Stravne
 from .common import VytvoritPlatobnyPrikaz, VytvoritSuborDohody, VytvoritSuborObjednavky, leapdays
 from .common import VytvoritKryciList, VytvoritKryciListRekreacia, generovatIndividualneOdmeny
-from .common import zmazatIndividualneOdmeny, generovatNepritomnost, VytvoritKryciListOdmena, generovatStravne
+from .common import zmazatIndividualneOdmeny, generovatNepritomnost, exportovatNepritomnostUct, VytvoritKryciListOdmena, generovatStravne
 from .common import VytvoritPlatobnyPrikazIP, VytvoritSuborPD, UlozitStranuPK, TarifnyPlatTabulky
 from .forms import PrijataFakturaForm, AutorskeZmluvyForm, ObjednavkaForm, ZmluvaForm, PrispevokNaStravneForm, PravidelnaPlatbaForm
 from .forms import PlatovyVymerForm, NajomneFakturaForm, NajomnaZmluvaForm, PlatbaBezPrikazuForm
@@ -1353,7 +1353,7 @@ class VyplacanieDohodAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAd
 @admin.register(Nepritomnost)
 class NepritomnostAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
     form = NepritomnostForm
-    list_display = ["cislo", "subor_nepritomnost", "nepritomnost_od", "nepritomnost_do", "zamestnanec_link", "nepritomnost_typ", "dlzka_nepritomnosti"]
+    list_display = ["cislo", "subor_nepritomnost", "subor_nepritomnost_exp", "nepritomnost_od", "nepritomnost_do", "zamestnanec_link", "nepritomnost_typ", "dlzka_nepritomnosti"]
     # ^: v poli vyhľadávať len od začiatku
     search_fields = ["cislo", "zamestnanec__meno", "zamestnanec__priezvisko", "^nepritomnost_typ"]
 
@@ -1364,7 +1364,7 @@ class NepritomnostAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
             'admin_order_field': 'zamestnanec__priezvisko', # Allow to sort members by the column
         })
     ]
-    actions = ['generovat_nepritomnost']
+    actions = ['generovat_nepritomnost', "exportovat_nepritomnost_pre_uctaren"]
 
     # Zoradiť položky v pulldown menu
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
@@ -1403,7 +1403,6 @@ class NepritomnostAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
         else:
             super(NepritomnostAdmin, self).save_model(request, obj, form, change)
             self.messages.success(request, f"Neprítomnosť bola úspešne vytvorená.")
-    
 
     def generovat_nepritomnost(self, request, queryset):
         if len(queryset) != 1:
@@ -1424,10 +1423,28 @@ class NepritomnostAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
                 messages.success(request, f"Vygenerovaných bolo {nnepritomnosti} záznamov o neprítomnosti pre {nzamestnanci} zamestnancov.")
         else:
             messages.error(request, f"Položka {polozka.cislo} neobsahuje súbor so zoznamom neprítomností.")
-
     generovat_nepritomnost.short_description = "Generovať záznamy neprítomnosti"
     #Oprávnenie na použitie akcie, viazané na 'change'
     generovat_nepritomnost.allowed_permissions = ('change',)
+
+    #generovat mepritomnost (farebnu tabulku) pre uctaren)
+    def exportovat_nepritomnost_pre_uctaren(self, request, queryset):
+        if len(queryset) != 1:
+            #self.message_user(request, f"Vybrať možno len jednu položku", messages.ERROR)
+            messages.error(request, "Vybrať možno len jednu položku")
+            return
+        polozka = queryset[0]
+        if not polozka.subor_nepritomnost:
+            messages.error(request, f"Položka {polozka.cislo} neobsahuje súbor so zoznamom neprítomností.")
+
+        status, msg, vytvoreny_subor = exportovatNepritomnostUct(polozka)
+        if status != messages.ERROR:
+            polozka.subor_nepritomnost_exp = vytvoreny_subor
+            polozka.save()
+        self.message_user(request, msg, status)
+    exportovat_nepritomnost_pre_uctaren.short_description = 'Exportovať neprítomnosť pre učtáreň'
+    #Oprávnenie na použitie akcie, viazané na 'change'
+    exportovat_nepritomnost_pre_uctaren.allowed_permissions = ('change',)
 
 @admin.register(OdmenaOprava)
 class OdmenaOpravaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin):
