@@ -1123,14 +1123,7 @@ def exportovatNepritomnostUct(polozka):
                     "fill": copy(cell.fill),
                     }
             row += 1
-        row=2
-        zamestnanci = {}
-        while ws.cell(row=row, column=1).value:
-            priezvisko = ws.cell(row=row, column=1).value.split(",")[0]
-            zamestnanci[priezvisko]=row
-            row += 1
-
-        return wb, formaty, zamestnanci
+        return wb, formaty
     def ozdobit_harok(mesiac, pzam):
         align = Alignment(horizontal="center", vertical="center")
         gray1 = PatternFill("solid", fgColor="aaaaaa")
@@ -1161,7 +1154,17 @@ def exportovatNepritomnostUct(polozka):
         #mesiac a rok
         ws.cell(row=1, column=1).value = f"{mesiace[mesiac.month-1]} {mesiac.year}"
         ws.cell(row=31, column=2).value = datetime.date.today().strftime('%d. %m. %Y')
-        
+    def zamestnanci_v_mesiaci(mesiac):
+        #Nájsť zamestnancov zamestnaných v danom mesiaci, t.j.
+        #Najst platové výmery aktívne v danom mesiaci
+        qs = PlatovyVymer.objects.filter(datum_od__lte=mesiac)
+        qs1 = qs.exclude(datum_do__lt=mesiac)
+        #zoznam výmerov zoradený podľa priezviska
+        vymer_list = sorted([*qs1], key=lambda x: unidecode(x.zamestnanec.priezvisko))
+        zamestnanci = []
+        for vymer in vymer_list:
+            zamestnanci.append(vymer.zamestnanec.priezviskomeno(", "))
+        return zamestnanci
 
     konv = {
         "materská": "MD",
@@ -1175,12 +1178,21 @@ def exportovatNepritomnostUct(polozka):
         }
 
     m_od = obdobie_nepritomnosti(polozka.subor_nepritomnost.file.name)
+    if m_od < datetime.date(2023, 11, 1):
+        return messages.ERROR, "Neprítomnosť pre učtáreň možno generovať len pre november 2023 a neskoršie mesiace.", None
     m_do = pden(m_od)
     #next_month = m_od + relativedelta(months=1, day=1)  # 1. deň nasl. mesiaca
     #m_do=next_month - relativedelta(days=1) # koniec mesiaca
     nepritomnosti = nacitat_nepritomnosti(m_od)
-    wb, formaty, zamestnanci = otvorit_sablonu()
+    wb, formaty = otvorit_sablonu()
+    mena = zamestnanci_v_mesiaci(m_od)
     ws = wb.active
+    #Vyplnit zamestnancov
+    zamestnanci = {}
+    for row, meno in enumerate(mena):
+        ws.cell(row=row+2, column = 1).value = meno
+        zamestnanci[meno.split(",")[0]]=row + 2
+
     for item in nepritomnosti:
         n_od = max(m_od,item.nepritomnost_od)
         n_do = min(m_do,item.nepritomnost_do) if item.nepritomnost_do else m_do
