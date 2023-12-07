@@ -13,7 +13,7 @@ from .models import SystemovySubor, PrijataFaktura, AnoNie, Objednavka, PrijataF
 from .models import DoVP, DoPC, DoBPS, Poistovna, TypDochodku, Mena, PravidelnaPlatba, TypPP, TypPokladna, Pokladna
 from .models import NajomneFaktura, PrispevokNaRekreaciu, Zamestnanec, OdmenaOprava, OdmenaAleboOprava, TypNepritomnosti, Nepritomnost
 from .models import PlatovaStupnica, Stravne, mesiace_num, PlatovyVymer, Mesiace
-from .rokydni import mesiace, prac_dni, pden
+from .rokydni import mesiace, prac_dni, pden, s2d
 
 from openpyxl import load_workbook
 from openpyxl.styles import Font, Color, colors, Alignment, PatternFill , numbers
@@ -880,6 +880,10 @@ def obdobie_nepritomnosti(subor):
         mesiac = mesiace.index(a1split[0])+1
         rok = int(a1split[1])
         return datetime.date(rok, mesiac, 1)
+    elif "Žiadosti o dovolenku a iné prerušenia" in ws["A1"].value:
+        dates = re.findall("([0-9][0-9][.][0-9][0-9][.][0-9]*)", ws["A1"].value)
+        dsplit = dates[0].split(".")
+        return datetime.date(int(dsplit[2]), int(dsplit[1]), 1)
     else:
         return [f"Neznámy súbor. Údaje o neprítomnosti sa načítajú z prvého hárka"]
 
@@ -891,6 +895,8 @@ def generovatNepritomnost(sumarna_nepritomnost):
     #ktorý súbor máme?
     if ws["B1"].value == 1 and ws["C1"].value == 2 and ws["D1"].value == 3: #Od Anity
         return generovatNepritomnostAnita(sumarna_nepritomnost.cislo,ws)
+    elif "Žiadosti o dovolenku a iné prerušenia" in ws["A1"].value:
+        return generovatNepritomnostBiometric(sumarna_nepritomnost.cislo,ws)
     else:
         return [f"Neznámy súbor. Údaje o neprítomnosti sa načítajú z prvého hárka"]
 
@@ -966,35 +972,118 @@ def generovatNepritomnostAnita(cislo,ws):
             if ntyp in ["D", "PN", "NV", "OČR"]:  #intervalové neprítomnosti
                 sstart = s
                 while ws.cell(row=r, column=s).value == ntyp: s+=1
-                nepr = Nepritomnost(
-                    cislo = "%s-%02d"%(cislo, npocet+1),
-                    zamestnanec = zamestnanec,
-                    nepritomnost_typ = typy[ntyp],
-                    nepritomnost_od = datetime.date(rok, mesiac,sstart-1),
-                    nepritomnost_do = datetime.date(rok, mesiac,s-2)
-                    )
-                print(r, s, nepr.nepritomnost_od, nepr.nepritomnost_do, nepr.nepritomnost_typ)
-                s -=1
-                npocet += 1
-                nepr.save()
+                od = datetime.date(rok, mesiac,sstart-1)
+                do = datetime.date(rok, mesiac,s-2)
+                existujuce = Nepritomnost.objects.filter(zamestnanec=zamestnanec, nepritomnost_typ = typy[ntyp], nepritomnost_od = od)
+                if not existujuce:
+                    nepr = Nepritomnost(
+                        cislo = "%s-%02d"%(cislo, npocet+1),
+                        zamestnanec = zamestnanec,
+                        nepritomnost_typ = typy[ntyp],
+                        nepritomnost_od = od,
+                        nepritomnost_do = do
+                        )
+                    print(r, s, nepr.nepritomnost_od, nepr.nepritomnost_do, nepr.nepritomnost_typ)
+                    s -= 1
+                    npocet += 1
+                    nepr.save()
             elif ntyp in typy: #Jednodňové neprítomnosti
-                nepr = Nepritomnost(
-                    cislo = "%s-%02d"%(cislo, npocet+1),
-                    zamestnanec = zamestnanec,
-                    nepritomnost_typ = typy[ntyp],
-                    nepritomnost_od = datetime.date(rok, mesiac,s-1),
-                    nepritomnost_do = datetime.date(rok, mesiac,s-1)
-                    )
-                if len(scell) > 1:
-                    nepr.dlzka_nepritomnosti = Decimal(float(scell[1].replace(",",".")))
-                npocet += 1
-                nepr.save()
-                pass
-
+                od = datetime.date(rok, mesiac,s-1)
+                existujuce = Nepritomnost.objects.filter(zamestnanec=zamestnanec, nepritomnost_typ = typy[ntyp], nepritomnost_od = od)
+                if not existujuce:
+                    nepr = Nepritomnost(
+                        cislo = "%s-%02d"%(cislo, npocet+1),
+                        zamestnanec = zamestnanec,
+                        nepritomnost_typ = typy[ntyp],
+                        nepritomnost_od = od,
+                        nepritomnost_do = od
+                        )
+                    if len(scell) > 1:
+                        nepr.dlzka_nepritomnosti = Decimal(float(scell[1].replace(",",".")))
+                    npocet += 1
+                    nepr.save()
             s+=1
         zpocet += 1
         pass
     return zpocet, npocet
+
+# generovat jednotlive zaznamy nepritomnosti zamestnancov na zaklade farebnej tabuky od Anity
+def generovatNepritomnostBiometric(cislo,ws):
+    # V Biotricu je bordel
+    def priezvisko_bez():
+        bez_d = {}
+        zamestnanci = Zamestnanec.objects.filter()
+        for zam in zamestnanci:
+            priezvisko = zam.priezvisko.split(" ")[0]   #Kvôli Michalkovej Nečedovej
+            bez_d[unidecode(priezvisko)] = priezvisko 
+        return bez_d
+            
+    #Typy neprítomnosti Biometricu, ktoré nás zaujímajú
+    typy = {
+            "Dovolenka": TypNepritomnosti.DOVOLENKA,
+            "Lekár doprovod": TypNepritomnosti.LEKARDOPROVOD,
+            "Lekár": TypNepritomnosti.LEKAR,
+            "PN": TypNepritomnosti.PN,
+            "OČR": TypNepritomnosti.OCR,
+            "Sick day": TypNepritomnosti.PZV,
+            "§ Paragraf": TypNepritomnosti.PZV,
+            "Neplatené voľno": TypNepritomnosti.NEPLATENE
+            }
+
+    #Obdobie
+    dates = re.findall("([0-9][0-9][.][0-9][0-9][.][0-9]*)", ws["A1"].value)
+    dsplit = dates[0].split(".")
+    rok = int(dsplit[0])
+    mesiac = int(dsplit[1])
+
+    hdr = {"Meno":0, "Prerušenie":1, "Odchod":2, "Príchod":3, "Stav":4, "Čas žiadania":5, "Čas schválenia":6, "Poznámka":7}
+    priezv_bez = priezvisko_bez()
+
+    nove_pocet = 0
+    nezmenene_pocet = 0
+    upravene_pocet = 0
+    zam_set = set()
+    neschvalene = []
+    ine_prerusenia = []
+    for row in ws.iter_rows(min_row=3, values_only=True):
+        priezvisko = unidecode(row[hdr["Meno"]].split()[0])
+        zamestnanec = Zamestnanec.objects.get(priezvisko__contains=priezv_bez[priezvisko])
+        od = s2d(row[hdr["Odchod"]])
+        do = s2d(row[hdr["Príchod"]])
+        ntyp = row[hdr["Prerušenie"]]
+        stav = row[hdr["Stav"]]
+
+        if ntyp in typy:
+            if stav =="Schválené":
+                zam_set.add(priezvisko)
+                #Máme už neprítomnosť v DB?
+                existujuce = Nepritomnost.objects.filter(zamestnanec=zamestnanec, nepritomnost_typ = typy[ntyp], nepritomnost_od = od)
+                if existujuce:
+                    existujuce = existujuce[0]
+                    if existujuce.nepritomnost_do == do:
+                        nezmenene_pocet += 1
+                    else:
+                        existujuce.nepritomnost_do = do
+                        existujuce.save()
+                        upravene_pocet += 1
+                else:
+                    nepr = Nepritomnost(
+                        cislo = "%s-%02d"%(cislo, nove_pocet+1),
+                        zamestnanec = zamestnanec,
+                        nepritomnost_typ = typy[ntyp],
+                        nepritomnost_od = od,
+                        nepritomnost_do = do
+                        )
+                    nove_pocet += 1
+                    nepr.save()
+            else:
+                neschvalene.append(f"Prerušenia bez schválenia: {priezvisko}, {ntyp}, {row[hdr['Odchod']]}, {row[hdr['Príchod']]}, {row[hdr['Poznámka']]}")
+        else: #iné ako Schválené
+            if not ntyp in ["Home office", "Služobne"]:
+                ine_prerusenia.append(f"Iné prerušenia: {priezvisko}, {ntyp}, {row[hdr['Odchod']]}, {row[hdr['Príchod']]}, {row[hdr['Poznámka']]}")
+            pass
+            
+    return len(zam_set), nove_pocet, nezmenene_pocet, upravene_pocet, neschvalene, ine_prerusenia
 
 
 #Vytvorit subor (farebnu tabulku) pre učtáreň na základe údajov o neprítomnosti v databáze 
@@ -1086,8 +1175,9 @@ def exportovatNepritomnostUct(polozka):
         }
 
     m_od = obdobie_nepritomnosti(polozka.subor_nepritomnost.file.name)
-    next_month = m_od + relativedelta(months=1, day=1)  # 1. deň nasl. mesiaca
-    m_do=next_month - relativedelta(days=1) # koniec mesiaca
+    m_do = pden(m_od)
+    #next_month = m_od + relativedelta(months=1, day=1)  # 1. deň nasl. mesiaca
+    #m_do=next_month - relativedelta(days=1) # koniec mesiaca
     nepritomnosti = nacitat_nepritomnosti(m_od)
     wb, formaty, zamestnanci = otvorit_sablonu()
     ws = wb.active

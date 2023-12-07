@@ -1411,16 +1411,28 @@ class NepritomnostAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
             return
         polozka = queryset[0]
         uz_generovane = Nepritomnost.objects.filter(cislo="%s-01"%polozka.cislo)
-        if uz_generovane:
-            messages.error(request, f"Záznamy boli už pre súbor {polozka.cislo} vygenerovane.")
-            return
+        #if uz_generovane:
+            #messages.error(request, f"Záznamy boli už pre súbor {polozka.cislo} vygenerovane.")
+            #return
         if polozka.subor_nepritomnost:
             rslt = generovatNepritomnost(polozka)
             if len(rslt) == 1:  #Chyba
                 messages.error(request, rslt[0])
-            else:
+            elif len(rslt) == 2:
                 nzamestnanci, nnepritomnosti = rslt
                 messages.success(request, f"Vygenerovaných bolo {nnepritomnosti} záznamov o neprítomnosti pre {nzamestnanci} zamestnancov.")
+            elif len(rslt) == 6:
+                nzamestnanci, nove_pocet, nezmenene_pocet, upravene_pocet, neschvalene, ine_prerusenia = rslt
+                for msg in neschvalene:
+                    messages.success(request, msg.replace("None", "-"))
+                for msg in ine_prerusenia:
+                    messages.error(request, msg.replace("None", "-"))
+                if neschvalene or ine_prerusenia:
+                    messages.warning(request, f"Horeuvedené prerušenia neboli importované. Ak treba opravu, spravte ju v Biometricu, neprítomnosť exportujte, súbor opakovane vložte a záznamy vygenerujte znova.")
+                messages.success(request, f"Záznamy pre {nzamestnanci} zamestnancov: {nove_pocet} nové, {upravene_pocet} upravené, {nezmenene_pocet} nezmenené.")
+                messages.warning(request, f"Tabuľku s neprítomnosťou pre účtáreň môžete vytvoriť akciou 'Exportovať neprítomnosť pre učtáreň'")
+ 
+
         else:
             messages.error(request, f"Položka {polozka.cislo} neobsahuje súbor so zoznamom neprítomností.")
     generovat_nepritomnost.short_description = "Generovať záznamy neprítomnosti"
