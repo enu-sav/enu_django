@@ -655,67 +655,67 @@ def VytvoritSuborObjednavky(objednavka):
     nazov_suboru = sablona[0].subor.file.name 
     workbook = load_workbook(filename=nazov_suboru)
 
-    obj = workbook["Objednávka"]
-    obj["A3"].value = obj["A3"].value.replace("[[cislo]]",objednavka.cislo)
+    ws_obj = workbook["Objednávka"]
+    ws_obj["A3"].value = ws_obj["A3"].value.replace("[[cislo]]",objednavka.cislo)
     #dodávateľ
-    obj["D6"].value = objednavka.dodavatel.nazov
-    obj["D7"].value = objednavka.dodavatel.adresa_ulica
-    obj["D8"].value = objednavka.dodavatel.adresa_mesto
-    obj["D9"].value = objednavka.dodavatel.adresa_stat
+    ws_obj["D6"].value = objednavka.dodavatel.nazov
+    ws_obj["D7"].value = objednavka.dodavatel.adresa_ulica
+    ws_obj["D8"].value = objednavka.dodavatel.adresa_mesto
+    ws_obj["D9"].value = objednavka.dodavatel.adresa_stat
 
     #položky
     prvy_riadok = 15 #prvy riadok tabulky
     pocet_riadkov = 18 # pri zmene zmeniť aj models.Objednavka.clean.pocet_riadkov
     add_sum = True  # či s má do posledného riadka vložiť súčet
-    for rr, polozka in enumerate(objednavka.objednane_polozky.split("\n")):
+    objednane = objednavka.objednane_polozky.split("\n")
+    for rr, polozka in enumerate(objednane):
         riadok = prvy_riadok+rr
         prvky = polozka.split(";")
         if len(prvky) == 2:  #zlúčiť bunky
-            obj.merge_cells(f'B{riadok}:E{riadok}')
-            obj[f"B{riadok}"].value = prvky[0]
-            obj.cell(row=riadok, column=2+6).value = prvky[1]
+            ws_obj.merge_cells(f'B{riadok}:E{riadok}')
+            ws_obj[f"B{riadok}"].value = prvky[0]
+            ws_obj.cell(row=riadok, column=2+6).value = prvky[1]
             if objednavka.dodavatel.s_danou==AnoNie.ANO:
-                obj[f'G{prvy_riadok+pocet_riadkov}'].value = objednavka.predpokladana_cena * Decimal(DPH)
+                ws_obj[f'G{prvy_riadok+pocet_riadkov}'].value = objednavka.predpokladana_cena * Decimal(DPH)
             else:
-                obj[f'F{prvy_riadok+pocet_riadkov}'].value = objednavka.predpokladana_cena
+                ws_obj[f'F{prvy_riadok+pocet_riadkov}'].value = objednavka.predpokladana_cena
             add_sum = False
         elif len(prvky) == 5:
-            obj.cell(row=riadok, column=2+0).value = prvky[0]
-            obj.cell(row=riadok, column=2+1).value = prvky[1]
+            ws_obj.cell(row=riadok, column=2+0).value = prvky[0]
+            ws_obj.cell(row=riadok, column=2+1).value = prvky[1]
             val2 = float(prvky[2].strip().replace(",","."))
-            obj.cell(row=riadok, column=2+2).value = val2
-            obj.cell(row=riadok, column=2+2).number_format= "0.00"
+            ws_obj.cell(row=riadok, column=2+2).value = val2
+            ws_obj.cell(row=riadok, column=2+2).number_format= "0.00"
             val3 = float(prvky[3].strip().replace(",","."))
-            obj.cell(row=riadok, column=2+3).value = val3
-            obj.cell(row=riadok, column=2+4).number_format= "0.00"
-            obj.cell(row=riadok, column=2+6).value = prvky[4]
-            #nefunguje, ktovie prečo
+            ws_obj.cell(row=riadok, column=2+3).value = val3
+            ws_obj.cell(row=riadok, column=2+4).number_format= "0.00"
+            ws_obj.cell(row=riadok, column=2+6).value = prvky[4]
             #
             if objednavka.dodavatel.s_danou==AnoNie.ANO:
-                #obj[f'G{riadok}'] = f'=IF(ISBLANK(D{riadok});" ";D{riadok}*E{riadok})'
-                obj[f'G{riadok}'] = val2*val3*DPH
+                #nefunguje, ktovie prečo
+                #ws_obj[f'G{riadok}'] = f'=IF(ISBLANK(D{riadok});" ";D{riadok}*E{riadok})'
+                ws_obj[f'G{riadok}'] = val2*val3*DPH
             else:
-                obj[f'F{riadok}'] = val2*val3
+                ws_obj[f'F{riadok}'] = val2*val3
             add_sum = True
 
         if add_sum: 
             if objednavka.dodavatel.s_danou==AnoNie.ANO:
-                obj[f'G{prvy_riadok+pocet_riadkov}'] = f"=SUM(G{prvy_riadok}:G{prvy_riadok+pocet_riadkov-1})"
+                ws_obj[f'G{prvy_riadok+pocet_riadkov}'] = f"=SUM(G{prvy_riadok}:G{prvy_riadok+pocet_riadkov-1})"
             else:
-                obj[f'F{prvy_riadok+pocet_riadkov}'] = f"=SUM(F{prvy_riadok}:F{prvy_riadok+pocet_riadkov-1})"
-
+                ws_obj[f'F{prvy_riadok+pocet_riadkov}'] = f"=SUM(F{prvy_riadok}:F{prvy_riadok+pocet_riadkov-1})"
 
     if objednavka.termin_dodania:
-        obj[f"A{prvy_riadok+pocet_riadkov+2}"].value = obj[f"A{prvy_riadok+pocet_riadkov+2}"].value.replace("[[termin_dodania]]", objednavka.termin_dodania)
+        ws_obj[f"A{prvy_riadok+pocet_riadkov+2}"].value = ws_obj[f"A{prvy_riadok+pocet_riadkov+2}"].value.replace("[[termin_dodania]]", objednavka.termin_dodania)
     else:
-        obj[f"A{prvy_riadok+pocet_riadkov+2}"].value = obj[f"A{prvy_riadok+pocet_riadkov+2}"].value.replace("[[termin_dodania]]", "")
+        ws_obj[f"A{prvy_riadok+pocet_riadkov+2}"].value = ws_obj[f"A{prvy_riadok+pocet_riadkov+2}"].value.replace("[[termin_dodania]]", "")
     if not objednavka.datum_vytvorenia:
         return messages.ERROR, "Vytváranie súboru objednávky zlyhalo, lebo objednávka nemá zadaný dátum vytvorenia.", None
-    obj[f"A{prvy_riadok+pocet_riadkov+4}"].value = obj[f"A{prvy_riadok+pocet_riadkov+4}"].value.replace("[[datum]]", objednavka.datum_vytvorenia.strftime("%d. %m. %Y"))
+    ws_obj[f"A{prvy_riadok+pocet_riadkov+4}"].value = ws_obj[f"A{prvy_riadok+pocet_riadkov+4}"].value.replace("[[datum]]", objednavka.datum_vytvorenia.strftime("%d. %m. %Y"))
   
-    kl = workbook["Finančná kontrola"]
-    kl["A1"].value = kl["A1"].value.replace("[[cislo]]", objednavka.cislo)
-    kl["A1"].value = kl["A1"].value.replace("[[datum]]", objednavka.datum_vytvorenia.strftime("%d. %m. %Y"))
+    ws_kl = workbook["Finančná kontrola"]
+    ws_kl["A1"].value = ws_kl["A1"].value.replace("[[cislo]]", objednavka.cislo)
+    ws_kl["A1"].value = ws_kl["A1"].value.replace("[[datum]]", objednavka.datum_vytvorenia.strftime("%d. %m. %Y"))
 
     #ulozit
     #Create directory admin.rs_login if necessary
