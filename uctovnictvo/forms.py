@@ -25,9 +25,35 @@ class PopisZmeny(forms.ModelForm):
         instance._change_reason = popis_zmeny
         return super(PopisZmeny, self).save(commit=commit)
 
-class ObjednavkaForm(forms.ModelForm):
+#Umožní jednoducho definovať záznam v denníku
+class DennikZaznam(forms.ModelForm):
+    def dennik_zaznam(self, vec, typdokumentu, inout, adresat, url=None):
+        cislo = nasledujuce_cislo(Dokument)
+        dok = Dokument(
+            cislo = cislo,
+            cislopolozky = self.instance.cislo,
+            #datumvytvorenia = self.cleaned_data['dane_na_uhradu'],
+            datumvytvorenia = date.today(),
+            typdokumentu = typdokumentu,
+            inout = inout,
+            adresat = adresat,
+            vec = vec if not url else f'<a href="{url}">{vec}</a>',
+            prijalodoslal=self.request.user.username, #zámena mien prijalodoslal - zaznamvytvoril
+        )
+        dok.save()
+        messages.warning(self.request, 
+            format_html(
+                'Do denníka prijatej a odoslanej pošty bol pridaný záznam č. {}: <em>{}</em>, treba v ňom doplniť údaje o odoslaní.',
+                mark_safe(f'<a href="/admin/dennik/dokument/{dok.id}/change/">{cislo}</a>'),
+                vec
+                )
+       )
+
+class ObjednavkaForm(DennikZaznam):
     #inicializácia polí
     def __init__(self, *args, **kwargs):
+        # do Admin treba pridať metódu get_form
+        self.request = kwargs.pop('request', None)
         super().__init__(*args, **kwargs)
         polecislo = "cislo"
         # Ak je pole readonly, tak sa nenachádza vo fields. Preto testujeme fields aj initial
@@ -35,6 +61,11 @@ class ObjednavkaForm(forms.ModelForm):
             nasledujuce = nasledujuce_cislo(Objednavka)
             self.fields[polecislo].help_text = f"Zadajte číslo novej objednávky v tvare {Objednavka.oznacenie}-RRRR-NNN. Predvolené číslo '{nasledujuce}' bolo určené na základe čísel existujúcich objednávok ako nasledujúce v poradí."
             self.initial[polecislo] = nasledujuce
+    def clean(self):
+        if 'datum_odoslania' in self.changed_data and not self.instance.subor_objednavky:
+            raise ValidationError({"datum_odoslania": "Dátum odoslania možno vyplniť až po vygenerovaní objednávky."})
+        if 'datum_odoslania' in self.changed_data:
+            self.dennik_zaznam(f"Objednávka č. {self.instance.cislo}.", TypDokumentu.OBJEDNAVKA, InOut.ODOSLANY, self.instance.dodavatel, self.instance.subor_objednavky.url)
 
 class PlatbaBezPrikazuForm(forms.ModelForm):
     #inicializácia polí

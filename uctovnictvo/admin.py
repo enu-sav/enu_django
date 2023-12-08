@@ -158,7 +158,7 @@ class ObjednavkaZmluvaAdmin(ZobrazitZmeny, ImportExportModelAdmin):
 @admin.register(Objednavka)
 class ObjednavkaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
     form = ObjednavkaForm
-    list_display = ("cislo", "subor_objednavky", "subor_prilohy", "predpokladana_cena", "datum_vytvorenia", "termin_dodania", "dodavatel_link","predmet")
+    list_display = ("cislo", "datum_odoslania", "subor_objednavky", "subor_prilohy", "predpokladana_cena", "datum_vytvorenia", "termin_dodania", "dodavatel_link","predmet")
     #def formfield_for_dbfield(self, db_field, **kwargs):
         #formfield = super(ObjednavkaAdmin, self).formfield_for_dbfield(db_field, **kwargs)
         #if db_field.name == 'objednane_polozky':
@@ -176,6 +176,15 @@ class ObjednavkaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, 
             'admin_order_field': 'dodavatel__nazov', # Allow to sort members by the `dodavatel_link` column
         })
     ]
+
+    # do AdminForm pridať request, aby v jej __init__ bolo request dostupné
+    def get_form(self, request, obj=None, **kwargs):
+        AdminForm = super(ObjednavkaAdmin, self).get_form(request, obj, **kwargs)
+        class AdminFormMod(AdminForm):
+            def __new__(cls, *args, **kwargs):
+                kwargs['request'] = request
+                return AdminForm(*args, **kwargs)
+        return AdminFormMod
 
     # Zoradiť položky v pulldown menu
     def formfield_for_foreignkey(self, db_field, request, **kwargs):

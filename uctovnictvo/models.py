@@ -355,6 +355,9 @@ class Objednavka(ObjednavkaZmluva):
             max_digits=8, 
             decimal_places=2, 
             null=True, blank=True)
+    datum_odoslania = models.DateField('Dátum odoslania',
+            help_text = "Zadajte dátum odoslania objednávky. Po zadaní dátumu sa vytvorí záznam v denníku prijateh a odoslanej pošty",
+            blank=True, null=True)
     datum_vytvorenia = models.DateField('Dátum vytvorenia',
             help_text = "Zadajte dátum vytvorenia objednávky",
             default=datetime.now,
