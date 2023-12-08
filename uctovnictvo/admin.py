@@ -202,45 +202,12 @@ class ObjednavkaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, 
             self.message_user(request, f"Vybrať možno len jednu objednavku", messages.ERROR)
             return
         objednavka = queryset[0]
-        #Ide o opakované vytváranie súboru?
-        opakovane = bool(objednavka.subor_objednavky.name)
         status, msg, vytvoreny_subor = VytvoritSuborObjednavky(objednavka)
         self.message_user(request, msg, status)
         if status != messages.ERROR:
             objednavka.subor_objednavky = vytvoreny_subor
             objednavka.save()
-        else:
-            return
-
-        #V prípade opakovaného generovania zrušiť predchádzajúce záznamy v denníku
-        if opakovane:
-            zrusit = Dokument.objects.filter(cislopolozky=objednavka.cislo, zrusene=AnoNie.NIE)
-            for zr in zrusit:
-                zr.zrusene = AnoNie.ANO
-                zr.save()
-                self.message_user(request, f"Súbor objednávky bol generovaný opakovane; preto bol zrušený predchádzajúci a už nepotrebný záznam v denníku č. {zr.cislo}", messages.SUCCESS)
-
-        vec = f"Objednávka {objednavka.cislo}"
-        cislo_posta = nasledujuce_cislo(Dokument)
-        dok = Dokument(
-            cislo = cislo_posta,
-            cislopolozky = objednavka.cislo,
-            datumvytvorenia = date.today(),
-            typdokumentu = TypDokumentu.OBJEDNAVKA,
-            inout = InOut.ODOSLANY,
-            adresat = objednavka.dodavatel.nazov,
-            vec = f'<a href="{objednavka.subor_objednavky.url}">{vec}</a>',
-            #vec = vec,
-            prijalodoslal=request.user.username, #zámena mien prijalodoslal - zaznamvytvoril
-        )
-        dok.save()
-        messages.warning(request, 
-            format_html(
-                'Do denníka prijatej a odoslanej pošty bol pridaný záznam č. {}: <em>{}</em>, treba v ňom doplniť údaje o odoslaní.',
-                mark_safe(f'<a href="/admin/dennik/dokument/{dok.id}/change/">{cislo_posta}</a>'),
-                vec
-                )
-        )
+            self.message_user(request, f"Vytvorenú objednávku dajte na podpis a potom pred odoslaním vyplňte pole 'Dátum odoslania'. Automaticky sa vytvorí záznam v Denníku prijatej a odoslanej pošty.", messages.WARNING)
 
     vytvorit_subor_objednavky.short_description = "Vytvoriť súbor objednavky"
     #Oprávnenie na použitie akcie, viazané na 'change'
