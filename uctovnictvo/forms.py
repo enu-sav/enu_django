@@ -186,27 +186,7 @@ class InternyPrevodForm(forms.ModelForm):
         #pole dane_na_uhradu možno vyplniť až po vygenerovani platobného príkazu akciou 
         #"Vytvoriť platobný príkaz a krycí list pre THS"
         if 'dane_na_uhradu' in self.changed_data:
-            vec = f"Platobný príkaz na THS {self.instance.cislo} na vyplatenie"
-            cislo = nasledujuce_cislo(Dokument)
-            dok = Dokument(
-                cislo = cislo,
-                cislopolozky = self.instance.cislo,
-                #datumvytvorenia = self.cleaned_data['dane_na_uhradu'],
-                datumvytvorenia = date.today(),
-                typdokumentu = TypDokumentu.INTERNYPREVOD,
-                inout = InOut.ODOSLANY,
-                adresat = "THS",
-                vec = f'<a href="{self.instance.platobny_prikaz.url}">{vec}</a>',
-                prijalodoslal=self.request.user.username, #zámena mien prijalodoslal - zaznamvytvoril
-            )
-            dok.save()
-            messages.warning(self.request, 
-                format_html(
-                    'Do denníka prijatej a odoslanej pošty bol pridaný záznam č. {}: <em>{}</em>, treba v ňom doplniť údaje o odoslaní.',
-                    mark_safe(f'<a href="/admin/dennik/dokument/{dok.id}/change/">{cislo}</a>'),
-                    vec
-                    )
-        )
+            self.dennik_zaznam(f"Platobný príkaz na THS {self.instance.cislo} na vyplatenie", TypDokumentu.INTERNYPREVOD, InOut.ODOSLANY, "THS", self.instance.platobny_prikaz.url)
         return self.cleaned_data
 
 class PravidelnaPlatbaForm(forms.ModelForm):
