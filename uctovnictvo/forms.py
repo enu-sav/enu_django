@@ -94,7 +94,7 @@ class ZmluvaForm(forms.ModelForm):
             self.fields[polecislo].help_text = f"Zadajte naše číslo novej zmluvy v tvare {Zmluva.oznacenie}-RRRR-NNN. Predvolené číslo '{nasledujuce}' bolo určené na základe čísel existujúcich zmlúv ako nasledujúce v poradí."
             self.initial[polecislo] = nasledujuce
 
-class PrijataFakturaForm(forms.ModelForm):
+class PrijataFakturaForm(DennikZaznam):
     #inicializácia polí
     def __init__(self, *args, **kwargs):
         # do Admin treba pridať metódu get_form
@@ -114,39 +114,15 @@ class PrijataFakturaForm(forms.ModelForm):
                 self.fields[polecislo].help_text = f"Číslo faktúry v tvare {PrijataFaktura.oznacenie}-RRRR-NNN."
         self.fields['suma'].help_text = f"Vložte sumu s DPH.<br />Ak ide o <strong>platbu v cudzej mene</strong>, vyplňte polia 'Suma v cudzej mene' a 'Mena' a do tohoto poľa vložte nulu. Toto pole <strong>vyplňte až po určení</strong> skutočne vyplatenej sumy v EUR (podľa SOFTIPu).<br >Ak je <strong>faktúra v režime prenesenia daňovej povinnosti</strong>, zadajte <em>Áno</em> v poli <em>Prenos DP</em> a sem vložte sumu s DPH. Ak na takejto faktúre nie je uvedená suma s DPH, vloženú sumu treba <strong>vypočítať ručne</strong>."
 
-
     # Skontrolovať platnost a keď je všetko OK, spraviť záznam do denníka
     def clean(self):
         if 'cislo' in self.changed_data:
             if not self.cleaned_data['cislo'][:2] == PrijataFaktura.oznacenie:
                 raise ValidationError({"cislo": "Nesprávne číslo. Zadajte číslo novej faktúry v tvare {PrijataFaktura.oznacenie}-RRRR-NNN"})
-        try:
-            #pole dane_na_uhradu možno vyplniť až po vygenerovani platobného príkazu akciou 
-            #"Vytvoriť platobný príkaz a krycí list pre THS"
-            if 'dane_na_uhradu' in self.changed_data:
-                vec = f"Platobný príkaz na THS {self.instance.cislo} na vyplatenie"
-                cislo = nasledujuce_cislo(Dokument)
-                dok = Dokument(
-                    cislo = cislo,
-                    cislopolozky = self.instance.cislo,
-                    #datumvytvorenia = self.cleaned_data['dane_na_uhradu'],
-                    datumvytvorenia = date.today(),
-                    typdokumentu = TypDokumentu.FAKTURA,
-                    inout = InOut.ODOSLANY,
-                    adresat = "THS",
-                    vec = f'<a href="{self.instance.platobny_prikaz.url}">{vec}</a>',
-                    prijalodoslal=self.request.user.username, #zámena mien prijalodoslal - zaznamvytvoril
-                )
-                dok.save()
-                messages.warning(self.request, 
-                    format_html(
-                        'Do denníka prijatej a odoslanej pošty bol pridaný záznam č. {}: <em>{}</em>, treba v ňom doplniť údaje o odoslaní.',
-                        mark_safe(f'<a href="/admin/dennik/dokument/{dok.id}/change/">{cislo}</a>'),
-                        vec
-                        )
-            )
-        except ValidationError as ex:
-            raise ex
+        #pole dane_na_uhradu možno vyplniť až po vygenerovani platobného príkazu akciou 
+        #"Vytvoriť platobný príkaz a krycí list pre THS"
+        if 'dane_na_uhradu' in self.changed_data:
+            self.dennik_zaznam(f"Platobný príkaz na THS {self.instance.cislo} na vyplatenie", TypDokumentu.FAKTURA, InOut.ODOSLANY, "THS", self.instance.platobny_prikaz.url)
         return self.cleaned_data
 
 class InternyPrevodForm(forms.ModelForm):
