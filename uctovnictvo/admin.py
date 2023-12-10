@@ -1345,12 +1345,20 @@ class NepritomnostAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
     ]
     actions = ['generovat_nepritomnost', "exportovat_nepritomnost_pre_uctaren"]
 
+    def __get_exclude(self, request, obj=None):
+        if obj:
+            if obj.subor_nepritomnost: 
+                return ["zamestnanec", "nepritomnost_od", "nepritomnost_do", "nepritomnost_typ", "dlzka_nepritomnosti"]
+            elif obj.zamestnanec:
+                return ["subor_nepritomnost", "subor_nepritomnost_exp", "datum_odoslania"]
+
     # Zoradiť položky v pulldown menu
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         return formfield_for_foreignkey(self, db_field, request, **kwargs)
 
     # do AdminForm pridať request, aby v jej __init__ bolo request dostupné
     def get_form(self, request, obj=None, **kwargs):
+        trace()
         AdminForm = super(NepritomnostAdmin, self).get_form(request, obj, **kwargs)
         class AdminFormMod(AdminForm):
             def __new__(cls, *args, **kwargs):
@@ -1361,7 +1369,7 @@ class NepritomnostAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
     #obj is None during the object creation, but set to the object being edited during an edit
     def get_readonly_fields(self, request, obj=None):
         if obj and obj.datum_odoslania:
-            return ['cislo', 'subor_nepritomnost_exp'] if request.user.has_perm('objednavka.delete_pokladna') else [f.name for f in self.model._meta.fields]
+            return ['cislo', 'subor_nepritomnost_exp'] if request.user.has_perm('objednavka.delete_nepritomnost') else [f.name for f in self.model._meta.fields]
         elif obj:
             return ["cislo", "subor_nepritomnost_exp"]
 
