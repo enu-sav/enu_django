@@ -1009,6 +1009,7 @@ def generovatNepritomnostAnita(cislo,ws):
 
 # generovat jednotlive zaznamy nepritomnosti zamestnancov na zaklade farebnej tabuky od Anity
 def generovatNepritomnostBiometric(cislo,ws):
+    import holidays
     # V Biotricu je bordel
     def priezvisko_bez():
         bez_d = {}
@@ -1053,7 +1054,8 @@ def generovatNepritomnostBiometric(cislo,ws):
         ntyp = row[hdr["Prerušenie"]]
         stav = row[hdr["Stav"]]
 
-        if ntyp in typy:
+        #if ntyp in typy:
+        if ntyp in ["Dovolenka", "PN", "Neplatené voľno", "OČR"]:  #intervalové neprítomnosti
             if stav =="Schválené":
                 zam_set.add(priezvisko)
                 #Máme už neprítomnosť v DB?
@@ -1078,7 +1080,35 @@ def generovatNepritomnostBiometric(cislo,ws):
                     nepr.save()
             else:
                 neschvalene.append(f"Prerušenia bez schválenia: {priezvisko}, {ntyp}, {row[hdr['Odchod']]}, {row[hdr['Príchod']]}, {row[hdr['Poznámka']]}")
-        else: #iné ako Schválené
+        elif ntyp in [ "Lekár doprovod", "Lekár", "Sick day", "§ Paragraf"]: #Jednodňové neprítomnosti
+            from datetime import date, timedelta
+            delta = timedelta(days=1)
+            sviatky_sk = holidays.SK()
+            while od <= do:
+                if stav =="Schválené":
+                    zam_set.add(priezvisko)
+                    #Máme už neprítomnosť v DB?
+                    existujuce = Nepritomnost.objects.filter(zamestnanec=zamestnanec, nepritomnost_typ = typy[ntyp], nepritomnost_od = od)
+                    if existujuce:
+                        existujuce = existujuce[0]
+                        if existujuce.nepritomnost_do == od:
+                            nezmenene_pocet += 1
+                    elif od in sviatky_sk or od.isoweekday() in (6,7):
+                        pass
+                    else:
+                        nepr = Nepritomnost(
+                            cislo = "%s-%02d"%(cislo, nove_pocet+1),
+                            zamestnanec = zamestnanec,
+                            nepritomnost_typ = typy[ntyp],
+                            nepritomnost_od = od,
+                            nepritomnost_do = od
+                            )
+                        nove_pocet += 1
+                        nepr.save()
+                else:
+                    neschvalene.append(f"Prerušenia bez schválenia: {priezvisko}, {ntyp}, {row[hdr['Odchod']]}, {row[hdr['Príchod']]}, {row[hdr['Poznámka']]}")
+                od += delta
+        else:
             if not ntyp in ["Home office", "Služobne"]:
                 ine_prerusenia.append(f"Iné prerušenia: {priezvisko}, {ntyp}, {row[hdr['Odchod']]}, {row[hdr['Príchod']]}, {row[hdr['Poznámka']]}")
             pass
