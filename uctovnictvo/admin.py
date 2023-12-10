@@ -196,6 +196,7 @@ class ObjednavkaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, 
             return ['cislo'] if request.user.has_perm('uctovnictvo.delete_objednavka') else [f.name for f in self.model._meta.fields]
         elif obj:
             return ["cislo"]
+        return []
 
     def vytvorit_subor_objednavky(self, request, queryset):
         if len(queryset) != 1:
