@@ -356,7 +356,7 @@ class Objednavka(ObjednavkaZmluva):
             decimal_places=2, 
             null=True, blank=True)
     datum_odoslania = models.DateField('Dátum odoslania',
-            help_text = "Zadajte dátum odoslania objednávky. Po zadaní dátumu sa vytvorí záznam v denníku prijateh a odoslanej pošty",
+            help_text = "Zadajte dátum odoslania objednávky. Po zadaní dátumu sa vytvorí záznam v Denníku prijatej a odoslanej pošty",
             blank=True, null=True)
     datum_vytvorenia = models.DateField('Dátum vytvorenia',
             help_text = "Zadajte dátum vytvorenia objednávky",
@@ -1712,6 +1712,9 @@ class Nepritomnost(models.Model):
             blank=True,
             null=True
             )
+    datum_odoslania = models.DateField('Dátum odoslania',
+            help_text = "Zadajte dátum odoslania tabuľky so zoznamom neprítomností. Po zadaní dátumu sa vytvorí záznam v Denníku prijatej a odoslanej pošty",
+            blank=True, null=True)
     zamestnanec = models.ForeignKey(Zamestnanec,
             on_delete=models.PROTECT, 
             verbose_name = "Zamestnanec",

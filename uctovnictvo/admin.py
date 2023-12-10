@@ -1358,13 +1358,20 @@ class NepritomnostAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
                 return AdminForm(*args, **kwargs)
         return AdminFormMod
 
+    #obj is None during the object creation, but set to the object being edited during an edit
+    def get_readonly_fields(self, request, obj=None):
+        if obj and obj.datum_odoslania:
+            return ['cislo', 'subor_nepritomnost_exp'] if request.user.has_perm('objednavka.delete_pokladna') else [f.name for f in self.model._meta.fields]
+        elif obj:
+            return ["cislo", "subor_nepritomnost_exp"]
+
     # Použiť vlastnú message v save_model
     #Potlačí výpis "Objekt ... bol úspešne pridaný"
     #def message_user(self, *args): pass
 
     def save_model(self, request, obj, form, change):
         #testovať, či náhodou neexistuje neukončená PN
-        if obj.zamestnanec:
+        if obj.zamestnanec: #Vytvorená neprítomnosť
             qs = Nepritomnost.objects.filter(zamestnanec=obj.zamestnanec, 
                                          nepritomnost_typ=TypNepritomnosti.PN,
                                          nepritomnost_do__isnull=True)
@@ -1375,13 +1382,11 @@ class NepritomnostAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
             else:
                 super(NepritomnostAdmin, self).save_model(request, obj, form, change)
                 messages.success(request, f"Neprítomnosť pre {obj.zamestnanec} bola úspešne vytvorená.")
-        elif obj.subor_nepritomnost:
+        elif obj.subor_nepritomnost and not obj.subor_nepritomnost_exp: #Importovaný zoznam
             super(NepritomnostAdmin, self).save_model(request, obj, form, change)
             messages.success(request, f"Importovaný bol súbor so zoznamom neprítomností.")
             messages.warning(request, "Akciou 'Generovať záznamy neprítomnosti' treba vytvoriť jednotlivé záznamy. Ak za daný mesiac pribudnú ešte ďalšie neprítomnosti, treba ich pridať individuálne.")
-        else:
-            super(NepritomnostAdmin, self).save_model(request, obj, form, change)
-            self.messages.success(request, f"Neprítomnosť bola úspešne vytvorená.")
+            messages.warning(request, "Potom, akciou 'Exportovať neprítomnosť pre učtáreň' treba vytvoriť tabuľku pre učtáreň.")
 
     def generovat_nepritomnost(self, request, queryset):
         if len(queryset) != 1:

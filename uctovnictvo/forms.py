@@ -606,7 +606,7 @@ class PrispevokNaRekreaciuForm(forms.ModelForm):
             raise ex
         return self.cleaned_data
 
-class NepritomnostForm(forms.ModelForm):
+class NepritomnostForm(DennikZaznam):
     #inicializácia polí
     def __init__(self, *args, **kwargs):
         self.request = kwargs.pop('request', None)
@@ -624,18 +624,24 @@ class NepritomnostForm(forms.ModelForm):
     # Skontrolovať platnost a prípadne spraviť zmeny
 
     def clean(self): 
-        if self.cleaned_data["nepritomnost_typ"] in [TypNepritomnosti.LEKAR, TypNepritomnosti.LEKARDOPROVOD] and not self.cleaned_data["dlzka_nepritomnosti"]:
-            zamestnanec = self.cleaned_data["zamestnanec"]
-            #Doplniť denný úväzok zamestnanca v deň neprítomnosti
-            qs = PlatovyVymer.objects.filter(zamestnanec=zamestnanec, datum_od__lte=self.cleaned_data['nepritomnost_od'], datum_do__gte=self.cleaned_data['nepritomnost_od'] )
-            if not qs:  #Aktuálny výmer nie je ukončený
-                qs = PlatovyVymer.objects.filter(zamestnanec=zamestnanec, datum_od__lte=self.cleaned_data['nepritomnost_od'], datum_do__isnull=True)
-            self.cleaned_data["dlzka_nepritomnosti"] = qs[0].uvazok_denne
-            messages.warning(self.request, f"Dĺžka neprítomnosti nebola vyplnená. Doplnená bola doba {self.cleaned_data['dlzka_nepritomnosti']} hod., t.j. jeden pracovný deň zamestnanca.")
-        elif not self.cleaned_data["nepritomnost_typ"] in [TypNepritomnosti.LEKAR, TypNepritomnosti.LEKARDOPROVOD] and self.cleaned_data["dlzka_nepritomnosti"]:
-            self.cleaned_data["dlzka_nepritomnosti"] = None
-            messages.warning(self.request, "Dĺžka neprítomnosti sa pre daný typ neprítomnosti neuvádza. Zadaná hodnota bola odstránená.")
-        return self.cleaned_data
+        if self.instance.subor_nepritomnost: #Sumárna neprítomnosť
+            if 'datum_odoslania' in self.changed_data and not self.instance.subor_nepritomnost_exp:
+                raise ValidationError({"datum_odoslania": "Dátum odoslania možno vyplniť až po vygenerovaní súboru s neprítomnosťou akciou 'Exportovať neprítomnosť pre učtáreň'."})
+            if 'datum_odoslania' in self.changed_data:
+                self.dennik_zaznam(f"Neprítomnosť č. {self.instance.cislo}.", TypDokumentu.NEPRITOMNOST, InOut.ODOSLANY, "THS", self.instance.subor_nepritomnost_exp.url)
+        else: #Individuálna neprítomnosť:
+            if self.cleaned_data["nepritomnost_typ"] in [TypNepritomnosti.LEKAR, TypNepritomnosti.LEKARDOPROVOD] and not self.cleaned_data["dlzka_nepritomnosti"]:
+                zamestnanec = self.cleaned_data["zamestnanec"]
+                #Doplniť denný úväzok zamestnanca v deň neprítomnosti
+                qs = PlatovyVymer.objects.filter(zamestnanec=zamestnanec, datum_od__lte=self.cleaned_data['nepritomnost_od'], datum_do__gte=self.cleaned_data['nepritomnost_od'] )
+                if not qs:  #Aktuálny výmer nie je ukončený
+                    qs = PlatovyVymer.objects.filter(zamestnanec=zamestnanec, datum_od__lte=self.cleaned_data['nepritomnost_od'], datum_do__isnull=True)
+                self.cleaned_data["dlzka_nepritomnosti"] = qs[0].uvazok_denne
+                messages.warning(self.request, f"Dĺžka neprítomnosti nebola vyplnená. Doplnená bola doba {self.cleaned_data['dlzka_nepritomnosti']} hod., t.j. jeden pracovný deň zamestnanca.")
+            elif not self.cleaned_data["nepritomnost_typ"] in [TypNepritomnosti.LEKAR, TypNepritomnosti.LEKARDOPROVOD] and self.cleaned_data["dlzka_nepritomnosti"]:
+                self.cleaned_data["dlzka_nepritomnosti"] = None
+                messages.warning(self.request, "Dĺžka neprítomnosti sa pre daný typ neprítomnosti neuvádza. Zadaná hodnota bola odstránená.")
+            return self.cleaned_data
 
 class VyplacanieDohodForm(forms.ModelForm):
     #inicializácia polí

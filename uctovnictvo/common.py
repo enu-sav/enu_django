@@ -1212,7 +1212,7 @@ def exportovatNepritomnostUct(polozka):
     nazov = f"Nepritomnost_pre_MU-%02d-%d.xlsx"%(m_od.month, m_od.year)
     opath = os.path.join(settings.NEPRITOMNOST_DIR,nazov)
     wb.save(os.path.join(settings.MEDIA_ROOT,opath))
-    return messages.SUCCESS, mark_safe(f"Súbor s neprítomnosťou {nazov} bol vytvorený. <br />Dajte ho na podpis a potom ho doručte do mzdovej účtárne <br />Záznam v denníku treba vytvoriť manuálne."), opath
+    return messages.SUCCESS, mark_safe(f"Súbor s neprítomnosťou {nazov} bol vytvorený. <br />Dajte ho na podpis a potom pred odoslaním vyplňte pole 'Dátum odoslania'. Automaticky sa vytvorí záznam v Denníku prijatej a odoslanej pošty."), opath
     pass
 
 def generovatStravne(polozka):

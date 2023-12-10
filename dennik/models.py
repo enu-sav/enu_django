@@ -33,6 +33,7 @@ class TypDokumentu(models.TextChoices):
     POKLADNICNAKNIHA = 'pokladnicnakniha', 'Pokladničná kniha'
     REKREACIA = 'rekreacia', 'Príspevok na rekreáciu'
     DOKUMENT = 'posta', 'Pošta'
+    NEPRITOMNOST = 'nepritomnost', 'Neprítomnosť'
     INY = 'iny', 'Iný'
 
 # Typy šablón na vyplňovanie. Určuje, zoznam povolených tokenov v šablóne
