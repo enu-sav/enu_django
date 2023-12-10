@@ -1168,16 +1168,17 @@ def exportovatNepritomnostUct(polozka):
                 #Vyplnit stlpec
                 for row in range (2, 2+pzam):
                     cell = ws.cell(row=row, column=1+dd)
-                    if not cell.value:
+                    if not cell.value in ("MD", "PN"):
                         cell.value = "S"
                         cell.alignment = align
-                        cell.fill = gray2
+                    cell.fill = gray2
             #Víkendy
             if den.isoweekday() in (6,7):
                 for row in range (2, 2+pzam):
                     cell = ws.cell(row=row, column=1+dd)
-                    if not cell.value:
-                        cell.fill = gray1
+                    if not cell.value in ("MD", "PN"):
+                        cell.value = ""
+                    cell.fill = gray1
         #Zmazať neexistujúce dni
         for dd in range (posl_den.day+1, 32):
             ws.cell(row=1, column=1+dd).value = None
