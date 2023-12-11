@@ -255,7 +255,6 @@ class CerpanieRozpoctuAdmin(ModelAdminTotals):
                 #na rozlíšenie podtypov poistenia
                 item['nazov'] = item['podnazov'] if 'podnazov' in item else item['nazov']
                 identif = f"{item['nazov']} {item['zdroj']} {item['zakazka']} {item['ekoklas']} {zden}"
-                print(item)
                 polozky_riadok.append([item['nazov'],
                                        item['suma'],
                                        item['subjekt'] if "subjekt" in item else "",
@@ -531,10 +530,6 @@ def generovat_mzdove(request, zden, rekapitulacia):
         dohoda_vynimka = AnoNie.NIE
         #Vytvoriť čiastočný zoznam položiek čerpania s položkami, ktoré sa prenášajú priamo, a vypočítať sumáre na výpočet ostatných
         for item in po_osobach[meno]:
-            print(meno, item['zdroj'], item['zakazka'])
-            if "Kvas" in meno and zden == date(2022, 11, 1):
-                #trace()
-                pass
             cerpanie.append(item)   #priamo prevziať mzdovú položku
             #spočítať mzdové položky pre výpočet odvodov, SF a DDS
             if item['nazov'] in polozka_vylucitelnost:
