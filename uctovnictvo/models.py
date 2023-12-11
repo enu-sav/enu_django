@@ -134,7 +134,8 @@ class TypNepritomnosti(models.TextChoices):
     DOVOLENKA2 = "dovolenka2", "Poldeň dovolenky"
     LEKAR = "lekar", "Návšteva u lekára (L)"    #Náhrada mzdy - prekážky osobné
     LEKARDOPROVOD = "lekardoprovod", "Doprovod k lekárovi (L/D)"  #Náhrada mzdy - prekážky osobné
-    PZV = "pzv", "Pracovné voľno (PzV, PV, P, S, KZVS, POH)"    #Náhrada mzdy - prekážky osobné
+    PZV = "pzv", "Platené zdr. voľno podľa KZ"    #Náhrada mzdy - prekážky osobné
+    PV = "pv", "Pracovné voľno (PV, P, S, KZVS, POH)"    #Náhrada mzdy - prekážky osobné
     NEPLATENE = "neplatene", "Neplatené voľno"  # nič sa neplatí
     SLUZOBNA = "sluzobna", "Služobná cesta"     # normálna mzda
     PRACADOMA = "pracadoma", "Práca na doma"    # normálna mzda

@@ -921,12 +921,12 @@ def generovatNepritomnostAnita(cislo,ws):
             "PN": TypNepritomnosti.PN,
             "NV": TypNepritomnosti.NEPLATENE,
             "OČR": TypNepritomnosti.OCR,
-            "PV": TypNepritomnosti.PZV,
-            "RV": TypNepritomnosti.PZV,
+            "PV": TypNepritomnosti.PV,
+            "RV": TypNepritomnosti.PV,
             "SC": TypNepritomnosti.SLUZOBNA,
             "Šk": TypNepritomnosti.SKOLENIE,
-            "KZ VS": TypNepritomnosti.PZV,
-            "POH": TypNepritomnosti.PZV
+            "KZ VS": TypNepritomnosti.PV,
+            "POH": TypNepritomnosti.PV
             }
     #ignorovať
     itypy = ["S", "PnD", "SSZ", None]
@@ -1027,7 +1027,7 @@ def generovatNepritomnostBiometric(cislo,ws):
             "PN": TypNepritomnosti.PN,
             "OČR": TypNepritomnosti.OCR,
             "Sick day": TypNepritomnosti.PZV,
-            "§ Paragraf": TypNepritomnosti.PZV,
+            "§ Paragraf": TypNepritomnosti.PV,
             "Neplatené voľno": TypNepritomnosti.NEPLATENE
             }
 
@@ -1204,7 +1204,8 @@ def exportovatNepritomnostUct(polozka):
         "dovolenka": "D",
         "lekar": "L",
         "lekardoprovod": "L/D",
-        "pzv": "PV",
+        "pzv": "PzV",
+        "pv": "PV",
         "neplatene": "NV"
         }
 
