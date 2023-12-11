@@ -648,7 +648,7 @@ class NepritomnostForm(DennikZaznam):
             elif not self.cleaned_data["nepritomnost_typ"] in [TypNepritomnosti.LEKAR, TypNepritomnosti.LEKARDOPROVOD] and self.cleaned_data["dlzka_nepritomnosti"]:
                 self.cleaned_data["dlzka_nepritomnosti"] = None
                 messages.warning(self.request, "Dĺžka neprítomnosti sa pre daný typ neprítomnosti neuvádza. Zadaná hodnota bola odstránená.")
-            return self.cleaned_data
+        return self.cleaned_data
 
 class VyplacanieDohodForm(forms.ModelForm):
     #inicializácia polí

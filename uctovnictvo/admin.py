@@ -1404,7 +1404,8 @@ class NepritomnostAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
             else:
                 super(NepritomnostAdmin, self).save_model(request, obj, form, change)
                 messages.success(request, f"Neprítomnosť pre {obj.zamestnanec} bola úspešne vytvorená.")
-        elif obj.subor_nepritomnost and not obj.subor_nepritomnost_exp: #Importovaný zoznam
+        #elif obj.subor_nepritomnost and not obj.subor_nepritomnost_exp: #Importovaný zoznam
+        elif obj.subor_nepritomnost:
             super(NepritomnostAdmin, self).save_model(request, obj, form, change)
             messages.success(request, f"Importovaný bol súbor so zoznamom neprítomností.")
             messages.warning(request, "Akciou 'Generovať záznamy neprítomnosti' treba vytvoriť jednotlivé záznamy. Ak za daný mesiac pribudnú ešte ďalšie neprítomnosti, treba ich pridať individuálne.")
