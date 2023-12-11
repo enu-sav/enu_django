@@ -2152,7 +2152,7 @@ class DoPC(Dohoda):
             blank = True,
             null=True)
     zmena_zdroja = models.TextField("Zmena zdroja alebo odmeny", 
-            help_text = "Zadajte po riadkoch mesiace (v rozsahu platnosti dohody), v ktorých sa zdroj alebo suma odlišujú od svojich preddefinovaných hodnôt, a to v tvare <em>RRRR/MM zdroj odmena</em>.<br />Vždy treba zadať zdroj aj odmenu, aj keď sa zmenila len jedna z týchto hodnôt.", 
+                                    help_text = "Zadajte po riadkoch mesiace (v rozsahu platnosti dohody), v ktorých sa zdroj, zákazka alebo suma odlišujú od svojich preddefinovaných hodnôt, a to v tvare <em>RRRR/MM;zdroj;zákazka;odmena</em>.<br />Vždy treba zadať všetky tri položky, aj keď sa zmenila len jedna z týchto hodnôt.<br />Obvyklé hodnoty pre pár <strong>zdroj;zákazka</strong> sú: <strong>42;42002200</strong>, <strong>111;11010001</strong> a <strong>111;11070002</strong>.", 
             max_length=500,
             blank=True,
             null=True)
@@ -2175,16 +2175,19 @@ class DoPC(Dohoda):
         zakazka = None
         odmena_mesacne = None
         if self.zmena_zdroja:
-            zz = re.findall(r"%d/%02d[,; ]+([0-9]+)[,; ]+([0-9,.]+)"%(zden.year, zden.month), self.zmena_zdroja)
+            zz = re.findall(r"%d/%02d[,; ]+([0-9]+)[,; ]+([0-9,.]+)[,; ]([0-9,.]+)"%(zden.year, zden.month), self.zmena_zdroja)
+            #zz: zdroj, zákazka, odmena
             if zz:
+                print("DoPC: ",self)
                 if zz[0][0]== "42":
                     zdroj = Zdroj.objects.get(kod="42")
                     zakazka = TypZakazky.objects.get(kod="42002200")
-                    odmena_mesacne = float(zz[0][1].replace(",","."))
+                    odmena_mesacne = float(zz[0][2].replace(",","."))
                 elif zz[0][0]== "111":
+                    kod = {"11010001": "11010001 spol. zák.", "11070002": "11070002 Beliana"}
                     zdroj = Zdroj.objects.get(kod="111")
-                    zakazka = TypZakazky.objects.get(kod="11010001 spol. zák.")
-                    odmena_mesacne = float(zz[0][1].replace(",","."))
+                    zakazka = TypZakazky.objects.get(kod=kod[zz[0][1]])
+                    odmena_mesacne = float(zz[0][2].replace(",","."))
 
         zdroj = zdroj if zdroj else self.zdroj
         zakazka = zakazka if zakazka else self.zakazka
