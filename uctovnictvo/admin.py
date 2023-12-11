@@ -947,10 +947,10 @@ class RozpoctovaPolozkaPresunAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleH
 @admin.register(PrispevokNaStravne)
 class PrispevokNaStravneAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
     form = PrispevokNaStravneForm
-    list_display = ["cislo", "typ_zoznamu", "za_mesiac", "po_zamestnancoch", "suma_zamestnavatel", "suma_socfond", "_suma_spolu"]
+    list_display = ["cislo", "typ_zoznamu", "za_mesiac", "datum_odoslania", "po_zamestnancoch", "suma_zamestnavatel", "suma_socfond", "_suma_spolu"]
     search_fields = ["cislo","^typ_zoznamu", "^za_mesiac"]
     # určiť poradie poli v editovacom formulári
-    fields = ["cislo", "typ_zoznamu", "za_mesiac", "suma_zamestnavatel", "suma_socfond", "po_zamestnancoch", "zdroj", "zakazka", "ekoklas", "cinnost" ]
+    fields = ["cislo", "typ_zoznamu", "za_mesiac", "datum_odoslania", "suma_zamestnavatel", "suma_socfond", "po_zamestnancoch", "zdroj", "zakazka", "ekoklas", "cinnost" ]
 
     def _suma_spolu(self, obj):
         return obj.suma_zamestnavatel + obj.suma_socfond
@@ -966,6 +966,15 @@ class PrispevokNaStravneAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistor
             return [ "program", "ekoklas", "zakazka", "zdroj", "cinnost"]
         else:
             return []
+
+    # do AdminForm pridať request, aby v jej __init__ bolo request dostupné
+    def get_form(self, request, obj=None, **kwargs):
+        AdminForm = super(PrispevokNaStravneAdmin, self).get_form(request, obj, **kwargs)
+        class AdminFormMod(AdminForm):
+            def __new__(cls, *args, **kwargs):
+                kwargs['request'] = request
+                return AdminForm(*args, **kwargs)
+        return AdminFormMod
 
     actions = ['generovat_prispevky_zrazky']
 
@@ -1028,6 +1037,7 @@ class PrispevokNaStravneAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistor
                 mark_safe(pokec)
                 )
         )
+        self.message_user(request, f"Vytvorenú tabuľku so zoznamom dajte na podpis a potom pred odoslaním vyplňte pole 'Dátum odoslania'. Automaticky sa vytvorí záznam v Denníku prijatej a odoslanej pošty.", messages.SUCCESS)
 
     generovat_prispevky_zrazky.short_description = "Generovať zoznam príspevkov/zrážok"
     #Oprávnenie na použitie akcie, viazané na 'change'

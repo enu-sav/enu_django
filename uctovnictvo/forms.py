@@ -270,9 +270,11 @@ class PravidelnaPlatbaForm(forms.ModelForm):
         )
         return self.cleaned_data
 
-class PrispevokNaStravneForm(forms.ModelForm):
+class PrispevokNaStravneForm(DennikZaznam):
     #inicializácia polí
     def __init__(self, *args, **kwargs):
+        # do Admin treba pridať metódu get_form
+        self.request = kwargs.pop('request', None)
         super().__init__(*args, **kwargs)
         if not 'zdroj' in self.initial: self.initial['zdroj'] = 1       #111
         if not 'program' in self.initial: self.initial['program'] = 4     #nealokovaný
@@ -288,6 +290,11 @@ class PrispevokNaStravneForm(forms.ModelForm):
                 self.initial[polecislo] = nasledujuce
             else:
                 self.fields[polecislo].help_text = f"Číslo platby v tvare {PrispevokNaStravne.oznacenie}-RRRR-NNN."
+
+    def clean(self): 
+        if self.instance.po_zamestnancoch: #Sumárna neprítomnosť
+            if 'datum_odoslania' in self.changed_data:
+                self.dennik_zaznam(f"Stravné {self.instance.cislo}.", TypDokumentu.PSTRAVNE, InOut.ODOSLANY, "THS", self.instance.po_zamestnancoch.url)
 
 class AutorskeZmluvyForm(forms.ModelForm):
     #inicializácia polí

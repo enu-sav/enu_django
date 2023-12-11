@@ -1077,6 +1077,10 @@ class PrispevokNaStravne(Klasifikacia):
             null = True,
             choices=Stravne.choices)
 
+    datum_odoslania = models.DateField('Dátum odoslania',
+            help_text = "Zadajte dátum odoslania tabuľky so zoznamom. Po zadaní dátumu sa vytvorí záznam v Denníku prijatej a odoslanej pošty",
+            blank=True, null=True)
+
     suma_zamestnavatel = models.DecimalField("Príspevok (zrážka) zamestnávateľ", 
             help_text = "Príspevok zamestnávateľa (Ek. klas. 642014) na stravné.<br />Ak ide o vyplatenie zamestnancovi, uveďte zápornú hodnotu, ak ide o zrážku, tak kladnú hodnotu.<br />Suma sa automaticky generuje akciou 'Generovať zoznam príspevkov/zrážok'",
             max_digits=8, 
