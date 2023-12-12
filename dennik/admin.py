@@ -13,7 +13,8 @@ from zmluvy.models import ZmluvaAutor, ZmluvaGrafik, VytvarnaObjednavkaPlatba, P
 from uctovnictvo.models import Objednavka, PrijataFaktura, PrispevokNaStravne, DoVP, DoPC, DoBPS
 from uctovnictvo.models import PlatovyVymer, PravidelnaPlatba, NajomneFaktura, InternyPrevod, Poistovna
 from uctovnictvo.models import RozpoctovaPolozka, PlatbaBezPrikazu, Pokladna, PrispevokNaRekreaciu, OdmenaOprava
-from uctovnictvo.models import TypDochodku, AnoNie, Zdroj, TypZakazky, EkonomickaKlasifikacia, Zamestnanec, SystemovySubor
+from uctovnictvo.models import TypDochodku, AnoNie, Zdroj, TypZakazky, EkonomickaKlasifikacia, Zamestnanec 
+from uctovnictvo.models import SystemovySubor, Nepritomnost
 from uctovnictvo.odvody import Poistne
 import re
 from import_export.admin import ImportExportModelAdmin
@@ -51,7 +52,8 @@ typ_dokumentu = {
     InternyPrevod.oznacenie: TypDokumentu.INTERNYPREVOD,
     NajomneFaktura.oznacenie: TypDokumentu.NAJOMNE,
     PrispevokNaRekreaciu.oznacenie: TypDokumentu.REKREACIA,
-    Dokument.oznacenie: TypDokumentu.DOKUMENT 
+    Dokument.oznacenie: TypDokumentu.DOKUMENT ,
+    Nepritomnost.oznacenie: TypDokumentu.NEPRITOMNOST 
 }
 
 #zobrazenie histórie

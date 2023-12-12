@@ -7,7 +7,7 @@ from ipdb import set_trace as trace
 from .models import Dokument, InOut, TypDokumentu, Formular, CerpanieRozpoctu
 from zmluvy.models import ZmluvaAutor, ZmluvaGrafik, VytvarnaObjednavkaPlatba, PlatbaAutorskaSumar
 from uctovnictvo.models import Objednavka, PrijataFaktura, PrispevokNaStravne, DoVP, DoPC, DoBPS, NajomneFaktura
-from uctovnictvo.models import PravidelnaPlatba, InternyPrevod, PrispevokNaRekreaciu
+from uctovnictvo.models import PravidelnaPlatba, InternyPrevod, PrispevokNaRekreaciu, Nepritomnost
 from datetime import datetime
 from django.core.exceptions import ValidationError
 import re
@@ -28,7 +28,8 @@ triedy = {
     PravidelnaPlatba.oznacenie: PravidelnaPlatba,
     InternyPrevod.oznacenie: InternyPrevod,
     PrispevokNaRekreaciu.oznacenie: PrispevokNaRekreaciu,
-    Dokument.oznacenie: Dokument
+    Dokument.oznacenie: Dokument,
+    Nepritomnost.oznacenie: Nepritomnost
 }
 
     #
@@ -54,7 +55,8 @@ def normalizovat_cislo(cislo):
         PravidelnaPlatba.oznacenie.lower(): PravidelnaPlatba.oznacenie,
         InternyPrevod.oznacenie.lower(): InternyPrevod.oznacenie,
         PrispevokNaRekreaciu.oznacenie.lower(): PrispevokNaRekreaciu.oznacenie,
-        Dokument.oznacenie.lower(): Dokument.oznacenie
+        Dokument.oznacenie.lower(): Dokument.oznacenie,
+        Nepritomnost.oznacenie.lower(): Nepritomnost.oznacenie
     }
     aux = parse_cislo(cislo)
     if aux:
