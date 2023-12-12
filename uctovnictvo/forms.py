@@ -294,7 +294,7 @@ class PrispevokNaStravneForm(DennikZaznam):
     def clean(self): 
         if self.instance.po_zamestnancoch: #Sumárna neprítomnosť
             if 'datum_odoslania' in self.changed_data:
-                self.dennik_zaznam(f"Stravné {self.instance.cislo}.", TypDokumentu.PSTRAVNE, InOut.ODOSLANY, "THS", self.instance.po_zamestnancoch.url)
+                self.dennik_zaznam(f"Stravné {self.instance.cislo}.", TypDokumentu.PSTRAVNE, InOut.ODOSLANY, "Mzdová učtáreň", self.instance.po_zamestnancoch.url)
 
 class AutorskeZmluvyForm(forms.ModelForm):
     #inicializácia polí
@@ -635,7 +635,7 @@ class NepritomnostForm(DennikZaznam):
             if 'datum_odoslania' in self.changed_data and not self.instance.subor_nepritomnost_exp:
                 raise ValidationError({"datum_odoslania": "Dátum odoslania možno vyplniť až po vygenerovaní súboru s neprítomnosťou akciou 'Exportovať neprítomnosť pre učtáreň'."})
             if 'datum_odoslania' in self.changed_data:
-                self.dennik_zaznam(f"Neprítomnosť č. {self.instance.cislo}.", TypDokumentu.NEPRITOMNOST, InOut.ODOSLANY, "THS", self.instance.subor_nepritomnost_exp.url)
+                self.dennik_zaznam(f"Neprítomnosť č. {self.instance.cislo}.", TypDokumentu.NEPRITOMNOST, InOut.ODOSLANY, "Mzdová učtáreň", self.instance.subor_nepritomnost_exp.url)
         else: #Individuálna neprítomnosť:
             if self.cleaned_data["nepritomnost_typ"] in [TypNepritomnosti.LEKAR, TypNepritomnosti.LEKARDOPROVOD] and not self.cleaned_data["dlzka_nepritomnosti"]:
                 zamestnanec = self.cleaned_data["zamestnanec"]
