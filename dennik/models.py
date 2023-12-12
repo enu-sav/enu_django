@@ -46,6 +46,7 @@ class TypFormulara(models.TextChoices):
 class SposobDorucenia(models.TextChoices):
     POSTA = 'posta', 'Pošta'
     IPOSTA = 'iposta', 'Interná pošta'
+    IPOSTAMAIL = 'ipostamail', 'Interná pošta + E-mail'
     MAIL = 'mail', 'E-mail'
     OSOBNE = 'osobne', 'Osobne'
     WEB = 'web', 'Web rozhranie'
