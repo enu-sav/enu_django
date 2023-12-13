@@ -225,7 +225,7 @@ def VytvoritKryciList(platba, pouzivatel):
     text=re.sub("<dc:date>[^<]*</dc:date>", f"<dc:date>{timezone.now().strftime('%Y-%m-%dT%H:%M:%S.%f')}</dc:date>", text)
     if type(platba) == NajomneFaktura:
         text = text.replace(f"{lt}popis{gt}", f"Platba č. {platba.cislo_softip}")
-        nazov = platba.zmluva.najomnik.nazov
+        nazov = platba.zmluva.najomnik.nazov.replace("&", "&amp;")
         meno_pola = "Dané na vybavenie dňa"
     else:
         text = text.replace(f"{lt}popis{gt}", "")
@@ -280,7 +280,7 @@ def VytvoritPlatobnyPrikazIP(faktura, pouzivatel):
             text = text.replace(f"{lt}doda_odbe{gt}", "Dodávateľ")
     else:
         return messages.ERROR, "Vytváranie príkazu zlyhalo, lebo nebola zadaná suma.", None
-    text = text.replace(f"{lt}prijimatel{gt}", faktura.partner.nazov)
+    text = text.replace(f"{lt}prijimatel{gt}", faktura.partner.nazov.replace("&", "&amp;"))
     # ulica ne nepovinná (malá obec)
     if faktura.partner.adresa_ulica:
         text = text.replace(f"{lt}adresa1{gt}", faktura.partner.adresa_ulica)
@@ -318,7 +318,7 @@ def VytvoritPlatobnyPrikazIP(faktura, pouzivatel):
     text = text.replace(f"{lt}akt_datum{gt}", timezone.now().strftime("%d. %m. %Y"))
     #ulozit
     #Create directory admin.rs_login if necessary
-    nazov = faktura.partner.nazov
+    nazov = faktura.partner.nazov.replace("&","")
     if "," in nazov: nazov = nazov[:nazov.find(",")]
     nazov = f"{nazov}-{faktura.cislo}.fodt".replace(' ','-').replace("/","-")
     opath = os.path.join(settings.PLATOBNE_PRIKAZY_DIR,nazov)
@@ -414,7 +414,7 @@ def VytvoritPlatobnyPrikaz(faktura, pouzivatel):
     text = text.replace(f"{lt}program{gt}", faktura.program.kod)
     text = text.replace(f"{lt}cinnost{gt}", faktura.cinnost.kod)
     text = text.replace(f"{lt}akt_datum{gt}", timezone.now().strftime("%d. %m. %Y"))
-    text = text.replace(f"{lt}dodavatel{gt}", faktura.objednavka_zmluva.dodavatel.nazov)
+    text = text.replace(f"{lt}dodavatel{gt}", faktura.objednavka_zmluva.dodavatel.nazov.replace("&","&amp;"))
 
     # ulica ne nepovinná (malá obec)
     if faktura.objednavka_zmluva.dodavatel.adresa_ulica:
@@ -460,7 +460,7 @@ def VytvoritPlatobnyPrikaz(faktura, pouzivatel):
 
     #ulozit
     #Create directory admin.rs_login if necessary
-    nazov = faktura.objednavka_zmluva.dodavatel.nazov
+    nazov = faktura.objednavka_zmluva.dodavatel.nazov.replace("&","")
     if "," in nazov: nazov = nazov[:nazov.find(",")]
     nazov = f"{nazov}-{faktura.cislo}.fodt".replace(' ','-').replace("/","-")
     opath = os.path.join(settings.PLATOBNE_PRIKAZY_DIR,nazov)
