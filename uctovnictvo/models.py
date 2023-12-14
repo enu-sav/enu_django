@@ -1717,6 +1717,11 @@ class Nepritomnost(models.Model):
             blank=True,
             null=True
             )
+    poznamka = models.CharField("Poznámka", 
+            max_length=60,
+            blank = True,
+            null=True
+            )
     datum_odoslania = models.DateField('Dátum odoslania',
             help_text = "Zadajte dátum odoslania tabuľky so zoznamom neprítomností. Po zadaní dátumu sa vytvorí záznam v Denníku prijatej a odoslanej pošty",
             blank=True, null=True)
