@@ -47,6 +47,8 @@ class SposobDorucenia(models.TextChoices):
     POSTA = 'posta', 'Pošta'
     IPOSTA = 'iposta', 'Interná pošta'
     IPOSTAMAIL = 'ipostamail', 'Interná pošta + E-mail'
+    OBLAKMAIL = 'oblakmail', 'Na oblak CVČ + E-mail'
+    OBLAK = 'oblak', 'Na oblak CVČ'
     MAIL = 'mail', 'E-mail'
     OSOBNE = 'osobne', 'Osobne'
     WEB = 'web', 'Web rozhranie'
