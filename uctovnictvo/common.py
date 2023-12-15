@@ -889,19 +889,19 @@ def obdobie_nepritomnosti(subor):
 
 
 # generovat jednotlive zaznamy nepritomnosti zamestnancov na zaklade udajov zo suboru
-def generovatNepritomnost(sumarna_nepritomnost):
+def generovatNepritomnost(sumarna_nepritomnost, start_from):
     workbook = load_workbook(filename=sumarna_nepritomnost.subor_nepritomnost.file.name)
     ws = workbook.active
     #ktorý súbor máme?
     if ws["B1"].value == 1 and ws["C1"].value == 2 and ws["D1"].value == 3: #Od Anity
-        return generovatNepritomnostAnita(sumarna_nepritomnost.cislo,ws)
+        return generovatNepritomnostAnita(sumarna_nepritomnost.cislo, start_from,ws)
     elif "Žiadosti o dovolenku a iné prerušenia" in ws["A1"].value:
-        return generovatNepritomnostBiometric(sumarna_nepritomnost.cislo,ws)
+        return generovatNepritomnostBiometric(sumarna_nepritomnost.cislo, start_from,ws)
     else:
         return [f"Neznámy súbor. Údaje o neprítomnosti sa načítajú z prvého hárka"]
 
 # generovat jednotlive zaznamy nepritomnosti zamestnancov na zaklade farebnej tabuky od Anity
-def generovatNepritomnostAnita(cislo,ws):
+def generovatNepritomnostAnita(cislo, start_from,ws):
     def check_value(value):
         if not value: return None
         svalue = value.replace("  "," ").split(" ")
@@ -977,7 +977,7 @@ def generovatNepritomnostAnita(cislo,ws):
                 existujuce = Nepritomnost.objects.filter(zamestnanec=zamestnanec, nepritomnost_typ = typy[ntyp], nepritomnost_od = od)
                 if not existujuce:
                     nepr = Nepritomnost(
-                        cislo = "%s-%02d"%(cislo, npocet+1),
+                        cislo = "%s-%02d"%(cislo, npocet+start_from),
                         zamestnanec = zamestnanec,
                         nepritomnost_typ = typy[ntyp],
                         nepritomnost_od = od,
@@ -992,7 +992,7 @@ def generovatNepritomnostAnita(cislo,ws):
                 existujuce = Nepritomnost.objects.filter(zamestnanec=zamestnanec, nepritomnost_typ = typy[ntyp], nepritomnost_od = od)
                 if not existujuce:
                     nepr = Nepritomnost(
-                        cislo = "%s-%02d"%(cislo, npocet+1),
+                        cislo = "%s-%02d"%(cislo, npocet+start_from),
                         zamestnanec = zamestnanec,
                         nepritomnost_typ = typy[ntyp],
                         nepritomnost_od = od,
@@ -1008,7 +1008,7 @@ def generovatNepritomnostAnita(cislo,ws):
     return zpocet, npocet
 
 # generovat jednotlive zaznamy nepritomnosti zamestnancov na zaklade farebnej tabuky od Anity
-def generovatNepritomnostBiometric(cislo,ws):
+def generovatNepritomnostBiometric(cislo, start_from, ws):
     import holidays
     # V Biotricu je bordel
     def priezvisko_bez():
@@ -1070,7 +1070,7 @@ def generovatNepritomnostBiometric(cislo,ws):
                         upravene_pocet += 1
                 else:
                     nepr = Nepritomnost(
-                        cislo = "%s-%02d"%(cislo, nove_pocet+1),
+                        cislo = "%s-%02d"%(cislo, nove_pocet+start_from),
                         zamestnanec = zamestnanec,
                         nepritomnost_typ = typy[ntyp],
                         nepritomnost_od = od,
@@ -1097,7 +1097,7 @@ def generovatNepritomnostBiometric(cislo,ws):
                         pass
                     else:
                         nepr = Nepritomnost(
-                            cislo = "%s-%02d"%(cislo, nove_pocet+1),
+                            cislo = "%s-%02d"%(cislo, nove_pocet+start_from),
                             zamestnanec = zamestnanec,
                             nepritomnost_typ = typy[ntyp],
                             nepritomnost_od = od,

@@ -1417,12 +1417,9 @@ class NepritomnostAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
             messages.error(request, "Vybrať možno len jednu položku")
             return
         polozka = queryset[0]
-        uz_generovane = Nepritomnost.objects.filter(cislo="%s-01"%polozka.cislo)
-        #if uz_generovane:
-            #messages.error(request, f"Záznamy boli už pre súbor {polozka.cislo} vygenerovane.")
-            #return
+        uz_generovane = Nepritomnost.objects.filter(cislo__startswith="%s-"%polozka.cislo)
         if polozka.subor_nepritomnost:
-            rslt = generovatNepritomnost(polozka)
+            rslt = generovatNepritomnost(polozka, len(uz_generovane)+1)
             if len(rslt) == 1:  #Chyba
                 messages.error(request, rslt[0])
             elif len(rslt) == 2:
