@@ -86,9 +86,12 @@ def nasledujuce_cislo(classname):
         ozn_rok = f"{classname.oznacenie}-{datetime.now().year}-"
         itemlist = classname.objects.filter(cislo__istartswith=ozn_rok).order_by("cislo")
         if itemlist:
-            latest = itemlist.last().cislo
-            nove_cislo = int(re.findall(f"{ozn_rok}([0-9]+)",latest)[0]) + 1
-            return "%s%03d"%(ozn_rok, nove_cislo)
+            #"manuálne" nájsť najväčšie číslo (itemlist je zoradený abecedne)
+            maxnum = 0
+            for item in itemlist:
+                num = int(re.findall(f"{ozn_rok}([0-9]+)",item.cislo)[0]) 
+                maxnum = max(num, maxnum)
+            return "%s%03d"%(ozn_rok, maxnum + 1)
         else:
             #sme v novom roku alebo trieda este nema instanciu
             return f"{ozn_rok}001"
