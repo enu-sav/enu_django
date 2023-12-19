@@ -1204,8 +1204,8 @@ class FyzickaOsoba(PersonCommon):
         return f"{self.priezvisko}{oddelovac}{self.meno}"
 
     def menopriezvisko(self, titul=False):
-        titul_pred = f"{self.titul_pred_menom} " if titul else ""
-        titul_za = f", {self.titul_za_menom} " if titul else ""
+        titul_pred = f"{self.titul_pred_menom} " if titul and self.titul_pred_menom else ""
+        titul_za = f", {self.titul_za_menom} " if titul and self.titul_za_menom else ""
         return f"{titul_pred}{self.meno} {self.priezvisko}{titul_za}"
 
     class Meta:
