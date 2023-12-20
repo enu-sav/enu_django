@@ -34,6 +34,7 @@ class TypDokumentu(models.TextChoices):
     REKREACIA = 'rekreacia', 'Príspevok na rekreáciu'
     DOKUMENT = 'posta', 'Pošta'
     NEPRITOMNOST = 'nepritomnost', 'Neprítomnosť'
+    ODMENA_OPRAVA = 'odmena_oprava', 'Odmena/Oprava'
     INY = 'iny', 'Iný'
 
 # Typy šablón na vyplňovanie. Určuje, zoznam povolených tokenov v šablóne

@@ -456,7 +456,7 @@ class PlatovyVymerForm(PopisZmeny):
         fields = "__all__"
         field_order = ["cislo_zamestnanca", "zamestnanec", "suborvymer", "datum_od", "datum_do", "tarifny_plat", "osobny_priplatok", "funkcny_priplatok", "platova_trieda", "platovy_stupen", "datum_postup", "zamestnanieroky", "zamestnaniedni", "popis_zmeny"]
 
-class OdmenaOpravaForm(forms.ModelForm):
+class OdmenaOpravaForm(DennikZaznam):
     #inicializácia polí
     def __init__(self, *args, **kwargs):
         self.request = kwargs.pop('request', None)
@@ -477,17 +477,15 @@ class OdmenaOpravaForm(forms.ModelForm):
 
     # Skontrolovať platnost a keď je všetko OK, spraviť záznam do denníka
     def clean(self):
-        try:
-            if 'cislo' in self.changed_data:
-                if not self.cleaned_data['cislo'][:3] == OdmenaOprava.oznacenie:
-                    raise ValidationError({"cislo": "Nesprávne číslo. Zadajte číslo novej žiadosti v tvare {OdmenaOprava.oznacenie}-RRRR-NNN"})
-            if "subor_odmeny" in self.changed_data:
-                cislo = self.cleaned_data['cislo']
-                if self.cleaned_data['subor_odmeny'].name.split(".")[-1] == "xlsx":
-                    messages.warning(self.request, f'Do záznamu {cislo} bol pridaný súbor so zoznamom odmien. Vygenerujte pre neho Platobný príkaz a krycí list (akcia "Vytvoriť krycí list"). Pritom sa vytvoria záznamy pre všetky odmeny zo súboru (pre tieto záznamy sa individuálne platobné príkazy negenerujú).')
-        except ValidationError as ex:
-            raise ex
-        return self.cleaned_data
+        if 'datum_kl' in self.changed_data:
+            self.dennik_zaznam(f"Odmena/oprava č. {self.instance.cislo}.", TypDokumentu.ODMENA_OPRAVA, InOut.ODOSLANY, "Mzdová učtáreň", self.instance.subor_kl.url)
+        if 'cislo' in self.changed_data:
+            if not self.cleaned_data['cislo'][:3] == OdmenaOprava.oznacenie:
+                raise ValidationError({"cislo": "Nesprávne číslo. Zadajte číslo novej žiadosti v tvare {OdmenaOprava.oznacenie}-RRRR-NNN"})
+        if "subor_odmeny" in self.changed_data:
+            cislo = self.cleaned_data['cislo']
+            if self.cleaned_data['subor_odmeny'].name.split(".")[-1] == "xlsx":
+                messages.warning(self.request, f'Do záznamu {cislo} bol pridaný súbor so zoznamom odmien. Vygenerujte pre neho Platobný príkaz a krycí list (akcia "Vytvoriť krycí list"). Pritom sa vytvoria záznamy pre všetky odmeny zo súboru (pre tieto záznamy sa individuálne platobné príkazy negenerujú).')
 
 class PrispevokNaRekreaciuForm(forms.ModelForm):
     #inicializácia polí
