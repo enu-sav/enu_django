@@ -179,16 +179,21 @@ def VytvoritKryciListOdmena(platba, pouzivatel):
         nazov = f"Odmeny-{platba.cislo}.fodt"
     else:
         if platba.typ == OdmenaAleboOprava.ODMENA:
-            typ = "odmeny"
+            typ1 = "odmeny"
+            typ2 = "Odmena bude vyplatená"
         if platba.typ == OdmenaAleboOprava.ODCHODNE:
-            typ = "odchodného"
+            typ1 = "odchodného"
+            typ2 = "Odchodné bude vyplatené"
         if platba.typ == OdmenaAleboOprava.ODSTUPNE:
-            typ = "odstupného"
-        text = text.replace(f"{lt}coho{gt}", typ)
+            typ1 = "odstupného"
+            typ2 = "Odstupné bude vyplatené"
+        text = text.replace(f"{lt}coho{gt}", typ1)
+        text = text.replace(f"{lt}cobudevyplatene{gt}", typ2)
         text = text.replace(f"{lt}menotitul{gt}", platba.zamestnanec.menopriezvisko(titul=True))
         text = text.replace(f"{lt}osobnecislo{gt}", platba.zamestnanec.cislo_zamestnanca)
         text = text.replace(f"{lt}odmena1{gt}", str(-platba.suma))
         text = text.replace(f"{lt}dovod{gt}", platba.zdovodnenie)
+        text = text.replace(f"{lt}mesiac{gt}", platba.vyplatene_v_obdobi)
         nazov = f"{platba.zamestnanec.priezviskomeno()}-{platba.cislo}.fodt".replace(' ','-').replace("/","-")
     #ulozit
     opath = os.path.join(settings.ODMENY_DIR,nazov)
