@@ -29,6 +29,7 @@ class OdmenaAleboOprava(models.TextChoices):
     OPRAVATARIF = 'opravatarif', 'Oprava tarifný plat'
     OPRAVAOSOB = 'opravaosob', 'Oprava osobný pr.'
     OPRAVARIAD = 'opravariad', 'Oprava pr. za riadenie'
+    OPRAVAZR = 'opravazr', 'Oprava zrážky'
     ODSTUPNE = 'odstupne', 'Odstupné'
     ODCHODNE = 'odchodne', 'Odchodné'
     DOVOLENKA = 'dovolenka', 'Náhrada mzdy - dovolenka'
