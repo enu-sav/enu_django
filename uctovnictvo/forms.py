@@ -483,7 +483,8 @@ class OdmenaOpravaForm(forms.ModelForm):
                     raise ValidationError({"cislo": "Nesprávne číslo. Zadajte číslo novej žiadosti v tvare {OdmenaOprava.oznacenie}-RRRR-NNN"})
             if "subor_odmeny" in self.changed_data:
                 cislo = self.cleaned_data['cislo']
-                messages.warning(self.request, f'Do záznamu {cislo} bol pridaný súbor so zoznamom odmien. Vygenerujte pre neho Platobný príkaz a krycí list (akcia "Vytvoriť krycí list"). Pritom sa vytvoria záznamy pre všetky odmeny zo súboru (pre tieto záznamy sa individuálne platobné príkazy negenerujú).')
+                if self.cleaned_data['subor_odmeny'].name.split(".")[-1] == "xlsx":
+                    messages.warning(self.request, f'Do záznamu {cislo} bol pridaný súbor so zoznamom odmien. Vygenerujte pre neho Platobný príkaz a krycí list (akcia "Vytvoriť krycí list"). Pritom sa vytvoria záznamy pre všetky odmeny zo súboru (pre tieto záznamy sa individuálne platobné príkazy negenerujú).')
         except ValidationError as ex:
             raise ex
         return self.cleaned_data

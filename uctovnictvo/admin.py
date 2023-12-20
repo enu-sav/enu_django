@@ -1501,7 +1501,7 @@ class OdmenaOpravaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
         if polozka.subor_kl:
             self.message_user(request, f"Krycí list už bol vytvorený, opakovanie nie je možné", messages.ERROR)
             #return
-        if polozka.typ in [OdmenaAleboOprava.OPRAVATARIF, OdmenaAleboOprava.OPRAVARIAD, OdmenaAleboOprava.OPRAVAOSOB]:
+        if polozka.typ in [OdmenaAleboOprava.OPRAVATARIF, OdmenaAleboOprava.OPRAVARIAD, OdmenaAleboOprava.OPRAVAOSOB, OdmenaAleboOprava.OPRAVAZR]:
             self.message_user(request, f"Krycí list sa pre opravy nevytvára.", messages.ERROR)
             return
         #overiť, či nejde o generovaný záznam
@@ -1509,7 +1509,7 @@ class OdmenaOpravaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
         if cisla:
             self.message_user(request, f"Položka {polozka.cislo} je súčasťou {cisla[0][0]}. Samostatný krycí list na nevytvára.", messages.ERROR)
             return
-        if polozka.subor_odmeny:
+        if polozka.subor_odmeny and polozka.subor_odmeny.file.name.split(".")[-1] == "xlsx": 
             rslt = generovatIndividualneOdmeny(polozka)
             if len(rslt) == 1:  #Chyba
                 self.message_user(request, rslt[0], messages.ERROR)
@@ -1519,7 +1519,6 @@ class OdmenaOpravaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
                 self.message_user(request, f"Vygenerované boli individuálne záznamy o odmenách: počet {pocet}, celková suma {celkova_suma} €.",messages.INFO)
                 if celkova_suma != -float(polozka.suma):
                     self.message_user(request, f"Zadaná suma {polozka.suma} € nesúhlasí so súčtom jednotlivých odmien {celkova_suma} € v súbore.",messages.ERROR)
-                    return
 
         status, msg, vytvoreny_subor = VytvoritKryciListOdmena(polozka, request.user)
         if status != messages.ERROR:
