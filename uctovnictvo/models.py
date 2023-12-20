@@ -29,6 +29,7 @@ class OdmenaAleboOprava(models.TextChoices):
     OPRAVATARIF = 'opravatarif', 'Oprava tarifný plat'
     OPRAVAOSOB = 'opravaosob', 'Oprava osobný pr.'
     OPRAVARIAD = 'opravariad', 'Oprava pr. za riadenie'
+    OPRAVAZR = 'opravazr', 'Oprava zrážky'
     ODSTUPNE = 'odstupne', 'Odstupné'
     ODCHODNE = 'odchodne', 'Odchodné'
     DOVOLENKA = 'dovolenka', 'Náhrada mzdy - dovolenka'
@@ -1184,8 +1185,8 @@ class FyzickaOsoba(PersonCommon):
         return f"{self.priezvisko}{oddelovac}{self.meno}"
 
     def menopriezvisko(self, titul=False):
-        titul_pred = f"{self.titul_pred_menom} " if titul else ""
-        titul_za = f", {self.titul_za_menom} " if titul else ""
+        titul_pred = f"{self.titul_pred_menom} " if titul and self.titul_pred_menom else ""
+        titul_za = f", {self.titul_za_menom} " if titul and self.titul_za_menom else ""
         return f"{titul_pred}{self.meno} {self.priezvisko}{titul_za}"
 
     class Meta:
@@ -1773,8 +1774,8 @@ class OdmenaOprava(Klasifikacia):
             blank=True, 
             null=True
             )
-    subor_odmeny = models.FileField("Súbor so zoznamom odmien",
-            help_text = "XLSX súbor so zoznamom odmien.<br />Po vygenerovaní krycieho listu sa vytvoria záznamy jednotlivo pre všetkých odmenených. Ak sa záznam s takýmto súborom zmaže,tak sa zmažú aj všetky s ním súvisiace záznamy.",
+    subor_odmeny = models.FileField("Súbor so zoznamom odmien alebo dôvodom",
+            help_text = "XLSX súbor so zoznamom odmien.<br />Po vygenerovaní krycieho listu sa vytvoria záznamy jednotlivo pre všetkých odmenených. Ak sa záznam s takýmto súborom zmaže,tak sa zmažú aj všetky s ním súvisiace záznamy. <br />Dôvod (napr. udelenie odmeny P sav) prikladať ako PDF súbor.",
             upload_to=odmena_upload_location,
             blank=True, 
             null=True
@@ -1814,16 +1815,19 @@ class OdmenaOprava(Klasifikacia):
         errors={}
         if self.typ == OdmenaAleboOprava.ODMENA and not self.zamestnanec:
             errors["zamestnanec"] = "Pole 'Zamestnanec' nebolo vyplnené."
-        if self.typ == OdmenaAleboOprava.ODMENAS and not self.subor_odmeny:
+        if self.typ == OdmenaAleboOprava.ODMENAS.value and not self.subor_odmeny:
             errors["subor_odmeny"] = "Pole 'Súbor so zozmamom odmien' nebolo vyplnené."
         if self.typ in [OdmenaAleboOprava.ODMENA, OdmenaAleboOprava.ODMENAS, OdmenaAleboOprava.ODCHODNE, OdmenaAleboOprava.ODSTUPNE] and self.suma >= 0:
             errors["suma"] = "Suma odmeny, odchodného a odstupného musí byť záporná"
         if self.vyplatene_v_obdobi:
             if not OdmenaOprava.check_vyplatene_v(self.vyplatene_v_obdobi):
                 errors["vyplatene_v_obdobi"] = "Údaj v poli 'Vyplatené v' musí byť v tvare MM/RRRR (napr. 07/2022)"
-        if self.subor_odmeny:
-            if self.subor_odmeny.name.split(".")[-1] != "xlsx":
-                errors["subor_odmeny"] = "Súbor so zoznamom odmien musí byť vo formáte xlsx."
+        if self.typ == OdmenaAleboOprava.ODMENAS.value and self.subor_odmeny:
+            if not self.subor_odmeny.name.split(".")[-1] in ["xlsx"]:
+                errors["subor_odmeny"] = "Súbor so zoznamom odmien musí byť vo formáte xlsx"
+        elif self.subor_odmeny:
+            if not self.subor_odmeny.name.split(".")[-1] in ["pdf", "PDF"]:
+                errors["subor_odmeny"] = "Súbor s dôvodom musí byť vo formáte pdf."
         if errors:
             raise ValidationError(errors)
 
