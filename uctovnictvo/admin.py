@@ -892,11 +892,20 @@ class RozpoctovaPolozkaDotaciaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, Simple
         ('suma', Sum),
     ]
     def get_readonly_fields(self, request, obj=None):
-        return [ "cislo", "suma", "ekoklas", "zakazka", "zdroj", "cinnost"] if obj else []
+        return [ "cislo", "za_rok", "suma", "ekoklas", "zakazka", "zdroj", "cinnost"] if obj else []
 
     # Zoradiť položky v pulldown menu
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         return formfield_for_foreignkey(self, db_field, request, **kwargs)
+
+    # do AdminForm pridať request, aby v jej __init__ bolo request dostupné
+    def get_form(self, request, obj=None, **kwargs):
+        AdminForm = super(RozpoctovaPolozkaDotaciaAdmin, self).get_form(request, obj, **kwargs)
+        class AdminFormMod(AdminForm):
+            def __new__(cls, *args, **kwargs):
+                kwargs['request'] = request
+                return AdminForm(*args, **kwargs)
+        return AdminFormMod
 
     def delete_queryset(self, request, queryset):
         for qq in queryset:

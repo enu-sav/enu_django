@@ -746,6 +746,54 @@ class RozpoctovaPolozkaDotaciaForm(forms.ModelForm):
             self.fields[polecislo].help_text = f"Zadajte číslo položky v tvare {RozpoctovaPolozkaDotacia.oznacenie}-RRRR-NNN. Predvolené číslo '{nasledujuce}' bolo určené na základe čísel existujúcich položiek ako nasledujúce v poradí.<br />Ak v poli 'Za rok' zadáte nasledujúci rok, po uložení sa číslo automaticky zmení na nasledujúce číslo budúceho roku."
             self.initial[polecislo] = nasledujuce
 
+    def clean(self):
+        if "suma" in self.changed_data:
+            suma = self.cleaned_data['suma']
+            # upraviť alebo vytvoriť súvisiacu rozpočtovú položku
+            qs = RozpoctovaPolozka.objects.filter(
+                za_rok=self.cleaned_data["za_rok"],
+                zdroj=self.cleaned_data["zdroj"],
+                program=self.instance.program,  #Bol zrušený, v Djangu ho stále máme
+                zakazka=self.cleaned_data["zakazka"],
+                cinnost=self.cleaned_data["cinnost"],
+                ekoklas=self.cleaned_data["ekoklas"]
+            )
+            if qs:  #Aktualizovať rozpočtovú položku
+                qs[0].suma = qs[0].suma + suma if qs[0].suma else suma
+                qs[0].save()
+                #takto to nefunguje, treba spravit v models.py
+                #self.cleaned_data["rozpoctovapolozka"] = qs[0]
+                #self.changed_data.append("rozpoctovapolozka")
+                fhtml = format_html(
+                    'Suma rozpočtovej položky {} bola zmenená na {} €.',
+                    mark_safe(f'<a href="/admin/uctovnictvo/rozpoctovapolozka/{qs[0].id}/change/">{qs[0].cislo}</a>'),
+                    qs[0].suma
+                )
+                messages.warning(self.request, fhtml)
+            else:   #Vytvoriť rozpočtovú položku
+                polozka = RozpoctovaPolozka(
+                    cislo = nasledujuce_cislo(RozpoctovaPolozka, self.cleaned_data["za_rok"]),
+                    zdroj=self.cleaned_data["zdroj"],
+                    program=self.instance.program,  #Bol zrušený, v Djangu ho stále máme
+                    zakazka=self.cleaned_data["zakazka"],
+                    cinnost=self.cleaned_data["cinnost"],
+                    ekoklas=self.cleaned_data["ekoklas"],
+                    za_rok=self.cleaned_data["za_rok"],
+                    suma=suma
+                    )
+                polozka.save()
+                #takto to nefunguje, treba spravit v models.py
+                #self.cleaned_data["rozpoctovapolozka"] = polozka
+                #self.changed_data.append("rozpoctovapolozka")
+                messages.warning(self.request, 
+                    format_html(
+                        'Vytvorená bola nová rozpočtová položka {} so sumou {} €.',
+                        mark_safe(f'<a href="/admin/uctovnictvo/rozpoctovapolozka/{polozka.id}/change/">{polozka.cislo}</a>.'),
+                        suma
+                    )
+                )
+        return self.cleaned_data
+
 class NajomneFakturaForm(forms.ModelForm):
     #inicializácia polí
     def __init__(self, *args, **kwargs):
@@ -822,7 +870,7 @@ class NajomneFakturaForm(forms.ModelForm):
                     mark_safe(f'<a href="/admin/dennik/dokument/{dok.id}/change/">{cislo}</a>'),
                     vec
                     )
-        )
+            )
         return self.cleaned_data
 
 class PokladnaForm(forms.ModelForm):

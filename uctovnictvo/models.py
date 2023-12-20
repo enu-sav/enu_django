@@ -976,7 +976,7 @@ class RozpoctovaPolozkaDotacia(Klasifikacia):
         #zmeniť číslo položky, ak súvisí s nasledujúcim rokom
         if int(re.findall(r"-(....)-", self.cislo)[0]) != self.za_rok:
             self.cislo = nasledujuce_cislo(RozpoctovaPolozkaDotacia, self.za_rok)
-        # upraviť súvisiacu rozpočtovú položku
+        # pridať súvisiacu rozpočtovú položku (nepodarilo sa RozpoctovaPolozkaDotaciaForm.clean)
         qs = RozpoctovaPolozka.objects.filter(
                 za_rok=self.za_rok,
                 zdroj=self.zdroj,
@@ -985,27 +985,7 @@ class RozpoctovaPolozkaDotacia(Klasifikacia):
                 cinnost=self.cinnost,
                 ekoklas=self.ekoklas
             )
-        #trace()
-        if qs:
-            if qs[0].suma:
-                qs[0].suma += self.suma
-            else:
-                qs[0].suma = self.suma
-            qs[0].save()
-            self.rozpoctovapolozka = qs[0]
-        else:
-            polozka = RozpoctovaPolozka(
-                cislo = nasledujuce_cislo(RozpoctovaPolozka, self.za_rok),
-                zdroj=self.zdroj,
-                program=self.program,
-                zakazka=self.zakazka,
-                cinnost=self.cinnost,
-                ekoklas=self.ekoklas,
-                za_rok=self.za_rok,
-                suma=self.suma,
-                )
-            polozka.save()
-            self.rozpoctovapolozka = polozka
+        self.rozpoctovapolozka = qs[0]
 
     class Meta:
         verbose_name = 'Dotácia'
