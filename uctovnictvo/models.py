@@ -76,9 +76,14 @@ def nasledujuce_cislo(classname, rok=None):
             ozn_rok = f"{classname.oznacenie}-{datetime.now().year}-"
         itemlist = classname.objects.filter(cislo__istartswith=ozn_rok).order_by("cislo")
         if itemlist:
-            latest = itemlist.last().cislo
-            nove_cislo = int(re.findall(f"{ozn_rok}([0-9]+)",latest)[0]) + 1
-            return "%s%03d"%(ozn_rok, nove_cislo)
+            # Takto podivne nájsť posledné číslo, lebo order_by zlyhá pri počte väčšom ako 1000
+            # a posledná položka v itemlist má číslo 999
+            nove_cislo = 0
+            for item in itemlist:
+                akt_cislo = int(re.findall(f"{ozn_rok}([0-9]+)",item.cislo)[0])
+                if akt_cislo > nove_cislo:
+                    nove_cislo = akt_cislo
+            return "%s%03d"%(ozn_rok, nove_cislo+1)
         else:
             #sme v novom roku alebo trieda este nema instanciu
             return f"{ozn_rok}001"
