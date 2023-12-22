@@ -725,7 +725,7 @@ class PravidelnaPlatba(FakturaPravidelnaPlatba):
         if self.uhradene_dna:
             datum_uhradenia = self.uhradene_dna
         elif self.dane_na_uhradu:
-            datum_uhradenia = self.datum_uhradenia
+            datum_uhradenia = self.dane_na_uhradu
         else:
             datum_uhradenia = self.splatnost_datum
         if datum_uhradenia <zden: return []
