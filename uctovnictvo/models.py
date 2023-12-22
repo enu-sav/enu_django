@@ -599,14 +599,15 @@ class InternyPrevod(Platba, Klasifikacia):
 
     #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
     def cerpanie_rozpoctu(self, zden):
-        if not self.doslo_datum: return []
-        if self.doslo_datum <zden: return []
+        if not self.doslo_datum and not self.uhradene_dna: return []
+        datum_uhradenia = self.uhradene_dna if self.uhradene_dna else self.doslo_datum
+        if datum_uhradenia <zden: return []
         kdatum =  date(zden.year, zden.month+1, zden.day) if zden.month+1 <= 12 else  date(zden.year+1, 1, 1)
-        if self.doslo_datum >= kdatum: return []
+        if datum_uhradenia >= kdatum: return []
         platba = {
                 "nazov":f"Interný prevod",
                 "suma": self.suma,
-                "datum": self.doslo_datum,
+                "datum": datum_uhradenia,
                 "cislo": self.cislo,
                 "subjekt": self.partner.nazov,
                 "zdroj": self.zdroj,
@@ -665,10 +666,11 @@ class PrijataFaktura(FakturaPravidelnaPlatba):
 
     #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
     def cerpanie_rozpoctu(self, zden):
-        if not self.dane_na_uhradu: return []
-        if self.dane_na_uhradu <zden: return []
+        if not self.dane_na_uhradu and not self.uhradene_dna: return []
+        datum_uhradenia = self.uhradene_dna if self.uhradene_dna else self.dane_na_uhradu
+        if datum_uhradenia <zden: return []
         kdatum =  date(zden.year, zden.month+1, zden.day) if zden.month+1 <= 12 else  date(zden.year+1, 1, 1)
-        if self.dane_na_uhradu >= kdatum: return []
+        if datum_uhradenia >= kdatum: return []
         typ = "zmluva" if type(self.objednavka_zmluva) == Zmluva else "objednávka" if type(self.objednavka_zmluva) == Objednavka else "rozhodnutie" 
         if self.mena != Mena.EUR and not self.suma: 
             suma = float(self.sumacm) / priblizny_kurz[self.mena]
@@ -679,7 +681,7 @@ class PrijataFaktura(FakturaPravidelnaPlatba):
         platba1 = {
                 "nazov":f"Faktúra {typ}",
                 "suma": round(Decimal(float(suma)*(100-float(podiel2))/100),2),
-                "datum": self.dane_na_uhradu,
+                "datum": datum_uhradenia,
                 "cislo": self.cislo,
                 "subjekt": self.adresat_text(),
                 "zdroj": self.zdroj,
@@ -690,7 +692,7 @@ class PrijataFaktura(FakturaPravidelnaPlatba):
             platba2 = {
                 "nazov":f"Faktúra {typ}",
                 "suma": round(Decimal(float(suma)*(float(podiel2))/100),2),
-                "datum": self.dane_na_uhradu,
+                "datum": datum_uhradenia,
                 "cislo": self.cislo,
                 "subjekt": self.adresat_text(),
                 "zdroj": self.zdroj2,
@@ -720,14 +722,20 @@ class PravidelnaPlatba(FakturaPravidelnaPlatba):
 
     #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
     def cerpanie_rozpoctu(self, zden):
-        if self.splatnost_datum <zden: return []
+        if self.uhradene_dna:
+            datum_uhradenia = self.uhradene_dna
+        elif self.dane_na_uhradu:
+            datum_uhradenia = self.datum_uhradenia
+        else:
+            datum_uhradenia = self.splatnost_datum
+        if datum_uhradenia <zden: return []
         kdatum =  date(zden.year, zden.month+1, zden.day) if zden.month+1 <= 12 else  date(zden.year+1, 1, 1)
-        if self.splatnost_datum >= kdatum: return []
+        if datum_uhradenia >= kdatum: return []
         nazov = "Faktúra záloha" if self.typ == TypPP.ZALOHA_EL_ENERGIA else ""
         platba = {
                 "nazov":nazov,
                 "suma": self.suma,
-                "datum": self.dane_na_uhradu,
+                "datum": datum_uhradenia,
                 "subjekt": f"{self.adresat_text()}, (za {zden.year}/{zden.month})", 
                 "cislo": self.cislo,
                 "zdroj": self.zdroj,
