@@ -460,7 +460,7 @@ class ZmluvaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, Impo
 #class PrijataFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
 class PrijataFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
     form = PrijataFakturaForm
-    list_display = ["cislo", "objednavka_zmluva_link", "url_faktury", "suma", "sadzbadph", "prenosDP", "podiel2", "predmet", "platobny_prikaz", "dane_na_uhradu", "mena", "zdroj", "zakazka", "zdroj2", "zakazka2", "ekoklas"]
+    list_display = ["cislo", "objednavka_zmluva_link", "url_faktury", "suma", "sadzbadph", "prenosDP", "podiel2", "predmet", "platobny_prikaz", "dane_na_uhradu", "uhradene_dna", "mena", "zdroj", "zakazka", "zdroj2", "zakazka2", "ekoklas"]
     search_fields = ["^cislo","objednavka_zmluva__dodavatel__nazov", "predmet", "^zdroj__kod", "^zakazka__kod", "^ekoklas__kod", "^ekoklas__nazov",  "^cinnost__kod", "cinnost__nazov" ]
 
     # zoraďovateľný odkaz na dodávateľa
@@ -634,7 +634,7 @@ class PrijataFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdm
 #class PravidelnaPlatbaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
 class PravidelnaPlatbaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
     form = PravidelnaPlatbaForm
-    list_display = ["cislo", "typ", "objednavka_zmluva_link", "suma", "platobny_prikaz", "splatnost_datum", "dane_na_uhradu", "zdroj", "zakazka", "ekoklas"]
+    list_display = ["cislo", "typ", "objednavka_zmluva_link", "suma", "platobny_prikaz", "splatnost_datum", "dane_na_uhradu", "uhradene_dna", "zdroj", "zakazka", "ekoklas"]
     search_fields = ["^cislo","typ", "objednavka_zmluva__dodavatel__nazov", "^zdroj__kod", "^zakazka__kod", "^ekoklas__kod" ]
     def get_readonly_fields(self, request, obj=None):
         if obj:
@@ -697,7 +697,7 @@ class PravidelnaPlatbaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryA
 #class InternyPrevodAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
 class InternyPrevodAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
     form = InternyPrevodForm
-    list_display = ["cislo", "partner_link", "suma", "predmet", "na_zaklade", "platobny_prikaz", "doslo_datum", "splatnost_datum", "dane_na_uhradu", "zdroj", "zakazka", "ekoklas"]
+    list_display = ["cislo", "partner_link", "suma", "predmet", "na_zaklade", "platobny_prikaz", "doslo_datum", "splatnost_datum", "dane_na_uhradu", "uhradene_dna", "zdroj", "zakazka", "ekoklas"]
     search_fields = ["^cislo", "partner__nazov", "^zdroj__kod", "^zakazka__kod", "^ekoklas__kod" ]
     def get_readonly_fields(self, request, obj=None):
         if obj:

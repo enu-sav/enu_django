@@ -541,6 +541,9 @@ class Platba(models.Model):
     dane_na_uhradu = models.DateField('Dané na úhradu dňa',
             help_text = 'Zadajte dátum odovzdania podpísaného platobného príkazu a krycieho listu na sekretariát na odoslanie THS. <br />Vytvorí sa záznam v <a href="/admin/dennik/dokument/">denníku prijatej a odoslanej pošty</a>.',
             blank=True, null=True)
+    uhradene_dna = models.DateField('Uhradené dňa',
+            help_text = 'Zadajte dátum uhradenia učtárňou (podľa výpisu zo Softipu a tak podobne',
+            blank=True, null=True)
     splatnost_datum = models.DateField('Dátum splatnosti',
             null=True)
     suma = models.DecimalField("Suma", 
