@@ -16,6 +16,7 @@ PERCENTAGE_VALIDATOR = [MinValueValidator(0), MaxValueValidator(100)]
 from beliana.settings import TMPLTS_DIR_NAME, PLATOVE_VYMERY_DIR, DOHODY_DIR, PRIJATEFAKTURY_DIR, PLATOBNE_PRIKAZY_DIR, STRAVNE_HOD
 from beliana.settings import ODVODY_VYNIMKA, DAN_Z_PRIJMU, OBJEDNAVKY_DIR, STRAVNE_DIR, REKREACIA_DIR
 from beliana.settings import PN1, PN2, BEZ_PRIKAZU_DIR, DDS_PRISPEVOK, ODMENY_DIR, NEPRITOMNOST_DIR, SOCFOND_PRISPEVOK
+from beliana.settings import VYSTAVENEFAKTURY_DIR
 import os,re
 from datetime import timedelta, date, datetime
 from dateutil.relativedelta import relativedelta
@@ -626,7 +627,7 @@ def prijata_faktura_upload_location(instance, filename):
 class PrijataFaktura(FakturaPravidelnaPlatba):
     oznacenie = "Fa"    #v čísle faktúry, Fa-2021-123
     # Polia
-    dcislo = models.CharField("Dodávateľské číslo faktúry", 
+    dcislo = models.CharField("Číslo faktúry dodávateľa", 
             blank=True, 
             null=True,
             max_length=50)
@@ -708,6 +709,70 @@ class PrijataFaktura(FakturaPravidelnaPlatba):
         verbose_name_plural = 'Faktúry - Prijaté faktúry'
     def __str__(self):
         return f'Faktúra k "{self.objednavka_zmluva}" : {self.suma} €'
+
+def vystavena_faktura_upload_location(instance, filename):
+    return os.path.join(VYSTAVENEFAKTURY_DIR, filename)
+class VystavenaFaktura(FakturaPravidelnaPlatba):
+    oznacenie = "Vf"    #v čísle faktúry, Vf-2021-123
+    # Polia
+    dcislo = models.CharField("Číslo faktúry odberateĺa", 
+            blank=True, 
+            null=True,
+            max_length=50)
+    predmet = models.CharField("Predmet", 
+            max_length=100)
+    doslo_datum = models.DateField('Došlo dňa',
+            null=True)
+    na_zaklade = models.FileField("Na základe",
+            help_text = "Dokument (faktúra), na základe ktorého sa faktúra vystavuje.",
+            upload_to=vystavena_faktura_upload_location, 
+            blank = True,
+            null = True)
+    history = HistoricalRecords()
+
+    def clean(self):
+        if type(self.objednavka_zmluva) == PrijataFaktura and self.objednavka_zmluva.platna_do and self.splatnost_datum > self.objednavka_zmluva.platna_do:
+            raise ValidationError({'objednavka_zmluva': f"Faktúra nemôže byť vytvorená, lebo zmluva {self.objednavka_zmluva} je platná len do {self.objednavka_zmluva.platna_do}."})
+        super(VystavenaFaktura, self).clean()
+
+    #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
+    def cerpanie_rozpoctu(self, zden):
+        if not self.dane_na_uhradu and not self.uhradene_dna: return []
+        datum_uhradenia = self.uhradene_dna if self.uhradene_dna else self.dane_na_uhradu
+        if datum_uhradenia <zden: return []
+        kdatum =  date(zden.year, zden.month+1, zden.day) if zden.month+1 <= 12 else  date(zden.year+1, 1, 1)
+        if datum_uhradenia >= kdatum: return []
+        suma = self.suma
+
+        podiel2 = self.podiel2 if self.podiel2 else 0.0
+        platba1 = {
+                "nazov":f"Vystavená faktúra",
+                "suma": round(Decimal(float(suma)*(100-float(podiel2))/100),2),
+                "datum": datum_uhradenia,
+                "cislo": self.cislo,
+                "subjekt": self.adresat_text(),
+                "zdroj": self.zdroj,
+                "zakazka": self.zakazka,
+                "ekoklas": self.ekoklas
+                }
+        if podiel2 > 0:
+            platba2 = {
+                "nazov":f"Vystavená faktúra",
+                "suma": round(Decimal(float(suma)*(float(podiel2))/100),2),
+                "datum": datum_uhradenia,
+                "cislo": self.cislo,
+                "subjekt": self.adresat_text(),
+                "zdroj": self.zdroj2,
+                "zakazka": self.zakazka2,
+                "ekoklas": self.ekoklas
+                }
+        return [platba1, platba2] if podiel2 > 0 else [platba1] 
+
+    class Meta:
+        verbose_name = 'Vystavená faktúra'
+        verbose_name_plural = 'Faktúry - Vystavené faktúry'
+    def __str__(self):
+        return f'Vystavená faktúra k "{self.objednavka_zmluva}" : {self.suma} €'
 
 class PravidelnaPlatba(FakturaPravidelnaPlatba):
     oznacenie = "PP"    #v čísle faktúry, Fa-2021-123

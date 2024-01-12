@@ -18,7 +18,7 @@ from .models import Najomnik, NajomnaZmluva, NajomneFaktura, TypPP, TypPN, Cinno
 from .models import InternyPartner, InternyPrevod, Nepritomnost, RozpoctovaPolozka, RozpoctovaPolozkaDotacia
 from .models import RozpoctovaPolozkaPresun, PlatbaBezPrikazu, Pokladna, TypPokladna, SadzbaDPH
 from .models import nasledujuce_cislo, nasledujuce_VPD, SocialnyFond, PrispevokNaRekreaciu, OdmenaOprava, OdmenaAleboOprava
-from .models import TypNepritomnosti, Stravne
+from .models import TypNepritomnosti, Stravne, VystavenaFaktura
 from .common import VytvoritPlatobnyPrikaz, VytvoritSuborDohody, VytvoritSuborObjednavky, leapdays
 from .common import VytvoritKryciList, VytvoritKryciListRekreacia, generovatIndividualneOdmeny
 from .common import zmazatIndividualneOdmeny, generovatNepritomnost, exportovatNepritomnostUct, VytvoritKryciListOdmena, generovatStravne
@@ -27,7 +27,7 @@ from .forms import PrijataFakturaForm, AutorskeZmluvyForm, ObjednavkaForm, Zmluv
 from .forms import PlatovyVymerForm, NajomneFakturaForm, NajomnaZmluvaForm, PlatbaBezPrikazuForm
 from .forms import DoPCForm, DoVPForm, DoBPSForm, VyplacanieDohodForm
 from .forms import InternyPrevodForm, NepritomnostForm, RozpoctovaPolozkaDotaciaForm, RozpoctovaPolozkaPresunForm, RozpoctovaPolozkaForm
-from .forms import PokladnaForm, SocialnyFondForm, PrispevokNaRekreaciuForm, OdmenaOpravaForm
+from .forms import PokladnaForm, SocialnyFondForm, PrispevokNaRekreaciuForm, OdmenaOpravaForm, VystavenaFakturaForm
 from .rokydni import datum_postupu, vypocet_prax, vypocet_zamestnanie, postup_roky, roky_postupu
 from beliana.settings import DPH, MEDIA_ROOT, MEDIA_URL, UVAZOK_TYZDENNE
 from dennik.models import Dokument, TypDokumentu, InOut
@@ -61,7 +61,7 @@ def formfield_for_foreignkey(instance, db_field, request, **kwargs):
         kwargs["queryset"] = NajomnaZmluva.objects.filter().order_by(Collate('najomnik__nazov', 'nocase'))
     if db_field.name == "dodavatel" and instance.model in [Objednavka, Rozhodnutie, Zmluva]:
         kwargs["queryset"] = Dodavatel.objects.filter().order_by(Collate('nazov', 'nocase'))
-    if db_field.name == "objednavka_zmluva" and instance.model in [PrijataFaktura, PravidelnaPlatba]:
+    if db_field.name == "objednavka_zmluva" and instance.model in [VystavenaFaktura, PrijataFaktura, PravidelnaPlatba]:
         kwargs["queryset"] = ObjednavkaZmluva.objects.filter().order_by(Collate('dodavatel__nazov', 'nocase'))
     if db_field.name == "zamestnanec" and instance.model in [PlatovyVymer, Nepritomnost, Pokladna, PrispevokNaRekreaciu, OdmenaOprava]:
         kwargs["queryset"] = Zamestnanec.objects.filter().order_by(Collate('priezvisko', 'nocase'))
@@ -622,6 +622,165 @@ class PrijataFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdm
     # do AdminForm pridať request, aby v jej __init__ bolo request dostupné
     def get_form(self, request, obj=None, **kwargs):
         AdminForm = super(PrijataFakturaAdmin, self).get_form(request, obj, **kwargs)
+        class AdminFormMod(AdminForm):
+            def __new__(cls, *args, **kwargs):
+                kwargs['request'] = request
+                return AdminForm(*args, **kwargs)
+        return AdminFormMod
+
+@admin.register(VystavenaFaktura)
+#medzi  ModelAdminTotals a ImportExportModelAdmin je konflikt
+#zobrazia sa Import Export tlačidlá alebo súčty
+#class VystavenaFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
+class VystavenaFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
+    form = VystavenaFakturaForm
+    list_display = ["cislo", "objednavka_zmluva_link", "url_faktury", "suma", "sadzbadph", "predmet", "platobny_prikaz", "dane_na_uhradu", "uhradene_dna", "zdroj", "zakazka", "zdroj2", "zakazka2", "ekoklas"]
+    search_fields = ["^cislo","objednavka_zmluva__dodavatel__nazov", "predmet", "^zdroj__kod", "^zakazka__kod", "^ekoklas__kod", "^ekoklas__nazov",  "^cinnost__kod", "cinnost__nazov" ]
+
+    # zoraďovateľný odkaz na dodávateľa
+    # umožnené prostredníctvom AdminChangeLinksMixin
+    # Vyžaduje, aby ObjednavkaZmluva zmluva bola PolymorphicModel
+    change_links = [
+        ('objednavka_zmluva', {
+            'label': "Objednávka, zmluva, rozhodnutie",
+            'admin_order_field': 'objednavka_zmluva__cislo', # Allow to sort members by the `xxx_link` column
+        })
+    ] 
+    list_totals = [
+        ('suma', Sum),
+    ]
+    actions = ['vytvorit_platobny_prikaz', 'duplikovat_zaznam']
+
+    # Zoradiť položky v pulldown menu
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        return formfield_for_foreignkey(self, db_field, request, **kwargs)
+
+    # formátovať pole url_zmluvy
+    def url_faktury(self, obj):
+        #trace()
+        if obj.na_zaklade:
+            suffix = obj.na_zaklade.name.split(".")[-1]        
+            ddir = obj.na_zaklade.name.split("/")[0]        
+            return format_html(f'<a href="{obj.na_zaklade.url}" target="_blank">{ddir}/***.{suffix}</a>')
+        else:
+            return None
+    url_faktury.short_description = "Prijatá faktúra"
+
+    #obj is None during the object creation, but set to the object being edited during an edit
+    #"platobny_prikaz" je generovaný, preto je vždy readonly
+    def get_readonly_fields(self, request, obj=None):
+        if not obj:
+            return ["program", "platobny_prikaz", "dane_na_uhradu"]
+        elif obj.dane_na_uhradu:
+            nearly_all = ["program", "doslo_datum"] 
+            nearly_all += ["splatnost_datum", "dane_na_uhradu"]
+            return nearly_all
+        elif not obj.platobny_prikaz:   #ešte nebola spustená akcia
+            return ["program", "cislo", "platobny_prikaz", "dane_na_uhradu"]
+        else:   #všetko hotové, možno odoslať, ale stále možno aj editovať
+            return ["program", "cislo"]
+
+    def vytvorit_platobny_prikaz(self, request, queryset):
+        if len(queryset) != 1:
+            self.message_user(request, f"Vybrať možno len jednu položku", messages.ERROR)
+            return
+        faktura = queryset[0]
+        if faktura.dane_na_uhradu:
+            self.message_user(request, f"Faktúra už bola daná na úhradu, vytváranie platobného príkazu nie je možné", messages.ERROR)
+            return
+        status, msg, vytvoreny_subor = VytvoritPlatobnyPrikaz(faktura, request.user)
+        if status != messages.ERROR:
+            #faktura.dane_na_uhradu = timezone.now()
+            faktura.platobny_prikaz = vytvoreny_subor
+            faktura.save()
+        self.message_user(request, msg, status)
+
+    vytvorit_platobny_prikaz.short_description = "Vytvoriť platobný príkaz a krycí list pre THS"
+    #Oprávnenie na použitie akcie, viazané na 'change'
+    vytvorit_platobny_prikaz.allowed_permissions = ('change',)
+
+    def duplikovat_zaznam(self, request, queryset):
+        if len(queryset) != 1:
+            self.message_user(request, f"Vybrať možno len jednu položku", messages.ERROR)
+            return
+        stara = queryset[0]
+        if not stara.dane_na_uhradu:
+            self.message_user(request, f"Faktúra {stara.cislo} ešte nebola daná na uhradenie. Duplikovať možno len uhradené faktúry.", messages.ERROR)
+            return
+        nc = nasledujuce_cislo(VystavenaFaktura)
+        nova_faktura = VystavenaFaktura.objects.create(
+                cislo = nc,
+                program = Program.objects.get(id=4),    #nealokovaný
+                ekoklas = stara.ekoklas,
+                zakazka = stara.zakazka,
+                zdroj = stara.zdroj,
+                zakazka2 = stara.zakazka2,
+                zdroj2 = stara.zdroj2,
+                podiel2 = stara.podiel2,
+                cinnost = stara.cinnost,
+                predmet = stara.predmet,
+                sadzbadph = stara.sadzbadph,
+                objednavka_zmluva = stara.objednavka_zmluva
+            )
+        nova_faktura.save()
+        self.message_user(request, f"Vytvorená bola nová faktúra dodávateľa '{nova_faktura.objednavka_zmluva.dodavatel.nazov}' číslo '{nc}', aktualizujte polia", messages.SUCCESS)
+        vec = f"Faktúra {nc}"
+        cislo_posta = nasledujuce_cislo(Dokument)
+        dok = Dokument(
+            cislo = cislo_posta,
+            cislopolozky = nc,
+            datumvytvorenia = date.today(),
+            typdokumentu = TypDokumentu.VYSTAVENAFAKTURA,
+            inout = InOut.PRIJATY,
+            adresat = stara.adresat_text(),
+            #vec = f'<a href="{self.instance.platobny_prikaz.url}">{vec}</a>',
+            vec = vec,
+            prijalodoslal=request.user.username, #zámena mien prijalodoslal - zaznamvytvoril
+        )
+        dok.save()
+        messages.warning(request, 
+            format_html(
+                'Do denníka prijatej a odoslanej pošty bol pridaný záznam č. {}: <em>{}</em>, treba v ňom doplniť údaje o prijatí.',
+                mark_safe(f'<a href="/admin/dennik/dokument/{dok.id}/change/">{cislo_posta}</a>'),
+                vec
+                )
+        )
+
+    duplikovat_zaznam.short_description = "Duplikovať faktúru"
+    #Oprávnenie na použitie akcie, viazané na 'change'
+    duplikovat_zaznam.allowed_permissions = ('change',)
+
+    def save_model(self, request, obj, form, change):
+        #Ak sa vytvára nový záznam, do denníka pridať záznam o prijatej pošte
+        if not VystavenaFaktura.objects.filter(cislo=obj.cislo):  #Faktúra ešte nie je v databáze
+            vec = f"Vystavená faktúra {obj.cislo}"
+            cislo_posta = nasledujuce_cislo(Dokument)
+            dok = Dokument(
+                cislo = cislo_posta,
+                cislopolozky = obj.cislo,
+                #datumvytvorenia = self.cleaned_data['doslo_datum'],
+                datumvytvorenia = date.today(),
+                typdokumentu = TypDokumentu.VYSTAVENAFAKTURA,
+                inout = InOut.PRIJATY,
+                adresat = obj.adresat_text(),
+                #vec = f'<a href="{self.instance.platobny_prikaz.url}">{vec}</a>',
+                vec = vec,
+                prijalodoslal=request.user.username, #zámena mien prijalodoslal - zaznamvytvoril
+            )
+            dok.save()
+            messages.warning(request, 
+                format_html(
+                    'Do denníka prijatej a odoslanej pošty bol pridaný záznam č. {}: <em>{}</em>, treba v ňom doplniť údaje o prijatí.',
+                    mark_safe(f'<a href="/admin/dennik/dokument/{dok.id}/change/">{cislo_posta}</a>'),
+                    vec
+                    )
+            )
+            pass
+        super(VystavenaFakturaAdmin, self).save_model(request, obj, form, change)
+
+    # do AdminForm pridať request, aby v jej __init__ bolo request dostupné
+    def get_form(self, request, obj=None, **kwargs):
+        AdminForm = super(VystavenaFakturaAdmin, self).get_form(request, obj, **kwargs)
         class AdminFormMod(AdminForm):
             def __new__(cls, *args, **kwargs):
                 kwargs['request'] = request

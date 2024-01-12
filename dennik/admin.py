@@ -14,7 +14,7 @@ from uctovnictvo.models import Objednavka, PrijataFaktura, PrispevokNaStravne, D
 from uctovnictvo.models import PlatovyVymer, PravidelnaPlatba, NajomneFaktura, InternyPrevod, Poistovna
 from uctovnictvo.models import RozpoctovaPolozka, PlatbaBezPrikazu, Pokladna, PrispevokNaRekreaciu, OdmenaOprava
 from uctovnictvo.models import TypDochodku, AnoNie, Zdroj, TypZakazky, EkonomickaKlasifikacia, Zamestnanec 
-from uctovnictvo.models import SystemovySubor, Nepritomnost
+from uctovnictvo.models import SystemovySubor, Nepritomnost, VystavenaFaktura
 from uctovnictvo.odvody import Poistne
 import re
 from import_export.admin import ImportExportModelAdmin
@@ -43,6 +43,7 @@ typ_dokumentu = {
     VytvarnaObjednavkaPlatba.oznacenie: TypDokumentu.VOBJEDNAVKA,
     Objednavka.oznacenie: TypDokumentu.OBJEDNAVKA,
     PrijataFaktura.oznacenie: TypDokumentu.FAKTURA,
+    VystavenaFaktura.oznacenie: TypDokumentu.VYSTAVENAFAKTURA,
     PrispevokNaStravne.oznacenie: TypDokumentu.ZMLUVA,
     DoPC.oznacenie: TypDokumentu.DoPC,
     DoVP.oznacenie: TypDokumentu.DoVP,
@@ -239,7 +240,8 @@ class CerpanieRozpoctuAdmin(ModelAdminTotals):
         md1list = [date(rok, mm+1, 1) for mm in range(12)]
         md1list.append(date(rok+1, 1, 1))
 
-        typyOstatne = [PravidelnaPlatba, PrijataFaktura, PlatbaAutorskaSumar, VytvarnaObjednavkaPlatba, NajomneFaktura, RozpoctovaPolozka, PlatbaBezPrikazu, Pokladna, PrispevokNaRekreaciu,InternyPrevod]
+        typyOstatne = [PravidelnaPlatba, PrijataFaktura, VystavenaFaktura, PlatbaAutorskaSumar, VytvarnaObjednavkaPlatba, NajomneFaktura, 
+                       RozpoctovaPolozka, PlatbaBezPrikazu, Pokladna, PrispevokNaRekreaciu, InternyPrevod]
 
         cerpanie_spolu = defaultdict(dict) # Obsah cerpanie_spolu zapísať do databázy a do hárka Prehľad
         polozky_riadok = [] #individuálne položky do hárka Položky

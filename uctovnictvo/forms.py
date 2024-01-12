@@ -6,7 +6,7 @@ from ipdb import set_trace as trace
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 from .models import nasledujuce_cislo, nasledujuce_VPD, nasledujuce_PPD, nasledujuce_Zmluva
-from .models import PrijataFaktura, Objednavka, PrispevokNaStravne, DoPC, DoVP, DoBPS, PlatovyVymer
+from .models import PrijataFaktura, Objednavka, PrispevokNaStravne, DoPC, DoVP, DoBPS, PlatovyVymer, VystavenaFaktura
 from .models import VyplacanieDohod, StavDohody, Dohoda, PravidelnaPlatba, TypPP, InternyPrevod, Nepritomnost, TypNepritomnosti
 from .models import Najomnik, NajomnaZmluva, NajomneFaktura, TypPN, RozpoctovaPolozkaDotacia, RozpoctovaPolozkaPresun, RozpoctovaPolozka, Zmluva
 from .models import PlatbaBezPrikazu, Pokladna, TypPokladna, SocialnyFond, PrispevokNaRekreaciu, OdmenaOprava
@@ -123,6 +123,40 @@ class PrijataFakturaForm(DennikZaznam):
         #"Vytvoriť platobný príkaz a krycí list pre THS"
         if 'dane_na_uhradu' in self.changed_data:
             self.dennik_zaznam(f"Platobný príkaz na THS {self.instance.cislo} na vyplatenie", TypDokumentu.FAKTURA, InOut.ODOSLANY, "THS", self.instance.platobny_prikaz.url)
+        return self.cleaned_data
+
+class VystavenaFakturaForm(DennikZaznam):
+    #inicializácia polí
+    def __init__(self, *args, **kwargs):
+        # do Admin treba pridať metódu get_form
+        self.request = kwargs.pop('request', None)
+        super().__init__(*args, **kwargs)
+        #trieda VystavenaFaktura dedí od triedy Platba, tak tu nastavíme help text
+        self.fields['zdroj'].help_text = f"Primárny zdroj platby a súvisiacej DPH"
+        self.fields['zakazka'].help_text = f"Primárna zákazka platby a súvisiacej DPH"
+        polecislo = "cislo"
+        # Ak je pole readonly, tak sa nenachádza vo fields. Preto testujeme fields aj initial
+        if polecislo in self.fields:
+            if not polecislo in self.initial:
+                nasledujuce = nasledujuce_cislo(VystavenaFaktura)
+                self.fields[polecislo].help_text = f"Zadajte číslo novej faktúry v tvare {VystavenaFaktura.oznacenie}-RRRR-NNN. Predvolené číslo '{nasledujuce}' bolo určené na základe čísiel existujúcich faktúr ako nasledujúce v poradí."
+                self.initial[polecislo] = nasledujuce
+            else: 
+                self.fields[polecislo].help_text = f"Číslo faktúry v tvare {VystavenaFaktura.oznacenie}-RRRR-NNN."
+        self.fields['suma'].help_text = f"Vložte sumu s DPH."
+        self.fields['uhradene_dna'].help_text = f"Vložte dátum uhradenia faktúry odberateľom"
+
+    # Skontrolovať platnost a keď je všetko OK, spraviť záznam do denníka
+    def clean(self):
+        if 'suma' in self.changed_data and self.cleaned_data['suma'] <= 0:
+            raise ValidationError({"suma": "Suma vo vystavenej faktúre musí byť kladná (ide o príjem)."})
+        if 'cislo' in self.changed_data:
+            if not self.cleaned_data['cislo'][:2] == VystavenaFaktura.oznacenie:
+                raise ValidationError({"cislo": "Nesprávne číslo. Zadajte číslo novej faktúry v tvare {VystavenaFaktura.oznacenie}-RRRR-NNN"})
+        #pole dane_na_uhradu možno vyplniť až po vygenerovani platobného príkazu akciou 
+        #"Vytvoriť platobný príkaz a krycí list pre THS"
+        if 'dane_na_uhradu' in self.changed_data:
+            self.dennik_zaznam(f"Platobný príkaz na THS {self.instance.cislo} na vyplatenie", TypDokumentu.VYSTAVENAFAKTURA, InOut.ODOSLANY, "THS", self.instance.platobny_prikaz.url)
         return self.cleaned_data
 
 class InternyPrevodForm(forms.ModelForm):

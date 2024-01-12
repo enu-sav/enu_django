@@ -9,7 +9,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.utils import timezone
 from django.utils.html import format_html
-from .models import SystemovySubor, PrijataFaktura, AnoNie, Objednavka, PrijataFaktura, Rozhodnutie, Zmluva
+from .models import SystemovySubor, PrijataFaktura, AnoNie, Objednavka, VystavenaFaktura, Rozhodnutie, Zmluva
 from .models import DoVP, DoPC, DoBPS, Poistovna, TypDochodku, Mena, PravidelnaPlatba, TypPP, TypPokladna, Pokladna
 from .models import NajomneFaktura, PrispevokNaRekreaciu, Zamestnanec, OdmenaOprava, OdmenaAleboOprava, TypNepritomnosti, Nepritomnost
 from .models import PlatovaStupnica, Stravne, mesiace_num, PlatovyVymer, Mesiace
@@ -302,7 +302,6 @@ def VytvoritPlatobnyPrikazIP(faktura, pouzivatel):
     text = text.replace(f"{lt}doslo_dna{gt}", faktura.doslo_datum.strftime("%d. %m. %Y"))
     text = text.replace(f"{lt}datum_splatnosti{gt}", 
             faktura.splatnost_datum.strftime("%d. %m. %Y") if faktura.splatnost_datum else "")
-    #text = text.replace(f"{lt}predmet_faktury{gt}", faktura.predmet if jePF else TypPP(faktura.typ).label)
     text = text.replace(f"{lt}pouzivatel{gt}", pouzivatel.get_full_name())
 
     text = text.replace(f"{lt}ekoklas{gt}", faktura.ekoklas.kod)
@@ -341,6 +340,7 @@ def VytvoritPlatobnyPrikaz(faktura, pouzivatel):
     gt="]]"
 
     jePF = type(faktura) == PrijataFaktura
+    jeVF = type(faktura) == VystavenaFaktura
 
     #Načítať súbor šablóny
     nazov_objektu = "Šablóna platobný príkaz"  #Presne takto musí byť objekt pomenovaný
@@ -392,6 +392,23 @@ def VytvoritPlatobnyPrikaz(faktura, pouzivatel):
             text = text.replace(f"{lt}suma2{gt}", f"{locale_format(round((faktura.podiel2)*suma/100,2))} {mena}")
         else:
             text = text.replace(f"{lt}suma2{gt}", f"0 {mena}")
+        text = text.replace(f"{lt}dodavatel_faktura{gt}", faktura.dcislo if faktura.dcislo else "")
+        text = text.replace(f"{lt}doslo_dna{gt}", faktura.doslo_datum.strftime("%d. %m. %Y") if faktura.doslo_datum else "" )
+        text = text.replace(f"{lt}predmet_faktury{gt}", faktura.predmet)
+    elif jeVF:
+        suma = -faktura.suma    # suma je kladná, vo formulári chceme zápornú (ide o príjem)
+        mena = "€"
+        text = text.replace(f"{lt}DM{gt}", f"{locale_format(suma)} €")
+        text = text.replace(f"{lt}CM{gt}", "")
+        text = text.replace(f"{lt}suma1{gt}", f"{locale_format(round((1-faktura.podiel2/100)*suma,2))} {mena}")
+        if faktura.podiel2 > 0:
+            text = text.replace(f"{lt}suma2{gt}", f"{locale_format(round((faktura.podiel2)*suma/100,2))} {mena}")
+        else:
+            text = text.replace(f"{lt}suma2{gt}", f"0 {mena}")
+        text = text.replace(f"{lt}PDP{gt}", "Nie")
+        text = text.replace(f"{lt}dodavatel_faktura{gt}", faktura.dcislo if faktura.dcislo else "")
+        text = text.replace(f"{lt}doslo_dna{gt}", faktura.doslo_datum.strftime("%d. %m. %Y") if faktura.doslo_datum else "" )
+        text = text.replace(f"{lt}predmet_faktury{gt}", faktura.predmet)
     else:   #PravidelnaPlatba, len v EUR
         suma = -faktura.suma
         mena = "€"
@@ -403,6 +420,9 @@ def VytvoritPlatobnyPrikaz(faktura, pouzivatel):
         else:
             text = text.replace(f"{lt}suma2{gt}", f"0 {mena}")
         text = text.replace(f"{lt}PDP{gt}", "Nie")
+        text = text.replace(f"{lt}dodavatel_faktura{gt}", "")
+        text = text.replace(f"{lt}doslo_dna{gt}", "" )
+        text = text.replace(f"{lt}predmet_faktury{gt}", TypPP(faktura.typ).label)
 
     text = text.replace(f"{lt}ekoklas{gt}", faktura.ekoklas.kod)
     text = text.replace(f"{lt}zdroj1{gt}", faktura.zdroj.kod)
@@ -434,13 +454,8 @@ def VytvoritPlatobnyPrikaz(faktura, pouzivatel):
         return messages.ERROR, "Vytváranie príkazu zlyhalo, lebo adresa dodávateľa je nekompletná (štát).", None
     else:
         text = text.replace(f"{lt}adresa3{gt}", faktura.objednavka_zmluva.dodavatel.adresa_stat)
-    text = text.replace(f"{lt}dodavatel_faktura{gt}", 
-            faktura.dcislo if jePF and faktura.dcislo else "")
-    text = text.replace(f"{lt}doslo_dna{gt}", 
-            faktura.doslo_datum.strftime("%d. %m. %Y") if jePF and faktura.doslo_datum else "" )
     text = text.replace(f"{lt}datum_splatnosti{gt}", 
             faktura.splatnost_datum.strftime("%d. %m. %Y") if faktura.splatnost_datum else "")
-    text = text.replace(f"{lt}predmet_faktury{gt}", faktura.predmet if jePF else TypPP(faktura.typ).label)
     text = text.replace(f"{lt}pouzivatel{gt}", pouzivatel.get_full_name())
 
     if type(faktura.objednavka_zmluva) == Objednavka:

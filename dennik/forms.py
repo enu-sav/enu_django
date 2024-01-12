@@ -8,6 +8,7 @@ from .models import Dokument, InOut, TypDokumentu, Formular, CerpanieRozpoctu
 from zmluvy.models import ZmluvaAutor, ZmluvaGrafik, VytvarnaObjednavkaPlatba, PlatbaAutorskaSumar
 from uctovnictvo.models import Objednavka, PrijataFaktura, PrispevokNaStravne, DoVP, DoPC, DoBPS, NajomneFaktura
 from uctovnictvo.models import PravidelnaPlatba, InternyPrevod, PrispevokNaRekreaciu, Nepritomnost
+from uctovnictvo.models import VystavenaFaktura
 from datetime import datetime
 from django.core.exceptions import ValidationError
 import re
@@ -19,6 +20,7 @@ triedy = {
     VytvarnaObjednavkaPlatba.oznacenie: VytvarnaObjednavkaPlatba,
     Objednavka.oznacenie: Objednavka,
     PrijataFaktura.oznacenie: PrijataFaktura,
+    VystavenaFaktura.oznacenie: VystavenaFaktura,
     PrispevokNaStravne.oznacenie: PrispevokNaStravne,
     DoPC.oznacenie: DoPC,
     DoVP.oznacenie: DoVP,
@@ -46,6 +48,7 @@ def normalizovat_cislo(cislo):
         VytvarnaObjednavkaPlatba.oznacenie.lower(): VytvarnaObjednavkaPlatba.oznacenie,
         Objednavka.oznacenie.lower(): Objednavka.oznacenie,
         PrijataFaktura.oznacenie.lower(): PrijataFaktura.oznacenie,
+        VystavenaFaktura.oznacenie.lower(): VystavenaFaktura.oznacenie,
         PrispevokNaStravne.oznacenie.lower(): PrispevokNaStravne.oznacenie,
         DoPC.oznacenie.lower(): DoPC.oznacenie,
         DoVP.oznacenie.lower(): DoVP.oznacenie,
