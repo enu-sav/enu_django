@@ -143,8 +143,8 @@ class VystavenaFakturaForm(DennikZaznam):
                 self.initial[polecislo] = nasledujuce
             else: 
                 self.fields[polecislo].help_text = f"Číslo faktúry v tvare {VystavenaFaktura.oznacenie}-RRRR-NNN."
-        self.fields['suma'].help_text = f"Vložte sumu s DPH."
-        self.fields['uhradene_dna'].help_text = f"Vložte dátum uhradenia faktúry odberateľom"
+        if 'suma' in self.fields: self.fields['suma'].help_text = f"Vložte sumu s DPH."
+        if 'uhradene_dna' in self.fields: self.fields['uhradene_dna'].help_text = f"Vložte dátum uhradenia faktúry odberateľom"
 
     # Skontrolovať platnost a keď je všetko OK, spraviť záznam do denníka
     def clean(self):
