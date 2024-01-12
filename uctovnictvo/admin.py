@@ -496,13 +496,13 @@ class PrijataFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdm
     #"platobny_prikaz" je generovaný, preto je vždy readonly
     def get_readonly_fields(self, request, obj=None):
         if not obj:
-            return ["program", "platobny_prikaz", "dane_na_uhradu"]
+            return ["program", "platobny_prikaz", "dane_na_uhradu", "uhradene_dna"]
+        elif not obj.platobny_prikaz:   #ešte nebola spustená akcia
+            return ["program", "cislo", "platobny_prikaz", "dane_na_uhradu", "uhradene_dna"]
         elif obj.dane_na_uhradu:
             nearly_all = ["program", "doslo_datum"] 
             nearly_all += ["splatnost_datum", "mena", "dane_na_uhradu"]
             return nearly_all
-        elif not obj.platobny_prikaz:   #ešte nebola spustená akcia
-            return ["program", "cislo", "platobny_prikaz", "dane_na_uhradu"]
         else:   #všetko hotové, možno odoslať, ale stále možno aj editovať
             return ["program", "cislo"]
 
@@ -670,13 +670,13 @@ class VystavenaFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryA
     #"platobny_prikaz" je generovaný, preto je vždy readonly
     def get_readonly_fields(self, request, obj=None):
         if not obj:
-            return ["program", "platobny_prikaz", "dane_na_uhradu"]
+            return ["program", "platobny_prikaz", "dane_na_uhradu", "uhradene_dna"]
+        elif not obj.platobny_prikaz:   #ešte nebola spustená akcia
+            return ["program", "cislo", "platobny_prikaz", "dane_na_uhradu", "uhradene_dna"]
         elif obj.dane_na_uhradu:
             nearly_all = ["program", "doslo_datum"] 
             nearly_all += ["splatnost_datum", "dane_na_uhradu"]
             return nearly_all
-        elif not obj.platobny_prikaz:   #ešte nebola spustená akcia
-            return ["program", "cislo", "platobny_prikaz", "dane_na_uhradu"]
         else:   #všetko hotové, možno odoslať, ale stále možno aj editovať
             return ["program", "cislo"]
 
