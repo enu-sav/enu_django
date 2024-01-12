@@ -725,7 +725,10 @@ class VystavenaFaktura(FakturaPravidelnaPlatba):
     na_zaklade = models.FileField("Na základe",
             help_text = "Dokument (faktúra), na základe ktorého sa faktúra vystavuje.",
             upload_to=vystavena_faktura_upload_location, 
-            blank = True,
+            null = True)
+    zo_softipu = models.FileField("Faktúra zo Softipu",
+            help_text = "Faktúra pre odberateľa, vytvorená v Softipe",
+            upload_to=vystavena_faktura_upload_location, 
             null = True)
     history = HistoricalRecords()
 

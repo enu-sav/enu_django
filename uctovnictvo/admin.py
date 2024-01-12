@@ -634,7 +634,7 @@ class PrijataFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdm
 #class VystavenaFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
 class VystavenaFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
     form = VystavenaFakturaForm
-    list_display = ["cislo", "objednavka_zmluva_link", "url_faktury", "suma", "sadzbadph", "predmet", "platobny_prikaz", "dane_na_uhradu", "uhradene_dna", "zdroj", "zakazka", "zdroj2", "zakazka2", "ekoklas"]
+    list_display = ["cislo", "objednavka_zmluva_link", "url_faktury", "url_softip", "suma", "sadzbadph", "predmet", "platobny_prikaz", "dane_na_uhradu", "uhradene_dna", "zdroj", "zakazka", "zdroj2", "zakazka2", "ekoklas"]
     search_fields = ["^cislo","objednavka_zmluva__dodavatel__nazov", "predmet", "^zdroj__kod", "^zakazka__kod", "^ekoklas__kod", "^ekoklas__nazov",  "^cinnost__kod", "cinnost__nazov" ]
 
     # zoraďovateľný odkaz na dodávateľa
@@ -660,11 +660,23 @@ class VystavenaFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryA
         #trace()
         if obj.na_zaklade:
             suffix = obj.na_zaklade.name.split(".")[-1]        
+            fname = obj.na_zaklade.name.split("/")[-1].split(".")[-2][:7]
             ddir = obj.na_zaklade.name.split("/")[0]        
-            return format_html(f'<a href="{obj.na_zaklade.url}" target="_blank">{ddir}/***.{suffix}</a>')
+            return format_html(f'<a href="{obj.na_zaklade.url}" target="_blank">VF/{fname}***.{suffix}</a>')
         else:
             return None
-    url_faktury.short_description = "Prijatá faktúra"
+    url_faktury.short_description = "Na základe"
+
+    # formátovať pole zo_softipu
+    def url_softip(self, obj):
+        if obj.na_zaklade:
+            suffix = obj.zo_softipu.name.split(".")[-1]        
+            fname = obj.zo_softipu.name.split("/")[-1].split(".")[-2][:7]
+            ddir = obj.zo_softipu.name.split("/")[0]        
+            return format_html(f'<a href="{obj.zo_softipu.url}" target="_blank">VF/{fname}***.{suffix}</a>')
+        else:
+            return None
+    url_softip.short_description = "Zo Softipu"
 
     #obj is None during the object creation, but set to the object being edited during an edit
     #"platobny_prikaz" je generovaný, preto je vždy readonly
