@@ -716,7 +716,6 @@ class VystavenaFaktura(FakturaPravidelnaPlatba):
     oznacenie = "Vf"    #v čísle faktúry, Vf-2021-123
     # Polia
     dcislo = models.CharField("Číslo faktúry odberateĺa", 
-            blank=True, 
             null=True,
             max_length=50)
     predmet = models.CharField("Predmet", 
