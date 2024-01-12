@@ -245,6 +245,7 @@ class CerpanieRozpoctuAdmin(ModelAdminTotals):
 
         cerpanie_spolu = defaultdict(dict) # Obsah cerpanie_spolu zapísať do databázy a do hárka Prehľad
         polozky_riadok = [] #individuálne položky do hárka Položky
+        items_failed = set()  #Chyby cerpanie_rozpoctu
         for zden in md1list[:-1]:    # po mesiacoch
             #Načítať jednotlivé položky
             cerpanie_mzdove = generovat_mzdove(request, zden, rekapitulacia=False)
@@ -252,8 +253,10 @@ class CerpanieRozpoctuAdmin(ModelAdminTotals):
             for typ in typyOstatne:
                 for polozka in typ.objects.filter():
                     data = polozka.cerpanie_rozpoctu(zden)
-                    cerpanie_ostatne += data
-
+                    if type(data) == str: 
+                        if f"{typ.oznacenie}-{rok}" in data: items_failed.add(data)
+                    else:
+                        cerpanie_ostatne += data
             #Vytvoriť sumárne
             for item in cerpanie_mzdove+cerpanie_ostatne:
                 #na rozlíšenie podtypov poistenia
@@ -277,6 +280,9 @@ class CerpanieRozpoctuAdmin(ModelAdminTotals):
                     cerpanie_spolu[identif]['suma'] += item['suma']
                 if 'poznamka' in  item:
                     messages.warning(request, format_html(item['poznamka']))
+        for msg in items_failed:
+            messages.warning(request, format_html(msg))
+
 
         #Obsah poľa polozky_riadok zapísať do hárka Položky
         nazvy = ["Názov", "Suma", "Subjekt", "Dátum", "Číslo", "Zdroj", "Zákazka", "Klasifikácia"]

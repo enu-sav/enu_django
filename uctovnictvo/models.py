@@ -9,6 +9,7 @@ from uctovnictvo.storage import OverwriteStorage
 from .rokydni import mesiace, koef_neodprac_dni, prekryv_dni, prac_dni
 from polymorphic.models import PolymorphicModel
 from django.utils.safestring import mark_safe
+from django.urls import reverse
 from decimal import Decimal
 from django.core.validators import MinValueValidator, MaxValueValidator
 PERCENTAGE_VALIDATOR = [MinValueValidator(0), MaxValueValidator(100)]
@@ -206,6 +207,13 @@ class TypPN(models.TextChoices):
     NAJOMNE = 'najomne', 'Nájomné'
     SLUZBY = 'sluzby', 'Služby spojené s prenájmom'
     VYUCTOVANIE = 'vyuctovanie', 'Vyúčtovanie služieb'
+
+class GetAdminURL():
+    def get_admin_url(self):
+        # the url to the Django admin form for the model instance
+        info = (self._meta.app_label, self._meta.model_name)
+        url = reverse('admin:%s_%s_change' % info, args=(self.pk,))
+        return mark_safe(f'<a href="{url}">{self.cislo}</a>')
 
 class Zdroj(models.Model):
     kod = models.CharField("Kód", 
@@ -581,7 +589,7 @@ class FakturaPravidelnaPlatba(Platba, Klasifikacia2):
     class Meta:
         abstract = True
 
-class InternyPrevod(Platba, Klasifikacia):
+class InternyPrevod(Platba, Klasifikacia, GetAdminURL):
     oznacenie = "IP"    #v čísle faktúry, IP-2021-123
     partner = models.ForeignKey(InternyPartner,
             on_delete=models.PROTECT, 
@@ -600,7 +608,10 @@ class InternyPrevod(Platba, Klasifikacia):
 
     #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
     def cerpanie_rozpoctu(self, zden):
-        if not self.doslo_datum and not self.uhradene_dna: return []
+        if not self.doslo_datum and not self.uhradene_dna: 
+            f1 = self._meta.get_field('doslo_datum').verbose_name
+            f2 = self._meta.get_field('uhradene_dna').verbose_name
+            return f"Prijatá faktúra {self.get_admin_url()} musí mať vyplnené aspoň jedno z polí <em>{f1}</em> alebo <em>{f2}</em>." 
         datum_uhradenia = self.uhradene_dna if self.uhradene_dna else self.doslo_datum
         if datum_uhradenia <zden: return []
         kdatum =  date(zden.year, zden.month+1, zden.day) if zden.month+1 <= 12 else  date(zden.year+1, 1, 1)
@@ -624,7 +635,7 @@ class InternyPrevod(Platba, Klasifikacia):
 
 def prijata_faktura_upload_location(instance, filename):
     return os.path.join(PRIJATEFAKTURY_DIR, filename)
-class PrijataFaktura(FakturaPravidelnaPlatba):
+class PrijataFaktura(FakturaPravidelnaPlatba, GetAdminURL):
     oznacenie = "Fa"    #v čísle faktúry, Fa-2021-123
     # Polia
     dcislo = models.CharField("Číslo faktúry dodávateľa", 
@@ -664,10 +675,12 @@ class PrijataFaktura(FakturaPravidelnaPlatba):
             raise ValidationError(f"Ak je faktúra v režime prenesenia daňovej povinnosti, tak Sadzba DPH nemôže byť 0 %")
         super(PrijataFaktura, self).clean()
 
-
     #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
     def cerpanie_rozpoctu(self, zden):
-        if not self.dane_na_uhradu and not self.uhradene_dna: return []
+        if not self.dane_na_uhradu and not self.uhradene_dna: 
+            f1 = self._meta.get_field('dane_na_uhradu').verbose_name
+            f2 = self._meta.get_field('uhradene_dna').verbose_name
+            return f"{self._meta.verbose_name} {self.get_admin_url()} musí mať vyplnené aspoň jedno z polí <em>{f1}</em> alebo <em>{f2}</em>." 
         datum_uhradenia = self.uhradene_dna if self.uhradene_dna else self.dane_na_uhradu
         if datum_uhradenia <zden: return []
         kdatum =  date(zden.year, zden.month+1, zden.day) if zden.month+1 <= 12 else  date(zden.year+1, 1, 1)
@@ -712,7 +725,7 @@ class PrijataFaktura(FakturaPravidelnaPlatba):
 
 def vystavena_faktura_upload_location(instance, filename):
     return os.path.join(VYSTAVENEFAKTURY_DIR, filename)
-class VystavenaFaktura(FakturaPravidelnaPlatba):
+class VystavenaFaktura(FakturaPravidelnaPlatba, GetAdminURL):
     oznacenie = "Vf"    #v čísle faktúry, Vf-2021-123
     # Polia
     dcislo = models.CharField("Číslo faktúry odberateĺa", 
@@ -739,7 +752,10 @@ class VystavenaFaktura(FakturaPravidelnaPlatba):
 
     #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
     def cerpanie_rozpoctu(self, zden):
-        if not self.dane_na_uhradu and not self.uhradene_dna: return []
+        if not self.dane_na_uhradu and not self.uhradene_dna: 
+            f1 = self._meta.get_field('dane_na_uhradu').verbose_name
+            f2 = self._meta.get_field('uhradene_dna').verbose_name
+            return f"{self._meta.verbose_name} {self.get_admin_url()} musí mať vyplnené aspoň jedno z polí <em>{f1}</em> alebo <em>{f2}</em>." 
         datum_uhradenia = self.uhradene_dna if self.uhradene_dna else self.dane_na_uhradu
         if datum_uhradenia <zden: return []
         kdatum =  date(zden.year, zden.month+1, zden.day) if zden.month+1 <= 12 else  date(zden.year+1, 1, 1)
@@ -776,7 +792,7 @@ class VystavenaFaktura(FakturaPravidelnaPlatba):
     def __str__(self):
         return f'Vystavená faktúra k "{self.objednavka_zmluva}" : {self.suma} €'
 
-class PravidelnaPlatba(FakturaPravidelnaPlatba):
+class PravidelnaPlatba(FakturaPravidelnaPlatba, GetAdminURL):
     oznacenie = "PP"    #v čísle faktúry, Fa-2021-123
     # Polia
     history = HistoricalRecords()
@@ -789,6 +805,11 @@ class PravidelnaPlatba(FakturaPravidelnaPlatba):
 
     #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
     def cerpanie_rozpoctu(self, zden):
+        if not self.dane_na_uhradu and not self.uhradene_dna and not self.splatnost_datum: 
+            f1 = self._meta.get_field('dane_na_uhradu').verbose_name
+            f2 = self._meta.get_field('uhradene_dna').verbose_name
+            f3 = self._meta.get_field('splatnost_datum').splatnost_datum
+            return f"{self._meta.verbose_name} {self.get_admin_url()} musí mať vyplnené aspoň jedno z polí <em>{f1}</em>, <em>{f2}</em> alebo <em>{f3}</em>." 
         if self.uhradene_dna:
             datum_uhradenia = self.uhradene_dna
         elif self.dane_na_uhradu:
@@ -878,7 +899,7 @@ class NajomnaZmluva(models.Model):
     def __str__(self):
         return f"{self.najomnik} - {self.cislo}"
 
-def najomne_faktura_upload_location(instance, filename):
+def najomne_faktura_upload_location(instance, filename, GetAdminURL):
     return os.path.join(NAJOMNEFAKTURY_DIR, filename)
 class NajomneFaktura(Klasifikacia):
     # Polia
@@ -934,7 +955,9 @@ class NajomneFaktura(Klasifikacia):
 
     #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
     def cerpanie_rozpoctu(self, zden):
-        if not self.splatnost_datum: return []
+        if not self.splatnost_datum:
+            f1 = self._meta.get_field('splatnost_datum').verbose_name
+            return f"{self._meta.verbose_name} {self.get_admin_url()} musí mať vyplnené  pole <em>{f1}</em>." 
         if self.splatnost_datum <zden: return []
         #if self.splatnost_datum >= date(zden.year, zden.month+1, zden.day): return []
         kdatum =  date(zden.year, zden.month+1, zden.day) if zden.month+1 <= 12 else  date(zden.year+1, 1, 1)

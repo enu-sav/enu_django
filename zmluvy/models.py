@@ -5,6 +5,7 @@ from django.contrib import messages
 from ipdb import set_trace as trace
 from zmluvy.storage import OverwriteStorage
 from django.utils.safestring import mark_safe
+from django.urls import reverse
 
 from beliana.settings import CONTRACTS_DIR_NAME, RLTS_DIR_NAME, TMPLTS_DIR_NAME, TAX_AGMT_DIR_NAME
 import os,re
@@ -27,6 +28,13 @@ class StavZmluvy(models.TextChoices):
     VRATENA_OD_AUTORA = "vratena_od_autora", "Vrátená od autora"
     ZVEREJNENA_V_CRZ = "zverejnena_v_crz", "Platná / Zverejnená v CRZ" #Nemusí byť v CRZ, ak bola uzatvorená pred r. 2012
     NEPLATNA = "neplatna", "Neplatná / Nebola verejnená v CRZ"  #Zmluva nie je platná pokiaľ nebola v CRZ zverejnená do 30 dní od podpísania
+
+class GetAdminURL():
+    def get_admin_url(self):
+        # the url to the Django admin form for the model instance
+        info = (self._meta.app_label, self._meta.model_name)
+        url = reverse('admin:%s_%s_change' % info, args=(self.pk,))
+        return mark_safe(f'<a href="{url}">{self.cislo}</a>')
 
 # Create your models here.     
 # Abstraktná trieda so všetkými spoločnými poľami, nepoužívaná samostatne
@@ -285,7 +293,7 @@ class PlatbaAutorskaOdmena(Platba):
         verbose_name = 'Aut. honorár po autoroch'
         verbose_name_plural = 'Aut. honoráre po autoroch'
 
-class VytvarnaObjednavkaPlatba(models.Model):
+class VytvarnaObjednavkaPlatba(models.Model, GetAdminURL):
     oznacenie = "VO"    #čislo objednávky výtvarného diela
     #related_name: v admin.py umožní zobrazit platby autora v zozname autorov cez pole platby_link 
     cislo = models.CharField("Číslo objednávky", max_length=50, null=True)
@@ -341,7 +349,9 @@ class VytvarnaObjednavkaPlatba(models.Model):
 
     #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
     def cerpanie_rozpoctu(self, zden):
-        if not self.datum_uhradenia: return []
+        if not self.datum_uhradenia:
+            f1 = self._meta.get_field('datum_uhradenia').verbose_name
+            return f"{self._meta.verbose_name} {self.get_admin_url()} musí mať vyplnené  pole <em>{f1}</em>." 
         if self.datum_uhradenia <zden: return []
         kdatum =  date(zden.year, zden.month+1, zden.day) if zden.month+1 <= 12 else  date(zden.year+1, 1, 1)
         if self.datum_uhradenia >= kdatum: return []
@@ -454,7 +464,9 @@ class PlatbaAutorskaSumar(models.Model):
 
     #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
     def cerpanie_rozpoctu(self, zden):
-        if not self.datum_uhradenia: return []
+        if not self.datum_uhradenia:
+            f1 = self._meta.get_field('datum_uhradenia').verbose_name
+            return f"{self._meta.verbose_name} {self.get_admin_url()} musí mať vyplnené  pole <em>{f1}</em>." 
         if self.datum_uhradenia < zden: return []
         kdatum =  date(zden.year, zden.month+1, zden.day) if zden.month+1 <= 12 else  date(zden.year+1, 1, 1)
         if self.datum_uhradenia >= kdatum: return []
