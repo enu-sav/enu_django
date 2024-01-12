@@ -971,7 +971,7 @@ class NajomnaZmluvaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmi
 @admin.register(NajomneFaktura)
 class NajomneFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
     form = NajomneFakturaForm
-    list_display = ("cislo", "cislo_softip", "zmluva_link", "typ", "splatnost_datum", "dane_na_uhradu", "suma", "dan", "platobny_prikaz")
+    list_display = ("cislo", "cislo_softip", "zo_softipu", "zmluva_link", "typ", "splatnost_datum", "dane_na_uhradu", "suma", "dan", "platobny_prikaz")
 
     #Vyhľadávanie podľa 'typ' nefunguje
     search_fields = ("zmluva")

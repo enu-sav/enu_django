@@ -16,7 +16,7 @@ PERCENTAGE_VALIDATOR = [MinValueValidator(0), MaxValueValidator(100)]
 from beliana.settings import TMPLTS_DIR_NAME, PLATOVE_VYMERY_DIR, DOHODY_DIR, PRIJATEFAKTURY_DIR, PLATOBNE_PRIKAZY_DIR, STRAVNE_HOD
 from beliana.settings import ODVODY_VYNIMKA, DAN_Z_PRIJMU, OBJEDNAVKY_DIR, STRAVNE_DIR, REKREACIA_DIR
 from beliana.settings import PN1, PN2, BEZ_PRIKAZU_DIR, DDS_PRISPEVOK, ODMENY_DIR, NEPRITOMNOST_DIR, SOCFOND_PRISPEVOK
-from beliana.settings import VYSTAVENEFAKTURY_DIR
+from beliana.settings import VYSTAVENEFAKTURY_DIR, NAJOMNEFAKTURY_DIR
 import os,re
 from datetime import timedelta, date, datetime
 from dateutil.relativedelta import relativedelta
@@ -878,6 +878,8 @@ class NajomnaZmluva(models.Model):
     def __str__(self):
         return f"{self.najomnik} - {self.cislo}"
 
+def najomne_faktura_upload_location(instance, filename):
+    return os.path.join(NAJOMNEFAKTURY_DIR, filename)
 class NajomneFaktura(Klasifikacia):
     # Polia
     oznacenie = "NF"    #NF-2021-123
@@ -889,6 +891,10 @@ class NajomneFaktura(Klasifikacia):
             max_length=25,
             blank = True,
             null=True)
+    zo_softipu = models.FileField("Faktúra zo Softipu",
+            help_text = "Faktúra pre nájomníka, vytvorená v Softipe",
+            upload_to=najomne_faktura_upload_location, 
+            null = True)
 
     typ = models.CharField("Typ faktúry",
             max_length=25,
@@ -918,7 +924,7 @@ class NajomneFaktura(Klasifikacia):
             )
     platobny_prikaz = models.FileField("Krycí list pre THS-ku",
             help_text = "Súbor s krycím listom pre THS-ku. Generuje sa akciou 'Vytvoriť krycí list pre THS'.<br />Ak treba, v prípade vyúčtovania je súčasťou aj platobný prikaz",
-            upload_to=platobny_prikaz_upload_location,
+            upload_to=najomne_faktura_upload_location,
             null = True, blank = True)
     history = HistoricalRecords()
 
