@@ -853,6 +853,7 @@ def generovatIndividualneOdmeny(sumarna_odmena):
     while ws[f'D{aux}'].value != "spolu":
         suma = ws[f"E{aux}"].value
         if type(suma) == str:
+            trace()
             return [f"Hodnota výšky odmeny v riadku {aux} (a zrejme aj nasledujúcich riadkov) súboru položky {sumarna_odmena.cislo} je vzorec. Súbor upravte tak, aby výška odmeny bola číslo."]
         aux += 1
     pocet=0
@@ -883,8 +884,7 @@ def generovatIndividualneOdmeny(sumarna_odmena):
         pocet += 1
         celkova_suma += suma 
         riadok += 1
-        pass
-    return pocet, celkova_suma
+    return pocet, round(celkova_suma,2)
 
 def obdobie_nepritomnosti(subor):
     workbook = load_workbook(filename=subor)
