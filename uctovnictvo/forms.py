@@ -514,8 +514,8 @@ class OdmenaOpravaForm(DennikZaznam):
         if 'datum_kl' in self.changed_data:
             self.dennik_zaznam(f"Odmena/oprava č. {self.instance.cislo}.", TypDokumentu.ODMENA_OPRAVA, InOut.ODOSLANY, "Mzdová učtáreň", self.instance.subor_kl.url)
         if 'cislo' in self.changed_data:
-            if not self.cleaned_data['cislo'][:3] == OdmenaOprava.oznacenie:
-                raise ValidationError({"cislo": "Nesprávne číslo. Zadajte číslo novej žiadosti v tvare {OdmenaOprava.oznacenie}-RRRR-NNN"})
+            if not self.cleaned_data['cislo'][:2] == OdmenaOprava.oznacenie:
+                raise ValidationError({"cislo": f"Nesprávne číslo. Zadajte číslo v tvare {OdmenaOprava.oznacenie}-RRRR-NNN"})
         if "subor_odmeny" in self.changed_data:
             cislo = self.cleaned_data['cislo']
             if self.cleaned_data['subor_odmeny'].name.split(".")[-1] == "xlsx":
