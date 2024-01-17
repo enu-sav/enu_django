@@ -899,9 +899,9 @@ class NajomnaZmluva(models.Model):
     def __str__(self):
         return f"{self.najomnik} - {self.cislo}"
 
-def najomne_faktura_upload_location(instance, filename, GetAdminURL):
+def najomne_faktura_upload_location(instance, filename):
     return os.path.join(NAJOMNEFAKTURY_DIR, filename)
-class NajomneFaktura(Klasifikacia):
+class NajomneFaktura(Klasifikacia, GetAdminURL):
     # Polia
     oznacenie = "NF"    #NF-2021-123
     cislo = models.CharField("Číslo",
