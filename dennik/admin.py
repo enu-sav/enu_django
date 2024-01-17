@@ -362,12 +362,30 @@ class PlatovaRekapitulaciaAdmin(ModelAdminTotals):
                     ws.cell(row=riadok, column=cc+1).number_format="0.00"
                     if not cc in fw: fw[cc] = 0
                     if fw[cc] < len(str(value))+2: fw[cc] = len(str(value))+2
+
+        #Načítať dáta z pdf podľa zákazok
+        #Ak načítame súbor bez zákazok, Použije sa názov Celkom 
+        def nacitat_pdf_text(path):
+            fd=open(path, "rb")
+            pdf = PdfFileReader(fd)
+            pdftext = {}
+            for nn in range(pdf.getNumPages()):
+                page = pdf.getPage(nn)
+                txt = page.extractText()
+                zakazka = re.findall("Zákazka: _*(.*)", txt)
+                zakazka = zakazka[0] if zakazka else "Celkom"
+                if not zakazka in pdftext:
+                    pdftext[zakazka] = txt
+                else:
+                    pdftext[zakazka] = pdftext[zakazka] + txt
+            return pdftext
+
         polozky= {
             #"Názov tu": ["Názov v pdf", poradie_poľa_v_riadku]
             "Plat tarifný plat": ["Tarifný plat spolu", 1, "611" ],
             "Náhrada mzdy - dovolenka": ["Dovolenka", 1, "611"],
             "Náhrada mzdy - osobné prekážky": [ "Prekážky osobné", 1, "611"],
-            "Plat odmena": ["Odmeny spolu", 0, "611"],
+            "Plat odmena": ["Odmeny spolu", 0, "614"],
             "Plat osobný príplatok": ["Osobný príplatok", 1, "612001"],
             "Plat príplatok za riadenie": ["Príplatok za riadenie", 1, "612002"],
             "Zdravotné poistné": ["Zdravotné poistné spolu", 2, "623"],
@@ -397,62 +415,77 @@ class PlatovaRekapitulaciaAdmin(ModelAdminTotals):
         wb = Workbook()
         ws_prehlad = wb.active
         ws_prehlad.title = "Prehľad"
+        ws_prehlad.column_dimensions["A"].width = 17
+        ws_prehlad.column_dimensions["B"].width = 17
+        ws_prehlad.column_dimensions["C"].width = 17
+        ws_prehlad.column_dimensions["D"].width = 17
+        ws_prehlad.column_dimensions["E"].width = 17
+        ws_prehlad.column_dimensions["E"].width = 17
         harky={}
         fw ={}  #Šírka poľa
-        zapisat_riadok(ws_prehlad, fw, 1, ["Mesiac", "Mzdová účtáreň", "Django", "Rozdiel mínus", "Rozdiel plus"], header=True) 
+        zapisat_riadok(ws_prehlad, fw, 1, ["Mesiac", "Zákazka", "Mzdová účtáreň", "Django", "Rozdiel mínus", "Rozdiel plus"], header=True) 
         for qn, za_mesiac in enumerate(sorted(queryset, key=lambda x: x.identifikator)):  #queryset: zoznam mesiacov, za ktoré treba spraviť rekapituláciu
             ws = wb.create_sheet(title=za_mesiac.identifikator)
-            zapisat_riadok(ws, fw, 1, ["Položka", "Mzdová účtáreň", "Django", "Rozdiel B-C"], header=True) 
-            #datum
+            zapisat_riadok(ws, fw, 1, ["Položka", "Zákazka", "Mzdová účtáreň", "Django", "Rozdiel B-C"], header=True) 
+
+            #Načítať text pdf súboru za daný mesiac
+            pdftext = nacitat_pdf_text(za_mesiac.subor.path)
+
+            #Typy zakazok v pdf
+            typ_zakazky = {}
+            for zakazka in pdftext:
+                if zakazka == "Celkom":
+                    typ_zakazky[zakazka] = zakazka
+                else:
+                    typ_zakazky[zakazka] = TypZakazky.objects.get(kod__contains=zakazka)
 
             #Načítať mzdové údaje metódou "cerpanie_rozpoctu"
-            #Dátum pre čerpanie
-            datum=date(int(za_mesiac.identifikator[:4]), int(za_mesiac.identifikator[-2:]), 1)
-            cerpanie = generovat_mzdove(request, datum, rekapitulacia=True)
+            #mesiac čerpania
+            mesiac=date(int(za_mesiac.identifikator[:4]), int(za_mesiac.identifikator[-2:]), 1)
+            cerpanie = generovat_mzdove(request, mesiac, rekapitulacia=True)
 
-            #Spočítať po typoch a po osobách
+            #Spočítať po zákazkách, typoch a po osobách
             sumarne={}
-            for item in cerpanie:
-                #sumarne[item['nazov']] = Decimal(sumarne[item['nazov']]) + Decimal(item['suma']) if item['nazov'] in sumarne else item['suma']
-                sumarne[item['nazov']] = sumarne[item['nazov']] + item['suma'] if item['nazov'] in sumarne else item['suma']
-                pass
-
-            #Načítať dáta z pdf a vyplniť hárok
-            fd=open(za_mesiac.subor.path, "rb")
-            pdf = PdfFileReader(fd)
-            s0 = pdf.getPage(0)
-            pdftext = s0.extractText()
-            s1 = pdf.getPage(1)
-            pdftext = pdftext + s1.extractText()
-            rozdiel_minus = 0
-            rozdiel_plus = 0
-            for nn, polozka in enumerate(polozky):
-                rr=re.findall(r"%s.*"%polozky[polozka][0], pdftext)
-                if rr:
-                    rslt = re.findall(r"[\d,\d]+", rr[0])
-                    zo_suboru = round(Decimal(rslt[polozky[polozka][1]].replace(",",".")),2)
-                    z_databazy = -round(Decimal(sumarne[polozka]),2) if polozka in sumarne else 0
-                    zapisat = [
-                        polozka + f" {polozky[polozka][2]}", 
-                        zo_suboru,
-                        z_databazy,
-                        f"=B{nn+2}-C{nn+2}"
-                        ]
-                    zapisat_riadok(ws, fw, nn+2, zapisat)
-                    if  zo_suboru-z_databazy < 0:
-                        rozdiel_minus = min(rozdiel_minus, zo_suboru-z_databazy)
+            for zakazka in pdftext:
+                if not zakazka in sumarne: sumarne[zakazka] = {}
+                for item in cerpanie:
+                    if zakazka == "Celkom":
+                        sumarne[zakazka][item['nazov']] = sumarne[zakazka][item['nazov']] + item['suma'] if item['nazov'] in sumarne[zakazka] else item['suma']
+                    elif typ_zakazky[zakazka] == item['zakazka']:
+                        sumarne[zakazka][item['nazov']] = sumarne[zakazka][item['nazov']] + item['suma'] if item['nazov'] in sumarne[zakazka] else item['suma']
+            #trace()
+            nn_blok = 2  #riadok v tabulke
+            for zakazka in sumarne:
+                rozdiel_minus = 0
+                rozdiel_plus = 0
+                for nn, polozka in enumerate(polozky):
+                    rr=re.findall(r"%s.*"%polozky[polozka][0], pdftext[zakazka])
+                    if rr:
+                        rslt = re.findall(r"[\d,\d]+", rr[0])
+                        zo_suboru = round(Decimal(rslt[polozky[polozka][1]].replace(",",".")),2)
+                        z_databazy = -round(Decimal(sumarne[zakazka][polozka]),2) if polozka in sumarne[zakazka] else 0
+                        zapisat = [
+                            polozka + f" {polozky[polozka][2]}", 
+                            zakazka,
+                            zo_suboru,
+                            z_databazy,
+                            f"=C{nn_blok+nn}-D{nn_blok+nn}"
+                            ]
+                        zapisat_riadok(ws, fw, nn_blok+nn, zapisat)
+                        if  zo_suboru-z_databazy < 0:
+                            rozdiel_minus = min(rozdiel_minus, zo_suboru-z_databazy)
+                        else: 
+                            rozdiel_plus = max(rozdiel_plus, zo_suboru-z_databazy)
                     else:
-                        rozdiel_plus = max(rozdiel_plus, zo_suboru-z_databazy)
-                else:
-                    zapisat_riadok(ws, fw, nn+2, [polozka +  f" {polozky[polozka][2]}"])
-            nn+=1
-            zapisat_riadok(ws, fw, nn+2, ["Spolu",f"=sum(B2:B{nn+1}",f"=sum(C2:C{nn+1}",f"=sum(D2:D{nn+1}"])
-            for cc in fw:
-                ws.column_dimensions[get_column_letter(cc+1)].width = fw[cc]
-            zapisat_riadok(ws_prehlad, fw, qn+2, [za_mesiac.identifikator, f"='{za_mesiac.identifikator}'!B{len(polozky)+2}", f"='{za_mesiac.identifikator}'!C{len(polozky)+2}", rozdiel_minus, rozdiel_plus])
-            #Uložiť do databázy
-            za_mesiac.rozdiel_plus=rozdiel_plus
-            za_mesiac.rozdiel_minus=rozdiel_minus
+                        zapisat_riadok(ws, fw, nn_blok+nn, [polozka +  f" {polozky[polozka][2]}", zakazka])
+                zapisat_riadok(ws, fw, nn_blok+nn+1, ["Spolu", zakazka, f"=sum(C{nn_blok}:C{nn_blok+nn}",f"=sum(D{nn_blok}:D{nn_blok+nn}",f"=sum(E{nn_blok}:E{nn_blok+nn}"])
+                for cc in fw:
+                    ws.column_dimensions[get_column_letter(cc+1)].width = fw[cc]
+                zapisat_riadok(ws_prehlad, fw, qn+2, [za_mesiac.identifikator, zakazka, f"='{za_mesiac.identifikator}'!C{len(polozky)+2}", f"='{za_mesiac.identifikator}'!D{len(polozky)+2}", rozdiel_minus, rozdiel_plus])
+                #Uložiť do databázy
+                za_mesiac.rozdiel_plus=rozdiel_plus
+                za_mesiac.rozdiel_minus=rozdiel_minus
+                nn_blok += 2 + len(polozky)
             za_mesiac.save()
 
         #Pridať hárok spolu
@@ -460,7 +493,7 @@ class PlatovaRekapitulaciaAdmin(ModelAdminTotals):
         fs = wsheets[0]
         ls = wsheets[-1]
         ws = wb.create_sheet(title="Spolu")
-        zapisat_riadok(ws, fw, 1, ["Položka", "Mzdová účtáreň", "Django", "Rozdiel B-C"], header=True) 
+        zapisat_riadok(ws, fw, 1, ["Položka", "Zákazka", "Mzdová účtáreň", "Django", "Rozdiel C-D"], header=True) 
         #podľa prvého dátového hárka
         ws1 = wb[fs]
         row = 2
@@ -468,14 +501,17 @@ class PlatovaRekapitulaciaAdmin(ModelAdminTotals):
         ws.column_dimensions["B"].width = 15
         ws.column_dimensions["C"].width = 15
         ws.column_dimensions["D"].width = 15
-        while ws1[f"A{row}"].value:
+        ws.column_dimensions["E"].width = 15
+        while ws1[f"A{row}"].value or ws1[f"A{row+1}"].value:
             #=$'2023-01'.A2
-            ws[f"A{row}"].value = f"='{fs}'!A{row}"
-            #=SUM($'2023-01'.B2:$'2023-03'.B2)
-            ws[f"b{row}"].value = f"=SUM('{fs}'!B{row}:'{ls}'!B{row})"
-            ws[f"c{row}"].value = f"=SUM('{fs}'!c{row}:'{ls}'!c{row})"
-            ws[f"d{row}"].value = f"=b{row}-c{row}"
-            ws.cell(row=row, column=4).number_format="0.00"
+            if ws1[f"A{row}"].value:
+                ws[f"A{row}"].value = f"='{fs}'!A{row}"
+                ws[f"B{row}"].value = f"='{fs}'!B{row}"
+                #=SUM($'2023-01'.B2:$'2023-03'.B2)
+                ws[f"c{row}"].value = f"=SUM('{fs}'!C{row}:'{ls}'!C{row})"
+                ws[f"d{row}"].value = f"=SUM('{fs}'!D{row}:'{ls}'!D{row})"
+                ws[f"e{row}"].value = f"=c{row}-d{row}"
+                ws.cell(row=row, column=4).number_format="0.00"
             row += 1
 
         #Uložiť a zobraziť 
