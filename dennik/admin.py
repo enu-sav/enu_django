@@ -410,6 +410,20 @@ class PlatovaRekapitulaciaAdmin(ModelAdminTotals):
             "Stravné zrážky": ["Spoločné zrážky \(N5241\)", 1, "642014"],
             "Náhrada mzdy - PN": ["Náhrada príjmu pri DPN", 1, "642015"],
             }
+
+        #Zistiť typy zákazok vo všetkých súboroch
+        pdftext_vsetky = {}
+        typ_zakazky = {}
+        for za_mesiac in queryset:
+            pdftext_vsetky[za_mesiac.identifikator] = nacitat_pdf_text(za_mesiac.subor.path)
+            #Typy zakazok v pdf
+            for zakazka in pdftext_vsetky[za_mesiac.identifikator]:
+                if not zakazka in typ_zakazky:
+                    if zakazka == "Celkom":
+                        typ_zakazky[zakazka] = zakazka
+                    else:
+                        typ_zakazky[zakazka] = TypZakazky.objects.get(kod__contains=zakazka)
+
         #Vytvoriť workbook
         file_name = f"KontrolaRekapitulacie-{date.today().isoformat()}"
         wb = Workbook()
@@ -428,16 +442,7 @@ class PlatovaRekapitulaciaAdmin(ModelAdminTotals):
             ws = wb.create_sheet(title=za_mesiac.identifikator)
             zapisat_riadok(ws, fw, 1, ["Položka", "Zákazka", "Mzdová účtáreň", "Django", "Rozdiel B-C"], header=True) 
 
-            #Načítať text pdf súboru za daný mesiac
-            pdftext = nacitat_pdf_text(za_mesiac.subor.path)
-
-            #Typy zakazok v pdf
-            typ_zakazky = {}
-            for zakazka in pdftext:
-                if zakazka == "Celkom":
-                    typ_zakazky[zakazka] = zakazka
-                else:
-                    typ_zakazky[zakazka] = TypZakazky.objects.get(kod__contains=zakazka)
+            pdftext = pdftext_vsetky[za_mesiac.identifikator]
 
             #Načítať mzdové údaje metódou "cerpanie_rozpoctu"
             #mesiac čerpania
@@ -446,19 +451,32 @@ class PlatovaRekapitulaciaAdmin(ModelAdminTotals):
 
             #Spočítať po zákazkách, typoch a po osobách
             sumarne={}
-            for zakazka in pdftext:
+            for zakazka in typ_zakazky:
                 if not zakazka in sumarne: sumarne[zakazka] = {}
                 for item in cerpanie:
-                    if zakazka == "Celkom":
-                        sumarne[zakazka][item['nazov']] = sumarne[zakazka][item['nazov']] + item['suma'] if item['nazov'] in sumarne[zakazka] else item['suma']
-                    elif typ_zakazky[zakazka] == item['zakazka']:
-                        sumarne[zakazka][item['nazov']] = sumarne[zakazka][item['nazov']] + item['suma'] if item['nazov'] in sumarne[zakazka] else item['suma']
+                    if zakazka in pdftext:
+                        if zakazka == "Celkom":
+                            sumarne[zakazka][item['nazov']] = sumarne[zakazka][item['nazov']] + item['suma'] if item['nazov'] in sumarne[zakazka] else item['suma']
+                        elif typ_zakazky[zakazka] == item['zakazka']:
+                            sumarne[zakazka][item['nazov']] = sumarne[zakazka][item['nazov']] + item['suma'] if item['nazov'] in sumarne[zakazka] else item['suma']
+                    else:
+                        sumarne[zakazka][item['nazov']] = 0
             #trace()
             nn_blok = 2  #riadok v tabulke
-            for zakazka in sumarne:
+            for zakazka in typ_zakazky:
                 rozdiel_minus = 0
                 rozdiel_plus = 0
                 for nn, polozka in enumerate(polozky):
+                    if not zakazka in pdftext:
+                        zapisat = [
+                            polozka + f" {polozky[polozka][2]}", 
+                            zakazka,
+                            0,
+                            0,
+                            f"=C{nn_blok+nn}-D{nn_blok+nn}"
+                            ]
+                        zapisat_riadok(ws, fw, nn_blok+nn, zapisat)
+                        continue
                     rr=re.findall(r"%s.*"%polozky[polozka][0], pdftext[zakazka])
                     if rr:
                         rslt = re.findall(r"[\d,\d]+", rr[0])
