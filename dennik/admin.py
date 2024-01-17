@@ -462,9 +462,11 @@ class PlatovaRekapitulaciaAdmin(ModelAdminTotals):
                     else:
                         sumarne[zakazka][item['nazov']] = 0
             nn_blok = 2  #riadok v tabulke
-            rozdiel_minus = 0
-            rozdiel_plus = 0
+            rozdiel_minus_all = 0
+            rozdiel_plus_all = 0
             for zn, zakazka in enumerate(sorted(typ_zakazky)[::-1]):   #Chceme začať typom Celkom
+                rozdiel_minus = 0
+                rozdiel_plus = 0
                 for nn, polozka in enumerate(polozky):
                     if not zakazka in pdftext:
                         zapisat = [
@@ -501,8 +503,8 @@ class PlatovaRekapitulaciaAdmin(ModelAdminTotals):
                 zapisat_riadok(ws_prehlad, fw, qn*len(typ_zakazky)+2+zn, [za_mesiac.identifikator, zakazka, f"='{za_mesiac.identifikator}'!C{(1+zn)*(len(polozky)+2)}", f"='{za_mesiac.identifikator}'!D{(1+zn)*(len(polozky)+2)}", rozdiel_minus, rozdiel_plus])
                 #Uložiť do databázy
                 nn_blok += 2 + len(polozky)
-            za_mesiac.rozdiel_plus=rozdiel_plus
-            za_mesiac.rozdiel_minus=rozdiel_minus
+            za_mesiac.rozdiel_plus=rozdiel_plus_all
+            za_mesiac.rozdiel_minus=rozdiel_minus_all
             za_mesiac.save()
 
         #Pridať hárok spolu
