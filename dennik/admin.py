@@ -462,7 +462,7 @@ class PlatovaRekapitulaciaAdmin(ModelAdminTotals):
                     else:
                         sumarne[zakazka][item['nazov']] = 0
             nn_blok = 2  #riadok v tabulke
-            for zakazka in sorted(typ_zakazky)[::-1]:   #Chceme začať typom Celkom
+            for zn, zakazka in enumerate(sorted(typ_zakazky)[::-1]):   #Chceme začať typom Celkom
                 rozdiel_minus = 0
                 rozdiel_plus = 0
                 for nn, polozka in enumerate(polozky):
@@ -498,7 +498,7 @@ class PlatovaRekapitulaciaAdmin(ModelAdminTotals):
                 zapisat_riadok(ws, fw, nn_blok+nn+1, ["Spolu", zakazka, f"=sum(C{nn_blok}:C{nn_blok+nn}",f"=sum(D{nn_blok}:D{nn_blok+nn}",f"=sum(E{nn_blok}:E{nn_blok+nn}"])
                 for cc in fw:
                     ws.column_dimensions[get_column_letter(cc+1)].width = fw[cc]
-                zapisat_riadok(ws_prehlad, fw, qn+2, [za_mesiac.identifikator, zakazka, f"='{za_mesiac.identifikator}'!C{len(polozky)+2}", f"='{za_mesiac.identifikator}'!D{len(polozky)+2}", rozdiel_minus, rozdiel_plus])
+                zapisat_riadok(ws_prehlad, fw, qn*len(typ_zakazky)+2+zn, [za_mesiac.identifikator, zakazka, f"='{za_mesiac.identifikator}'!C{(1+zn)*(len(polozky)+2)}", f"='{za_mesiac.identifikator}'!D{(1+zn)*(len(polozky)+2)}", rozdiel_minus, rozdiel_plus])
                 #Uložiť do databázy
                 za_mesiac.rozdiel_plus=rozdiel_plus
                 za_mesiac.rozdiel_minus=rozdiel_minus
