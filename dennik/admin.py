@@ -461,9 +461,8 @@ class PlatovaRekapitulaciaAdmin(ModelAdminTotals):
                             sumarne[zakazka][item['nazov']] = sumarne[zakazka][item['nazov']] + item['suma'] if item['nazov'] in sumarne[zakazka] else item['suma']
                     else:
                         sumarne[zakazka][item['nazov']] = 0
-            #trace()
             nn_blok = 2  #riadok v tabulke
-            for zakazka in typ_zakazky:
+            for zakazka in sorted(typ_zakazky)[::-1]:   #Chceme začať typom Celkom
                 rozdiel_minus = 0
                 rozdiel_plus = 0
                 for nn, polozka in enumerate(polozky):
