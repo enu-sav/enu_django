@@ -423,7 +423,7 @@ class PlatbaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
 class PlatbaAutorskaOdmenaAdmin(PlatbaAdmin):
     # autor_link: pridá autora zmluvy do zoznamu, vďaka AdminChangeLinksMixin
     def get_list_display(self, request):
-        return ('platba', 'zmluva', 'autor_link', 'zdanit', 'rezident', 'cislo') + super(PlatbaAutorskaOdmenaAdmin, self).get_list_display(request)
+        return ('platba', 'zmluva', 'autor_link', 'zdanit', 'rezident', 'oznamenie', 'cislo') + super(PlatbaAutorskaOdmenaAdmin, self).get_list_display(request)
     #stránkovanie a 'Zobraziť všetko'
     list_max_show_all = 10000
     list_per_page = 50
@@ -439,9 +439,15 @@ class PlatbaAutorskaOdmenaAdmin(PlatbaAdmin):
     podpis.admin_order_field = 'autor__datum_dohoda_podpis'
 
     def oznamenie(self, obj):
-        return f"{obj.autor.datum_dohoda_oznamenie if obj.autor.datum_dohoda_oznamenie else '-'}"
+        if obj.autor.datum_dohoda_podpis:
+            if obj.autor.datum_dohoda_oznamenie:
+                return obj.autor.datum_dohoda_oznamenie.strftime('%Y-%m-%d')
+            if obj.autor.datum_dohoda_podpis < obj.datum_uhradenia:
+                return "Neoznámené"
+        else:
+            return "--"
     oznamenie.short_description = 'Dátum oznámenia'
-    oznamenie.admin_order_field = 'autor__datum_dohoda_oznamenie'
+    oznamenie.admin_order_field = 'autor__datum_dohoda_podpis'
 
     def rezident(self, obj):
         return f"{obj.autor.rezident if obj.autor.rezident else '-'}"
