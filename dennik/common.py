@@ -198,26 +198,32 @@ def VyplnitAVygenerovatAHZrazena(formular, sablona, iws, hdr):
     owb = Workbook()
     ows = owb.active
     ows.append(['login']+list(osoby[ident].keys()))
-    nn=1
+    row = 2
+    num_cols = set()    #kvoli sume
     for ident in osoby:
         print(nn,ident)
-        values = [ident]
+        col = 1
+        ows.cell(row=row, column=col, value=ident)
+        col += 1
         for val in osoby[ident].values():
             if not val:
-                values.append("")
+                ows.cell(row=row, column=col, value="")
             elif type(val) == str:
-                values.append(val)
+                ows.cell(row=row, column=col, value=val)
             elif type(val) == Decimal:
-                values.append(locale_format(val))
+                ows.cell(row=row, column=col, value=val)
+                ows.cell(row=row, column=col).number_format= "0.00"
+                num_cols.add(col)
             elif type(val) == date:
-                values.append(val.strftime('%-d. %-m. %Y'))
+                ows.cell(row=row, column=col, value=val)
             elif type(val)==FieldFile:
-                values.append(str(val))
+                ows.cell(row=row, column=col, value=val.name)
             else:
-                values.append(val)
-            #values = [str(val).replace("None","") if type(val)==str else val for val in autori[autor].values()]
-        ows.append(values)
-        nn+=1
+                ows.cell(row=row, column=col, value=val)
+            col += 1
+        row+=1
+    for col in num_cols:
+        ows.cell(row=row, column=col, value=f"=SUM({get_column_letter(col)}{2}:{get_column_letter(col)}{row-1})")
 
     # Vytvoriť potvrdenia
     for ident in osoby:
