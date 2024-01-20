@@ -31,7 +31,7 @@ class OdmenaAleboOprava(models.TextChoices):
     OPRAVATARIF = 'opravatarif', 'Oprava tarifný plat'
     OPRAVAOSOB = 'opravaosob', 'Oprava osobný pr.'
     OPRAVARIAD = 'opravariad', 'Oprava pr. za riadenie'
-    OPRAVAZR = 'opravazr', 'Oprava zrážky'
+    OPRAVAZR = 'opravazr', 'Oprava zrážky - plat'
     ODSTUPNE = 'odstupne', 'Odstupné'
     ODCHODNE = 'odchodne', 'Odchodné'
     DOVOLENKA = 'dovolenka', 'Náhrada mzdy - dovolenka'
@@ -1949,6 +1949,7 @@ class OdmenaOprava(Klasifikacia):
         if self.typ == OdmenaAleboOprava.ODMENAS: return []
 
         platby = []
+        podnazov = ""
         if self.typ == OdmenaAleboOprava.ODMENA:
             nazov = "Plat odmena"
         elif self.typ == OdmenaAleboOprava.OPRAVATARIF:
@@ -1963,6 +1964,10 @@ class OdmenaOprava(Klasifikacia):
             nazov = "Plat príplatok za riadenie"
         elif self.typ == OdmenaAleboOprava.DOVOLENKA:
             nazov = "Náhrada mzdy - dovolenka"
+        elif self.typ == OdmenaAleboOprava.OPRAVAZR:
+            # Podľa admin.gen_soczdrav
+            nazov = f"Sociálne poistné {self.ekoklas.kod}"
+            podnazov = "Plat poistenie sociálne"
 
         platba = {
             "nazov": nazov,
@@ -1976,6 +1981,7 @@ class OdmenaOprava(Klasifikacia):
             "zakazka": self.zakazka,
             "ekoklas": self.ekoklas
             }
+        if podnazov: platba["podnazov"] = podnazov
         platby.append(platba)
         return platby
 
