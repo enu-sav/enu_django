@@ -38,6 +38,10 @@ class TypDokumentu(models.TextChoices):
     ODMENA_OPRAVA = 'odmena_oprava', 'Odmena/Oprava'
     INY = 'iny', 'Iný'
 
+class TypListu(models.TextChoices):
+    DOPORUCENE = 'doporucene', 'Doporučene'
+    OBYCAJNE = 'obycajne', 'Obyčajne'
+
 # Typy šablón na vyplňovanie. Určuje, zoznam povolených tokenov v šablóne
 class TypFormulara(models.TextChoices):
     VSEOBECNY = 'vseobecny', 'Všeobecný dokument'    #Ľubovoľné tokeny, bez väzby na databázu
@@ -179,6 +183,16 @@ class Formular(models.Model):
             help_text = "Dlhší popis k dokumentu: účel, poznámky a pod.",
             blank = True,
             max_length=600)
+    typlistu = models.CharField("Typ listu", 
+            help_text = "Zvoľté typ listu",
+            max_length=10, 
+            null=True, 
+            choices=TypListu.choices
+            )
+    triedalistu = models.IntegerField("Trieda",
+            help_text = "Uveďte triedu listu (1 alebo 2)",
+            null = True
+            )
     na_odoslanie = models.DateField('Na odoslanie dňa',
             help_text = 'Zadajte dátum odovzdania vytvorených dokumentov na sekretariát na odoslanie. <br />Vytvorí sa záznam v <a href="/admin/dennik/dokument/">denníku prijatej a odoslanej pošty</a>.</br />Po odoslaní nemožno ďalej upravovať',
             blank=True, null=True)
@@ -229,6 +243,10 @@ class Formular(models.Model):
             blank=True,
             null = True
     )
+
+    def clean(self): 
+        if self.triedalistu not in (1, 2):
+            raise ValidationError({'triedalistu':"Povolené hodnoty triedy listu sú len 1 a 2."})
     history = HistoricalRecords()
     class Meta:
             verbose_name = 'Hromadný dokument'

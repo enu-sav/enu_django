@@ -131,7 +131,7 @@ class DokumentAdmin(ZobrazitZmeny,ImportExportModelAdmin):
 @admin.register(Formular)
 class FormularAdmin(ZobrazitZmeny):
     form = FormularForm
-    list_display = ["cislo", "subor_nazov", "typformulara", "na_odoslanie", "_sablona", "_data", "_vyplnene", "_vyplnene_data", "_rozposlany", "_data_komentar"]
+    list_display = ["cislo", "subor_nazov", "typformulara", "typlistu", "triedalistu",  "na_odoslanie", "_sablona", "_data", "_vyplnene", "_vyplnene_data", "_rozposlany", "_data_komentar"]
     def get_readonly_fields(self, request, obj=None):
         if not obj:
             return ["na_odoslanie", "vyplnene", "vyplnene_data", "rozposlany", "data_komentar"]
