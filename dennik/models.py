@@ -328,3 +328,22 @@ class PlatovaRekapitulacia(models.Model):
         rslt = rslt[0]
         self.identifikator = f"{rslt[1]}-{rslt[0]}"
         pass
+
+
+def system_file_path(instance, filename):
+    return os.path.join(settings.TMPLTS_DIR_NAME, filename)
+
+class SystemovySubor(models.Model):
+    subor_nazov =  models.CharField("Názov", max_length=100)
+    subor_popis = models.TextField("Popis/účel", max_length=250)
+    # opakované uploadovanie súboru vytvorí novú verziu
+    #subor = models.FileField("Súbor",upload_to=TMPLTS_DIR_NAME, null = True, blank = True)
+    # opakované uploadovanie súboru prepíše existujúci súbor (nevytvorí novú verziu)
+    subor = models.FileField(storage=OverwriteStorage(), upload_to=system_file_path, null = True, blank = True)
+    history = HistoricalRecords()
+    class Meta:
+        verbose_name = 'Systémový súbor'
+        verbose_name_plural = 'Systémové súbory'
+    def __str__(self):
+        return(self.subor_nazov)
+

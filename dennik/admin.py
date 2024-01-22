@@ -1,7 +1,7 @@
 from django.contrib import admin
 
 # Register your models here.
-from .models import Dokument,TypDokumentu, TypFormulara, Formular, CerpanieRozpoctu, PlatovaRekapitulacia
+from .models import Dokument,TypDokumentu, TypFormulara, Formular, CerpanieRozpoctu, PlatovaRekapitulacia, SystemovySubor
 from .forms import DokumentForm, FormularForm, overit_polozku, parse_cislo
 from .export_xlsx import export_as_xlsx
 from dennik.common import VyplnitAVygenerovat
@@ -14,7 +14,7 @@ from uctovnictvo.models import Objednavka, PrijataFaktura, PrispevokNaStravne, D
 from uctovnictvo.models import PlatovyVymer, PravidelnaPlatba, NajomneFaktura, InternyPrevod, Poistovna
 from uctovnictvo.models import RozpoctovaPolozka, PlatbaBezPrikazu, Pokladna, PrispevokNaRekreaciu, OdmenaOprava
 from uctovnictvo.models import TypDochodku, AnoNie, Zdroj, TypZakazky, EkonomickaKlasifikacia, Zamestnanec 
-from uctovnictvo.models import SystemovySubor, Nepritomnost, VystavenaFaktura
+from uctovnictvo.models import Nepritomnost, VystavenaFaktura
 from uctovnictvo.odvody import Poistne
 import re
 from import_export.admin import ImportExportModelAdmin
@@ -166,6 +166,17 @@ class FormularAdmin(ZobrazitZmeny):
                 kwargs['request'] = request
                 return AdminForm(*args, **kwargs)
         return AdminFormMod
+
+@admin.register(SystemovySubor)
+class SystemovySuborAdmin(ZobrazitZmeny, admin.ModelAdmin):
+    list_display = ("subor_nazov", "subor_popis", "subor")
+    fields = ("subor_nazov", "subor_popis", "subor")
+    # názov sa nesmie meniť, podľa názvu sa v kóde súbor vyhľadáva
+    def get_readonly_fields(self, request, obj=None):
+        if obj:
+            return ["subor_nazov"]
+        else:
+            return []
 
 @admin.register(CerpanieRozpoctu)
 class CerpanieRozpoctuAdmin(ModelAdminTotals):
