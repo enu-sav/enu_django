@@ -13,6 +13,8 @@ from openpyxl.worksheet.pagebreak import Break
 from ipdb import set_trace as trace
 from .models import Formular, TypFormulara
 from zmluvy.models import PlatbaAutorskaOdmena, AnoNie, VytvarnaObjednavkaPlatba
+from .models import SystemovySubor
+from django.core.exceptions import ValidationError
 
 #Dodatočné tokeny, doplňované z databázy alebo inak
 #typ dokumentu VSEOBECNY
@@ -152,6 +154,7 @@ def VyplnitAVygenerovatAHZrazena(formular, sablona, iws, hdr):
         if not ident in osoby:
             osoby[ident]["email"] = osoba.email
             osoby[ident]["meno"] = osoba.mpt()
+            osoby[ident]["mp"] = osoba.mp()
             osoby[ident]["rodne_cislo"] = osoba.rodne_cislo
             osoby[ident]["adresa_ulica"] = osoba.adresa_ulica
             osoby[ident]["adresa_mesto"] = osoba.adresa_mesto
@@ -225,39 +228,50 @@ def VyplnitAVygenerovatAHZrazena(formular, sablona, iws, hdr):
     for col in num_cols:
         ows.cell(row=row, column=col, value=f"=SUM({get_column_letter(col)}{2}:{get_column_letter(col)}{row-1})")
 
-    # Vytvoriť potvrdenia
+    # Vytvoriť potvrdenia a podací hárok
+    podaci_harok = []   #Zoznam položiek na vyplnenie podacieho hárka
     for ident in osoby:
         text = "%s"%stext
+        ph = [] #dáta pre podací hárok
         #zapísať hodnoty
         text =text.replace("[[meno]]",osoby[ident]['meno'])
+        ph.append(osoby[ident]["mp"])
         adr = ["","","",""]
         adrr=0  #riadok adresy
         if osoby[ident]["koresp_adresa_mesto"]:
             if osoby[ident]["koresp_adresa_ulica"]:
                 adr[adrr] = osoby[ident]["koresp_adresa_ulica"]
+                ph.append(osoby[ident]["koresp_adresa_ulica"])
                 adrr += 1
             if osoby[ident]["koresp_adresa_institucia"]:
                 adr[adrr] = osoby[ident]["koresp_adresa_institucia"]
                 adrr += 1
             if osoby[ident]["koresp_adresa_mesto"]:
                 adr[adrr] = osoby[ident]["koresp_adresa_mesto"]
+                ph.append(osoby[ident]["koresp_adresa_mesto"])
                 adrr += 1
             if osoby[ident]["koresp_adresa_stat"]:
                 adr[adrr] = osoby[ident]["koresp_adresa_stat"]
+                ph.append(osoby[ident]["koresp_adresa_stat"])
                 adrr += 1
         else:
             if osoby[ident]["adresa_ulica"]:
                 adr[adrr] = osoby[ident]["adresa_ulica"]
+                ph.append(osoby[ident]["adresa_ulica"])
                 adrr += 1
             if osoby[ident]["adresa_mesto"]:
                 adr[adrr] = osoby[ident]["adresa_mesto"]
+                ph.append(osoby[ident]["adresa_mesto"])
                 adrr += 1
             if osoby[ident]["adresa_stat"]:
                 adr[adrr] = osoby[ident]["adresa_stat"]
+                ph.append(osoby[ident]["adresa_stat"])
                 adrr += 1
         adrs = ["[[adr1]]","[[adr2]]","[[adr3]]","[[adr4]]"]
         for a,s in zip(adr, adrs):
             text = text.replace(s,a)
+        podaci_harok.append(ph)
+        pass
 
         #adresa
         addr = f"{osoby[ident]['adresa_mesto']}, {osoby[ident]['adresa_stat']}"
@@ -295,6 +309,11 @@ def VyplnitAVygenerovatAHZrazena(formular, sablona, iws, hdr):
             dovod="X"
         sablona = sablona.replace("</office:text>",f"{text}\n</office:text>")
 
+    #Vytvoriť podaci hárok
+    phwb = VytvoritPodaciHarok(podaci_harok, formular.typlistu, formular.triedalistu, 0.020)
+    o_ph = f"PodaciHarok-{formular.cislo}.fodt"
+    phwb.save(os.path.join(settings.MEDIA_ROOT,settings.FORM_DIR_NAME,o_ph))
+
     #Uložiť súbory
     o_text = f"{formular}.fodt"
     with open(os.path.join(settings.MEDIA_ROOT,settings.FORM_DIR_NAME,o_text), "w") as f:
@@ -303,4 +322,70 @@ def VyplnitAVygenerovatAHZrazena(formular, sablona, iws, hdr):
     owb.save(os.path.join(settings.MEDIA_ROOT,settings.FORM_DIR_NAME,o_data))
 
     #status, msg, vyplnene, vyplnene_data
-    return messages.SUCCESS, f"Vytvorený bol súbor '{o_text}' s {len(osoby)} vyplnenými dokumentami", os.path.join(settings.FORM_DIR_NAME,o_text), os.path.join(settings.FORM_DIR_NAME,o_data)
+    return messages.SUCCESS, f"Vytvorený bol súbor '{o_text}' s {len(osoby)} vyplnenými dokumentami", os.path.join(settings.FORM_DIR_NAME,o_text), os.path.join(settings.FORM_DIR_NAME,o_data), os.path.join(settings.FORM_DIR_NAME,o_ph)
+
+
+def VytvoritPodaciHarok(data, typlistu, trieda, hmotnost):
+    #Načítať súbor šablóny
+    nazov_objektu = "Podací hárok"  #Presne takto musí byť objekt pomenovaný
+    sablona = SystemovySubor.objects.filter(subor_nazov = nazov_objektu)
+    if not sablona:
+        return messages.ERROR, f"V systéme nie je definovaný súbor '{nazov_objektu}'.", None
+    nazov_suboru = sablona[0].subor.file.name 
+    workbook = load_workbook(filename=nazov_suboru)
+    ws = workbook.active
+    #Načítať hlavičku
+    hdr = { #Stĺpce v xlsx súbore
+            "Spôsob úhrady za zásielky (poštovné)": 9,
+            "Druh zásielky": 10,
+            "Meno a priezvisko adresáta": 13,
+            "Ulica adresáta": 15,
+            "Obec  adresáta": 16,
+            "PSČ Pošty": 17,
+            "Krajina adresáta": 18,
+            "Hmotnosť (kg)": 21,
+            "Trieda": 23,
+            "Obsah zásielky": 31
+        }
+
+    for nn, item in enumerate(data):
+        #item: meno a priezvisko, ulica, psč + mesto, štát 
+        #rozdeliť psč a mesto
+        if len(item) == 3:  # 'meno priezvisko', '908 74 Malé Leváre 182', 'Slovenská republika'
+            ulica = ""
+            pscmesto = item[1]
+            rep = item[2]
+        else:
+            ulica = item[1]
+            pscmesto = item[2]
+            rep = item[3]
+        split = re.findall(r'([0-9]{3} [0-9]{2}) (.*)', pscmesto)
+        if not split:
+            split = re.findall(r'([0-9]{5}) (.*)', pscmesto)
+        if not split:
+            split = re.findall(r'([0-9]{4}) (.*)', pscmesto)
+        if not split:
+            raise ValidationError(f"Autor {item[0]} nemá správne zadané PSČ a mesto (XXX XX mesto) alebe nie je zadaný štát. Dokumenty neboli vygenerované.")
+        psc, mesto = split[0]
+        if rep in ["Slovenská republika", "SR"]:
+            stat = "SK"
+        elif rep in ["Česká republika", "ČR"]:
+            stat = "CZ"
+        elif rep in ["Nemecko", "SRN"]:
+            stat = "DE"
+        if not stat:
+            raise ValidationError(f"Štát '{rep}' autora {item[0]} nie je podporovaný. Dokumenty neboli vygenerované. Kontajtukte vývojára.")
+
+        #ws.cell(row=nn+2, column=hdr["Spôsob úhrady za zásielky (poštovné)"]).value = 1 #Poštovné úverované
+        ws.cell(row=nn+2, column=hdr["Druh zásielky"]).value = typlistu
+        ws.cell(row=nn+2, column=hdr["Meno a priezvisko adresáta"]).value = item[0]
+        ws.cell(row=nn+2, column=hdr["Ulica adresáta"]).value = item[1]
+        ws.cell(row=nn+2, column=hdr["Obec  adresáta"]).value = mesto
+        ws.cell(row=nn+2, column=hdr["PSČ Pošty"]).value = psc
+        ws.cell(row=nn+2, column=hdr["Krajina adresáta"]).value = stat
+        ws.cell(row=nn+2, column=hdr["Hmotnosť (kg)"]).value = hmotnost
+        ws.cell(row=nn+2, column=hdr["Trieda"]).value = trieda
+        ws.cell(row=nn+2, column=hdr["Obsah zásielky"]).value = "D"
+    
+    return workbook
+

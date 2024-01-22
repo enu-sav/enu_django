@@ -30,6 +30,7 @@ from openpyxl.styles import Font
 from openpyxl.utils import get_column_letter
 from django.http import HttpResponse
 from decimal import Decimal
+from django.core.exceptions import ValidationError
 
 from PyPDF2 import PdfFileReader
 
@@ -185,18 +186,24 @@ class FormularAdmin(ZobrazitZmeny):
             messages.error(request, f"Vybrať možno len jednu položku")
             return
         formular = queryset[0]
-        status, msg, vyplnene, vyplnene_data = VyplnitAVygenerovat(formular)
+        try:
+            status, msg, vyplnene, vyplnene_data, podaci_harok = VyplnitAVygenerovat(formular)
+        except ValidationError as ex:
+            messages.error(request, ex)
+            return
         self.message_user(request, msg, status)
         if status != messages.ERROR:
             formular.vyplnene = vyplnene
             formular.vyplnene_data = vyplnene_data
+            formular.podaciharok = podaci_harok
             formular.save()
             if formular.typformulara == TypFormulara.VSEOBECNY: 
                 #Použité dáta sú totožné so vstupnými dátami.
-                messages.warning(request, format_html("Vo výstupnom fodt súbore 'Vytvorený súbor' skontrolujte stránkovanie a ak treba, tak ho upravte.<br />Po kontrole súbor vytlačte (prípadne ešte raz skontrolujte vytlačené), dajte na sekretarát na rozposlanie a vyplňte dátum v poli 'Na odoslanie dňa'. Tým sa vytvorí záznam v <em>Denníku prijatej a odoslanej pošty</em>, kam sekretariát doplní dátum rozposlania."))
+                messages.warning(request, format_html("Vo výstupnom fodt súbore 'Vytvorený dokument' skontrolujte stránkovanie a ak treba, tak ho upravte.<br />Po kontrole súbor vytlačte (prípadne ešte raz skontrolujte vytlačené), dajte na sekretarát na rozposlanie a vyplňte dátum v poli 'Na odoslanie dňa'. Tým sa vytvorí záznam v <em>Denníku prijatej a odoslanej pošty</em>, kam sekretariát doplní dátum rozposlania."))
             else:
                 #Použité dáta sú celkom alebo čiastočne prevzaté z databázy.
-                messages.warning(request, format_html("Vo výstupnom fodt súbore 'Vytvorený súbor' skontrolujte stránkovanie a ak treba, tak ho upravte.<br />Správnosť dát prevzatých z databázy Djanga skontrolujte vo výstupnom xlsx súbore 'Vyplnené dáta'."))
+                messages.warning(request, format_html("Vo výstupnom fodt súbore 'Vytvorený dokument' skontrolujte stránkovanie a ak treba, tak ho upravte.<br />Správnosť dát prevzatých z databázy Djanga skontrolujte vo výstupnom xlsx súbore 'Vyplnené dáta'."))
+                messages.warning(request, format_html("<strong>XLSX súbor podacieho hárku</strong> treba pred použitím na stránke pošty <strong>skonvertovať do formátu XLS.</strong>"))
         else:
             messages.error(request, "Súbory neboli vytvorené.")
 
