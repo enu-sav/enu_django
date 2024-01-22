@@ -222,7 +222,14 @@ class Formular(models.Model):
     )
     #dáta použité na vytvorenie hromadného dokumentu
     vyplnene_data = models.FileField("Vyplnené dáta", storage=OverwriteStorage(),
-            help_text = "XLSX súbor s dátami použitými na vytvorenie hromadného dokumentu (vytvorený akciou 'Vyplniť formulár').",
+            help_text = "Vytvorený XLSX súbor s dátami použitými na vytvorenie hromadného dokumentu (vytvorený akciou 'Vyplniť formulár').",
+            upload_to=form_file_path,
+            blank=True,
+            null = True
+    )
+    #Podací hárok
+    podaciharok = models.FileField("Podací hárok", storage=OverwriteStorage(),
+            help_text = "Vytvorený podací hárok pre Slovenskú poštu. Pred použitím na stránke pošty ho treba <strong>skonvertovať do formátu XLS</strong>",
             upload_to=form_file_path,
             blank=True,
             null = True

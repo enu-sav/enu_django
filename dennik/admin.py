@@ -131,7 +131,7 @@ class DokumentAdmin(ZobrazitZmeny,ImportExportModelAdmin):
 @admin.register(Formular)
 class FormularAdmin(ZobrazitZmeny):
     form = FormularForm
-    list_display = ["cislo", "subor_nazov", "typformulara", "typlistu", "triedalistu",  "na_odoslanie", "_sablona", "_data", "_vyplnene", "_vyplnene_data", "_rozposlany", "_data_komentar"]
+    list_display = ["cislo", "subor_nazov", "typformulara", "typlistu", "triedalistu",  "na_odoslanie", "_sablona", "_data", "_vyplnene", "_podaciharok", "_vyplnene_data", "_rozposlany", "_data_komentar"]
     def get_readonly_fields(self, request, obj=None):
         if not obj:
             return ["na_odoslanie", "vyplnene", "vyplnene_data", "rozposlany", "data_komentar"]
@@ -168,6 +168,11 @@ class FormularAdmin(ZobrazitZmeny):
     def _rozposlany(self, obj):
         return skratit_url(obj.rozposlany, "HD")
     _rozposlany.short_description = "Rozposlaný dokument"
+
+    # formátovať pole url_zmluvy
+    def _podaciharok(self, obj):
+        return skratit_url(obj.podaciharok, "HD")
+    _podaciharok.short_description = "Podací hárok"
 
     # formátovať pole url_zmluvy
     def _data_komentar(self, obj):
