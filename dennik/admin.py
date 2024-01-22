@@ -4,7 +4,7 @@ from django.contrib import admin
 from .models import Dokument,TypDokumentu, TypFormulara, Formular, CerpanieRozpoctu, PlatovaRekapitulacia, SystemovySubor
 from .forms import DokumentForm, FormularForm, overit_polozku, parse_cislo
 from .export_xlsx import export_as_xlsx
-from dennik.common import VyplnitAVygenerovat
+from .common import VyplnitAVygenerovat
 from ipdb import set_trace as trace
 from django.utils.html import format_html
 from django.utils import timezone
@@ -60,6 +60,16 @@ typ_dokumentu = {
 #zobrazenie histórie
 #https://django-simple-history.readthedocs.io/en/latest/admin.html
 from simple_history.admin import SimpleHistoryAdmin
+
+#Skrátiť názov súboru v zobrazení poľa súboru
+def skratit_url(pole, skratka):
+    if pole:
+        suffix = pole.name.split(".")[-1]
+        fname = pole.name.split("/")[-1].split(".")[-2][:7]
+        ddir = pole.name.split("/")[0]
+        return format_html(f'<a href="{pole.url}" target="_blank">{skratka}/{fname}***.{suffix}</a>')
+    else:
+        return None
 
 # Ak sa má v histórii zobraziť zoznam zmien, príslušná admin trieda musí dediť od ZobraziZmeny
 class ZobrazitZmeny(SimpleHistoryAdmin):
@@ -121,7 +131,7 @@ class DokumentAdmin(ZobrazitZmeny,ImportExportModelAdmin):
 @admin.register(Formular)
 class FormularAdmin(ZobrazitZmeny):
     form = FormularForm
-    list_display = ["cislo", "subor_nazov", "typformulara", "na_odoslanie", "sablona", "data", "vyplnene", "vyplnene_data", "rozposlany", "data_komentar"]
+    list_display = ["cislo", "subor_nazov", "typformulara", "na_odoslanie", "_sablona", "_data", "_vyplnene", "_vyplnene_data", "_rozposlany", "_data_komentar"]
     def get_readonly_fields(self, request, obj=None):
         if not obj:
             return ["na_odoslanie", "vyplnene", "vyplnene_data", "rozposlany", "data_komentar"]
@@ -133,6 +143,37 @@ class FormularAdmin(ZobrazitZmeny):
             return ["cislo", "typformulara", "subor_nazov", "vyplnene", "vyplnene_data"]
 
     actions = ['vyplnit_a_vygenerovat']
+
+    # formátovať pole url_zmluvy
+    def _sablona(self, obj):
+        return skratit_url(obj.sablona, "HD")
+    _sablona.short_description = "Šablóna dokumentu"
+
+    # formátovať pole url_zmluvy
+    def _data(self, obj):
+        return skratit_url(obj.data, "HD")
+    _data.short_description = "Dáta"
+
+    # formátovať pole url_zmluvy
+    def _vyplnene(self, obj):
+        return skratit_url(obj.vyplnene, "HD")
+    _vyplnene.short_description = "Vytvorený dokument"
+
+    # formátovať pole url_zmluvy
+    def _vyplnene_data(self, obj):
+        return skratit_url(obj.vyplnene_data, "HD")
+    _vyplnene_data.short_description = "Vyplnené dáta"
+
+    # formátovať pole url_zmluvy
+    def _rozposlany(self, obj):
+        return skratit_url(obj.rozposlany, "HD")
+    _rozposlany.short_description = "Rozposlaný dokument"
+
+    # formátovať pole url_zmluvy
+    def _data_komentar(self, obj):
+        return skratit_url(obj.data_komentar, "HD")
+    _data_komentar.short_description = "Upravené vyplnené dáta"
+
 
     def vyplnit_a_vygenerovat(self, request, queryset):
         if len(queryset) != 1:
