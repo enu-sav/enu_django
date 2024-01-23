@@ -199,13 +199,14 @@ class FormularAdmin(ZobrazitZmeny):
             formular.save()
             if formular.typformulara == TypFormulara.VSEOBECNY: 
                 #Použité dáta sú totožné so vstupnými dátami.
-                messages.warning(request, format_html("Vo výstupnom fodt súbore 'Vytvorený dokument' skontrolujte stránkovanie a ak treba, tak ho upravte.<br />Po kontrole súbor vytlačte (prípadne ešte raz skontrolujte vytlačené), dajte na sekretarát na rozposlanie a vyplňte dátum v poli 'Na odoslanie dňa'. Tým sa vytvorí záznam v <em>Denníku prijatej a odoslanej pošty</em>, kam sekretariát doplní dátum rozposlania."))
+                messages.warning(request, format_html("Vo výstupnom fodt súbore 'Vytvorený dokument' skontrolujte stránkovanie a ak treba, tak ho upravte."))
             else:
                 #Použité dáta sú celkom alebo čiastočne prevzaté z databázy.
                 messages.warning(request, format_html("Vo výstupnom fodt súbore 'Vytvorený dokument' skontrolujte stránkovanie a ak treba, tak ho upravte.<br />Správnosť dát prevzatých z databázy Djanga skontrolujte vo výstupnom xlsx súbore 'Vyplnené dáta'."))
                 messages.warning(request, format_html("<strong>XLSX súbor podacieho hárku</strong> treba pred použitím na stránke pošty <strong>skonvertovať do formátu XLS.</strong>"))
         else:
             messages.error(request, "Súbory neboli vytvorené.")
+        messages.warning(request, format_html("Po kontrole súbor vytlačte (prípadne ešte raz skontrolujte vytlačené), dajte na sekretarát na rozposlanie a vyplňte dátum v poli 'Na odoslanie dňa'. Tým sa vytvorí záznam v <em>Denníku prijatej a odoslanej pošty</em>, kam sekretariát doplní dátum rozposlania."))
 
     vyplnit_a_vygenerovat.short_description = "Vytvoriť súbor hromadného dokumentu"
     #Oprávnenie na použitie akcie, viazané na 'change'
