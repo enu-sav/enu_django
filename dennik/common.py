@@ -11,7 +11,7 @@ from openpyxl.styles import Font, Color, colors, Alignment, PatternFill , number
 from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.pagebreak import Break
 from ipdb import set_trace as trace
-from .models import Formular, TypFormulara
+from .models import Formular, TypFormulara, TypListu
 from zmluvy.models import PlatbaAutorskaOdmena, AnoNie, VytvarnaObjednavkaPlatba
 from .models import SystemovySubor
 from django.core.exceptions import ValidationError
@@ -311,7 +311,7 @@ def VyplnitAVygenerovatAHZrazena(formular, sablona, iws, hdr):
 
     #Vytvoriť podaci hárok
     phwb = VytvoritPodaciHarok(podaci_harok, formular.typlistu, formular.triedalistu, 0.020)
-    o_ph = f"PodaciHarok-{formular.cislo}.fodt"
+    o_ph = f"PodaciHarok-{formular.cislo}.xlsx"
     phwb.save(os.path.join(settings.MEDIA_ROOT,settings.FORM_DIR_NAME,o_ph))
 
     #Uložiť súbory
@@ -367,24 +367,29 @@ def VytvoritPodaciHarok(data, typlistu, trieda, hmotnost):
         if not split:
             raise ValidationError(f"Autor {item[0]} nemá správne zadané PSČ a mesto (XXX XX mesto) alebe nie je zadaný štát. Dokumenty neboli vygenerované.")
         psc, mesto = split[0]
+        if len(item) == 3:  # 'meno priezvisko', '908 74 Malé Leváre 182', 'Slovenská republika'
+            ulica = mesto
+            mesto = re.sub("[0-9]*", "", mesto).strip()
         if rep in ["Slovenská republika", "SR"]:
             stat = "SK"
         elif rep in ["Česká republika", "ČR"]:
             stat = "CZ"
         elif rep in ["Nemecko", "SRN"]:
             stat = "DE"
+        elif rep in ["Rakúsko"]:
+            stat = "AT"
         if not stat:
             raise ValidationError(f"Štát '{rep}' autora {item[0]} nie je podporovaný. Dokumenty neboli vygenerované. Kontajtukte vývojára.")
 
         #ws.cell(row=nn+2, column=hdr["Spôsob úhrady za zásielky (poštovné)"]).value = 1 #Poštovné úverované
-        ws.cell(row=nn+2, column=hdr["Druh zásielky"]).value = typlistu
+        ws.cell(row=nn+2, column=hdr["Druh zásielky"]).value = 1 if typlistu ==  TypListu.DOPORUCENE else 30
         ws.cell(row=nn+2, column=hdr["Meno a priezvisko adresáta"]).value = item[0]
-        ws.cell(row=nn+2, column=hdr["Ulica adresáta"]).value = item[1]
+        ws.cell(row=nn+2, column=hdr["Ulica adresáta"]).value = ulica
         ws.cell(row=nn+2, column=hdr["Obec  adresáta"]).value = mesto
-        ws.cell(row=nn+2, column=hdr["PSČ Pošty"]).value = psc
+        ws.cell(row=nn+2, column=hdr["PSČ Pošty"]).value = psc.replace(" ","")
         ws.cell(row=nn+2, column=hdr["Krajina adresáta"]).value = stat
         ws.cell(row=nn+2, column=hdr["Hmotnosť (kg)"]).value = hmotnost
-        ws.cell(row=nn+2, column=hdr["Trieda"]).value = trieda
+        ws.cell(row=nn+2, column=hdr["Trieda"]).value = trieda if stat == "SK" else ""
         ws.cell(row=nn+2, column=hdr["Obsah zásielky"]).value = "D"
     
     return workbook
