@@ -56,7 +56,7 @@ typ_dokumentu = {
     PrispevokNaRekreaciu.oznacenie: TypDokumentu.REKREACIA,
     Dokument.oznacenie: TypDokumentu.DOKUMENT ,
     Nepritomnost.oznacenie: TypDokumentu.NEPRITOMNOST,
-    Formular.oznacenie: TypDokumentu.HROMADNYi  #Foormular je pomenovany ako Hromadný dokument
+    Formular.oznacenie: TypDokumentu.HROMADNY  #Formular je pomenovany ako Hromadný dokument
 }
 
 #zobrazenie histórie
