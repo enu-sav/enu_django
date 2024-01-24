@@ -31,7 +31,8 @@ triedy = {
     InternyPrevod.oznacenie: InternyPrevod,
     PrispevokNaRekreaciu.oznacenie: PrispevokNaRekreaciu,
     Dokument.oznacenie: Dokument,
-    Nepritomnost.oznacenie: Nepritomnost
+    Nepritomnost.oznacenie: Nepritomnost,
+    Formular.oznacenie: Formular
 }
 
     #
@@ -59,7 +60,8 @@ def normalizovat_cislo(cislo):
         InternyPrevod.oznacenie.lower(): InternyPrevod.oznacenie,
         PrispevokNaRekreaciu.oznacenie.lower(): PrispevokNaRekreaciu.oznacenie,
         Dokument.oznacenie.lower(): Dokument.oznacenie,
-        Nepritomnost.oznacenie.lower(): Nepritomnost.oznacenie
+        Nepritomnost.oznacenie.lower(): Nepritomnost.oznacenie,
+        Formular.oznacenie.lower(): Formular.oznacenie
     }
     aux = parse_cislo(cislo)
     if aux:

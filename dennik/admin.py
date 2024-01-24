@@ -55,7 +55,8 @@ typ_dokumentu = {
     NajomneFaktura.oznacenie: TypDokumentu.NAJOMNE,
     PrispevokNaRekreaciu.oznacenie: TypDokumentu.REKREACIA,
     Dokument.oznacenie: TypDokumentu.DOKUMENT ,
-    Nepritomnost.oznacenie: TypDokumentu.NEPRITOMNOST 
+    Nepritomnost.oznacenie: TypDokumentu.NEPRITOMNOST,
+    Formular.oznacenie: TypDokumentu.HROMADNYi  #Foormular je pomenovany ako Hromadný dokument
 }
 
 #zobrazenie histórie
