@@ -1353,9 +1353,12 @@ class ZamestnanecDohodar(PolymorphicModel, FyzickaOsoba):
         return f"{self.priezvisko}, {self.meno}"
 
 class Zamestnanec(ZamestnanecDohodar):
-    cislo_zamestnanca = models.CharField("Číslo zamestnanca", 
+    cislo_zamestnanca = models.CharField("ČísloZam", 
             null = True,
             max_length=50)
+    cislo_biometric = models.IntegerField("ČísloBiom", 
+            help_text = "Uveďte číslo zamestnanca v Biometricu",
+            null = True)
     zamestnanie_od = models.DateField('1. zamestnanie od',
             help_text = "Dátum nástupu do 1. zamestnania. Preberá sa zo Softipu, kde sa vypočíta z dátumu nástupu do EnÚ a započítanej praxe",
             blank=True,
