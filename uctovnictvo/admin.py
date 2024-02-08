@@ -1597,26 +1597,17 @@ class NepritomnostAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
             messages.error(request, "Vybrať možno len jednu položku")
             return
         polozka = queryset[0]
-        uz_generovane = Nepritomnost.objects.filter(cislo__startswith="%s-"%polozka.cislo)
-        if polozka.subor_nepritomnost:
-            rslt = generovatNepritomnost(polozka, len(uz_generovane)+1)
-            if len(rslt) == 1:  #Chyba
-                messages.error(request, rslt[0])
-            elif len(rslt) == 2:
-                nzamestnanci, nnepritomnosti = rslt
-                messages.success(request, f"Vygenerovaných bolo {nnepritomnosti} záznamov o neprítomnosti pre {nzamestnanci} zamestnancov.")
-            elif len(rslt) == 6:
-                nzamestnanci, nove_pocet, nezmenene_pocet, upravene_pocet, neschvalene, ine_prerusenia = rslt
-                for msg in neschvalene:
-                    messages.success(request, msg.replace("None", "-"))
-                for msg in ine_prerusenia:
-                    messages.error(request, msg.replace("None", "-"))
-                if neschvalene or ine_prerusenia:
-                    messages.warning(request, f"Horeuvedené prerušenia neboli importované. Ak treba opravu, spravte ju v Biometricu, neprítomnosť exportujte, súbor opakovane vložte a záznamy vygenerujte znova.")
-                messages.success(request, f"Záznamy pre {nzamestnanci} zamestnancov: {nove_pocet} nové, {upravene_pocet} upravené, {nezmenene_pocet} nezmenené.")
-                messages.warning(request, f"Tabuľku s neprítomnosťou pre účtáreň môžete vytvoriť akciou 'Exportovať neprítomnosť pre učtáreň'")
- 
+        # Určiť začíatočné číslo generovaných neprítomností
+        uz_generovane = Nepritomnost.objects.filter(cislo__startswith="%s-"%polozka.cislo).order_by("-cislo")
+        if uz_generovane:
+            zacat_od = int(uz_generovane[0].cislo.split("-")[-1]) + 1
+        else:
+            zacat_od = 1
 
+        if polozka.subor_nepritomnost:
+            rslt = generovatNepritomnost(polozka, zacat_od)
+            for msg in rslt:
+                self.message_user(request, msg[1], msg[0])
         else:
             messages.error(request, f"Položka {polozka.cislo} neobsahuje súbor so zoznamom neprítomností.")
     generovat_nepritomnost.short_description = "Generovať záznamy neprítomnosti"
