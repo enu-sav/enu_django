@@ -972,9 +972,9 @@ def generovatNepritomnostBiometric(cislo, start_from,ws):
         n_typ = []
         for s in range(31): # záznam o dochádzke má vždy 31 stĺpcov, vyplnené sú len prac. dni zamestnanca a sviatky
             value = ws.cell(row=riadok, column=s0+s).value
-            if value and value != "S" and value != "PN":    #PN ide vždy až do konca mesiaca
-                if s+1 < prvy_den: prvy_den = s+1
-                if s+1 > posledny_den: posledny_den = s+1
+            if value and value != "S":
+                if s+1 < prvy_den and value != "PN": prvy_den = s+1 #PN ide vždy od začiatku mesiaca
+                if s+1 > posledny_den and value != "PN": posledny_den = s+1 #PN ide vždy až do konca mesiaca
                 n_dni.append(s+1)
                 n_typ.append(value)
         zam_data.append((zamestnanec, n_dni, n_typ))
