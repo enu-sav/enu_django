@@ -506,7 +506,7 @@ class PlatovaRekapitulaciaAdmin(ModelAdminTotals):
         zapisat_riadok(ws_prehlad, fw, 1, ["Mesiac", "Zákazka", "Mzdová účtáreň", "Django", "Rozdiel mínus", "Rozdiel plus"], header=True) 
         for qn, za_mesiac in enumerate(sorted(queryset, key=lambda x: x.identifikator)):  #queryset: zoznam mesiacov, za ktoré treba spraviť rekapituláciu
             ws = wb.create_sheet(title=za_mesiac.identifikator)
-            zapisat_riadok(ws, fw, 1, ["Položka", "Zákazka", "Mzdová účtáreň", "Django", "Rozdiel B-C"], header=True) 
+            zapisat_riadok(ws, fw, 1, ["Položka", "Zákazka", "Mzdová účtáreň", "Django", "Rozdiel C-D"], header=True) 
 
             pdftext = pdftext_vsetky[za_mesiac.identifikator]
 
