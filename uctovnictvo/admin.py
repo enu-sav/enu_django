@@ -1451,12 +1451,12 @@ class DoPCAdmin(DohodaAdmin):
         elif obj.stav_dohody == StavDohody.ODOSLANA_DOHODAROVI: 
             return ro_parent + ["odmena_mesacne", "hod_mesacne", "datum_ukoncenia", "dodatok_k"]
         elif obj.stav_dohody == StavDohody.PODPISANA_DOHODAROM:
-            ro_parent.remove("zdroj")
-            ro_parent.remove("zakazka")
+            #ro_parent.remove("zdroj")
+            #ro_parent.remove("zakazka")
             return ro_parent + ["odmena_mesacne", "hod_mesacne", "dodatok_k"]
         elif obj.stav_dohody == StavDohody.DOKONCENA:
-            ro_parent.remove("zdroj")
-            ro_parent.remove("zakazka")
+            #ro_parent.remove("zdroj")
+            #ro_parent.remove("zakazka")
             return ro_parent + ["odmena_mesacne", "hod_mesacne", "dodatok_k"]
         else:
             #sem by sme nemali prist
