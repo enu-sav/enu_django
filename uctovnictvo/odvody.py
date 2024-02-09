@@ -56,10 +56,27 @@ class Poistne():
                 zdravotne = {
                     "zdravotne": 12,
                 }
-            else:
+            elif datum < date(2024,1,1):
                 ws = self.workbook["Zamestnanci 2022"]
                 if not ws:
-                    return f"V súbore '{nazov_objektu}' sa nenachádza hárok 'Zamestnanci'."
+                    return f"V súbore '{nazov_objektu}' sa nenachádza hárok 'Zamestnanci 2022'."
+                socialne = {
+                    "nemocenske": 4,
+                    "starobne": 5,
+                    "invalidne": 6,
+                    "nezamestnanecke": 7,
+                    "urazove": 8,
+                    "garancne": 9,
+                    "rezervny": 10,
+                    "financovanie_podpory": 11,
+                }
+                zdravotne = {
+                        "zdravotne": 13,
+                }
+            else:
+                ws = self.workbook["Zamestnanci 2024"]
+                if not ws:
+                    return f"V súbore '{nazov_objektu}' sa nenachádza hárok 'Zamestnanci 2024'."
                 socialne = {
                     "nemocenske": 4,
                     "starobne": 5,
@@ -88,9 +105,13 @@ class Poistne():
             else:
                 return f"Zadaný neplatný typ zamestnanca {typ}"
         else:   #dohodar
-            ws = self.workbook["Dohodári"]
+            if datum < date(2024,1,1):
+                harok = "Dohodári"
+            else:
+                harok = "Dohodári 2024"
+            ws = self.workbook[harok]
             if not ws:
-                return f"V súbore '{nazov_objektu}' sa nenachádza hárok 'Dohodári'."
+                return f"V súbore '{nazov_objektu}' sa nenachádza hárok '{harok}'."
             # riadky v tabulke s udajmi o poisteni podľa obdobia platnosti
             socialne = {
                 "nemocenske": 4,
