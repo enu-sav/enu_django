@@ -2176,6 +2176,15 @@ class DoVP(Dohoda):
             help_text = "Uveďte číslo, pod ktorým dohody vedie THS",
             null = True, blank = True,
             max_length=100)
+    datum_ukoncenia = models.DateField('Dátum ukončenia',
+            help_text = "Zadajte dátum predčasného ukončenia platnosti dohody",
+            blank = True,
+            null=True)
+    vyplatena_odmena = models.DecimalField("Vyplatená odmena",
+            help_text = "Zadajte sumu na vyplatenie. Ak ponecháte 0, doplní sa suma z poľa 'Celková suma v EUR'<br /><strong>Vyplniť v prípade predčasnéo ukončenia</strong> dohody.",
+            max_digits=8, 
+            decimal_places=2, 
+            default=0)
     history = HistoricalRecords()
 
     #Konverzia typu dochodku na pozadovany typ vo funkcii DohodarOdvody
@@ -2186,12 +2195,13 @@ class DoVP(Dohoda):
 
     #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
     def cerpanie_rozpoctu(self, zden):
-        if self.datum_do <zden: return []
+        datum = self.datum_ukoncenia if self.datum_ukoncenia else self.datum_do #Dohoda môže byť ukončená predčasne
+        if datum <zden: return []
         kdatum =  date(zden.year, zden.month+1, zden.day) if zden.month+1 <= 12 else  date(zden.year+1, 1, 1)
-        if self.datum_do >= kdatum: return []
+        if datum >= kdatum: return []
         platba = {
                 "nazov":f"DoVP odmena (int. prevod)" if self.interny_prevod==AnoNie.ANO else "DoVP odmena",
-                "suma": -Decimal(self.odmena_celkom),
+                "suma": -Decimal(self.vyplatena_odmena if self.datum_ukoncenia else self.odmena_celkom),
                 "datum": zden,
                 "subjekt": f"{self.zmluvna_strana.priezvisko}, {self.zmluvna_strana.meno}", 
                 "osoba": self.zmluvna_strana,
@@ -2207,9 +2217,11 @@ class DoVP(Dohoda):
     def clean(self): 
         num_days = (self.datum_do - self.datum_od).days
         if num_days > 366:
-            raise ValidationError(f"Doba platnosti dohody presahuje maximálnu povolenú dobu 12 mesiacov.")
+            raise ValidationError({"num_days": f"Doba platnosti dohody presahuje maximálnu povolenú dobu 12 mesiacov."})
         if self.hod_celkom > 350:
-            raise ValidationError(f"Celkový počet {pocet_hodin} hodín maximálny zákonom povolený povolený počet 350.")
+            raise ValidationError({"hod_celkom": f"Celkový počet {pocet_hodin} hodín maximálny zákonom povolený povolený počet 350."})
+        if self.datum_ukoncenia and not self.vyplatena_odmena:
+            raise ValidationError({"vyplatena_odmena":f"Ak je vyplnené pole 'Dátum ukončenia', musí byť vyplnené aj pole 'Vyplatená odmena'."})
 
     class Meta:
         verbose_name = 'Dohoda o vykonaní práce'
