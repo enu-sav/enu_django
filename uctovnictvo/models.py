@@ -17,7 +17,7 @@ PERCENTAGE_VALIDATOR = [MinValueValidator(0), MaxValueValidator(100)]
 from beliana.settings import TMPLTS_DIR_NAME, PLATOVE_VYMERY_DIR, DOHODY_DIR, PRIJATEFAKTURY_DIR, PLATOBNE_PRIKAZY_DIR, STRAVNE_HOD
 from beliana.settings import ODVODY_VYNIMKA, DAN_Z_PRIJMU, OBJEDNAVKY_DIR, STRAVNE_DIR, REKREACIA_DIR
 from beliana.settings import PN1, PN2, BEZ_PRIKAZU_DIR, DDS_PRISPEVOK, ODMENY_DIR, NEPRITOMNOST_DIR, SOCFOND_PRISPEVOK
-from beliana.settings import VYSTAVENEFAKTURY_DIR, NAJOMNEFAKTURY_DIR
+from beliana.settings import VYSTAVENEFAKTURY_DIR, NAJOMNEFAKTURY_DIR, POKLADNA_DIR
 import os,re
 from datetime import timedelta, date, datetime
 from dateutil.relativedelta import relativedelta
@@ -2465,7 +2465,7 @@ class VyplacanieDohod(models.Model):
 
 
 def pokladna_upload_location(instance, filename):
-    return os.path.join(VPD_DIR, filename)
+    return os.path.join(POKLADNA_DIR, filename)
 class Pokladna(models.Model):
     oznacenie = "Po"
     cislo = models.CharField("Číslo záznamu", 
@@ -2496,6 +2496,10 @@ class Pokladna(models.Model):
             blank = True,
             null = True
             )
+    subor_doklad = models.FileField("Doklad o úhrade",
+            help_text = "Súbor so zoskenovaným dokladom o úhrade",
+            upload_to=pokladna_upload_location, 
+            null = True, blank = True)
     subor_vpd = models.FileField("Súbor PD",
             help_text = "Súbor pokladničného dokladu (VPD, PPD). Generuje sa akciou 'Vytvoriť PD'",
             upload_to=pokladna_upload_location, 
