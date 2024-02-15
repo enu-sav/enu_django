@@ -392,7 +392,7 @@ def platba_autorska_sumar_upload_location(instance, filename):
     #Vyplacanie_autorskych_honorarov/2021-02/export_vyplatit_rs-gasparik.csv
     return os.path.join(RLTS_DIR_NAME, dir_name, file_name)
 
-class PlatbaAutorskaSumar(models.Model):
+class PlatbaAutorskaSumar(models.Model, GetAdminURL):
     oznacenie = "AH"
     # názvy akcií
     zrusit_platbu_name = "Zrušiť záznam o platbe v databáze"
