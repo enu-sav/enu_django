@@ -634,7 +634,7 @@ class PrijataFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdm
 #class VystavenaFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
 class VystavenaFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
     form = VystavenaFakturaForm
-    list_display = ["cislo", "objednavka_zmluva_link", "url_faktury", "url_softip", "suma", "sadzbadph", "predmet", "platobny_prikaz", "dane_na_uhradu", "uhradene_dna", "zdroj", "zakazka", "zdroj2", "zakazka2", "ekoklas"]
+    list_display = ["cislo", "dcislo", "objednavka_zmluva_link", "url_faktury", "url_softip", "suma", "sadzbadph", "predmet", "platobny_prikaz", "dane_na_uhradu", "uhradene_dna", "zdroj", "zakazka", "zdroj2", "zakazka2", "ekoklas"]
     search_fields = ["^cislo","objednavka_zmluva__dodavatel__nazov", "predmet", "^zdroj__kod", "^zakazka__kod", "^ekoklas__kod", "^ekoklas__nazov",  "^cinnost__kod", "cinnost__nazov" ]
 
     # zoraďovateľný odkaz na dodávateľa

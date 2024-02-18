@@ -728,7 +728,8 @@ def vystavena_faktura_upload_location(instance, filename):
 class VystavenaFaktura(FakturaPravidelnaPlatba, GetAdminURL):
     oznacenie = "Vf"    #v čísle faktúry, Vf-2021-123
     # Polia
-    dcislo = models.CharField("Číslo faktúry odberateĺa", 
+    dcislo = models.CharField("Číslo Softip", 
+            help_text = "Zadajte číslo faktúry zo Softipu",
             null=True,
             max_length=50)
     predmet = models.CharField("Predmet", 
@@ -736,7 +737,7 @@ class VystavenaFaktura(FakturaPravidelnaPlatba, GetAdminURL):
     doslo_datum = models.DateField('Došlo dňa',
             null=True)
     na_zaklade = models.FileField("Na základe",
-            help_text = "Dokument (faktúra), na základe ktorého sa faktúra vystavuje.",
+            help_text = "Dokument (faktúra od odberateľa), na základe ktorého sa faktúra vystavuje.",
             upload_to=vystavena_faktura_upload_location, 
             null = True)
     zo_softipu = models.FileField("Faktúra zo Softipu",
