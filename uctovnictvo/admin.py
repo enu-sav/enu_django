@@ -698,16 +698,16 @@ class VystavenaFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryA
             return
         faktura = queryset[0]
         if faktura.dane_na_uhradu:
-            self.message_user(request, f"Faktúra už bola daná na úhradu, vytváranie platobného príkazu nie je možné", messages.ERROR)
+            self.message_user(request, f"Faktúra už bola daná na úhradu, vytváranie krycieho listu nie je možné", messages.ERROR)
             return
-        status, msg, vytvoreny_subor = VytvoritPlatobnyPrikaz(faktura, request.user)
+        status, msg, vytvoreny_subor = VytvoritKryciList(faktura, request.user)
         if status != messages.ERROR:
             #faktura.dane_na_uhradu = timezone.now()
             faktura.platobny_prikaz = vytvoreny_subor
             faktura.save()
         self.message_user(request, msg, status)
 
-    vytvorit_platobny_prikaz.short_description = "Vytvoriť platobný príkaz a krycí list pre THS"
+    vytvorit_platobny_prikaz.short_description = "Vytvoriť krycí list pre THS"
     #Oprávnenie na použitie akcie, viazané na 'change'
     vytvorit_platobny_prikaz.allowed_permissions = ('change',)
 

@@ -231,8 +231,12 @@ def VytvoritKryciList(platba, pouzivatel):
     text=re.sub("<dc:creator>[^<]*</dc:creator>", f"<dc:creator>{pouzivatel.get_full_name()}</dc:creator>", text)
     text=re.sub("<dc:date>[^<]*</dc:date>", f"<dc:date>{timezone.now().strftime('%Y-%m-%dT%H:%M:%S.%f')}</dc:date>", text)
     if type(platba) == NajomneFaktura:
-        text = text.replace(f"{lt}popis{gt}", f"Platba č. {platba.cislo_softip}")
-        nazov = platba.zmluva.najomnik.nazov.replace("&", "&amp;")
+        nazov = platba.zmluva.najomnik.nazov
+        text = text.replace(f"{lt}popis{gt}", f"Platba č. {platba.cislo_softip}, {nazov}")
+        meno_pola = "Dané na vybavenie dňa"
+    elif type(platba) == VystavenaFaktura:
+        nazov = platba.objednavka_zmluva.dodavatel.nazov
+        text = text.replace(f"{lt}popis{gt}", f"Platba č. {platba.dcislo}, {nazov}")
         meno_pola = "Dané na vybavenie dňa"
     else:
         text = text.replace(f"{lt}popis{gt}", "")
@@ -243,12 +247,12 @@ def VytvoritKryciList(platba, pouzivatel):
     locale.setlocale(locale.LC_ALL, 'sk_SK.UTF-8')
     text = text.replace(f"{lt}akt_datum{gt}", timezone.now().strftime("%d. %m. %Y"))
     #ulozit
-    if "," in nazov: nazov = nazov[:nazov.find(",")]
-    nazov = f"{nazov}-{platba.cislo}.fodt".replace(' ','-').replace("/","-")
+    nazov = nazov.replace(",", "").replace(" ","-").replace("/","-").replace("&", "&amp;")
+    nazov = f"{nazov}-{platba.cislo}.fodt"
     opath = os.path.join(settings.PLATOBNE_PRIKAZY_DIR,nazov)
     with open(os.path.join(settings.MEDIA_ROOT,opath), "w") as f:
         f.write(text)
-    return messages.SUCCESS, mark_safe(f"Súbor krycieho listu platby {platba.cislo} bol úspešne vytvorený ({opath}). <br />Krycí list a vyúčtovanie dajte na podpis. <br />Po podpísaní krycí list a vyúčtovanie dajte na sekretariát na odoslanie a vyplňte pole '{meno_pola}'."), opath
+    return messages.SUCCESS, mark_safe(f"Súbor krycieho listu platby {platba.cislo} bol úspešne vytvorený ({opath}). <br />Krycí list a faktúru dajte na podpis. <br />Po podpísaní krycí list a faktúru dajte na sekretariát na odoslanie a vyplňte pole '{meno_pola}'."), opath
  
 # pouzivatel: aktualny pouzivatel
 def VytvoritPlatobnyPrikazIP(faktura, pouzivatel):
