@@ -17,7 +17,7 @@ PERCENTAGE_VALIDATOR = [MinValueValidator(0), MaxValueValidator(100)]
 from beliana.settings import TMPLTS_DIR_NAME, PLATOVE_VYMERY_DIR, DOHODY_DIR, PRIJATEFAKTURY_DIR, PLATOBNE_PRIKAZY_DIR, STRAVNE_HOD
 from beliana.settings import ODVODY_VYNIMKA, DAN_Z_PRIJMU, OBJEDNAVKY_DIR, STRAVNE_DIR, REKREACIA_DIR
 from beliana.settings import PN1, PN2, BEZ_PRIKAZU_DIR, DDS_PRISPEVOK, ODMENY_DIR, NEPRITOMNOST_DIR, SOCFOND_PRISPEVOK
-from beliana.settings import VYSTAVENEFAKTURY_DIR, NAJOMNEFAKTURY_DIR, POKLADNA_DIR
+from beliana.settings import VYSTAVENEFAKTURY_DIR, NAJOMNEFAKTURY_DIR, POKLADNA_DIR, DPH
 import os,re
 from datetime import timedelta, date, datetime
 from dateutil.relativedelta import relativedelta
@@ -689,12 +689,16 @@ class PrijataFaktura(FakturaPravidelnaPlatba, GetAdminURL):
         if self.mena != Mena.EUR and not self.suma: 
             suma = float(self.sumacm) / priblizny_kurz[self.mena]
         else:
-            suma = self.suma
+            suma = float(self.suma)
 
-        podiel2 = self.podiel2 if self.podiel2 else 0.0
+        #'suma' v prípade prenosu DPH treba rozdeliť na čast bez DPH a DPH, lebo EnÚ odvádza DPH namiesto dodávateľa
+        #inak DPH neriešime, lebo EnÚ nie je platcom  DPH
+        suma = suma / (1+DPH/100.) if self.prenosDP == AnoNie.ANO else suma
+        podiel2 = float(self.podiel2)/100. if self.podiel2 else 0
+        platby = []
         platba1 = {
                 "nazov":f"Faktúra {typ}",
-                "suma": round(Decimal(float(suma)*(100-float(podiel2))/100),2),
+                "suma": round(Decimal(suma*(1-podiel2)),2),
                 "datum": datum_uhradenia,
                 "cislo": self.cislo,
                 "subjekt": self.adresat_text(),
@@ -702,10 +706,11 @@ class PrijataFaktura(FakturaPravidelnaPlatba, GetAdminURL):
                 "zakazka": self.zakazka,
                 "ekoklas": self.ekoklas
                 }
+        platby.append(platba1)
         if podiel2 > 0:
             platba2 = {
                 "nazov":f"Faktúra {typ}",
-                "suma": round(Decimal(float(suma)*(float(podiel2))/100),2),
+                "suma": round(Decimal(suma*podiel2),2),
                 "datum": datum_uhradenia,
                 "cislo": self.cislo,
                 "subjekt": self.adresat_text(),
@@ -713,9 +718,36 @@ class PrijataFaktura(FakturaPravidelnaPlatba, GetAdminURL):
                 "zakazka": self.zakazka2,
                 "ekoklas": self.ekoklas
                 }
+            platby.append(platba2)
+        if self.prenosDP == AnoNie.ANO:
+            dph1 = {
+                "nazov":f"DPH prenos DP",
+                "suma": round(Decimal(DPH*suma*(1-podiel2)/100),2),
+                "datum": datum_uhradenia,
+                "cislo": self.cislo,
+                "subjekt": self.adresat_text(),
+                "zdroj": self.zdroj,
+                "zakazka": self.zakazka,
+                "ekoklas": EkonomickaKlasifikacia.objects.get(kod="637044")
+                }
+            platby.append(dph1)
+            if podiel2 > 0:
+                dph2 = {
+                "nazov":f"DPH prenos DP",
+                "suma": round(Decimal(DPH*suma*podiel2/100),2),
+                "datum": datum_uhradenia,
+                "cislo": self.cislo,
+                "subjekt": self.adresat_text(),
+                "zdroj": self.zdroj2,
+                "zakazka": self.zakazka2,
+                "ekoklas": EkonomickaKlasifikacia.objects.get(kod="637044")
+                }
+                platby.append(dph2)
+
+
         if self.mena != Mena.EUR and not self.suma: 
             platba["poznamka"] = f"Čerpanie rozpočtu: uhradená suma v EUR faktúry {self.cislo} v cudzej mene je približná. Správnu sumu v EUR vložte do poľa 'Suma' na základe údajov o platbe zo Softipu."
-        return [platba1, platba2] if podiel2 > 0 else [platba1] 
+        return platby
 
     class Meta:
         verbose_name = 'Prijatá faktúra'
