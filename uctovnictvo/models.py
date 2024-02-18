@@ -17,7 +17,7 @@ PERCENTAGE_VALIDATOR = [MinValueValidator(0), MaxValueValidator(100)]
 from beliana.settings import TMPLTS_DIR_NAME, PLATOVE_VYMERY_DIR, DOHODY_DIR, PRIJATEFAKTURY_DIR, PLATOBNE_PRIKAZY_DIR, STRAVNE_HOD
 from beliana.settings import ODVODY_VYNIMKA, DAN_Z_PRIJMU, OBJEDNAVKY_DIR, STRAVNE_DIR, REKREACIA_DIR
 from beliana.settings import PN1, PN2, BEZ_PRIKAZU_DIR, DDS_PRISPEVOK, ODMENY_DIR, NEPRITOMNOST_DIR, SOCFOND_PRISPEVOK
-from beliana.settings import VYSTAVENEFAKTURY_DIR, NAJOMNEFAKTURY_DIR, POKLADNA_DIR, DPH
+from beliana.settings import VYSTAVENEFAKTURY_DIR, NAJOMNEFAKTURY_DIR, POKLADNA_DIR
 import os,re
 from datetime import timedelta, date, datetime
 from dateutil.relativedelta import relativedelta
@@ -693,7 +693,9 @@ class PrijataFaktura(FakturaPravidelnaPlatba, GetAdminURL):
 
         #'suma' v prípade prenosu DPH treba rozdeliť na čast bez DPH a DPH, lebo EnÚ odvádza DPH namiesto dodávateľa
         #inak DPH neriešime, lebo EnÚ nie je platcom  DPH
-        suma = suma / (1+DPH/100.) if self.prenosDP == AnoNie.ANO else suma
+        if self.prenosDP == AnoNie.ANO:
+            dph = float(self.sadzbadph)/100
+            suma = suma / (1+dph) if self.prenosDP == AnoNie.ANO else suma
         podiel2 = float(self.podiel2)/100. if self.podiel2 else 0
         platby = []
         platba1 = {
@@ -722,7 +724,7 @@ class PrijataFaktura(FakturaPravidelnaPlatba, GetAdminURL):
         if self.prenosDP == AnoNie.ANO:
             dph1 = {
                 "nazov":f"DPH prenos DP",
-                "suma": round(Decimal(DPH*suma*(1-podiel2)/100),2),
+                "suma": round(Decimal(dph*suma*(1-podiel2)),2),
                 "datum": datum_uhradenia,
                 "cislo": self.cislo,
                 "subjekt": self.adresat_text(),
@@ -734,7 +736,7 @@ class PrijataFaktura(FakturaPravidelnaPlatba, GetAdminURL):
             if podiel2 > 0:
                 dph2 = {
                 "nazov":f"DPH prenos DP",
-                "suma": round(Decimal(DPH*suma*podiel2/100),2),
+                "suma": round(Decimal(dph*suma*podiel2),2),
                 "datum": datum_uhradenia,
                 "cislo": self.cislo,
                 "subjekt": self.adresat_text(),
