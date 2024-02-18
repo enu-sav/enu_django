@@ -159,6 +159,10 @@ class VystavenaFakturaForm(DennikZaznam):
             self.dennik_zaznam(f"Platobný príkaz na THS {self.instance.cislo} na vyplatenie", TypDokumentu.VYSTAVENAFAKTURA, InOut.ODOSLANY, "THS", self.instance.platobny_prikaz.url)
         return self.cleaned_data
 
+    #Skryť položky vo formulári
+    class Meta:
+        exclude = ['zdroj2', 'zakazka2', 'podiel2']
+
 class InternyPrevodForm(forms.ModelForm):
     #inicializácia polí
     def __init__(self, *args, **kwargs):
