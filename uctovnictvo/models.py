@@ -795,12 +795,16 @@ class VystavenaFaktura(FakturaPravidelnaPlatba, GetAdminURL):
         if datum_uhradenia <zden: return []
         kdatum =  date(zden.year, zden.month+1, zden.day) if zden.month+1 <= 12 else  date(zden.year+1, 1, 1)
         if datum_uhradenia >= kdatum: return []
-        suma = self.suma
 
-        podiel2 = self.podiel2 if self.podiel2 else 0.0
+        suma = float(self.suma)
+        #'suma' trba rozdeliť na sumu bez DPH a DPH
+        dph = float(self.sadzbadph)/100
+        suma = suma / (1+dph)
+        podiel2 = float(self.podiel2)/100. if self.podiel2 else 0
+        platby = []
         platba1 = {
                 "nazov":f"Vystavená faktúra",
-                "suma": round(Decimal(float(suma)*(100-float(podiel2))/100),2),
+                "suma": round(Decimal(suma*(1-podiel2)),2),
                 "datum": datum_uhradenia,
                 "cislo": self.cislo,
                 "subjekt": self.adresat_text(),
@@ -808,10 +812,11 @@ class VystavenaFaktura(FakturaPravidelnaPlatba, GetAdminURL):
                 "zakazka": self.zakazka,
                 "ekoklas": self.ekoklas
                 }
+        platby.append(platba1)
         if podiel2 > 0:
             platba2 = {
                 "nazov":f"Vystavená faktúra",
-                "suma": round(Decimal(float(suma)*(float(podiel2))/100),2),
+                "suma": round(Decimal(suma*podiel2),2),
                 "datum": datum_uhradenia,
                 "cislo": self.cislo,
                 "subjekt": self.adresat_text(),
@@ -819,7 +824,33 @@ class VystavenaFaktura(FakturaPravidelnaPlatba, GetAdminURL):
                 "zakazka": self.zakazka2,
                 "ekoklas": self.ekoklas
                 }
-        return [platba1, platba2] if podiel2 > 0 else [platba1] 
+            platby.append(platba2)
+        if dph > 0:
+            dph1 = {
+                "nazov":f"DPH vystavená faktúra",
+                "suma": round(Decimal(dph*suma*(1-podiel2)),2),
+                "datum": datum_uhradenia,
+                "cislo": self.cislo,
+                "subjekt": self.adresat_text(),
+                "zdroj": self.zdroj,
+                "zakazka": self.zakazka,
+                "ekoklas": EkonomickaKlasifikacia.objects.get(kod="637044")
+                }
+            platby.append(dph1)
+            if podiel2 > 0:
+                dph2 = {
+                "nazov":f"DPH vystavená faktúra",
+                "suma": round(Decimal(dph*suma*podiel2),2),
+                "datum": datum_uhradenia,
+                "cislo": self.cislo,
+                "subjekt": self.adresat_text(),
+                "zdroj": self.zdroj2,
+                "zakazka": self.zakazka2,
+                "ekoklas": EkonomickaKlasifikacia.objects.get(kod="637044")
+                }
+                platby.append(dph2)
+        return platby
+    
 
     class Meta:
         verbose_name = 'Vystavená faktúra'
