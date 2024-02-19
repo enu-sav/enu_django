@@ -836,7 +836,9 @@ class VystavenaFaktura(FakturaPravidelnaPlatba, GetAdminURL):
                 "zakazka": self.zakazka,
                 "ekoklas": EkonomickaKlasifikacia.objects.get(kod="637044")
                 }
-            platby.append(dph1)
+            platby.append(dph1.copy())
+            dph1["suma"] = -dph1["suma"]
+            platby.append(dph1.copy())
             if podiel2 > 0:
                 dph2 = {
                 "nazov":f"DPH vystavená faktúra",
@@ -848,7 +850,9 @@ class VystavenaFaktura(FakturaPravidelnaPlatba, GetAdminURL):
                 "zakazka": self.zakazka2,
                 "ekoklas": EkonomickaKlasifikacia.objects.get(kod="637044")
                 }
-                platby.append(dph2)
+                platby.append(dph2.copy())
+                dph2["suma"] = -dph2["suma"]
+                platby.append(dph2.copy())
         return platby
     
 
