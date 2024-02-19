@@ -716,7 +716,7 @@ class PrijataFaktura(FakturaPravidelnaPlatba, GetAdminURL):
 
         platby = []
         if self.prenosDP == AnoNie.ANO:
-            #'suma' v prípade prenosu DPH treba rozdeliť na čast bez DPH a DPH, lebo EnÚ odvádza DPH namiesto dodávateľa
+            #'suma' v prípade prenosu DPH treba rozdeliť na časť bez DPH a DPH, lebo EnÚ odvádza DPH namiesto dodávateľa
             #inak DPH neriešime, lebo EnÚ nie je platcom  DPH
             dph = float(self.sadzbadph)/100
             suma = suma / (1+dph) if self.prenosDP == AnoNie.ANO else suma
@@ -731,15 +731,45 @@ class PrijataFaktura(FakturaPravidelnaPlatba, GetAdminURL):
             platby.append(platba1.copy())
             if podiel2 > 0:
                 platba2["nazov"] = f"Faktúra {typ}"
-                platba2["suma"] =  round(Decimal(suma*(1-podiel2)),2)
+                platba2["suma"] =  round(Decimal(suma*podiel2),2)
                 platba2["ekoklas"] =  self.ekoklas
                 platby.append(platba2.copy())
                 #dph
                 platba2["nazov"] = f"DPH prenos DP"
-                platba2["suma"] =  round(Decimal(dph*suma*(1-podiel2)),2)
+                platba2["suma"] =  round(Decimal(dph*suma*podiel2),2)
                 platba2["ekoklas"] =  EkonomickaKlasifikacia.objects.get(kod="637044")
                 platby.append(platba2.copy())
-        else:   #Ostatné, bežné prípady
+        elif self.ekoklas.kod == '223001':
+            #'suma' v prípade predaja el. energie rozdeliť na čast bez DPH a DPH
+            # od r. 2024 sa takéto faktúry uvádazajú vo VystavenaFaktura
+            dph = float(self.sadzbadph)/100
+            suma = suma / (1+dph) if self.prenosDP == AnoNie.ANO else suma
+            platba1["nazov"] = f"Faktúra {typ}"
+            platba1["suma"] =  round(Decimal(suma*(1-podiel2)),2)
+            platba1["ekoklas"] =  self.ekoklas
+            platby.append(platba1.copy())
+            #dph
+            if dph > 0:
+                platba1["nazov"] = f"DPH predaj"
+                platba1["suma"] =  round(Decimal(dph*suma*(1-podiel2)),2)
+                platba1["ekoklas"] =  EkonomickaKlasifikacia.objects.get(kod="637044")
+                platby.append(platba1.copy())
+                platba1["suma"] = -platba1["suma"]
+                platby.append(platba1.copy())
+            if podiel2 > 0:
+                platba2["nazov"] = f"Faktúra {typ}"
+                platba2["suma"] =  round(Decimal(suma*podiel2),2)
+                platba2["ekoklas"] =  self.ekoklas
+                platby.append(platba2.copy())
+                #dph
+                if dph > 0:
+                    platba2["nazov"] = f"DPH predaj"
+                    platba2["suma"] =  round(Decimal(dph*suma*podiel2),2)
+                    platba2["ekoklas"] =  EkonomickaKlasifikacia.objects.get(kod="637044")
+                    platby.append(platba2.copy())
+                    platba2["suma"] = -platba2["suma"]
+                    platby.append(platba2.copy())
+        else:   #Ostatné, bežné prípady, dph sa neuvažuje
             platba1["nazov"] = f"Faktúra {typ}"
             platba1["suma"] =  round(Decimal(suma*(1-podiel2)),2)
             platba1["ekoklas"] =  self.ekoklas
