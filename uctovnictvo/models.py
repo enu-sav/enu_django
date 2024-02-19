@@ -797,7 +797,7 @@ class VystavenaFaktura(FakturaPravidelnaPlatba, GetAdminURL):
         if datum_uhradenia >= kdatum: return []
 
         suma = float(self.suma)
-        #'suma' trba rozdeliť na sumu bez DPH a DPH
+        #'suma' treba rozdeliť na sumu bez DPH a DPH
         dph = float(self.sadzbadph)/100
         suma = suma / (1+dph)
         podiel2 = float(self.podiel2)/100. if self.podiel2 else 0
@@ -1029,6 +1029,7 @@ class NajomneFaktura(Klasifikacia, GetAdminURL):
         kdatum =  date(zden.year, zden.month+1, zden.day) if zden.month+1 <= 12 else  date(zden.year+1, 1, 1)
         if self.splatnost_datum >= kdatum: return []
         typ = "prenájom nájomné" if self.typ == TypPN.NAJOMNE else "prenájom služby" if self.typ == TypPN.SLUZBY else "prenájom vyúčtovanie"
+        platby =[]
         platba = {
                 "nazov":f"Faktúra {typ}",
                 "suma": self.suma,
@@ -1039,7 +1040,22 @@ class NajomneFaktura(Klasifikacia, GetAdminURL):
                 "zakazka": self.zakazka,
                 "ekoklas": self.ekoklas
                 }
-        return [platba]
+        platby.append(platba)
+        if self.dan:
+            dph = {
+                "nazov":f"DPH prenájom",
+                "suma": self.dan,
+                "datum": self.dane_na_uhradu,
+                "subjekt": f"{self.zmluva.najomnik.nazov}, (za {zden.year}/{zden.month})", 
+                "cislo": self.cislo,
+                "zdroj": self.zdroj,
+                "zakazka": self.zakazka,
+                "ekoklas": EkonomickaKlasifikacia.objects.get(kod="637044")
+                }
+            platby.append(dph.copy())
+            dph['suma'] = -self.dan
+            platby.append(dph.copy())
+        return platby
     class Meta:
         verbose_name = 'Faktúra za prenájom'
         verbose_name_plural = 'Prenájom - Faktúry'
