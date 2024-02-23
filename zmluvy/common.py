@@ -193,6 +193,13 @@ def VytvoritAutorskuZmluvu(zmluva, nazov_sablony):
         sablona = sablona.replace(f"{lt}kadresa3{gt}", autor.adresa_stat if autor.adresa_stat else "")
         sablona = sablona.replace(f"{lt}kadresa4{gt}", "")
 
+    #Krycí list
+    sablona = sablona.replace(f"{lt}cislo{gt}", zmluva.cislo)
+    sablona = sablona.replace(f"{lt}datum{gt}", timezone.now().strftime("%d. %m. %Y").replace(' 0',' '))
+    sablona = sablona.replace(f"{lt}zdroj{gt}", "111")
+    sablona = sablona.replace(f"{lt}ekoklas{gt}", "633018 Licencie")
+    sablona = sablona.replace(f"{lt}zakazka{gt}", "11070002 Beliana")
+
     #ulozit
     #Create directory admin.rs_login if necessary
     if isinstance(autor, OsobaAutor):
