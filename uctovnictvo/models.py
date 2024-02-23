@@ -394,6 +394,13 @@ class Objednavka(ObjednavkaZmluva):
     history = HistoricalRecords()
 
     def clean(self):
+        def is_number(string):
+	        try:
+		        float(string)
+		        return True
+	        except ValueError:
+		        return False
+
         # test počtu riadkov v objednane_polozky
         pocet_riadkov = 18 #definované v common.VytvoritSuborObjednavky.pocet_riadkov
         pocet_poloziek = len(self.objednane_polozky.split("\r\n"))
@@ -405,8 +412,9 @@ class Objednavka(ObjednavkaZmluva):
         objednane = self.objednane_polozky.split("\n")
         pocet_poli = len(objednane[0].split(";"))
         if not pocet_poli in (2,5):
+            pole = "pole" if pocet_poli==1 else "polia" if pocet_poli < 5 else "polí"
             raise ValidationError({
-                "objednane_polozky":f"Prvá položka má {pocet_poli} polí, povolený počet je 2 alebo 5 (skontrolujte bodkočiarky)"
+                "objednane_polozky":f"Prvá položka má {pocet_poli} {pole}, povolený počet je 2 alebo 5 (skontrolujte bodkočiarky)"
                 }
             )
         for rr, polozka in enumerate(objednane):
@@ -418,9 +426,19 @@ class Objednavka(ObjednavkaZmluva):
                 )
         if pocet_poli == 2 and not self.predpokladana_cena:
             raise ValidationError({
-                "predpokladana_cena":f"Ak položka v <em>Objednané položky</em> má len dve polia, tak toto pole musí byť vyplnené."
+                "predpokladana_cena":f"Ak položka v 'Objednané položky' má len dve polia, tak v tomto poli musí byť uvedená suma."
                 }
             )
+        if pocet_poli == 5:
+            celkova_suma = 0
+            for rr, polozka in enumerate(objednane):
+                pp = polozka.split(";")
+                if not (is_number(pp[2].replace(",",".")) and is_number(pp[3].replace(",","."))):
+                    raise ValidationError({
+                        "predpokladana_cena":f"Tretia ({pp[2]}) a štvrtá ({pp[3]}) položka na riadku {rr+1} musia byť číslo"
+                        })
+                celkova_suma += float(pp[2].replace(",",".")) * float(pp[3].replace(",","."))
+            self.predpokladana_cena = Decimal(celkova_suma)
 
     class Meta:
         verbose_name = 'Objednávka'
