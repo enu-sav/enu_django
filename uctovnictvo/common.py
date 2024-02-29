@@ -901,7 +901,7 @@ def generovatNepritomnost(sumarna_nepritomnost, start_from):
         return generovatNepritomnostBiometric(sumarna_nepritomnost.cislo, start_from,ws)
     else:
         return [
-                [messages.ERROR, f"Nepodporovaný typ xlsx súboru ({sumarna_nepritomnost.subor_nepritomnost.file.name}). Zrejme ide o súbor, ktorý bol nesprávnym spôsobom."],
+                [messages.ERROR, f"Nepodporovaný typ xlsx súboru ({sumarna_nepritomnost.subor_nepritomnost.file.name}). Zrejme ide o súbor, ktorý bol exportovaný nesprávnym spôsobom."],
                 [messages.WARNING, mark_safe("Postup exportovania neprítomnosti z Biometricu platný od 1. 2. 2024: <strong> Reporty a exporty > Evidencia dochádzaky > (zvoliť obdobie) > Spustiť report > (zvoliť Excel)</strong>")]
                ]
 
