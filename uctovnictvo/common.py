@@ -900,7 +900,10 @@ def generovatNepritomnost(sumarna_nepritomnost, start_from):
     if ws["A9"].value == "ID" and ws["B9"].value == "Meno":   #Prehľad za mesiac, obsahuje PN
         return generovatNepritomnostBiometric(sumarna_nepritomnost.cislo, start_from,ws)
     else:
-        return [[messages.ERROR, f"Nepodporovaný typ xlsx súboru ({sumarna_nepritomnost.subor_nepritomnost.file.name}). Zrejme ide o súbor, ktorý bol vložený dávnejšie."]]
+        return [
+                [messages.ERROR, f"Nepodporovaný typ xlsx súboru ({sumarna_nepritomnost.subor_nepritomnost.file.name}). Zrejme ide o súbor, ktorý bol nesprávnym spôsobom."],
+                [messages.WARNING, mark_safe("Postup exportovania neprítomnosti z Biometricu platný od 1. 2. 2024: <strong> Reporty a exporty > Evidencia dochádzaky > (zvoliť obdobie) > Spustiť report > (zvoliť Excel)</strong>")]
+               ]
 
 # generovat jednotlive zaznamy nepritomnosti zamestnancov na zaklade exportu z Biometricu: Reporty a exporty > Evidencia dochádzky
 # Biometric musí byť nastavený tak, aby ako PN označoval aj dni pracovného voľna
