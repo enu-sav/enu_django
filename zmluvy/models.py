@@ -209,6 +209,16 @@ class Zmluva(models.Model):
         verbose_name = 'Zmluva'
         verbose_name_plural = 'Zmluvy'
 
+    def clean(self):
+        #trace()
+        if self.stav_zmluvy == StavZmluvy.VYTVORENA and self.zmluva_odoslana: 
+            self.stav_zmluvy = StavZmluvy.ODOSLANA_AUTOROVI
+        elif self.stav_zmluvy == StavZmluvy.ODOSLANA_AUTOROVI and self.zmluva_vratena: 
+            self.stav_zmluvy = StavZmluvy.VRATENA_OD_AUTORA
+        elif self.stav_zmluvy == StavZmluvy.VRATENA_OD_AUTORA and self.datum_zverejnenia_CRZ: 
+            self.stav_zmluvy = StavZmluvy.ZVEREJNENA_V_CRZ
+
+
 class ZmluvaAutor(Zmluva):
     oznacenie = "A"    #v čísle faktúry, A-2021-123
     # Polia
@@ -226,15 +236,6 @@ class ZmluvaAutor(Zmluva):
     class Meta:
         verbose_name = 'Autorská zmluva'
         verbose_name_plural = 'Autorské zmluvy'
-
-    def clean(self):
-        #trace()
-        if self.stav_zmluvy == StavZmluvy.VYTVORENA and self.zmluva_odoslana: 
-            self.stav_zmluvy = StavZmluvy.ODOSLANA_AUTOROVI
-        elif self.stav_zmluvy == StavZmluvy.ODOSLANA_AUTOROVI and self.zmluva_vratena: 
-            self.stav_zmluvy = StavZmluvy.VRATENA_OD_AUTORA
-        elif self.stav_zmluvy == StavZmluvy.VRATENA_OD_AUTORA and self.datum_zverejnenia_CRZ: 
-            self.stav_zmluvy = StavZmluvy.ZVEREJNENA_V_CRZ
 
 class ZmluvaGrafik(Zmluva):
     oznacenie = "V"    #v čísle faktúry, A-2021-123
