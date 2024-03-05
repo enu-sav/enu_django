@@ -49,6 +49,15 @@ class ZmluvaForm(forms.ModelForm):
             if 'honorar_ah' in self.changed_data:
                 messages.warning(self.request, f"Akciou 'Vytvoriť súbory zmluvy' treba aktualizovať súbory zmluvy")
                 return self.cleaned_data
+
+            if 'zmluvna_strana' in self.changed_data:
+                messages.warning(self.request, 
+                    format_html(
+                        'Teraz <strong>vytvorte súbory zmluvy</strong> akciou "Vytvoriť súbory zmluvy".'
+                        )
+                )
+                return self.cleaned_data
+
             elif 'zmluva_odoslana' in self.changed_data:
                 vec = f"Zmluva {self.instance.cislo} autorovi na podpis"
                 cislo = nasledujuce_cislo(Dokument)
@@ -64,7 +73,7 @@ class ZmluvaForm(forms.ModelForm):
                     prijalodoslal=self.request.user.username, #zámena mien prijalodoslal - zaznamvytvoril
                 )
                 dok.save()
-                messages.warning(self.request, 
+                messages.warning(self.request,
                     format_html(
                         'Do denníka prijatej a odoslanej pošty bol pridaný záznam č. {}: <em>{}</em>.',
                         f"{cislo}",
@@ -207,7 +216,7 @@ class VytvarnaObjednavkaPlatbaForm(forms.ModelForm):
             if "objednane_polozky" in self.changed_data:
                 messages.warning(self.request, 
                     format_html(
-                        'Teraz vytvorte súbor objednávky</strong> akciou "Vytvoriť súbor objednávky".'
+                        'Teraz <strong>vytvorte súbor objednávky</strong> akciou "Vytvoriť súbor objednávky".'
                         )
                )
             if "honorar" in self.changed_data and not "poznamka" in self.changed_data: 
