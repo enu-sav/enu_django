@@ -210,7 +210,7 @@ class VytvarnaObjednavkaPlatbaForm(forms.ModelForm):
                 raise ValidationError({"cislo": "Nesprávne číslo. Zadajte číslo novej faktúry v tvare {VytvarnaObjednavka.oznacenie}-RRRR-NNN"})
         try:
             #pole dane_na_uhradu možno vyplniť až po vygenerovani platobného príkazu akciou 
-            #"Vytvoriť platobný príkaz a krycí list pre THS"
+            #"Vytvoriť platobný príkaz a krycí list"
             #trace()
             #Ak je už vygenerovaný príkaz ale zmenila sa výška honorára, treba upozorniť na potrebu opakovaného vytvorenia príkazu
             if "objednane_polozky" in self.changed_data:
@@ -224,7 +224,7 @@ class VytvarnaObjednavkaPlatbaForm(forms.ModelForm):
             if "honorar" in self.changed_data and self.instance.subor_prikaz:
                 messages.warning(self.request, 
                     format_html(
-                        'Zmenili ste výšku honorára. Údaje v platobnom príkaze sú teraz neplatné.<br /><strong>Opakovane vytvorte súbor príkazu</strong>  akciou "Vytvoriť platobný príkaz a krycí list pre THS".'
+                        'Zmenili ste výšku honorára. Údaje v platobnom príkaze sú teraz neplatné.<br /><strong>Opakovane vytvorte súbor príkazu</strong>  akciou "Vytvoriť platobný príkaz a krycí list".'
                         )
                )
             if 'datum_objednavky' in self.changed_data:
@@ -253,7 +253,7 @@ class VytvarnaObjednavkaPlatbaForm(forms.ModelForm):
                         )
                 )
             if 'dane_na_uhradu' in self.changed_data:
-                vec = f"Platobný príkaz na THS {self.instance.cislo} na vyplatenie"
+                vec = f"Platobný príkaz do učtárne {self.instance.cislo} na vyplatenie"
                 cislo = nasledujuce_cislo(Dokument)
                 dok = Dokument(
                     cislo = cislo,
@@ -310,7 +310,7 @@ class PlatbaAutorskaSumarForm(forms.ModelForm):
                         cislo = cislo,
                         #datum = self.cleaned_data['podklady_odoslane'],
                         cislopolozky = self.instance.cislo,
-                        adresat = "Účtovník THS", 
+                        adresat = "Účtovník", 
                         inout = InOut.ODOSLANY,
                         typdokumentu = TypDokumentu.VYPLACANIE_AH,
                         datumvytvorenia = date.today(), 
@@ -327,7 +327,7 @@ class PlatbaAutorskaSumarForm(forms.ModelForm):
                             vec
                             )
                         )
-                    messages.warning(self.request, format_html(f"Po odoslaní na THS týždeň čakajte na informáciu o neúspešných platbách.<br/>Potom v poli '{anv_name}' zmažte <em>nevyplatených autorov</em> (ak boli) a vyplňte pole '{du_name}'.") , messages.WARNING)
+                    messages.warning(self.request, format_html(f"Po odoslaní do učtárne týždeň čakajte na informáciu o neúspešných platbách.<br/>Potom v poli '{anv_name}' zmažte <em>nevyplatených autorov</em> (ak boli) a vyplňte pole '{du_name}'.") , messages.WARNING)
                     return self.cleaned_data
                 else:
                     raise ValidationError(f"Pole '{po_name} možno vyplniť až po vygenerovaní súboru '{vt_name}'. ")
@@ -398,7 +398,7 @@ class PlatbaAutorskaSumarForm(forms.ModelForm):
                     dok = Dokument(
                         cislo = cislo,
                         cislopolozky = self.instance.cislo,
-                        adresat = "Účtovník THS", 
+                        adresat = "Účtovník", 
                         inout = InOut.ODOSLANY,
                         typdokumentu = TypDokumentu.VYPLACANIE_AH,
                         datumvytvorenia = date.today(), 

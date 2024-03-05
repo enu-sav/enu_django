@@ -572,7 +572,7 @@ class Platba(models.Model):
             #help_text: definovaný vo forms
             max_length=50)
     dane_na_uhradu = models.DateField('Dané na úhradu dňa',
-            help_text = 'Zadajte dátum odovzdania podpísaného platobného príkazu a krycieho listu na sekretariát na odoslanie THS. <br />Vytvorí sa záznam v <a href="/admin/dennik/dokument/">denníku prijatej a odoslanej pošty</a>.',
+            help_text = 'Zadajte dátum odovzdania podpísaného platobného príkazu a krycieho listu na sekretariát na odoslanie do učtárne. <br />Vytvorí sa záznam v <a href="/admin/dennik/dokument/">denníku prijatej a odoslanej pošty</a>.',
             blank=True, null=True)
     uhradene_dna = models.DateField('Uhradené dňa',
             help_text = 'Zadajte dátum uhradenia učtárňou (podľa výpisu zo Softipu a tak podobne',
@@ -589,8 +589,8 @@ class Platba(models.Model):
             #help_text = "Uveďte sadzbu DPH. Ak je faktúra v režime prenesenia daňovej povinnosti zadajte 20 %",
             null = True,
             choices=SadzbaDPH.choices)
-    platobny_prikaz = models.FileField("Platobný príkaz pre THS-ku",
-            help_text = "Súbor s platobným príkazom a krycím listom pre THS-ku. Generuje sa akciou 'Vytvoriť platobný príkaz a krycí list pre THS'",
+    platobny_prikaz = models.FileField("Platobný príkaz pre učtáreň",
+            help_text = "Súbor s platobným príkazom a krycím listom. Generuje sa akciou 'Vytvoriť platobný príkaz a krycí list'",
             upload_to=platobny_prikaz_upload_location, 
             null = True, blank = True)
     class Meta:
@@ -1049,7 +1049,7 @@ class NajomneFaktura(Klasifikacia, GetAdminURL):
             choices=TypPN.choices)
 
     dane_na_uhradu = models.DateField('Dané na vybavenie dňa',
-            help_text = 'Zadajte dátum odovzdania krycieho listu na sekretariát na odoslanie THS. <br />Vytvorí sa záznam v <a href="/admin/dennik/dokument/">denníku prijatej a odoslanej pošty</a>.',
+            help_text = 'Zadajte dátum odovzdania krycieho listu na sekretariát na odoslanie do učtárne. <br />Vytvorí sa záznam v <a href="/admin/dennik/dokument/">denníku prijatej a odoslanej pošty</a>.',
             blank=True, null=True)
     splatnost_datum = models.DateField('Dátum splatnosti',
             help_text = "Zadajte dátum splatnosti 1. platby v aktuálnom roku.<br />Platby sú štvrťročné, po zadaní 1. faktúry (ak nejde o vyúčtovanie) sa doplnia záznamy pre zvyšné faktúry v roku.",
@@ -1070,8 +1070,8 @@ class NajomneFaktura(Klasifikacia, GetAdminURL):
             verbose_name = "Nájomná zmluva",
             on_delete=models.PROTECT
             )
-    platobny_prikaz = models.FileField("Krycí list pre THS-ku",
-            help_text = "Súbor s krycím listom pre THS-ku. Generuje sa akciou 'Vytvoriť krycí list pre THS'.<br />Ak treba, v prípade vyúčtovania je súčasťou aj platobný prikaz",
+    platobny_prikaz = models.FileField("Krycí list",
+            help_text = "Súbor s krycím listom. Generuje sa akciou 'Vytvoriť krycí list'.<br />Ak treba, v prípade vyúčtovania je súčasťou aj platobný prikaz",
             upload_to=najomne_faktura_upload_location,
             null = True, blank = True)
     history = HistoricalRecords()
@@ -1618,7 +1618,7 @@ def vymer_file_path(instance, filename):
 class PlatovyVymer(Klasifikacia):
     oznacenie = "PV"
     cislo = models.CharField("Číslo výmeru", 
-            help_text = "Uveďte číslo výmeru podľa THS",
+            help_text = "Uveďte číslo výmeru podľa mzdovej učtárne",
             null = True,
             max_length=50)
     cislo_zamestnanca = models.CharField("Číslo zamestnanca", 
@@ -1629,7 +1629,7 @@ class PlatovyVymer(Klasifikacia):
             verbose_name = "Zamestnanec",
             related_name='%(class)s_zamestnanec')  #zabezpečí rozlíšenie modelov, keby dačo
     suborvymer = models.FileField("Výmer",
-            help_text = "Vložte zoskenovaný platový výmer (vytvorený mzdovou účtárňou)",
+            help_text = "Vložte zoskenovaný platový výmer (vytvorený mzdovou učtárňou)",
             storage=OverwriteStorage(), 
             upload_to=vymer_file_path, 
             null = True, 
@@ -2169,7 +2169,7 @@ class PrispevokNaRekreaciu(Klasifikacia):
             null=True
             )
     prispevok = models.DecimalField("Na vyplatenie", 
-            help_text = "Výška príspevku na rekreáciu určená mzdovou účtárňou (záporné číslo).",
+            help_text = "Výška príspevku na rekreáciu určená mzdovou učtárňou (záporné číslo).",
             max_digits=8, 
             decimal_places=2, 
             blank=True, 
@@ -2315,8 +2315,8 @@ class DoVP(Dohoda):
             null = True,
             default = AnoNie.NIE,
             choices=AnoNie.choices)
-    id_tsh = models.CharField("Číslo priradené THS",
-            help_text = "Uveďte číslo, pod ktorým dohody vedie THS",
+    id_tsh = models.CharField("Číslo priradené mzdovou učtárňou",
+            help_text = "Uveďte číslo, pod ktorým dohody vedie mzdová učtáreň",
             null = True, blank = True,
             max_length=100)
     datum_ukoncenia = models.DateField('Dátum ukončenia',
@@ -2647,8 +2647,8 @@ class Pokladna(models.Model):
             help_text = "Súbor pokladničného dokladu (VPD, PPD). Generuje sa akciou 'Vytvoriť PD'",
             upload_to=pokladna_upload_location, 
             null = True, blank = True)
-    datum_softip = models.DateField('Dátum THS',
-            help_text = "Dátum vytvorenia zoznamu PD pre THS. Vypĺňa sa automaticky akciou 'vytvoriť zoznam PD pre THS'",
+    datum_softip = models.DateField('Dátum učtárne',
+            help_text = "Dátum vytvorenia zoznamu PD pre učtáreň. Vypĺňa sa automaticky akciou 'vytvoriť zoznam PD pre učtáreň'",
             blank = True,
             null=True
             )

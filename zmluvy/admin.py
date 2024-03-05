@@ -514,7 +514,7 @@ class VytvarnaObjednavkaPlatbaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, M
             editable = ["honorar", "poznamka"]
         elif not obj.dane_na_uhradu and obj.subor_prikaz:           #vygenerovaný príkaz
             editable = ["honorar", "dane_na_uhradu", "poznamka"]
-        elif obj.dane_na_uhradu and obj.subor_prikaz:               #odoslané na THS, čakáme na dátum vyplatenia
+        elif obj.dane_na_uhradu and obj.subor_prikaz:               #odoslané do učtárne, čakáme na dátum vyplatenia
             editable = ["datum_uhradenia", "datum_oznamenia", "poznamka"]
         for ed in editable: readonly.remove(ed)
         return readonly 
@@ -555,7 +555,7 @@ class VytvarnaObjednavkaPlatbaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, M
             platba.save()
         self.message_user(request, msg, status)
 
-    vytvorit_platobny_prikaz.short_description = "Vytvoriť platobný príkaz a krycí list pre THS"
+    vytvorit_platobny_prikaz.short_description = "Vytvoriť platobný príkaz a krycí list"
     #Oprávnenie na použitie akcie, viazané na 'change'
     vytvorit_platobny_prikaz.allowed_permissions = ('change',)
 
@@ -601,7 +601,7 @@ class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
             #Pole Vyplácaní autori
             if obj.podklady_odoslane and not obj.datum_uhradenia and "autori_na_vyplatenie" in fields:
                 fields.remove("autori_na_vyplatenie")
-            #Pole Vyplatené THS-kou
+            #Pole Vyplatené učtárňou
             if obj.podklady_odoslane and not obj.datum_uhradenia and "datum_uhradenia" in fields:
                 fields.remove("datum_uhradenia")
             #Pole 'Krycí list' odoslaný:
@@ -660,7 +660,7 @@ class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
             #self.message_user(request, f"Platba {platba.cislo} už bola vložená do databázy s dátumom vyplatenia {platba.datum_uhradenia}. Ak chcete platbu opakovane vložiť do databázy, musíte ju zrušit (odstrániť z databázy) pomocou 'Zrušiť záznam o platbe v databáze'", messages.ERROR)
             #return
         if not platba.datum_uhradenia:
-            self.message_user(request, f"Platba nebola vložená do databázy, lebo nie je zadaný dátum jej vyplatenia THS-kou. ", messages.ERROR)
+            self.message_user(request, f"Platba nebola vložená do databázy, lebo nie je zadaný dátum jej vyplatenia učtárňou. ", messages.ERROR)
             return
         self.vyplatit_autorske_odmeny(request, platba)
         platba.platba_zaznamenana = AnoNie.ANO
@@ -677,7 +677,7 @@ class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
             return
         platba = queryset[0]
         if platba.podklady_odoslane: 
-            self.message_user(request, f"Platba {platba.cislo} už bola odoslaná na THS na vyplatenie {platba.podklady_odoslane}, akciu už nemožno použiť.", messages.ERROR)
+            self.message_user(request, f"Platba {platba.cislo} už bola odoslaná do učtárne na vyplatenie {platba.podklady_odoslane}, akciu už nemožno použiť.", messages.ERROR)
             return
         if platba.platba_zaznamenana == AnoNie.ANO or platba.podklady_odoslane: 
             self.message_user(request, f"Platba {platba.cislo} už bola vložená do databázy s dátumom vyplatenia {platba.datum_uhradenia}. Akciu už nemožno použiť.", messages.ERROR)
@@ -721,7 +721,7 @@ class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
                         platba.import_webrs = fname
                         
                 self.message_user(request, log[1].replace(settings.MEDIA_ROOT,""), log[0])
-            # prebrať a uložiť novovytvorený zoznam autorov (len pri akcii "Vytvoriť podklady na vyplatenie autorských odmien pre THS")
+            # prebrať a uložiť novovytvorený zoznam autorov (len pri akcii "Vytvoriť podklady na vyplatenie autorských odmien pre učtáreň")
             if not platba.datum_uhradenia and vao.zoznam_autorov:
                 platba.autori_na_vyplatenie = " ".join(vao.zoznam_autorov)
 

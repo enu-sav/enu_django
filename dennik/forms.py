@@ -155,7 +155,7 @@ class FormularForm(forms.ModelForm):
     def clean(self):
         try:
             #pole dane_na_uhradu možno vyplniť až po vygenerovani platobného príkazu akciou 
-            #"Vytvoriť platobný príkaz a krycí list pre THS"
+            #"Vytvoriť platobný príkaz a krycí list"
             if 'na_odoslanie' in self.changed_data:
                 vec = f"Hromadný dokument {self.instance.subor_nazov}"
                 cislo = nasledujuce_cislo(Dokument)

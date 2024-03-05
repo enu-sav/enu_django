@@ -120,9 +120,9 @@ class PrijataFakturaForm(DennikZaznam):
             if not self.cleaned_data['cislo'][:2] == PrijataFaktura.oznacenie:
                 raise ValidationError({"cislo": "Nesprávne číslo. Zadajte číslo novej faktúry v tvare {PrijataFaktura.oznacenie}-RRRR-NNN"})
         #pole dane_na_uhradu možno vyplniť až po vygenerovani platobného príkazu akciou 
-        #"Vytvoriť platobný príkaz a krycí list pre THS"
+        #"Vytvoriť platobný príkaz a krycí list"
         if 'dane_na_uhradu' in self.changed_data:
-            self.dennik_zaznam(f"Platobný príkaz na THS {self.instance.cislo} na vyplatenie", TypDokumentu.FAKTURA, InOut.ODOSLANY, "THS", self.instance.platobny_prikaz.url)
+            self.dennik_zaznam(f"Platobný príkaz do učtárne {self.instance.cislo} na vyplatenie", TypDokumentu.FAKTURA, InOut.ODOSLANY, "THS", self.instance.platobny_prikaz.url)
         return self.cleaned_data
 
 class VystavenaFakturaForm(DennikZaznam):
@@ -154,9 +154,9 @@ class VystavenaFakturaForm(DennikZaznam):
             if not self.cleaned_data['cislo'][:2] == VystavenaFaktura.oznacenie:
                 raise ValidationError({"cislo": "Nesprávne číslo. Zadajte číslo novej faktúry v tvare {VystavenaFaktura.oznacenie}-RRRR-NNN"})
         #pole dane_na_uhradu možno vyplniť až po vygenerovani platobného príkazu akciou 
-        #"Vytvoriť platobný príkaz a krycí list pre THS"
+        #"Vytvoriť platobný príkaz a krycí list"
         if 'dane_na_uhradu' in self.changed_data:
-            self.dennik_zaznam(f"Platobný príkaz na THS {self.instance.cislo} na vyplatenie", TypDokumentu.VYSTAVENAFAKTURA, InOut.ODOSLANY, "THS", self.instance.platobny_prikaz.url)
+            self.dennik_zaznam(f"Platobný príkaz do učtárne {self.instance.cislo} na vyplatenie", TypDokumentu.VYSTAVENAFAKTURA, InOut.ODOSLANY, "THS", self.instance.platobny_prikaz.url)
         return self.cleaned_data
 
     #Skryť položky vo formulári
@@ -222,9 +222,9 @@ class InternyPrevodForm(forms.ModelForm):
                 pass
 
         #pole dane_na_uhradu možno vyplniť až po vygenerovani platobného príkazu akciou 
-        #"Vytvoriť platobný príkaz a krycí list pre THS"
+        #"Vytvoriť platobný príkaz a krycí list"
         if 'dane_na_uhradu' in self.changed_data:
-            self.dennik_zaznam(f"Platobný príkaz na THS {self.instance.cislo} na vyplatenie", TypDokumentu.INTERNYPREVOD, InOut.ODOSLANY, "THS", self.instance.platobny_prikaz.url)
+            self.dennik_zaznam(f"Platobný príkaz do učtárne {self.instance.cislo} na vyplatenie", TypDokumentu.INTERNYPREVOD, InOut.ODOSLANY, "THS", self.instance.platobny_prikaz.url)
         return self.cleaned_data
 
 class PravidelnaPlatbaForm(forms.ModelForm):
@@ -283,9 +283,9 @@ class PravidelnaPlatbaForm(forms.ModelForm):
                 pass
 
         #pole dane_na_uhradu možno vyplniť až po vygenerovani platobného príkazu akciou 
-        #"Vytvoriť platobný príkaz a krycí list pre THS"
+        #"Vytvoriť platobný príkaz a krycí list"
         if 'dane_na_uhradu' in self.changed_data:
-            vec = f"Platobný príkaz na THS {self.instance.cislo} na vyplatenie"
+            vec = f"Platobný príkaz do učtárne {self.instance.cislo} na vyplatenie"
             cislo = nasledujuce_cislo(Dokument)
             dok = Dokument(
                 cislo = cislo,
@@ -551,7 +551,7 @@ class PrispevokNaRekreaciuForm(forms.ModelForm):
                 raise ValidationError({"cislo": "Nesprávne číslo. Zadajte číslo novej žiadosti v tvare {PrispevokNaRekreaciu.oznacenie}-RRRR-NNN"})
         try:
             #pole dane_na_uhradu možno vyplniť až po vygenerovani platobného príkazu akciou 
-            #"Vytvoriť platobný príkaz a krycí list pre THS"
+            #"Vytvoriť platobný príkaz a krycí list"
             if 'subor_ziadost' in self.changed_data and 'datum' in self.changed_data and 'zamestnanec' in self.changed_data:
                 vec = f"Príspevok na rekreáciu {self.cleaned_data['zamestnanec'].priezvisko} - žiadosť"
                 cislo = nasledujuce_cislo(Dokument)
@@ -883,11 +883,11 @@ class NajomneFakturaForm(forms.ModelForm):
                 #dup.save()
 
         #pole dane_na_uhradu možno vyplniť až po vygenerovani platobného príkazu akciou 
-        #"Vytvoriť platobný príkaz a krycí list pre THS"
+        #"Vytvoriť platobný príkaz a krycí list"
         #Hack: Záznam sa vytvorí len vtedy, keď je nastavené self.instance.platobny_prikaz.url 
         # Umožní to zadať dátum dane_a_uhradu za prvé platby, ku ktorým se ešte nevytváral krycí list z Djanga 
         if 'dane_na_uhradu' in self.changed_data and self.instance.platobny_prikaz:
-            vec = f"Platobný príkaz na THS {self.instance.cislo} na vyplatenie"
+            vec = f"Platobný príkaz do učtárne {self.instance.cislo} na vyplatenie"
             cislo = nasledujuce_cislo(Dokument)
             dok = Dokument(
                 cislo = cislo,

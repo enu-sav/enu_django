@@ -532,7 +532,7 @@ class PrijataFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdm
             faktura.save()
         self.message_user(request, msg, status)
 
-    vytvorit_platobny_prikaz.short_description = "Vytvoriť platobný príkaz a krycí list pre THS"
+    vytvorit_platobny_prikaz.short_description = "Vytvoriť platobný príkaz a krycí list"
     #Oprávnenie na použitie akcie, viazané na 'change'
     vytvorit_platobny_prikaz.allowed_permissions = ('change',)
 
@@ -707,7 +707,7 @@ class VystavenaFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryA
             faktura.save()
         self.message_user(request, msg, status)
 
-    vytvorit_platobny_prikaz.short_description = "Vytvoriť krycí list pre THS"
+    vytvorit_platobny_prikaz.short_description = "Vytvoriť krycí list"
     #Oprávnenie na použitie akcie, viazané na 'change'
     vytvorit_platobny_prikaz.allowed_permissions = ('change',)
 
@@ -849,7 +849,7 @@ class PravidelnaPlatbaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryA
             platba.save()
         self.message_user(request, msg, status)
 
-    vytvorit_platobny_prikaz.short_description = "Vytvoriť platobný príkaz a krycí list pre THS"
+    vytvorit_platobny_prikaz.short_description = "Vytvoriť platobný príkaz a krycí list"
     #Oprávnenie na použitie akcie, viazané na 'change'
     vytvorit_platobny_prikaz.allowed_permissions = ('change',)
 
@@ -908,7 +908,7 @@ class InternyPrevodAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmi
             platba.save()
         self.message_user(request, msg, status)
 
-    vytvorit_platobny_prikaz.short_description = "Vytvoriť platobný príkaz a krycí list pre THS"
+    vytvorit_platobny_prikaz.short_description = "Vytvoriť platobný príkaz a krycí list"
     #Oprávnenie na použitie akcie, viazané na 'change'
     vytvorit_platobny_prikaz.allowed_permissions = ('change',)
 
@@ -1016,7 +1016,7 @@ class NajomneFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdm
             platba.platobny_prikaz = vytvoreny_subor
             platba.save()
         self.message_user(request, msg, status)
-    vytvorit_platobny_prikaz.short_description = "Vytvoriť krycí list pre THS"
+    vytvorit_platobny_prikaz.short_description = "Vytvoriť krycí list"
     #Oprávnenie na použitie akcie, viazané na 'change'
     vytvorit_platobny_prikaz.allowed_permissions = ('change',)
 

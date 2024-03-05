@@ -503,10 +503,10 @@ class PlatovaRekapitulaciaAdmin(ModelAdminTotals):
         ws_prehlad.column_dimensions["E"].width = 17
         harky={}
         fw ={}  #Šírka poľa
-        zapisat_riadok(ws_prehlad, fw, 1, ["Mesiac", "Zákazka", "Mzdová účtáreň", "Django", "Rozdiel mínus", "Rozdiel plus"], header=True) 
+        zapisat_riadok(ws_prehlad, fw, 1, ["Mesiac", "Zákazka", "Mzdová učtáreň", "Django", "Rozdiel mínus", "Rozdiel plus"], header=True) 
         for qn, za_mesiac in enumerate(sorted(queryset, key=lambda x: x.identifikator)):  #queryset: zoznam mesiacov, za ktoré treba spraviť rekapituláciu
             ws = wb.create_sheet(title=za_mesiac.identifikator)
-            zapisat_riadok(ws, fw, 1, ["Položka", "Zákazka", "Mzdová účtáreň", "Django", "Rozdiel C-D"], header=True) 
+            zapisat_riadok(ws, fw, 1, ["Položka", "Zákazka", "Mzdová učtáreň", "Django", "Rozdiel C-D"], header=True) 
 
             pdftext = pdftext_vsetky[za_mesiac.identifikator]
 
@@ -578,7 +578,7 @@ class PlatovaRekapitulaciaAdmin(ModelAdminTotals):
         fs = wsheets[0]
         ls = wsheets[-1]
         ws = wb.create_sheet(title="Spolu")
-        zapisat_riadok(ws, fw, 1, ["Položka", "Zákazka", "Mzdová účtáreň", "Django", "Rozdiel C-D"], header=True) 
+        zapisat_riadok(ws, fw, 1, ["Položka", "Zákazka", "Mzdová učtáreň", "Django", "Rozdiel C-D"], header=True) 
         #podľa prvého dátového hárka
         ws1 = wb[fs]
         row = 2

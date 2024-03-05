@@ -320,7 +320,7 @@ class VytvarnaObjednavkaPlatba(models.Model, GetAdminURL):
             blank=True)
     poznamka = models.CharField("Poznámka", max_length=200, blank=True)
     subor_prikaz = models.FileField("Platobný príkaz",
-            help_text = f"Súbor generovaný akciou 'Vygenerovať platobný príkaz'.<br /><strong>Po podpísaní dať na sekretariát na odoslanie do účtárne THS</strong>. Následne <strong>vyplňte pole <em>Dané na úhradu dňa</em></strong>.", 
+            help_text = f"Súbor generovaný akciou 'Vygenerovať platobný príkaz'.<br /><strong>Po podpísaní dať na sekretariát na odoslanie do učtárne</strong>. Následne <strong>vyplňte pole <em>Dané na úhradu dňa</em></strong>.", 
             upload_to=contract_path, 
             null = True, 
             blank = True)
@@ -337,10 +337,10 @@ class VytvarnaObjednavkaPlatba(models.Model, GetAdminURL):
             blank=True)
     #zmluva príp. zoznam zmlúv, podľa ktorých sa vyplácalo
     odvod_LF = models.DecimalField("Odvod aut. fondu", 
-            help_text = "Automaticky doplnené akciou 'Vytvoriť platobný príkaz a krycí list pre THS'",
+            help_text = "Automaticky doplnené akciou 'Vytvoriť platobný príkaz a krycí list pre učtáreň'",
             max_digits=8, decimal_places=2, null=True, blank=True)
     odvedena_dan = models.DecimalField("Odvedená daň", 
-            help_text = "Automaticky doplnené akciou 'Vytvoriť platobný príkaz a krycí list pre THS'",
+            help_text = "Automaticky doplnené akciou 'Vytvoriť platobný príkaz a krycí list pre učtáreň'",
             max_digits=8, decimal_places=2, null=True, blank=True)
     history = HistoricalRecords()
 
@@ -397,7 +397,7 @@ class PlatbaAutorskaSumar(models.Model, GetAdminURL):
     oznacenie = "AH"
     # názvy akcií
     zrusit_platbu_name = "Zrušiť záznam o platbe v databáze"
-    vytvorit_podklady_pre_THS_name = "Vytvoriť podklady na vyplatenie autorských honorárov pre THS"
+    vytvorit_podklady_pre_THS_name = "Vytvoriť podklady na vyplatenie autorských honorárov pre učtáreň"
     zaznamenat_platby_do_db_name = "Vytvoriť finálny prehľad o vyplácaní a zaznamenať platby do databázy"
 
     #cislo: priečinok, z ktorého bola platba importovaná
@@ -422,15 +422,15 @@ class PlatbaAutorskaSumar(models.Model, GetAdminURL):
             null = True
             )
     vyplatit_ths = models.FileField("Autorské honoráre",
-            help_text = f"Súbor generovaný akciou '{vytvorit_podklady_pre_THS_name}'. <br />Súbor obsahuje údaje pre vyplácanie autorských honorárov (hárok <em>Na vyplatenie</em>) a zoznam chýb, ktoré boli pre generovaní zistené (hárok <em>Chyby</em>).<br /> <strong>Hárky <em>Na vyplatenie</em> a <em>Krycí list</em> s údajmi na vyplatenie autorských honorárov treba dať na sekretariát na odoslanie do účtárne THS</strong>. V prípade odoselania e-mailom treba odoslať PDF súbor. Následne <strong>vyplňte pole <em> Honoráre – pre THS</em></strong>", 
+            help_text = f"Súbor generovaný akciou '{vytvorit_podklady_pre_THS_name}'. <br />Súbor obsahuje údaje pre vyplácanie autorských honorárov (hárok <em>Na vyplatenie</em>) a zoznam chýb, ktoré boli pre generovaní zistené (hárok <em>Chyby</em>).<br /> <strong>Hárky <em>Na vyplatenie</em> a <em>Krycí list</em> s údajmi na vyplatenie autorských honorárov treba dať na sekretariát na odoslanie do učtárne</strong>. V prípade odoselania e-mailom treba odoslať PDF súbor. Následne <strong>vyplňte pole <em> Honoráre – pre učtáreň</em></strong>", 
             upload_to=platba_autorska_sumar_upload_location, 
             null = True, 
             blank = True)
-    datum_uhradenia = models.DateField('Vyplatené THS-kou', 
-            help_text = f"Dátum vyplatenia honorárov na základe odoslaných podkladov z poľa <em>{vyplatit_ths.verbose_name}</em> (oznámený účtárňou THS).",
+    datum_uhradenia = models.DateField('Vyplatené učtárňou', 
+            help_text = f"Dátum vyplatenia honorárov na základe odoslaných podkladov z poľa <em>{vyplatit_ths.verbose_name}</em> (oznámený učtárňou).",
             null=True, blank=True)
-    podklady_odoslane= models.DateField('Honoráre – pre THS',
-            help_text = f'Dátum odovzdania podkladov z poľa <em>{vyplatit_ths.verbose_name}</em> na vyplatenie autorských honorárov na sekretariát na odoslanie do účtárne THS.',
+    podklady_odoslane= models.DateField('Honoráre – pre učtáreň',
+            help_text = f'Dátum odovzdania podkladov z poľa <em>{vyplatit_ths.verbose_name}</em> na vyplatenie autorských honorárov na sekretariát na odoslanie do učtárne.',
             null=True, 
             blank=True)
     autori_na_vyplatenie = models.TextField("Vyplácaní autori", 
@@ -439,12 +439,12 @@ class PlatbaAutorskaSumar(models.Model, GetAdminURL):
             blank = True,
             max_length=2500)
     vyplatene = models.FileField("Finálny prehľad",
-            help_text = f"Súbor generovaný akciou '{zaznamenat_platby_do_db_name}'.<br /><strong>Hárky <em>Na vyplatenie</em> a <em>Krycí list</em> s údajmi na vyplatenie zrážkovej dane a odvodov do fondov treba dať na sekretariát na odoslanie do účtárne THS</strong>. V prípade odosielania e-mailom treba odoslať PDF súbor. Následne <strong>vyplňte pole <em>Daň – pre THS</em></strong>.", 
+            help_text = f"Súbor generovaný akciou '{zaznamenat_platby_do_db_name}'.<br /><strong>Hárky <em>Na vyplatenie</em> a <em>Krycí list</em> s údajmi na vyplatenie zrážkovej dane a odvodov do fondov treba dať na sekretariát na odoslanie do učtárne</strong>. V prípade odosielania e-mailom treba odoslať PDF súbor. Následne <strong>vyplňte pole <em>Daň – pre učtáreň</em></strong>.", 
             upload_to=platba_autorska_sumar_upload_location, 
             null = True, 
             blank = True)
-    kryci_list_odoslany= models.DateField("Daň – pre THS",
-            help_text = f'Dátum odovzdania podkladov z poľa <em>{vyplatene.verbose_name}</em> na vyplatenie zrážkovej dane a odvodov do fondov na sekretariát na odoslanie do účtárne THS.',
+    kryci_list_odoslany= models.DateField("Daň – pre učtáreň",
+            help_text = f'Dátum odovzdania podkladov z poľa <em>{vyplatene.verbose_name}</em> na vyplatenie zrážkovej dane a odvodov do fondov na sekretariát na odoslanie do učtárne.',
             null=True, 
             blank=True)
     dan_zaplatena= models.DateField("Daň zaplatená dňa",
