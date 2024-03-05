@@ -12,6 +12,7 @@ from django.utils.safestring import mark_safe
 from django.urls import reverse
 from decimal import Decimal
 from django.core.validators import MinValueValidator, MaxValueValidator
+from django.contrib.auth.models import User
 PERCENTAGE_VALIDATOR = [MinValueValidator(0), MaxValueValidator(100)]
 
 from beliana.settings import TMPLTS_DIR_NAME, PLATOVE_VYMERY_DIR, DOHODY_DIR, PRIJATEFAKTURY_DIR, PLATOBNE_PRIKAZY_DIR, STRAVNE_HOD
@@ -336,6 +337,11 @@ class ObjednavkaZmluva(PolymorphicModel):
     dodavatel = models.ForeignKey(Dodavatel,
             on_delete=models.PROTECT, 
             verbose_name = "Dodávateľ",
+            related_name='%(class)s_requests_created')  #zabezpečí rozlíšenie modelov Objednavka a PrijataFaktura 
+    vybavuje = models.ForeignKey(User,
+            on_delete=models.PROTECT, 
+            verbose_name = "Vybavuje",
+            null = True,
             related_name='%(class)s_requests_created')  #zabezpečí rozlíšenie modelov Objednavka a PrijataFaktura 
     predmet = models.CharField("Predmet", 
             help_text = "Zadajte stručný popis, napr. 'Kávovar Saeco' alebo 'Servisná podpora RS Beliana'",

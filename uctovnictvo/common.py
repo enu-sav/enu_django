@@ -683,6 +683,9 @@ def VytvoritSuborObjednavky(objednavka):
 
     ws_obj = workbook["Objednávka"]
     ws_obj["A3"].value = ws_obj["A3"].value.replace("[[cislo]]",objednavka.cislo)
+    if objednavka.vybavuje:
+        ws_obj["B6"].value = objednavka.vybavuje.get_full_name()
+        ws_obj["B9"].value = objednavka.vybavuje.email
     #dodávateľ
     ws_obj["D6"].value = objednavka.dodavatel.nazov
     ws_obj["D7"].value = objednavka.dodavatel.adresa_ulica
@@ -699,6 +702,8 @@ def VytvoritSuborObjednavky(objednavka):
         prvky = polozka.split(";")
         if len(prvky) == 2:  #zlúčiť bunky
             ws_obj.merge_cells(f'B{riadok}:E{riadok}')
+            nr =  int(1+len(prvky[0])/70)
+            if nr > 1: ws_obj.row_dimensions[riadok].height = 15 * nr
             ws_obj[f"B{riadok}"].value = prvky[0]
             ws_obj.cell(row=riadok, column=2+6).value = prvky[1]
             if objednavka.dodavatel.s_danou==AnoNie.ANO:
@@ -707,6 +712,8 @@ def VytvoritSuborObjednavky(objednavka):
                 ws_obj[f'F{prvy_riadok+pocet_riadkov}'].value = objednavka.predpokladana_cena
             add_sum = False
         elif len(prvky) == 5:
+            nr =  int(1+len(prvky[0])/35)
+            if nr > 1: ws_obj.row_dimensions[riadok].height = 15 * nr
             ws_obj.cell(row=riadok, column=2+0).value = prvky[0]
             ws_obj.cell(row=riadok, column=2+1).value = prvky[1]
             val2 = float(prvky[2].strip().replace(",","."))
