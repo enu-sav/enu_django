@@ -526,7 +526,7 @@ class ObjednavkaZmluva(PolymorphicModel):
             on_delete=models.PROTECT, 
             verbose_name = "Dodávateľ",
             related_name='%(class)s_requests_created')  #zabezpečí rozlíšenie modelov Objednavka a PrijataFaktura 
-    vybavuje = models.ForeignKey(User,
+    vybavuje = models.ForeignKey(ZamestnanecDohodar,
             on_delete=models.PROTECT, 
             verbose_name = "Vybavuje",
             null = True,
