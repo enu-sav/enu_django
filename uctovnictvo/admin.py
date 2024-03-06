@@ -158,7 +158,7 @@ class ObjednavkaZmluvaAdmin(ZobrazitZmeny, ImportExportModelAdmin):
 @admin.register(Objednavka)
 class ObjednavkaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
     form = ObjednavkaForm
-    list_display = ("cislo", "datum_odoslania", "vybavuje", "subor_objednavky", "subor_prilohy", "predpokladana_cena", "datum_vytvorenia", "termin_dodania", "dodavatel_link","predmet")
+    list_display = ("cislo", "datum_odoslania", "vybavuje", "ziadatel", "subor_ziadanky", "subor_objednavky", "subor_prilohy", "predpokladana_cena", "datum_vytvorenia", "termin_dodania", "dodavatel_link","predmet")
     #def formfield_for_dbfield(self, db_field, **kwargs):
         #formfield = super(ObjednavkaAdmin, self).formfield_for_dbfield(db_field, **kwargs)
         #if db_field.name == 'objednane_polozky':

@@ -530,7 +530,6 @@ class ObjednavkaZmluva(PolymorphicModel):
             on_delete=models.PROTECT, 
             verbose_name = "Vybavuje",
             null = True,
-            blank = True,
             related_name='%(class)s_requests_created')  #zabezpečí rozlíšenie modelov Objednavka a PrijataFaktura 
     predmet = models.CharField("Predmet", 
             help_text = "Zadajte stručný popis, napr. 'Kávovar Saeco' alebo 'Servisná podpora RS Beliana'",
@@ -561,6 +560,13 @@ class Objednavka(ObjednavkaZmluva):
                 </ol>"),
 
             max_length=5000, null=True, blank=True)
+    ziadatel = models.ForeignKey(ZamestnanecDohodar,
+            on_delete=models.PROTECT, 
+            verbose_name = "Žiadateľ",
+            help_text = "Zadajte žiadateľa (pokiaľ sa líši od 'Vybavuje').",
+            null = True,
+            blank = True,
+            related_name='%(class)s_requests_created')  #zabezpečí rozlíšenie modelov Objednavka a PrijataFaktura 
     predpokladana_cena = models.DecimalField("Predpokladaná cena", 
             help_text = "Zadajte predpokladanú cenu bez DPH, ak už nie je zadaná v poli <em>Objednané položky</em>. <br />Vo vygenerovanej objednávke sa zoberie do úvahy, či dodávateľ účtuje alebo neúčtuje cenu s DPH.",
             max_digits=8, 
@@ -577,8 +583,12 @@ class Objednavka(ObjednavkaZmluva):
             help_text = "Súbor s objednávkou a krycím listom. Generuje sa akciou 'Vytvoriť objednávku'",
             upload_to=objednavka_upload_location,
             null = True, blank = True)
+    subor_ziadanky = models.FileField("Súbor žiadanky",
+            help_text = "Súbor so žiadankou a krycím listom. Generuje sa akciou 'Vytvoriť žiadanku'",
+            upload_to=objednavka_upload_location,
+            null = True, blank = True)
     subor_prilohy = models.FileField("Súbor prílohy",
-            help_text = "Súbor s prílohou k objednávke. Použite, ak sa v poli <em>Objednané položky</em> takáto príloha spomína.", 
+            help_text = "Súbor s prílohou k žiadanke/objednávke. Použite, ak sa v poli <em>Objednané položky</em> takáto príloha spomína.", 
             upload_to=objednavka_upload_location,
             null = True, blank = True)
     termin_dodania = models.CharField("Termím dodania", 
