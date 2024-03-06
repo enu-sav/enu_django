@@ -918,7 +918,6 @@ def generovatNepritomnostBiometric(cislo, start_from,ws):
     #identifikovať súvislé úseky v dňoch neprítomnosti, vrátiť zoznam segmentov [zaciatok, koniec]
     def segment(nz):
         nz = nz[0]
-        if len(nz) == 2: return [nz]
         segments = []
         sstart = nz[0]
         slast = nz[-1]
