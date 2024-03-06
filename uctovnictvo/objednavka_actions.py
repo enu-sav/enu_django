@@ -193,7 +193,8 @@ def VytvoritSuborZiadanky(objednavka):
     ws_kl = workbook["Finančná kontrola žiadanka"]
     ws_kl["A1"].value = ws_kl["A1"].value.replace("[[cislo]]", objednavka.cislo[2:])
     vytvorene = objednavka.history.first().history_date
-    ws_kl["A1"].value = ws_kl["A1"].value.replace("[[datum]]", vytvorene.strftime("%d. %m. %Y"))
+    #ws_kl["A1"].value = ws_kl["A1"].value.replace("[[datum]]", vytvorene.strftime("%d. %m. %Y"))
+    ws_kl["A1"].value = ws_kl["A1"].value.replace("[[datum]]", objednavka.datum_vytvorenia.strftime("%d. %m. %Y"))
 
     #uložiť
     workbook.remove_sheet(workbook.get_sheet_by_name("Objednávka"))
