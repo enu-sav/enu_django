@@ -306,6 +306,194 @@ class PersonCommon(models.Model):
     class Meta:
         abstract = True
 
+# fyzická osoba, najmä dohodári
+class FyzickaOsoba(PersonCommon):
+    email = models.EmailField("Email", max_length=200, null=True)
+    titul_pred_menom = models.CharField("Titul pred menom", max_length=100, null=True, blank=True) #optional
+    meno = models.CharField("Meno", max_length=200)
+    priezvisko = models.CharField("Priezvisko", max_length=200)
+    titul_za_menom = models.CharField("Titul za menom", max_length=100, null=True, blank=True)     #optional
+    rodne_cislo = models.CharField("Rodné číslo", max_length=20, null=True)
+    poznamka = models.CharField("Poznámka", max_length=200, blank=True)
+
+    def priezviskomeno(self, oddelovac=""):
+        return f"{self.priezvisko}{oddelovac}{self.meno}"
+
+    def menopriezvisko(self, titul=False):
+        titul_pred = f"{self.titul_pred_menom} " if titul and self.titul_pred_menom else ""
+        titul_za = f", {self.titul_za_menom} " if titul and self.titul_za_menom else ""
+        return f"{titul_pred}{self.meno} {self.priezvisko}{titul_za}"
+
+    class Meta:
+        abstract = True
+    def __str__(self):
+        return self.rs_login
+
+class ZamestnanecDohodar(PolymorphicModel, FyzickaOsoba):
+    datum_nar = models.DateField('Dátum narodenia', null=True)
+    rod_priezvisko = models.CharField("Rodné priezvisko", max_length=100, blank=True, null=True)
+    miesto_nar = models.CharField("Miesto narodenia", max_length=100, null=True)
+    st_prislusnost = models.CharField("Štátna príslušnosť", max_length=100, null=True)
+    stav = models.CharField("Stav", max_length=100, null=True)
+    poberatel_doch = models.CharField("Poberateľ dôchodku", 
+            max_length=10, 
+            null=True, 
+            choices=AnoNie.choices)
+    typ_doch = models.CharField("Typ dôchodku", 
+            max_length=100, 
+            null=True, 
+            blank=True,
+            choices=TypDochodku.choices)
+    datum_doch = models.DateField('Dôchodca od',
+            help_text = "Zadajte dátum vzniku dôchodku",
+            blank=True,
+            null=True)
+    ztp = models.CharField("ZŤP",
+            help_text = "Uveďte, či osoba je 'ZŤP'",
+            max_length=10, 
+            choices=AnoNie.choices)
+    datum_ztp = models.DateField('ZŤP od',
+            help_text = "Ak je osoba 'ZŤP, zadajte dátum vzniku ZŤP",
+            blank=True,
+            null=True)
+    poistovna = models.CharField("Zdravotná poisťovňa",
+            max_length=20, 
+            null=True, 
+            choices=Poistovna.choices)
+    cop = models.CharField("Číslo OP", max_length=20, null=True)
+    # test platnosti dát
+    def clean(self): 
+        if self.poberatel_doch == AnoNie.ANO and not self.typ_doch:
+            raise ValidationError("V prípade poberateľa dôchodku je potrebné zadať typ dôchodku")
+        if self.poberatel_doch == AnoNie.ANO and not self.datum_doch:
+            raise ValidationError("V prípade poberateľa dôchodku je potrebné zadať dátum vzniku dôchodku")
+        if self.ztp == AnoNie.ANO and not self.datum_ztp:
+            raise ValidationError("V prípade ZŤP osoby je potrebné zadať dátum vzniku ZŤP")
+    #class Meta:
+        #verbose_name = "Zamestnanec / dohodár"
+        #verbose_name_plural = "Zamestnanci / dohodári"
+    def __str__(self):
+        return f"{self.priezvisko}, {self.meno}"
+
+class Zamestnanec(ZamestnanecDohodar):
+    cislo_zamestnanca = models.CharField("ČísloZam", 
+            null = True,
+            max_length=50)
+    cislo_biometric = models.IntegerField("ČísloBiom", 
+            help_text = "Uveďte číslo zamestnanca v Biometricu",
+            null = True)
+    zamestnanie_od = models.DateField('1. zamestnanie od',
+            help_text = "Dátum nástupu do 1. zamestnania. Preberá sa zo Softipu, kde sa vypočíta z dátumu nástupu do EnÚ a započítanej praxe",
+            blank=True,
+            null=True)
+    stupnica = models.CharField("Platová stupnica",
+            max_length=10, 
+            help_text = "Uveďte typ stupnice platovej tarify zamestnanca",
+            null = True,
+            choices=PlatovaStupnica.choices,
+            default=PlatovaStupnica.OSOBITNA
+            )
+    zamestnanie_enu_od = models.DateField('Zamestnanie v EnÚ od',
+            help_text = "Dátum nástupu do zamestnania v EnÚ.",
+            blank=True,
+            null=True)
+    vymeriavaci_zaklad = models.TextField("Denný vymeriavací základ", 
+            help_text = "Zadajte po riadkoch denný vymeriavací základ podľa Softipu (PaM > PAM - Personalistika a Mzdy > Mzdy > Nemocenské dávky > Denný VZ €.<br />v tvare 'RRRR/MM suma (napr. '2022/02 30,4986').<br />Treba zadať len za mesiace, za ktoré má zamestnanec nárok na náhradu mzdy. Na chýbajúce údaje sa upozorní pri výpočte čerpania rozpočtu.", 
+            max_length=500,
+            blank=True,
+            null=True)
+    dds = models.CharField("Účastník DDS", 
+            max_length=3, 
+            help_text = "Uveďte 'Áno', ak sa zamestnanec zúčastňuje doplnkového dôchodkového sporenia.<br />V tom prípade vyplňte aj položku 'DDS od'",
+            null = True,
+            choices=AnoNie.choices,
+            default=AnoNie.NIE)
+    dds_od = models.DateField('DDS od',
+            help_text = "Dátum, odkedy sa zamestnanec zúčastňuje doplnkového dôchodkového sporenia.",
+            blank=True,
+            null=True)
+    bez_stravneho = models.TextField('Bez stravného od / do',
+            help_text = "Zadajte obdobie, v ktorom sa zamestnancovi z dôvodu dlhej neprítomnosti (materská, PN, NV) <strong>nemá vyplácať</strong> príspevok na stravné. <br />Obdobie zadajte ako <em>prvy_den_v_prvom_mesiaci, posledny_den_v_poslednom_mesiaci</em>, napr. <em>1.2.2022, 31.8.2022</em>. Ak druhý dátum nie je známy, tak ho neuveďte.<br />Prvý dátum treba zadať pred výpočtom príspevku za mesiac, v ktorom sa príspevok nemá vyplatiť.<br />Príspevok sa v danom mesiaci nevyplatí len vtedy, ak neprítomnosť zadaná v PaM - Neprítomnosť trvá celý tento mesiac (napr. neukončená PN, MD alebo NV na celý mesiac. <br />Za dátumami možno zadať poznámku, v ktorej sa nenachádza dátum.)",
+            blank=True,
+            null=True)
+    history = HistoricalRecords()
+
+    def clean(self): 
+        pocet_datumov=[] #Neukončený môže byť len jeden, a to posledný mesiac
+        datumy1 = []    #kontrola poradia
+        for nn, riadok in enumerate(self.bez_stravneho.split("\r\n")):
+            if not riadok: continue
+            datumy = re.findall("([0-9]*[.][0-9]*[.][0-9]{4})", riadok)
+            if len(datumy) == 0:
+                raise ValidationError({"bez_stravneho": f"Na riadku {nn+1} nebol nájdený žiaden dátum v tvare 'DD.MM.RRRR'."})
+            elif len(datumy) > 2:
+                 raise ValidationError({"bez_stravneho": f"Na riadku {nn+1} sa nachádzajú viac ako dva dátumy."})
+            else:
+                try:
+                    datum1 = datetime.strptime(datumy[0], "%d.%m.%Y")
+                except:
+                    raise ValidationError({"bez_stravneho": f"Prvý dátum {datumy[0]} na riadku {nn+1} nie je v tvare 'DD.MM.RRRR' alebo ide o neexistujúci dátum."})
+                if datum1.day != 1:
+                    raise ValidationError({"bez_stravneho": f"Prvý dátum  {datumy[0]} na riadku {nn+1} nie je prvý deň v mesiaci alebo nie je v tvare 'DD.MM.RRRR."})
+                if len(datumy) == 2:
+                    try:
+                        datum2 = datetime.strptime(datumy[1], "%d.%m.%Y")
+                    except:
+                        raise ValidationError({"bez_stravneho": f"Druhý dátum {datumy[1]} na riadku {nn+1} nie je v tvare 'DD.MM.RRRR' alebo ide o neexistujúci dátum."})
+                    if (datum2 + timedelta(days=1)).day != 1:  # 1. deň nasl. mesiaca
+                        raise ValidationError({"bez_stravneho": f"Druhý dátum {datumy[1]} na riadku {nn+1} nie je posledný deň v mesiaci  alebo nie je v tvare 'DD.MM.RRRR."})
+                    if datum2 < datum1:
+                        raise ValidationError({"bez_stravneho": f"Dátumy na riadku {nn+1} nie sú v správnom poradí od,do."})
+            pocet_datumov.append(len(datumy))
+            datumy1.append(datum1)
+        jeden_datum = [1 if nn==1 else 0 for nn in pocet_datumov]
+        if sum(jeden_datum) > 1:
+            raise ValidationError({"bez_stravneho": f"Len jeden mesiac môže byť neukončený (posledný v zozname)."})
+        if sum(jeden_datum) == 1 and jeden_datum[-1] != 1:
+            raise ValidationError({"bez_stravneho": f"Neukončený môže byť len posledný mesiac v zozname."})
+        if len(datumy1) > 1:
+            for d1,d2 in zip(datumy1[:-1], datumy1[1:]):
+                if d2 < d1:
+                    raise ValidationError({"bez_stravneho": f"Riadky {d1.strftime('%d.%m.%Y')} a {d2.strftime('%d.%m.%Y')} sú v nesprávnom poradí."})
+
+        pass
+
+    #Či vyplatiť príspevok na stravné za mesiac, ktorý začína zden
+    def nevyplacat_stravne(self, zden):
+        if not self.bez_stravneho: return False
+        for riadok in self.bez_stravneho.split("\r\n"):
+            if not riadok: continue
+            datumy = re.findall("([0-9]*[.][0-9]*[.][0-9]{4})", riadok)
+            if len(datumy) == 1:
+                datum1 = datetime.strptime(datumy[0], "%d.%m.%Y")
+                #Porovnávame len 1. deň v mesiaci
+                if datum1.date() <= zden:
+                    return True
+            else:
+                datum1 = datetime.strptime(datumy[0], "%d.%m.%Y")
+                datum2 = datetime.strptime(datumy[1], "%d.%m.%Y")
+                #Porovnávame len 1. deň v mesiaci
+                if datum1.date() <= zden and zden < datum2.date():
+                    return True
+        return False
+
+    class Meta:
+        verbose_name = "Zamestnanec"
+        verbose_name_plural = "PaM - Zamestnanci"
+    def __str__(self):
+        return f"{self.priezvisko}, {self.meno}, Z"
+
+class Dohodar(ZamestnanecDohodar):
+    history = HistoricalRecords()
+    class Meta:
+        verbose_name = "Dohodár"
+        verbose_name_plural = "PaM - Dohodári"
+    def __str__(self):
+        return f"{self.priezvisko}, {self.meno}, D"
+
+def vymer_file_path(instance, filename):
+    return os.path.join(PLATOVE_VYMERY_DIR, filename)
+
 class InternyPartner(PersonCommon):
     nazov = models.CharField("Názov", max_length=200)
     history = HistoricalRecords()
@@ -342,6 +530,7 @@ class ObjednavkaZmluva(PolymorphicModel):
             on_delete=models.PROTECT, 
             verbose_name = "Vybavuje",
             null = True,
+            blank = True,
             related_name='%(class)s_requests_created')  #zabezpečí rozlíšenie modelov Objednavka a PrijataFaktura 
     predmet = models.CharField("Predmet", 
             help_text = "Zadajte stručný popis, napr. 'Kávovar Saeco' alebo 'Servisná podpora RS Beliana'",
@@ -1425,194 +1614,6 @@ class SystemovySubor(models.Model):
     def __str__(self):
         return(self.subor_nazov)
 
-
-# fyzická osoba, najmä dohodári
-class FyzickaOsoba(PersonCommon):
-    email = models.EmailField("Email", max_length=200, null=True)
-    titul_pred_menom = models.CharField("Titul pred menom", max_length=100, null=True, blank=True) #optional
-    meno = models.CharField("Meno", max_length=200)
-    priezvisko = models.CharField("Priezvisko", max_length=200)
-    titul_za_menom = models.CharField("Titul za menom", max_length=100, null=True, blank=True)     #optional
-    rodne_cislo = models.CharField("Rodné číslo", max_length=20, null=True)
-    poznamka = models.CharField("Poznámka", max_length=200, blank=True)
-
-    def priezviskomeno(self, oddelovac=""):
-        return f"{self.priezvisko}{oddelovac}{self.meno}"
-
-    def menopriezvisko(self, titul=False):
-        titul_pred = f"{self.titul_pred_menom} " if titul and self.titul_pred_menom else ""
-        titul_za = f", {self.titul_za_menom} " if titul and self.titul_za_menom else ""
-        return f"{titul_pred}{self.meno} {self.priezvisko}{titul_za}"
-
-    class Meta:
-        abstract = True
-    def __str__(self):
-        return self.rs_login
-
-class ZamestnanecDohodar(PolymorphicModel, FyzickaOsoba):
-    datum_nar = models.DateField('Dátum narodenia', null=True)
-    rod_priezvisko = models.CharField("Rodné priezvisko", max_length=100, blank=True, null=True)
-    miesto_nar = models.CharField("Miesto narodenia", max_length=100, null=True)
-    st_prislusnost = models.CharField("Štátna príslušnosť", max_length=100, null=True)
-    stav = models.CharField("Stav", max_length=100, null=True)
-    poberatel_doch = models.CharField("Poberateľ dôchodku", 
-            max_length=10, 
-            null=True, 
-            choices=AnoNie.choices)
-    typ_doch = models.CharField("Typ dôchodku", 
-            max_length=100, 
-            null=True, 
-            blank=True,
-            choices=TypDochodku.choices)
-    datum_doch = models.DateField('Dôchodca od',
-            help_text = "Zadajte dátum vzniku dôchodku",
-            blank=True,
-            null=True)
-    ztp = models.CharField("ZŤP",
-            help_text = "Uveďte, či osoba je 'ZŤP'",
-            max_length=10, 
-            choices=AnoNie.choices)
-    datum_ztp = models.DateField('ZŤP od',
-            help_text = "Ak je osoba 'ZŤP, zadajte dátum vzniku ZŤP",
-            blank=True,
-            null=True)
-    poistovna = models.CharField("Zdravotná poisťovňa",
-            max_length=20, 
-            null=True, 
-            choices=Poistovna.choices)
-    cop = models.CharField("Číslo OP", max_length=20, null=True)
-    # test platnosti dát
-    def clean(self): 
-        if self.poberatel_doch == AnoNie.ANO and not self.typ_doch:
-            raise ValidationError("V prípade poberateľa dôchodku je potrebné zadať typ dôchodku")
-        if self.poberatel_doch == AnoNie.ANO and not self.datum_doch:
-            raise ValidationError("V prípade poberateľa dôchodku je potrebné zadať dátum vzniku dôchodku")
-        if self.ztp == AnoNie.ANO and not self.datum_ztp:
-            raise ValidationError("V prípade ZŤP osoby je potrebné zadať dátum vzniku ZŤP")
-    #class Meta:
-        #verbose_name = "Zamestnanec / dohodár"
-        #verbose_name_plural = "Zamestnanci / dohodári"
-    def __str__(self):
-        return f"{self.priezvisko}, {self.meno}"
-
-class Zamestnanec(ZamestnanecDohodar):
-    cislo_zamestnanca = models.CharField("ČísloZam", 
-            null = True,
-            max_length=50)
-    cislo_biometric = models.IntegerField("ČísloBiom", 
-            help_text = "Uveďte číslo zamestnanca v Biometricu",
-            null = True)
-    zamestnanie_od = models.DateField('1. zamestnanie od',
-            help_text = "Dátum nástupu do 1. zamestnania. Preberá sa zo Softipu, kde sa vypočíta z dátumu nástupu do EnÚ a započítanej praxe",
-            blank=True,
-            null=True)
-    stupnica = models.CharField("Platová stupnica",
-            max_length=10, 
-            help_text = "Uveďte typ stupnice platovej tarify zamestnanca",
-            null = True,
-            choices=PlatovaStupnica.choices,
-            default=PlatovaStupnica.OSOBITNA
-            )
-    zamestnanie_enu_od = models.DateField('Zamestnanie v EnÚ od',
-            help_text = "Dátum nástupu do zamestnania v EnÚ.",
-            blank=True,
-            null=True)
-    vymeriavaci_zaklad = models.TextField("Denný vymeriavací základ", 
-            help_text = "Zadajte po riadkoch denný vymeriavací základ podľa Softipu (PaM > PAM - Personalistika a Mzdy > Mzdy > Nemocenské dávky > Denný VZ €.<br />v tvare 'RRRR/MM suma (napr. '2022/02 30,4986').<br />Treba zadať len za mesiace, za ktoré má zamestnanec nárok na náhradu mzdy. Na chýbajúce údaje sa upozorní pri výpočte čerpania rozpočtu.", 
-            max_length=500,
-            blank=True,
-            null=True)
-    dds = models.CharField("Účastník DDS", 
-            max_length=3, 
-            help_text = "Uveďte 'Áno', ak sa zamestnanec zúčastňuje doplnkového dôchodkového sporenia.<br />V tom prípade vyplňte aj položku 'DDS od'",
-            null = True,
-            choices=AnoNie.choices,
-            default=AnoNie.NIE)
-    dds_od = models.DateField('DDS od',
-            help_text = "Dátum, odkedy sa zamestnanec zúčastňuje doplnkového dôchodkového sporenia.",
-            blank=True,
-            null=True)
-    bez_stravneho = models.TextField('Bez stravného od / do',
-            help_text = "Zadajte obdobie, v ktorom sa zamestnancovi z dôvodu dlhej neprítomnosti (materská, PN, NV) <strong>nemá vyplácať</strong> príspevok na stravné. <br />Obdobie zadajte ako <em>prvy_den_v_prvom_mesiaci, posledny_den_v_poslednom_mesiaci</em>, napr. <em>1.2.2022, 31.8.2022</em>. Ak druhý dátum nie je známy, tak ho neuveďte.<br />Prvý dátum treba zadať pred výpočtom príspevku za mesiac, v ktorom sa príspevok nemá vyplatiť.<br />Príspevok sa v danom mesiaci nevyplatí len vtedy, ak neprítomnosť zadaná v PaM - Neprítomnosť trvá celý tento mesiac (napr. neukončená PN, MD alebo NV na celý mesiac. <br />Za dátumami možno zadať poznámku, v ktorej sa nenachádza dátum.)",
-            blank=True,
-            null=True)
-    history = HistoricalRecords()
-
-    def clean(self): 
-        pocet_datumov=[] #Neukončený môže byť len jeden, a to posledný mesiac
-        datumy1 = []    #kontrola poradia
-        for nn, riadok in enumerate(self.bez_stravneho.split("\r\n")):
-            if not riadok: continue
-            datumy = re.findall("([0-9]*[.][0-9]*[.][0-9]{4})", riadok)
-            if len(datumy) == 0:
-                raise ValidationError({"bez_stravneho": f"Na riadku {nn+1} nebol nájdený žiaden dátum v tvare 'DD.MM.RRRR'."})
-            elif len(datumy) > 2:
-                 raise ValidationError({"bez_stravneho": f"Na riadku {nn+1} sa nachádzajú viac ako dva dátumy."})
-            else:
-                try:
-                    datum1 = datetime.strptime(datumy[0], "%d.%m.%Y")
-                except:
-                    raise ValidationError({"bez_stravneho": f"Prvý dátum {datumy[0]} na riadku {nn+1} nie je v tvare 'DD.MM.RRRR' alebo ide o neexistujúci dátum."})
-                if datum1.day != 1:
-                    raise ValidationError({"bez_stravneho": f"Prvý dátum  {datumy[0]} na riadku {nn+1} nie je prvý deň v mesiaci alebo nie je v tvare 'DD.MM.RRRR."})
-                if len(datumy) == 2:
-                    try:
-                        datum2 = datetime.strptime(datumy[1], "%d.%m.%Y")
-                    except:
-                        raise ValidationError({"bez_stravneho": f"Druhý dátum {datumy[1]} na riadku {nn+1} nie je v tvare 'DD.MM.RRRR' alebo ide o neexistujúci dátum."})
-                    if (datum2 + timedelta(days=1)).day != 1:  # 1. deň nasl. mesiaca
-                        raise ValidationError({"bez_stravneho": f"Druhý dátum {datumy[1]} na riadku {nn+1} nie je posledný deň v mesiaci  alebo nie je v tvare 'DD.MM.RRRR."})
-                    if datum2 < datum1:
-                        raise ValidationError({"bez_stravneho": f"Dátumy na riadku {nn+1} nie sú v správnom poradí od,do."})
-            pocet_datumov.append(len(datumy))
-            datumy1.append(datum1)
-        jeden_datum = [1 if nn==1 else 0 for nn in pocet_datumov]
-        if sum(jeden_datum) > 1:
-            raise ValidationError({"bez_stravneho": f"Len jeden mesiac môže byť neukončený (posledný v zozname)."})
-        if sum(jeden_datum) == 1 and jeden_datum[-1] != 1:
-            raise ValidationError({"bez_stravneho": f"Neukončený môže byť len posledný mesiac v zozname."})
-        if len(datumy1) > 1:
-            for d1,d2 in zip(datumy1[:-1], datumy1[1:]):
-                if d2 < d1:
-                    raise ValidationError({"bez_stravneho": f"Riadky {d1.strftime('%d.%m.%Y')} a {d2.strftime('%d.%m.%Y')} sú v nesprávnom poradí."})
-
-        pass
-
-    #Či vyplatiť príspevok na stravné za mesiac, ktorý začína zden
-    def nevyplacat_stravne(self, zden):
-        if not self.bez_stravneho: return False
-        for riadok in self.bez_stravneho.split("\r\n"):
-            if not riadok: continue
-            datumy = re.findall("([0-9]*[.][0-9]*[.][0-9]{4})", riadok)
-            if len(datumy) == 1:
-                datum1 = datetime.strptime(datumy[0], "%d.%m.%Y")
-                #Porovnávame len 1. deň v mesiaci
-                if datum1.date() <= zden:
-                    return True
-            else:
-                datum1 = datetime.strptime(datumy[0], "%d.%m.%Y")
-                datum2 = datetime.strptime(datumy[1], "%d.%m.%Y")
-                #Porovnávame len 1. deň v mesiaci
-                if datum1.date() <= zden and zden < datum2.date():
-                    return True
-        return False
-
-    class Meta:
-        verbose_name = "Zamestnanec"
-        verbose_name_plural = "PaM - Zamestnanci"
-    def __str__(self):
-        return f"{self.priezvisko}, {self.meno}, Z"
-
-class Dohodar(ZamestnanecDohodar):
-    history = HistoricalRecords()
-    class Meta:
-        verbose_name = "Dohodár"
-        verbose_name_plural = "PaM - Dohodári"
-    def __str__(self):
-        return f"{self.priezvisko}, {self.meno}, D"
-
-def vymer_file_path(instance, filename):
-    return os.path.join(PLATOVE_VYMERY_DIR, filename)
 
 #Polymorphic umožní, aby DoVP a PrijataFaktura mohli použiť ObjednavkaZmluva ako ForeignKey
 class PlatovyVymer(Klasifikacia):
