@@ -19,10 +19,14 @@ from .models import InternyPartner, InternyPrevod, Nepritomnost, RozpoctovaPoloz
 from .models import RozpoctovaPolozkaPresun, PlatbaBezPrikazu, Pokladna, TypPokladna, SadzbaDPH
 from .models import nasledujuce_cislo, nasledujuce_VPD, SocialnyFond, PrispevokNaRekreaciu, OdmenaOprava, OdmenaAleboOprava
 from .models import TypNepritomnosti, Stravne, VystavenaFaktura
-from .common import VytvoritPlatobnyPrikaz, VytvoritSuborDohody, VytvoritSuborObjednavky, leapdays
-from .common import VytvoritKryciList, VytvoritKryciListRekreacia, generovatIndividualneOdmeny
+
+from .common import VytvoritPlatobnyPrikaz, VytvoritSuborDohody
+from .common import VytvoritKryciList, VytvoritKryciListRekreacia, generovatIndividualneOdmeny, leapdays
 from .common import zmazatIndividualneOdmeny, generovatNepritomnost, exportovatNepritomnostUct, VytvoritKryciListOdmena, generovatStravne
 from .common import VytvoritPlatobnyPrikazIP, VytvoritSuborPD, UlozitStranuPK, TarifnyPlatTabulky
+
+from .objednavka_actions import VytvoritSuborObjednavky, VytvoritSuborZiadanky
+
 from .forms import PrijataFakturaForm, AutorskeZmluvyForm, ObjednavkaForm, ZmluvaForm, PrispevokNaStravneForm, PravidelnaPlatbaForm
 from .forms import PlatovyVymerForm, NajomneFakturaForm, NajomnaZmluvaForm, PlatbaBezPrikazuForm
 from .forms import DoPCForm, DoVPForm, DoBPSForm, VyplacanieDohodForm
@@ -167,7 +171,7 @@ class ObjednavkaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, 
 
     # ^: v poli vyhľadávať len od začiatku
     search_fields = ["cislo", "predmet", "dodavatel__nazov"]
-    actions = ['vytvorit_subor_objednavky']
+    actions = [ 'vytvorit_subor_ziadanky', 'vytvorit_subor_objednavky' ]
 
     # zoraďovateľný odkaz na dodávateľa
     # umožnené prostredníctvom AdminChangeLinksMixin
@@ -213,6 +217,24 @@ class ObjednavkaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, 
     vytvorit_subor_objednavky.short_description = "Vytvoriť súbor objednavky"
     #Oprávnenie na použitie akcie, viazané na 'change'
     vytvorit_subor_objednavky.allowed_permissions = ('change',)
+
+    def vytvorit_subor_ziadanky(self, request, queryset):
+        #Na úvod chceme vytvoriť žiadanky pre veľa objednávok
+        #if len(queryset) != 1:
+            #self.message_user(request, f"Vybrať možno len jednu objednavku", messages.ERROR)
+            #return
+        #objednavka = queryset[0]
+        for objednavka in queryset:
+            status, msg, vytvoreny_subor = VytvoritSuborZiadanky(objednavka)
+            self.message_user(request, msg, status)
+            if status != messages.ERROR:
+                objednavka.subor_ziadanky = vytvoreny_subor
+                objednavka.save()
+                self.message_user(request, f"Vytvorenú žiadanku dajte na podpis. Po podpise vygenerujte súbor objednávky akciou 'Vytvoriť súbor objednavky'.", messages.WARNING)
+
+    vytvorit_subor_ziadanky.short_description = "Vytvoriť súbor žiadanky"
+    #Oprávnenie na použitie akcie, viazané na 'change'
+    vytvorit_subor_ziadanky.allowed_permissions = ('change',)
 
 @admin.register(Rozhodnutie)
 class RozhodnutieAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
