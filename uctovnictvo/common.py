@@ -684,7 +684,7 @@ def VytvoritSuborObjednavky(objednavka):
     ws_obj = workbook["Objednávka"]
     ws_obj["A3"].value = ws_obj["A3"].value.replace("[[cislo]]",objednavka.cislo)
     if objednavka.vybavuje:
-        ws_obj["B6"].value = objednavka.vybavuje.get_full_name()
+        ws_obj["B6"].value = objednavka.vybavuje.menopriezvisko(True)
         ws_obj["B9"].value = objednavka.vybavuje.email
     #dodávateľ
     ws_obj["D6"].value = objednavka.dodavatel.nazov
@@ -694,7 +694,7 @@ def VytvoritSuborObjednavky(objednavka):
 
     #položky
     prvy_riadok = 15 #prvy riadok tabulky
-    pocet_riadkov = 18 # pri zmene zmeniť aj models.Objednavka.clean.pocet_riadkov
+    pocet_riadkov = 12 # pri zmene zmeniť aj models.Objednavka.clean.pocet_riadkov
     add_sum = True  # či s má do posledného riadka vložiť súčet
     objednane = objednavka.objednane_polozky.split("\n")
     for rr, polozka in enumerate(objednane):
@@ -750,7 +750,8 @@ def VytvoritSuborObjednavky(objednavka):
     ws_kl["A1"].value = ws_kl["A1"].value.replace("[[cislo]]", objednavka.cislo)
     ws_kl["A1"].value = ws_kl["A1"].value.replace("[[datum]]", objednavka.datum_vytvorenia.strftime("%d. %m. %Y"))
 
-    #ulozit
+    #uložiť
+    workbook.remove_sheet(workbook.get_sheet_by_name("Žiadanka"))
     #Create directory admin.rs_login if necessary
     nazov = f'{objednavka.cislo}-{objednavka.dodavatel.nazov.replace(" ","").replace(".","").replace(",","-")}.xlsx'
     opath = os.path.join(settings.OBJEDNAVKY_DIR,nazov)

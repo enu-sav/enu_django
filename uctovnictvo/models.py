@@ -607,7 +607,7 @@ class Objednavka(ObjednavkaZmluva):
 		        return False
 
         # test počtu riadkov v objednane_polozky
-        pocet_riadkov = 18 #definované v common.VytvoritSuborObjednavky.pocet_riadkov
+        pocet_riadkov = 12 #definované v common.VytvoritSuborObjednavky.pocet_riadkov
         pocet_poloziek = len(self.objednane_polozky.split("\r\n"))
         if pocet_poloziek > pocet_riadkov:
             raise ValidationError({
