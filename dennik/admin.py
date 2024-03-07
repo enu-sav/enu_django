@@ -188,7 +188,6 @@ class FormularAdmin(ZobrazitZmeny):
             return
         formular = queryset[0]
         try:
-            trace()
             status, msg, vyplnene, vyplnene_data, podaci_harok = VyplnitAVygenerovat(formular)
         except ValidationError as ex:
             messages.error(request, ex)
