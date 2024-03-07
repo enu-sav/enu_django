@@ -55,6 +55,7 @@ class ObjednavkaForm(DennikZaznam):
         # do Admin treba pridať metódu get_form
         self.request = kwargs.pop('request', None)
         super().__init__(*args, **kwargs)
+        self.fields["dodavatel"].help_text = "V žiadanke nepovinné, pri generovaní objednávky musí byť vyplnené"
         polecislo = "cislo"
         # Ak je pole readonly, tak sa nenachádza vo fields. Preto testujeme fields aj initial
         if polecislo in self.fields and not polecislo in self.initial:
@@ -82,6 +83,7 @@ class ZmluvaForm(forms.ModelForm):
     #inicializácia polí
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields['dodavatel'].required = True    # v super je nepovinné
         polecislo = "nase_cislo"
         # Ak je pole readonly, tak sa nenachádza vo fields. Preto testujeme fields aj initial
         if polecislo in self.fields and not polecislo in self.initial:

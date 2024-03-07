@@ -525,6 +525,8 @@ class ObjednavkaZmluva(PolymorphicModel):
     dodavatel = models.ForeignKey(Dodavatel,
             on_delete=models.PROTECT, 
             verbose_name = "Dodávateľ",
+            null=True,
+            blank=True, #v ZmluvaForm spravené povinné, v Objednavka zostáva nepovinné
             related_name='%(class)s_requests_created')  #zabezpečí rozlíšenie modelov Objednavka a PrijataFaktura 
     vybavuje = models.ForeignKey(ZamestnanecDohodar,
             on_delete=models.PROTECT, 
