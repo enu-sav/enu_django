@@ -113,7 +113,7 @@ def VyplnitAVygenerovatVseobecny(formular, sablona, iws, hdr):
         f.write(sablona)
 
     #status, msg, vyplnene, vyplnene_data
-    return messages.SUCCESS, f"Vytvorený bol súbor '{o_text}' s {nn} vyplnenými dokumentami", os.path.join(settings.FORM_DIR_NAME,o_text), formular.data.name
+    return messages.SUCCESS, f"Vytvorený bol súbor '{o_text}' s {nn} vyplnenými dokumentami", os.path.join(settings.FORM_DIR_NAME,o_text), formular.data.name, None
 
 def VyplnitAVygenerovatAHZrazena(formular, sablona, iws, hdr):
 
