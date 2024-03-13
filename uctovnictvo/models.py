@@ -2652,6 +2652,10 @@ class Pokladna(models.Model):
             blank = True,
             null = True
             )
+    subor_ziadanky = models.FileField("Súbor žiadanky",
+            help_text = "Súbor so žiadankou a krycím listom. Generuje sa akciou 'Vytvoriť žiadanku'",
+            upload_to=pokladna_upload_location,
+            null = True, blank = True)
     subor_doklad = models.FileField("Doklad o úhrade",
             help_text = "Súbor so zoskenovaným dokladom o úhrade",
             upload_to=pokladna_upload_location, 
