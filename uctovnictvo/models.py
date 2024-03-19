@@ -562,6 +562,11 @@ class ObjednavkaZmluva(PolymorphicModel):
             verbose_name = "Vybavuje",
             null = True,
             related_name='%(class)s_requests_created')  #zabezpečí rozlíšenie modelov Objednavka a PrijataFaktura 
+    vybavuje2 = models.ForeignKey(Vybavovatel,
+            on_delete=models.PROTECT, 
+            verbose_name = "Vybavuje2",
+            null = True,
+            related_name='%(class)s_requests_created')  #zabezpečí rozlíšenie modelov Objednavka a PrijataFaktura 
     predmet = models.CharField("Predmet", 
             help_text = "Zadajte stručný popis, napr. 'Kávovar Saeco' alebo 'Servisná podpora RS Beliana'",
             max_length=100)
