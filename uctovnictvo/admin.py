@@ -12,7 +12,7 @@ from datetime import date, datetime, timedelta
 from ipdb import set_trace as trace
 from .models import EkonomickaKlasifikacia, TypZakazky, Zdroj, Program, Dodavatel, ObjednavkaZmluva
 from .models import Objednavka, Zmluva, PrijataFaktura, SystemovySubor, Rozhodnutie, PrispevokNaStravne
-from .models import Dohoda, DoVP, DoPC, DoBPS, VyplacanieDohod, AnoNie, PlatovyVymer
+from .models import Dohoda, DoVP, DoPC, DoBPS, VyplacanieDohod, AnoNie, PlatovyVymer, Vybavovatel
 from .models import ZamestnanecDohodar, Zamestnanec, Dohodar, StavDohody, PravidelnaPlatba
 from .models import Najomnik, NajomnaZmluva, NajomneFaktura, TypPP, TypPN, Cinnost
 from .models import InternyPartner, InternyPrevod, Nepritomnost, RozpoctovaPolozka, RozpoctovaPolozkaDotacia
@@ -1276,6 +1276,10 @@ class DohodarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelA
         else:
             return "Nie"
     _ztp.short_description = "ZŤP"
+
+@admin.register(Vybavovatel)
+class VybavovatelAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
+    list_display = ["osoba", "telefon", "enu_email"]
 
 
 @admin.register(Zamestnanec)

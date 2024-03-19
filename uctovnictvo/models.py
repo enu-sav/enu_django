@@ -483,6 +483,35 @@ class Zamestnanec(ZamestnanecDohodar):
     def __str__(self):
         return f"{self.priezvisko}, {self.meno}, Z"
 
+class Vybavovatel(models.Model):
+    osoba = models.ForeignKey(ZamestnanecDohodar,
+            on_delete=models.PROTECT,
+            verbose_name = "Osoba",
+            related_name='%(class)s_vybavuje')  #zabezpečí rozlíšenie modelov Objednavka a PrijataFaktura
+
+    telefon = models.CharField("Telefón",
+            help_text = "Uveďte telefónne číslo v EnÚ. Ak sa neuvedie, v príslušnom dokumente zostane predvolené číslo",
+            max_length=20,
+            null = True,
+            blank = True,
+            )
+
+    enu_email = models.EmailField("Email",
+            help_text = "Uveďte e-mail v EnÚ. Ak sa neuvedie, preberie sa osobný e-mail",
+            max_length=200,
+            null = True,
+            blank = True,
+            )
+    def clean(self):
+        if not self.enu_email:
+            self.enu_email = self.osoba.email
+
+    def __str__(self):
+        return f"{self.osoba.priezvisko}, {self.osoba.meno}, V"
+    class Meta:
+        verbose_name = 'Vybavovateľ'
+        verbose_name_plural = 'Faktúry - Vybavovatelia'
+
 class Dohodar(ZamestnanecDohodar):
     history = HistoricalRecords()
     class Meta:
