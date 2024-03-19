@@ -557,14 +557,9 @@ class ObjednavkaZmluva(PolymorphicModel):
             null=True,
             blank=True, #v ZmluvaForm spravené povinné, v Objednavka zostáva nepovinné
             related_name='%(class)s_requests_created')  #zabezpečí rozlíšenie modelov Objednavka a PrijataFaktura 
-    vybavuje = models.ForeignKey(ZamestnanecDohodar,
-            on_delete=models.PROTECT, 
-            verbose_name = "Vybavuje",
-            null = True,
-            related_name='%(class)s_requests_created')  #zabezpečí rozlíšenie modelov Objednavka a PrijataFaktura 
     vybavuje2 = models.ForeignKey(Vybavovatel,
             on_delete=models.PROTECT, 
-            verbose_name = "Vybavuje2",
+            verbose_name = "Vybavuje",
             null = True,
             related_name='%(class)s_requests_created')  #zabezpečí rozlíšenie modelov Objednavka a PrijataFaktura 
     predmet = models.CharField("Predmet", 
