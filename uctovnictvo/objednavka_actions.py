@@ -22,13 +22,14 @@ def VyplnitHarok(ws_obj, objednavka, je_objednavka):
     ws_obj["A3"].value = ws_obj["A3"].value.replace("[[cislo]]",objednavka.cislo[2:])
     if je_objednavka:
         ws_obj["B6"].value = objednavka.vybavuje2.osoba.menopriezvisko(True)
+        if  objednavka.vybavuje2.telefon:
+            ws_obj["B7"].value = objednavka.vybavuje2.telefon
         ws_obj["B9"].value = objednavka.vybavuje2.enu_email
     else:
         if objednavka.ziadatel:
             ws_obj["B6"].value = objednavka.ziadatel.menopriezvisko(True)
             ws_obj["B9"].value = objednavka.ziadatel.email
         else:
-            trace()
             ws_obj["B6"].value = objednavka.vybavuje2.osoba.menopriezvisko(True)
             ws_obj["B9"].value = objednavka.vybavuje2.enu_email
     #dodávateľ
