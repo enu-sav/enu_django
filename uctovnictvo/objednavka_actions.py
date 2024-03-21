@@ -14,18 +14,23 @@ from openpyxl.styles import Border, Side, PatternFill, Font, GradientFill, Align
 from decimal import Decimal
 
 # lokálna funkcia, nemá zmysel ju volať zvonka
-def VyplnitHarok(ws_obj, objednavka):
+def VyplnitHarok(ws_obj, objednavka, je_objednavka):
     prvy_riadok = 15 #prvy riadok tabulky
     pocet_riadkov = 12 # pri zmene zmeniť aj models.Objednavka.clean.pocet_riadkov
     dph = 1+settings.DPH/100
 
     ws_obj["A3"].value = ws_obj["A3"].value.replace("[[cislo]]",objednavka.cislo[2:])
-    if objednavka.ziadatel:
-        ws_obj["B6"].value = objednavka.ziadatel.menopriezvisko(True)
-        ws_obj["B9"].value = objednavka.ziadatel.email
-    elif objednavka.vybavuje:
-        ws_obj["B6"].value = objednavka.vybavuje.menopriezvisko(True)
-        ws_obj["B9"].value = objednavka.vybavuje.email
+    if je_objednavka:
+        ws_obj["B6"].value = objednavka.vybavuje2.osoba.menopriezvisko(True)
+        ws_obj["B9"].value = objednavka.vybavuje2.enu_email
+    else:
+        if objednavka.ziadatel:
+            ws_obj["B6"].value = objednavka.ziadatel.menopriezvisko(True)
+            ws_obj["B9"].value = objednavka.ziadatel.email
+        else:
+            trace()
+            ws_obj["B6"].value = objednavka.vybavuje2.osoba.menopriezvisko(True)
+            ws_obj["B9"].value = objednavka.vybavuje2.enu_email
     #dodávateľ
     if objednavka.dodavatel:
         ws_obj["D6"].value = objednavka.dodavatel.nazov
@@ -101,7 +106,7 @@ def VytvoritSuborObjednavky(objednavka):
     if type(workbook) != Workbook:
         return workbook #Error
 
-    ws_obj, prvy_riadok, pocet_riadkov = VyplnitHarok(workbook["Objednávka"], objednavka)
+    ws_obj, prvy_riadok, pocet_riadkov = VyplnitHarok(workbook["Objednávka"], objednavka, True)
 
     if objednavka.termin_dodania:
         ws_obj[f"A{prvy_riadok+pocet_riadkov+2}"].value = ws_obj[f"A{prvy_riadok+pocet_riadkov+2}"].value.replace("[[termin_dodania]]", objednavka.termin_dodania)
@@ -129,7 +134,7 @@ def VytvoritSuborZiadanky(objednavka):
     if type(workbook) != Workbook:
         return workbook #Error
 
-    ws_obj, prvy_riadok, pocet_riadkov = VyplnitHarok(workbook["Žiadanka"], objednavka)
+    ws_obj, prvy_riadok, pocet_riadkov = VyplnitHarok(workbook["Žiadanka"], objednavka, False)
 
     ws_obj[f"A{prvy_riadok+pocet_riadkov+3}"].value = objednavka.predmet
     if objednavka.termin_dodania:
