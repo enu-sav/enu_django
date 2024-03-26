@@ -1987,7 +1987,7 @@ class Nepritomnost(models.Model):
             null = True,
             max_length=50)
     subor_nepritomnost = models.FileField("Import. súbor",
-            help_text = "XLSX súbor so zoznamom neprítomností.<br />Po vložení treba akciou 'Generovať záznamy neprítomnosti' vytvoriť jednotlivé záznamy.",
+            help_text = "XLSX súbor so zoznamom neprítomností z Biometric-u (<strong>Reporty a exporty</strong> > <strong>Evidencia dochádzky</strong> > <strong>Spustit report</strong> a uložiť ako Excel).<br />Po vložení treba akciou 'Generovať záznamy neprítomnosti' vytvoriť jednotlivé záznamy.",
             upload_to=nepritomnost_upload_location,
             blank=True, 
             null=True
