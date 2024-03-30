@@ -1323,7 +1323,7 @@ class NajomneFaktura(Klasifikacia, GetAdminURL):
         platby =[]
         platba = {
                 "nazov":f"Faktúra {typ}",
-                "suma": self.suma,
+                "suma": self.suma + self.dan if self.dan else 0,
                 "datum": self.dane_na_uhradu,
                 "subjekt": f"{self.zmluva.najomnik.nazov}, (za {zden.year}/{zden.month})", 
                 "cislo": self.cislo,
@@ -1335,7 +1335,7 @@ class NajomneFaktura(Klasifikacia, GetAdminURL):
         if self.dan:
             dph = {
                 "nazov":f"DPH prenájom",
-                "suma": self.dan,
+                "suma": -self.dan,
                 "datum": self.dane_na_uhradu,
                 "subjekt": f"{self.zmluva.najomnik.nazov}, (za {zden.year}/{zden.month})", 
                 "cislo": self.cislo,
@@ -1343,8 +1343,6 @@ class NajomneFaktura(Klasifikacia, GetAdminURL):
                 "zakazka": self.zakazka,
                 "ekoklas": EkonomickaKlasifikacia.objects.get(kod="637044")
                 }
-            platby.append(dph.copy())
-            dph['suma'] = -self.dan
             platby.append(dph.copy())
         return platby
     class Meta:
