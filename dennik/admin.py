@@ -237,7 +237,7 @@ class SystemovySuborAdmin(ZobrazitZmeny, admin.ModelAdmin):
 class CerpanieRozpoctuAdmin(ModelAdminTotals):
     list_display = ["polozka","mesiac","suma","zdroj","zakazka","ekoklas"]
     #search_fields = ["polozka", "mesiac", "zdroj", "zakazka", "ekoklas"]
-    search_fields = ["polozka", "mesiac", "^zdroj__kod", "^zakazka__kod", "^ekoklas__kod"]
+    search_fields = ["polozka", "^mesiac", "^zdroj__kod", "^zakazka__kod", "^ekoklas__kod"]
     actions = ["generovat2022", "generovat2023", "generovat2024", export_as_xlsx]
     list_totals = [
             ('suma', Sum)
