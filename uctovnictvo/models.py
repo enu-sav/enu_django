@@ -973,7 +973,7 @@ class PrijataFaktura(FakturaPravidelnaPlatba, GetAdminURL):
             #'suma' v prípade prenosu DPH treba rozdeliť na časť bez DPH a DPH, lebo EnÚ odvádza DPH namiesto dodávateľa
             #inak DPH neriešime, lebo EnÚ nie je platcom  DPH
             dph = float(self.sadzbadph)/100
-            suma = suma / (1+dph) if self.prenosDP == AnoNie.ANO else suma
+            suma = suma
             platba1["nazov"] = f"Faktúra {typ}"
             platba1["suma"] =  round(Decimal(suma*(1-podiel2)),2)
             platba1["ekoklas"] =  self.ekoklas
