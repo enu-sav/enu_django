@@ -1334,7 +1334,7 @@ class NajomneFaktura(Klasifikacia, GetAdminURL):
         platby.append(platba.copy())
         if self.dan:
             dph = {
-                "nazov":f"DPH prenájom",
+                "nazov":f"DPH {typ}",
                 "suma": self.dan,
                 "datum": self.dane_na_uhradu if self.dane_na_uhradu else self.splatnost_datum,
                 "subjekt": f"{self.zmluva.najomnik.nazov}, (za {zden.year}/{zden.month})", 
