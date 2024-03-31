@@ -1323,20 +1323,20 @@ class NajomneFaktura(Klasifikacia, GetAdminURL):
         platby =[]
         platba = {
                 "nazov":f"Faktúra {typ}",
-                "suma": self.suma + self.dan if self.dan else 0,
-                "datum": self.dane_na_uhradu,
+                "suma": self.suma + (self.dan if self.dan else 0),
+                "datum": self.dane_na_uhradu if self.dane_na_uhradu else self.splatnost_datum,
                 "subjekt": f"{self.zmluva.najomnik.nazov}, (za {zden.year}/{zden.month})", 
                 "cislo": self.cislo,
                 "zdroj": self.zdroj,
                 "zakazka": self.zakazka,
                 "ekoklas": self.ekoklas
                 }
-        platby.append(platba)
+        platby.append(platba.copy())
         if self.dan:
             dph = {
                 "nazov":f"DPH prenájom",
                 "suma": -self.dan,
-                "datum": self.dane_na_uhradu,
+                "datum": self.dane_na_uhradu if self.dane_na_uhradu else self.splatnost_datum,
                 "subjekt": f"{self.zmluva.najomnik.nazov}, (za {zden.year}/{zden.month})", 
                 "cislo": self.cislo,
                 "zdroj": self.zdroj,
