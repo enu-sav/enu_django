@@ -335,7 +335,8 @@ class CerpanieRozpoctuAdmin(ModelAdminTotals):
                                        item['cislo'], 
                                        item['zdroj'].kod,
                                        item['zakazka'].kod,
-                                       item['ekoklas'].kod
+                                       item['ekoklas'].kod,
+                                       item['ekoklas'].nazov
                                        ])
 
                 if not identif in cerpanie_spolu:
@@ -351,7 +352,7 @@ class CerpanieRozpoctuAdmin(ModelAdminTotals):
 
 
         #Obsah poľa polozky_riadok zapísať do hárka Položky
-        nazvy = ["Názov", "Suma", "Subjekt", "Dátum", "Číslo", "Zdroj", "Zákazka", "Klasifikácia"]
+        nazvy = ["Názov", "Suma", "Subjekt", "Dátum", "Číslo", "Zdroj", "Zákazka", "Klasifikácia", "Klasifikácia - názov"]
         fw = {} #field width
         zapisat_riadok(ws_polozky, fw, 1, nazvy, header=True)
         riadok=2
@@ -363,7 +364,7 @@ class CerpanieRozpoctuAdmin(ModelAdminTotals):
             ws_polozky.column_dimensions[get_column_letter(cc+1)].width = fw[cc]
 
         # Obsah cerpanie_spolu zapísať do databázy a do ws_prehlad
-        nazvy = ["Názov", "Mesiac", "Suma", "Zdroj", "Zákazka", "Klasifikácia"]
+        nazvy = ["Názov", "Mesiac", "Suma", "Zdroj", "Zákazka", "Klasifikácia", "Klasifikácia - názov"]
         fw = {} #field width
         zapisat_riadok(ws_prehlad, fw, 1, nazvy, header=True)
         riadok=2
@@ -383,7 +384,8 @@ class CerpanieRozpoctuAdmin(ModelAdminTotals):
                        cerpanie_spolu[item]['suma'],
                        cerpanie_spolu[item]['zdroj'].kod,
                        cerpanie_spolu[item]['zakazka'].kod,
-                       cerpanie_spolu[item]['ekoklas'].kod
+                       cerpanie_spolu[item]['ekoklas'].kod,
+                       cerpanie_spolu[item]['ekoklas'].nazov
                        ]
             zapisat_riadok(ws_prehlad, fw, riadok, polozky)
             riadok +=1
