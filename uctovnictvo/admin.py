@@ -482,7 +482,7 @@ class ZmluvaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, Impo
 #class PrijataFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
 class PrijataFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
     form = PrijataFakturaForm
-    list_display = ["cislo", "dcislo", "objednavka_zmluva_link", "url_faktury", "suma", "sadzbadph", "prenosDP", "podiel2", "predmet", "platobny_prikaz", "dane_na_uhradu", "uhradene_dna", "mena", "zdroj", "zakazka", "zdroj2", "zakazka2", "ekoklas"]
+    list_display = ["cislo", "dcislo", "objednavka_zmluva_link", "url_faktury", "suma", "sadzbadph", "prenosDP", "zrusena", "podiel2", "predmet", "platobny_prikaz", "dane_na_uhradu", "uhradene_dna", "mena", "zdroj", "zakazka", "zdroj2", "zakazka2", "ekoklas"]
     search_fields = ["^cislo", "^dcislo", "objednavka_zmluva__dodavatel__nazov", "objednavka_zmluva__cislo", "predmet", "^zdroj__kod", "^zakazka__kod", "^ekoklas__kod", "^ekoklas__nazov",  "^cinnost__kod", "cinnost__nazov" ]
 
     # zoraďovateľný odkaz na dodávateľa
