@@ -805,7 +805,7 @@ class Platba(models.Model):
             help_text = 'Zadajte dátum odovzdania podpísaného platobného príkazu a krycieho listu na sekretariát na odoslanie do učtárne. <br />Vytvorí sa záznam v <a href="/admin/dennik/dokument/">denníku prijatej a odoslanej pošty</a>.',
             blank=True, null=True)
     uhradene_dna = models.DateField('Uhradené dňa',
-            help_text = 'Zadajte dátum uhradenia učtárňou (podľa výpisu zo Softipu a tak podobne',
+            help_text = 'Zadajte dátum uhradenia príp. zaúčtovanie učtárňou (podľa výpisu zo Softipu a tak podobne)',
             blank=True, null=True)
     splatnost_datum = models.DateField('Dátum splatnosti',
             null=True)
@@ -1302,6 +1302,9 @@ class NajomneFaktura(Klasifikacia, GetAdminURL):
             decimal_places=2,
             default=0,
             null=True)
+    uhradene_dna = models.DateField('Uhradené dňa',
+            help_text = 'Zadajte dátum uhradenia príp. zaúčtovanie učtárňou (podľa výpisu zo Softipu a tak podobne)',
+            blank=True, null=True)
     zmluva = models.ForeignKey(NajomnaZmluva,
             null=True,
             verbose_name = "Nájomná zmluva",
@@ -1319,19 +1322,21 @@ class NajomneFaktura(Klasifikacia, GetAdminURL):
 
     #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
     def cerpanie_rozpoctu(self, zden):
-        if not self.splatnost_datum:
-            f1 = self._meta.get_field('splatnost_datum').verbose_name
-            return f"{self._meta.verbose_name} {self.get_admin_url()} musí mať vyplnené  pole <em>{f1}</em>." 
-        if self.splatnost_datum <zden: return []
+        datum = self.uhradene_dna if self.uhradene_dna else self.dane_na_uhradu if dane_na_uhradu else None
+        if not datum:
+            f1 = self._meta.get_field('uhradene_dna').verbose_name
+            f2 = self._meta.get_field('dane_na_uhradu').verbose_name
+            return f"{self._meta.verbose_name} {self.get_admin_url()} musí mať vyplnené pole <em>{f1}</em> alebo aspoň <em>{f2}</em>." 
+        if datum <zden: return []
         #if self.splatnost_datum >= date(zden.year, zden.month+1, zden.day): return []
         kdatum =  date(zden.year, zden.month+1, zden.day) if zden.month+1 <= 12 else  date(zden.year+1, 1, 1)
-        if self.splatnost_datum >= kdatum: return []
+        if datum >= kdatum: return []
         typ = "Prenájom nájomné" if self.typ == TypPN.NAJOMNE else "Prenájom služby" if self.typ == TypPN.SLUZBY else "Prenájom vyúčtovanie"
         platby =[]
         platba = {
                 "nazov":f"Faktúra {typ}",
                 "suma": self.suma,
-                "datum": self.dane_na_uhradu if self.dane_na_uhradu else self.splatnost_datum,
+                "datum": datum,
                 "subjekt": f"{self.zmluva.najomnik.nazov}, (za {zden.year}/{zden.month})", 
                 "cislo": self.cislo,
                 "zdroj": self.zdroj,
@@ -1343,7 +1348,7 @@ class NajomneFaktura(Klasifikacia, GetAdminURL):
             dph = {
                 "nazov":f"DPH príjem - {typ}",
                 "suma": self.dan,
-                "datum": self.dane_na_uhradu if self.dane_na_uhradu else self.splatnost_datum,
+                "datum": datum,
                 "subjekt": f"{self.zmluva.najomnik.nazov}, (za {zden.year}/{zden.month})", 
                 "cislo": self.cislo,
                 "zdroj": self.zdroj,
