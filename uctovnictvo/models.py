@@ -918,8 +918,13 @@ class PrijataFaktura(FakturaPravidelnaPlatba, GetAdminURL):
     prenosDP = models.CharField("Prenos DP", 
             max_length=3, 
             help_text = "Uveďte 'Áno', ak je faktúra v režime prenesenia daňovej povinnosti.",
-            default = AnoNie.NIE,
             choices=AnoNie.choices)
+    zrusena = models.CharField("Zrušená",
+            max_length=3,
+            help_text = "Uveďte 'Áno', ak bola faktúra zrušená bez úhrady.",
+            choices=AnoNie.choices,
+            blank = True,
+            null = True)
     history = HistoricalRecords()
 
     def clean(self):
@@ -931,6 +936,7 @@ class PrijataFaktura(FakturaPravidelnaPlatba, GetAdminURL):
 
     #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
     def cerpanie_rozpoctu(self, zden):
+        if self.zrusena: return []
         if not self.dane_na_uhradu and not self.uhradene_dna: 
             f1 = self._meta.get_field('dane_na_uhradu').verbose_name
             f2 = self._meta.get_field('uhradene_dna').verbose_name
