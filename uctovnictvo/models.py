@@ -149,6 +149,7 @@ class TypNepritomnosti(models.TextChoices):
     SLUZOBNA = "sluzobna", "Služobná cesta"     # normálna mzda
     PRACADOMA = "pracadoma", "Práca na doma"    # normálna mzda
     SKOLENIE = "skolenie", "Školenie"           # normálna mzda
+    ZRUSENA = "zrusena", "Zrušená"     # Záznam, ktorý bol spravený v Djangu, ale nedostal sa do Softipu
 
 #access label: AnoNie('ano').label
 class TypPokladna(models.TextChoices):
@@ -2041,6 +2042,7 @@ class Nepritomnost(models.Model):
             blank=True, 
             null=True)
     nepritomnost_typ = models.CharField("Typ neprítomnosti",
+            help_text = "Ak sa tento záznam nedostal do Softipu a je to chyba, zvoľte 'Zrušená' v poli poznámka uveďte dôvod.",
             max_length=20, 
             blank=True, 
             null=True, 
@@ -2064,6 +2066,9 @@ class Nepritomnost(models.Model):
 
     def clean(self): 
         errors={}
+        if self.nepritomnost_typ and self.nepritomnost_typ == TypNepritomnosti.ZRUSENA and not self.poznamka:
+            errors['poznamka'] ="Ak je v poli 'Typ neprítomnosti' uvedené 'Zrušená', v poli 'Poznámka' musí byť uvedená príčina. Príčinu uveďte aj v príslušnej bunke tabuľky v súbore importovanom z Biometricu."
+            raise ValidationError(errors)
         if self.zamestnanec and self.nepritomnost_typ != TypNepritomnosti.PN and not self.nepritomnost_do:
             errors['nepritomnost_do'] ="Neprítomnosť musí byť ukončená (okrem PN)."
             raise ValidationError(errors)
