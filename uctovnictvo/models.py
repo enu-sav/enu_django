@@ -1797,6 +1797,7 @@ class PlatovyVymer(Klasifikacia):
 
         pdni = int(self.uvazok/self.uvazok_denne)    #počet pracovných dní v týždni, napr. 18.85/6.25=3
         for nn in qs2:  #môže byť viac neprítomností za mesiac
+            if nn.nepritomnost_typ == TypNepritomnosti.ZRUSENA: continue
             try:
                 #v prípade neukončenej neprítomnosti predpokladať neprítomnosť do konca mesiaca
                 if not nn.nepritomnost_do:  #nie je zadaný
@@ -2007,7 +2008,7 @@ class Nepritomnost(models.Model):
             null = True,
             max_length=50)
     subor_nepritomnost = models.FileField("Import. súbor",
-            help_text = "XLSX súbor so zoznamom neprítomností z Biometric-u (<strong>Reporty a exporty</strong> > <strong>Evidencia dochádzky</strong> > <strong>Spustit report</strong> a uložiť ako Excel).<br />Po vložení treba akciou 'Generovať záznamy neprítomnosti' vytvoriť jednotlivé záznamy.",
+            help_text = "XLSX súbor so zoznamom neprítomností z Biometric-u (<strong>Reporty a exporty</strong> > <strong>Evidencia dochádzky</strong> > <strong>Spustit report</strong> a uložiť ako Excel).<br />Po vložení treba akciou 'Generovať záznamy neprítomnosti' vytvoriť jednotlivé záznamy.<br />Ak sa údaje v Biometric-u zmenia, súbor opakovane exportujte a vložte.",
             upload_to=nepritomnost_upload_location,
             blank=True, 
             null=True
