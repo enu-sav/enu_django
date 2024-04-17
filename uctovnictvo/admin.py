@@ -18,20 +18,21 @@ from .models import Najomnik, NajomnaZmluva, NajomneFaktura, TypPP, TypPN, Cinno
 from .models import InternyPartner, InternyPrevod, Nepritomnost, RozpoctovaPolozka, RozpoctovaPolozkaDotacia
 from .models import RozpoctovaPolozkaPresun, PlatbaBezPrikazu, Pokladna, TypPokladna, SadzbaDPH
 from .models import nasledujuce_cislo, nasledujuce_VPD, SocialnyFond, PrispevokNaRekreaciu, OdmenaOprava, OdmenaAleboOprava
-from .models import TypNepritomnosti, Stravne, VystavenaFaktura
+from .models import TypNepritomnosti, Stravne, VystavenaFaktura, NakupSUhradou, FormaUhrady
 
 from .common import VytvoritPlatobnyPrikaz, VytvoritSuborDohody
 from .common import VytvoritKryciList, VytvoritKryciListRekreacia, generovatIndividualneOdmeny, leapdays
 from .common import zmazatIndividualneOdmeny, generovatNepritomnost, exportovatNepritomnostUct, VytvoritKryciListOdmena, generovatStravne
 from .common import VytvoritPlatobnyPrikazIP, VytvoritSuborPD, UlozitStranuPK, TarifnyPlatTabulky
 
-from .objednavka_actions import VytvoritSuborObjednavky, VytvoritSuborZiadanky
+from uctovnictvo import objednavka_actions, nakup_actions
+#from .objednavka_actions import VytvoritSuborObjednavky, VytvoritSuborZiadanky
 
 from .forms import PrijataFakturaForm, AutorskeZmluvyForm, ObjednavkaForm, ZmluvaForm, PrispevokNaStravneForm, PravidelnaPlatbaForm
 from .forms import PlatovyVymerForm, NajomneFakturaForm, NajomnaZmluvaForm, PlatbaBezPrikazuForm
 from .forms import DoPCForm, DoVPForm, DoBPSForm, VyplacanieDohodForm
 from .forms import InternyPrevodForm, NepritomnostForm, RozpoctovaPolozkaDotaciaForm, RozpoctovaPolozkaPresunForm, RozpoctovaPolozkaForm
-from .forms import PokladnaForm, SocialnyFondForm, PrispevokNaRekreaciuForm, OdmenaOpravaForm, VystavenaFakturaForm
+from .forms import PokladnaForm, SocialnyFondForm, PrispevokNaRekreaciuForm, OdmenaOpravaForm, VystavenaFakturaForm, NakupSUhradouForm 
 from .rokydni import datum_postupu, vypocet_prax, vypocet_zamestnanie, postup_roky, roky_postupu
 from beliana.settings import DPH, MEDIA_ROOT, MEDIA_URL, UVAZOK_TYZDENNE
 from dennik.models import Dokument, TypDokumentu, InOut
@@ -72,6 +73,10 @@ def formfield_for_foreignkey(instance, db_field, request, **kwargs):
     if db_field.name == "zmluvna_strana" and instance.model in [DoBPS]:
         kwargs["queryset"] = Dohodar.objects.filter().order_by(Collate('priezvisko', 'nocase'))
     if db_field.name == "zmluvna_strana" and instance.model in [DoVP, DoPC]:
+        kwargs["queryset"] = ZamestnanecDohodar.objects.filter().order_by(Collate('priezvisko', 'nocase'))
+    if db_field.name == "vybavuje" and instance.model in [NakupSUhradou]:
+        kwargs["queryset"] = ZamestnanecDohodar.objects.filter().order_by(Collate('priezvisko', 'nocase'))
+    if db_field.name == "ziadatel" and instance.model in [NakupSUhradou]:
         kwargs["queryset"] = ZamestnanecDohodar.objects.filter().order_by(Collate('priezvisko', 'nocase'))
 
     if db_field.name == "dodatok_k" and instance.model in [DoPC]:
@@ -207,7 +212,7 @@ class ObjednavkaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, 
             self.message_user(request, f"Vybrať možno len jednu objednavku", messages.ERROR)
             return
         objednavka = queryset[0]
-        status, msg, vytvoreny_subor = VytvoritSuborObjednavky(objednavka)
+        status, msg, vytvoreny_subor = objednavka_actions.VytvoritSuborObjednavky(objednavka)
         self.message_user(request, msg, status)
         if status != messages.ERROR:
             objednavka.subor_objednavky = vytvoreny_subor
@@ -225,7 +230,7 @@ class ObjednavkaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, 
             #return
         #objednavka = queryset[0]
         for objednavka in queryset:
-            status, msg, vytvoreny_subor = VytvoritSuborZiadanky(objednavka)
+            status, msg, vytvoreny_subor = objednavka_actions.VytvoritSuborZiadanky(objednavka)
             self.message_user(request, msg, status)
             if status != messages.ERROR:
                 objednavka.subor_ziadanky = vytvoreny_subor
@@ -235,6 +240,135 @@ class ObjednavkaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, 
     vytvorit_subor_ziadanky.short_description = "Vytvoriť súbor žiadanky"
     #Oprávnenie na použitie akcie, viazané na 'change'
     vytvorit_subor_ziadanky.allowed_permissions = ('change',)
+
+@admin.register(NakupSUhradou)
+class NakupSUhradouAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
+    form = NakupSUhradouForm
+    list_display = ("cislo", "vybavuje", "ziadatel", "predmet", "cena", "zamietnute", "forma_uhrady", "subor_ziadanky", "datum_ziadanky", "subor_ucty", "subor_preplatenie", "datum_preplatenie", "datum_uhradenia")
+    #actions = [ 'vytvorit_subor_ziadanky', 'vytvorit_subor_objednavky' ]
+    actions = [ 'vytvorit_subor_ziadanky', "vytvorit_subor_preplatenie"]
+
+    def get_readonly_fields(self, request, obj=None):
+        fields = [f.name for f in NakupSUhradou._meta.get_fields()]
+        if not obj or not obj.subor_ziadanky:
+            fields.remove("cislo")
+            fields.remove("vybavuje")
+            fields.remove("ziadatel")
+            fields.remove("predmet")
+            fields.remove("zdroj")
+            fields.remove("zakazka")
+            fields.remove("forma_uhrady")
+            fields.remove("poznamka")
+            fields.remove("objednane_polozky")
+            return fields
+        if obj.zamietnute and obj.zamietnute == AnoNie.ANO:
+            if not obj.datum_ziadanky:
+                fields.remove("zamietnute")
+                fields.remove("datum_ziadanky")
+            else:
+                #hotovo, nič sa nedá upravovať
+                pass
+            return fields
+        if not obj.datum_ziadanky: 
+            fields.remove("cislo")
+            fields.remove("vybavuje")
+            fields.remove("ziadatel")
+            fields.remove("predmet")
+            fields.remove("zdroj")
+            fields.remove("zakazka")
+            fields.remove("forma_uhrady")
+            fields.remove("poznamka")
+            fields.remove("zamietnute")
+            fields.remove("objednane_polozky")
+            fields.remove("datum_ziadanky")
+            return fields
+        if obj.datum_ziadanky and not obj.subor_ucty: 
+            fields.remove("subor_ucty") 
+            return fields
+        if obj.subor_ucty and not obj.subor_preplatenie:
+            fields.remove("objednane_polozky")
+            fields.remove("forma_uhrady")
+            return fields
+        if obj.subor_preplatenie and not obj.datum_preplatenie:
+            fields.remove("objednane_polozky")
+            fields.remove("datum_preplatenie")
+            return fields
+        if obj.datum_preplatenie:
+            # možnou upravovať položky (kvôli EKRK) a dátum zo SOFTIPU
+            fields.remove("objednane_polozky")
+            fields.remove("datum_uhradenia")
+            return fields
+        return []
+
+
+    # Zoradiť položky v pulldown menu
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        return formfield_for_foreignkey(self, db_field, request, **kwargs)
+
+    # do AdminForm pridať request, aby v jej __init__ bolo request dostupné
+    def get_form(self, request, obj=None, **kwargs):
+        AdminForm = super(NakupSUhradouAdmin, self).get_form(request, obj, **kwargs)
+        class AdminFormMod(AdminForm):
+            def __new__(cls, *args, **kwargs):
+                kwargs['request'] = request
+                return AdminForm(*args, **kwargs)
+        return AdminFormMod
+
+    def vytvorit_subor_ziadanky(self, request, queryset):
+        #Na úvod chceme vytvoriť žiadanky pre veľa nákupov
+        #if len(queryset) != 1:
+            #self.message_user(request, f"Vybrať možno len jeden nákup", messages.ERROR)
+            #return
+        #nakup = queryset[0]
+        for nakup in queryset:
+            if nakup.datum_ziadanky:
+                self.message_user(request, f"Žiadanka {nakup.cislo} už bola odovzdaná na podpis. Opakované vytváranie jej súboru nie je možné.", messages.ERROR)
+                return
+            status, msg, vytvoreny_subor = nakup_actions.VytvoritSuborZiadanky(nakup)
+            self.message_user(request, msg, status)
+            if status != messages.ERROR:
+                nakup.subor_ziadanky = vytvoreny_subor
+                nakup.save()
+                self.message_user(request, f"Vytvorenú žiadanku dajte na podpis žiadateľovi a vedeniu. Nákup možno realizovať až po odsúhlasení a podpise. "
+                    f"V prípade zamietnutia zadajte v poli '{NakupSUhradou._meta.get_field('zamietnute').verbose_name}' hodnotu 'Áno'.", messages.WARNING)
+                self.message_user(request, f"Podpísanú žiadanku založte do šanonu a založenie potvrďte vyplnením poľa '{NakupSUhradou._meta.get_field('datum_ziadanky').verbose_name}'", messages.WARNING)
+    vytvorit_subor_ziadanky.short_description = "Vytvoriť súbor žiadanky"
+    #Oprávnenie na použitie akcie, viazané na 'change'
+    vytvorit_subor_ziadanky.allowed_permissions = ('change',)
+
+    def vytvorit_subor_preplatenie(self, request, queryset):
+        #Na úvod chceme vytvoriť žiadosti pre veľa nákupov
+        #if len(queryset) != 1:
+            #self.message_user(request, f"Vybrať možno len jeden nákup", messages.ERROR)
+            #return
+        #nakup = queryset[0]
+        for nakup in queryset:
+            if not nakup.datum_ziadanky:
+                self.message_user(request, f"Súbor nebol vytvorený, lebo pole '{NakupSUhradou._meta.get_field('datum_ziadanky').verbose_name}' nie je vyplnené.", messages.ERROR)
+                return
+            if not nakup.subor_ucty:
+                self.message_user(request, f"Súbor nebol vytvorený, lebo pole '{NakupSUhradou._meta.get_field('subor_ucty').verbose_name}' nie je vyplnené.", messages.ERROR)
+                return
+            if nakup.datum_uhradenia:
+                self.message_user(request, f"Žiadosť o preplatenie {nakup.cislo} už bola spracovaná. Opakované vytváranie jej súboru nie je možné.", messages.ERROR)
+                return
+            status, msg, vytvoreny_subor = nakup_actions.VytvoritSuborPreplatenie(nakup)
+            self.message_user(request, msg, status)
+            if status != messages.ERROR:
+                nakup.subor_preplatenie = vytvoreny_subor
+                nakup.save()
+                t_datum_preplatenie = NakupSUhradou._meta.get_field('datum_preplatenie').verbose_name
+                if nakup.forma_uhrady == FormaUhrady.UCET:
+                    self.message_user(request, f"Vytvorenú žiadosť o preplatenie dajte na podpis a potom ju odošlite do učtárne. Následne vyplňte pole '{t_datum_preplatenie}'.", messages.WARNING)
+                else:
+                    pass
+                t_objednane_polozky = NakupSUhradou._meta.get_field('objednane_polozky').verbose_name
+                t_datum_uhradenia = NakupSUhradou._meta.get_field('datum_uhradenia').verbose_name
+                self.message_user(request, f"Po spracovaní učtárňou na základe údajov z učtárne vyplňte pole '{t_datum_uhradenia}' a v poli '{t_objednane_polozky}' doplňte EKRK položiek.", messages.WARNING)
+    vytvorit_subor_preplatenie.short_description = "Vytvoriť súbor žiadosti o preplatenie"
+    #Oprávnenie na použitie akcie, viazané na 'change'
+    vytvorit_subor_preplatenie.allowed_permissions = ('change',)
+
 
 @admin.register(Rozhodnutie)
 class RozhodnutieAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):

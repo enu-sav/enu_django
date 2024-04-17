@@ -5,11 +5,11 @@ from django.core.exceptions import ValidationError
 from ipdb import set_trace as trace
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
-from .models import nasledujuce_cislo, nasledujuce_VPD, nasledujuce_PPD, nasledujuce_Zmluva
+from .models import nasledujuce_cislo, nasledujuce_VPD, nasledujuce_PPD, nasledujuce_Zmluva, NakupSUhradou
 from .models import PrijataFaktura, Objednavka, PrispevokNaStravne, DoPC, DoVP, DoBPS, PlatovyVymer, VystavenaFaktura
 from .models import VyplacanieDohod, StavDohody, Dohoda, PravidelnaPlatba, TypPP, InternyPrevod, Nepritomnost, TypNepritomnosti
 from .models import Najomnik, NajomnaZmluva, NajomneFaktura, TypPN, RozpoctovaPolozkaDotacia, RozpoctovaPolozkaPresun, RozpoctovaPolozka, Zmluva
-from .models import PlatbaBezPrikazu, Pokladna, TypPokladna, SocialnyFond, PrispevokNaRekreaciu, OdmenaOprava
+from .models import PlatbaBezPrikazu, Pokladna, TypPokladna, SocialnyFond, PrispevokNaRekreaciu, OdmenaOprava, AnoNie
 from .common import meno_priezvisko
 from dennik.models import Dokument, SposobDorucenia, TypDokumentu, InOut
 from datetime import date, datetime
@@ -48,6 +48,29 @@ class DennikZaznam(forms.ModelForm):
                 vec
                 )
        )
+
+class NakupSUhradouForm(DennikZaznam):
+    #inicializácia polí
+    def __init__(self, *args, **kwargs):
+        # do Admin treba pridať metódu get_form
+        self.request = kwargs.pop('request', None)
+        super().__init__(*args, **kwargs)
+        polecislo = "cislo"
+        # Ak je pole readonly, tak sa nenachádza vo fields. Preto testujeme fields aj initial
+        if polecislo in self.fields and not polecislo in self.initial:
+            nasledujuce = nasledujuce_cislo(NakupSUhradou)
+            self.fields[polecislo].help_text = f"Zadajte číslo novej žiadanky v tvare {NakupSUhradou.oznacenie}-RRRR-NNN. Predvolené číslo '{nasledujuce}' bolo určené na základe čísel existujúcich objednávok ako nasledujúce v poradí."
+            self.initial[polecislo] = nasledujuce
+
+    def clean(self):
+        if 'predmet' in self.changed_data:
+            messages.warning(self.request, f"Súbor žiadanky vytvorte akciou 'Vytvoriť súbor žiadanky'")
+        if 'zamietnute' in self.changed_data and self.cleaned_data['zamietnute'] == AnoNie.ANO:
+            messages.warning(self.request, f"Zamietnutú žiadanku založte do šanonu vyplňte pole '{NakupSUhradou._meta.get_field('datum_ziadanky').verbose_name}'.")
+        if 'datum_ziadanky' in self.changed_data:
+            messages.warning(self.request, f"Po realizácii nákupu zoskenujte účet a vložte do poľa '{NakupSUhradou._meta.get_field('subor_ucty').verbose_name}'")
+        if 'subor_ucty' in self.changed_data:
+            messages.warning(self.request, f"Podľa účtu aktualizujte hodnoty v poli '{NakupSUhradou._meta.get_field('objednane_polozky').verbose_name}' a akciou  'Vytvoriť súbor žiadosti o preplatenie' vygenerujte súbor žiadosti.")
 
 class ObjednavkaForm(DennikZaznam):
     #inicializácia polí

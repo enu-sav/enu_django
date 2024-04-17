@@ -38,6 +38,11 @@ class OdmenaAleboOprava(models.TextChoices):
     DOVOLENKA = 'dovolenka', 'Náhrada mzdy - dovolenka'
 
 #access label: AnoNie('ano').label
+class FormaUhrady(models.TextChoices):
+    HOTOVOST = 'hotovost', 'V hotovosti'
+    UCET = 'ucet', 'Na účet'
+
+#access label: AnoNie('ano').label
 class PlatovaStupnica(models.TextChoices):
     ZAKLADNA = 'zakladna', 'Základná'
     OSOBITNA = 'osobitna', 'Osobitná'
@@ -124,6 +129,11 @@ def nasledujuce_PPD():
         qs = Pokladna.objects.filter(cislo__istartswith=ozn_rok ,typ_transakcie=TypPokladna.PPD)
         itemlist=qs.exclude(cislo_VPD__isnull=True).order_by("cislo_VPD")
         return itemlist.last().cislo_VPD+1 if itemlist else 1
+
+def rozdelit_polozky(string):
+    if ";" in string: return string.split(";")
+    if "/" in string: return string.split("/")
+    return [string]
 
 #ak sa doplni stav pred 'PODPISANA_ENU', treba doplniť test vo funkcii vytvorit_subory_zmluvy
 class StavDohody(models.TextChoices):
@@ -587,8 +597,8 @@ class Objednavka(ObjednavkaZmluva):
     objednane_polozky = models.TextField("Objednané položky", 
             help_text = mark_safe("<p>Po riadkoch zadajte objednávané položky:</p>\
                 <ol>\
-                <li>možnosť: s 5 poľami oddelenými bodkočiarkou v poradí: <b>názov položky</b>; <b>merná jednotka</b> - ks, kg, l, m, m2, m3; <b>množstvo</b>; <b>cena za jednotku bez DPH; CPV kód</b>, napr. <strong>Euroobal A4; bal; 10; 7,50; 30193300-1</strong>. <br />Cena za jednotlivé položky a celková suma sa dopočíta. Pri výpočte sa berie do úvahy, či dodávateľ účtuje alebo neúčtuje cenu s DPH. </li>\
-                <li>možnosť: ako jednoduchý text s jednou bodkočiarkou, za ktorou nasleduje CPV kód, napr. <strong>Objednávame tovar podľa priloženej ponuky / priloženého zoznamu; 45321000-3</strong>.<br />Súbor takejto ponuky alebo zoznamu vložte do poľa <em>Súbor prílohy</em> a <strong>predpokladanú cenu bez DPH</strong> vložte do poľa <em>Predpokladaná cena</em>.</li>\
+                <li>možnosť: s 5 poľami oddelenými bodkočiarkou alebo lomkou / v poradí: <b>názov položky</b> / <b>merná jednotka</b> - ks, kg, l, m, m2, m3 / <b>množstvo</b> / <b>cena za jednotku bez DPH / CPV kód</b>, napr. <strong>Euroobal A4 / bal / 10 / 7,50 / 30193300-1</strong>. <br />Cena za jednotlivé položky a celková suma sa dopočíta. Pri výpočte sa berie do úvahy, či dodávateľ účtuje alebo neúčtuje cenu s DPH. </li>\
+                <li>možnosť: ako jednoduchý text s jednou bodkočiarkou alebo lomkou, za ktorou nasleduje CPV kód, napr. <strong>Objednávame tovar podľa  priloženého zoznamu; 45321000-3</strong>.<br />Súbor takejto ponuky alebo zoznamu vložte do poľa <em>Súbor prílohy</em> a <strong>predpokladanú cenu bez DPH</strong> vložte do poľa <em>Predpokladaná cena</em>.</li>\
                 </ol>"),
 
             max_length=5000, null=True, blank=True)
@@ -672,7 +682,7 @@ class Objednavka(ObjednavkaZmluva):
                 pp = polozka.split(";")
                 if not (is_number(pp[2].replace(",",".")) and is_number(pp[3].replace(",","."))):
                     raise ValidationError({
-                        "predpokladana_cena":f"Tretia ({pp[2]}) a štvrtá ({pp[3]}) položka na riadku {rr+1} musia byť číslo"
+                        "objednane_polozky":f"Tretia ({pp[2]}) a štvrtá ({pp[3]}) položka na riadku {rr+1} musia byť číslo"
                         })
                 celkova_suma += float(pp[2].replace(",",".")) * float(pp[3].replace(",","."))
             self.predpokladana_cena = Decimal(celkova_suma)
@@ -2673,7 +2683,6 @@ class VyplacanieDohod(models.Model):
         verbose_name = 'Vyplatenie dohody'
         verbose_name_plural = 'PaM - Vyplácanie dohôd'
 
-
 def pokladna_upload_location(instance, filename):
     return os.path.join(POKLADNA_DIR, filename)
 class Pokladna(models.Model):
@@ -2699,7 +2708,7 @@ class Pokladna(models.Model):
             blank = True,
             null = True
         )
-    zamestnanec = models.ForeignKey(Zamestnanec,
+    zamestnanec = models.ForeignKey(ZamestnanecDohodar,
             help_text = "Uveďte zamestnanca, ktorého výdavok bol uhradený. V prípade dotácie nechajte prázdne.", 
             on_delete=models.PROTECT,
             related_name='%(class)s_pokladna',
@@ -2844,3 +2853,132 @@ class SocialnyFond(models.Model):
         verbose_name_plural = 'Sociálny fond'
     def __str__(self):
         return f'{self.cislo}'
+
+def nakup_upload_location(instance, filename):
+    return os.path.join(POKLADNA_DIR, filename)
+class NakupSUhradou(models.Model):
+    oznacenie = "N"
+    cislo = models.CharField("Číslo", 
+            #help_text: definovaný vo forms
+            max_length=50)
+    vybavuje = models.ForeignKey(ZamestnanecDohodar,
+            help_text = "Osoba, ktorá veci kúpi a komu bude nákup vyúčtovaný",
+            on_delete=models.PROTECT, 
+            verbose_name = "Vybavuje",
+            related_name='%(class)s_nakup')
+    ziadatel = models.ForeignKey(ZamestnanecDohodar,
+            on_delete=models.PROTECT, 
+            verbose_name = "Žiadateľ",
+            help_text = "Zadajte žiadateľa (pokiaľ sa líši od 'Vybavuje').",
+            null = True,
+            blank = True,
+            related_name='%(class)s_requests_created')  #zabezpečí rozlíšenie modelov Objednavka a PrijataFaktura 
+    predmet = models.CharField("Predmet", 
+            help_text = "Zadajte stručný popis, napr. 'poštové známky'",
+            max_length=100)
+    zdroj = models.ForeignKey(Zdroj,
+            on_delete=models.PROTECT,
+            related_name='%(class)s_nakup')
+    zakazka = models.ForeignKey(TypZakazky,
+            on_delete=models.PROTECT,
+            verbose_name = "Typ zákazky",
+            related_name='%(class)s_nakup')
+    forma_uhrady = models.CharField("Forma úhrady", 
+            max_length=10, 
+            choices=FormaUhrady.choices)
+    poznamka = models.CharField("Poznámka", 
+            max_length=200, 
+            null=True,
+            blank=True)
+    objednane_polozky = models.TextField("Objednané položky", 
+            help_text = mark_safe("<p>Po riadkoch zadajte žiadané položky:</p>\
+                <ol>\
+                <li>pri vytváraní žiadanky: s tromi poľami oddelenými bodkočiarkou alebo <b>lomkou /</b> v poradí: <b>názov položky a množstvo / odhadovaná cena s DPH / CPV kód</b>, napr. <b>Euroobal A4 50 ks / 7,50 / 30193300-1</b>. </li>\
+                <li>pri vytváraní žiadosti o preplatenie: aktualizujte zadané polia podľa účtového dokladu. </li>\
+                <li>po spracovaní účtárňou: do každého riadka na posledné miesto doplňte ekonomickú klasifikáciu (EKRK) tovaru podľa dokladov účtárne.\
+                </ol>"),
+            max_length=5000, null=True, blank=True)
+    cena = models.DecimalField("Cena", 
+            help_text = "Cena s DPH. Vypočíta sa z údajov v poli 'Objednane položky'",
+            max_digits=8, 
+            decimal_places=2, 
+            null=True, blank=True)
+    zamietnute = models.CharField("Zamietnuté",
+            max_length=3, 
+            help_text = "Uveďte 'Áno', ak bola žiadanka zamietnutá",
+            choices=AnoNie.choices,
+            null=True, blank=True)
+    subor_ziadanky = models.FileField("Súbor žiadanky",
+            help_text = "Súbor so žiadankou a krycím listom. Generuje sa akciou 'Vytvoriť žiadanku'",
+            upload_to=nakup_upload_location,
+            null = True, blank = True)
+    datum_ziadanky = models.DateField('Žiadanka do šanonu',
+            help_text = "Zadajte dátum založenia podpísanej žiadanky do šanonu",
+            blank=True, null=True)
+    subor_preplatenie = models.FileField("Súbor žiadosti",
+            help_text = "Súbor so žiadosťou o preplatenie a krycím listom. Generuje sa akciou 'Vytvoriť žiadosť o preplatenie'",
+            upload_to=nakup_upload_location,
+            null = True, blank = True)
+    subor_ucty = models.FileField("Doklad o úhrade",
+            help_text = "Súbor so zoskenovaným dokladom o úhrade",
+            upload_to=nakup_upload_location,
+            null = True, blank = True)
+    datum_preplatenie = models.DateField('Dátum vybavenia',
+            help_text = mark_safe(
+                "<ol>"
+                "<li>Zadajte dátum odoslania žiadosti o preplatenie do účtárne</li>"
+                "<li>Ak ide o vyplatenie cez pokladňu, zadajte dnešný dátum. Vytvorí sa záznam v Pokladni</li>"
+                "</ol>"
+            ),
+            blank=True, null=True)
+    datum_uhradenia = models.DateField('Dátum uhradenia',
+            help_text = "Dátum uhradenia podľa údajov z učtárne (v oboch prípadoch - preplatenie na účet aj cez pokladňu). Pred zadaním treba na základe údajov z učtárne doplniť EKRK v poli 'Objednané položky'.",
+            blank=True, null=True)
+
+    def clean(self):
+        def is_number(string):
+	        try:
+		        float(string)
+		        return True
+	        except ValueError:
+		        return False
+        # test počtu riadkov v objednane_polozky
+        pocet_riadkov = 8 #definované v common.VytvoritSuborObjednavky.pocet_riadkov
+        pocet_poloziek = len(self.objednane_polozky.split("\r\n"))
+        if pocet_poloziek > pocet_riadkov:
+            raise ValidationError({
+                "objednane_polozky":f"Zadaných bolo {pocet_poloziek} položiek. Maximálny povolený počet je {pocet_riadkov}."
+                }
+            )
+        objednane = self.objednane_polozky.split("\n")
+        pocet_poli = len(rozdelit_polozky(objednane[0]))
+        if not pocet_poli in (3,4):
+            pole = "pole" if pocet_poli==1 else "polia" if pocet_poli < 5 else "polí"
+            raise ValidationError({
+                "objednane_polozky":f"Prvá položka má {pocet_poli} {pole}, povolený počet je 3 alebo 4 (skontrolujte oddeľovače)"
+                }
+            )
+        for rr, polozka in enumerate(objednane):
+            pp = len(rozdelit_polozky(polozka))
+            if pp != pocet_poli:
+                raise ValidationError({
+                    "objednane_polozky":f"Položka na riadku {rr+1} má {pp} polí, povolený počet je {pocet_poli}  (skontrolujte oddeľovače)"
+                    }
+                )
+        celkova_suma = 0
+        for rr, polozka in enumerate(objednane):
+            pp = rozdelit_polozky(polozka)
+            if not is_number(pp[1].replace(",",".")):
+                raise ValidationError({
+                    "objednane_polozky":f"Druhá položka ({pp[1]}) na riadku {rr+1} musí byť číslo"
+                    })
+            celkova_suma += float(pp[1].replace(",","."))
+        self.cena = Decimal(celkova_suma)
+    
+    history = HistoricalRecords()
+    class Meta:
+        verbose_name = 'Drobný nákup - žiadanka'
+        verbose_name_plural = 'Drobný nákup / žiadanky'
+        #abstract = True
+    def __str__(self):
+        return f"{self.cislo}"
