@@ -246,7 +246,8 @@ class NakupSUhradouAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmi
     form = NakupSUhradouForm
     list_display = ("cislo", "vybavuje", "ziadatel", "popis", "cena", "zamietnute", "forma_uhrady", "subor_ziadanky", "datum_ziadanky", "subor_ucty", "subor_preplatenie", "datum_vybavenia", "pokladna_vpd", "datum_uhradenia")
     #actions = [ 'vytvorit_subor_ziadanky', 'vytvorit_subor_objednavky' ]
-    actions = [ 'vytvorit_subor_ziadanky', "vytvorit_subor_preplatenie"]
+    actions = [ 'vytvorit_subor_ziadanky', "vytvorit_subor_preplatenie", "prenos"]
+    search_fields = ["^cislo", "^pokladna_vpd", "popis", "forma_uhrady"]
 
     def get_readonly_fields(self, request, obj=None):
         fields = [f.name for f in NakupSUhradou._meta.get_fields()]
@@ -370,6 +371,64 @@ class NakupSUhradouAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmi
     #Oprávnenie na použitie akcie, viazané na 'change'
     vytvorit_subor_preplatenie.allowed_permissions = ('change',)
 
+    def prenos(self, request, queryset):
+        def prenos_pok(year,item):
+            nakup = NakupSUhradou(
+                cislo = nasledujuce_cislo(NakupSUhradou, rok=year),
+                pokladna_vpd = item.cislo,
+                cena = item.suma,
+                vybavuje = item.zamestnanec,
+                popis = item.popis,
+                zdroj = item.zdroj,
+                zakazka = item.zakazka,
+                objednane_polozky = f"{item.popis} / {item.suma} / -",
+                forma_uhrady = FormaUhrady.HOTOVOST,
+                datum_vybavenia = item.datum_transakcie,
+                subor_ucty = item.subor_doklad if item.subor_doklad else None,
+                poznamka = f"Údaje prenesené z {item.cislo}"
+                )
+            nakup.save()
+            pass
+        def prenos_bez(year,item):
+            popis = "Neurčené"
+            if "-" in item.predmet:
+                popis = item.predmet.split("-")[1]
+            elif item.poznamka:
+                popis = item.poznamka   #
+            ma_ucet = ["PbP-2024-011", "PbP-2024-010", "PbP-2024-009", "PbP-2024-008", "PbP-2024-007", "PbP-2024-006", "PbP-2024-005"]
+
+            nakup = NakupSUhradou(
+                cislo = nasledujuce_cislo(NakupSUhradou, rok=year),
+                cena = item.suma,
+                vybavuje = ZamestnanecDohodar.objects.get(priezvisko="Beniaková"),
+                popis = popis,
+                zdroj = item.zdroj,
+                zakazka = item.zakazka,
+                objednane_polozky = f"{popis} / {item.suma} / -",
+                forma_uhrady = FormaUhrady.UCET,
+                datum_vybavenia = item.datum_platby,
+                subor_ziadanky = item.subor if item.subor else None,
+                subor_ucty = item.subor if item.cislo in ma_ucet else None,
+                poznamka = f"Údaje prenesené z PlatbaBezPrikazu"
+                )
+            nakup.save()
+            pass
+        pqs = Pokladna.objects.filter(typ_transakcie=TypPokladna.VPD)
+        bqs = PlatbaBezPrikazu.objects.filter(predmet__startswith="Žiadanka")
+        items = []
+        for item in pqs:
+            items.append([item.datum_transakcie, item])
+            #break
+        for item in bqs:
+            items.append([item.datum_platby, item])
+            #break
+        items = sorted(items, key=lambda x: x[0])
+        for item in items:
+            if type(item[1]) == Pokladna: 
+                prenos_pok(item[0].year, item[1])
+            else:
+                prenos_bez(item[0].year, item[1])
+    prenos.short_description = "prenos"
 
 @admin.register(Rozhodnutie)
 class RozhodnutieAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
@@ -391,7 +450,7 @@ class RozhodnutieAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin,
 
 
 @admin.register(PlatbaBezPrikazu)
-class PlatbaBezPrikazuAdmin(ZobrazitZmeny, SimpleHistoryAdmin):
+class PlatbaBezPrikazuAdmin(ZobrazitZmeny, SimpleHistoryAdmin, ImportExportModelAdmin):
     form = PlatbaBezPrikazuForm
     list_display = ["cislo", "suma", "predmet", "datum_platby", "subor", "zdroj", "zakazka", "ekoklas"]
     search_fields = ["cislo", "predmet", "zdroj__kod", "zakazka__kod", "ekoklas__kod"]
