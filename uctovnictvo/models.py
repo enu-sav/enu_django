@@ -2720,14 +2720,14 @@ class NakupSUhradou(models.Model):
             null=True,
             blank=True)
     objednane_polozky = models.TextField("Objednané položky",
-            help_text = mark_safe("<p>Po riadkoch zadajte žiadané položky:</p>\
+            help_text = mark_safe("<p>Žiadané položky zadajte po riadkoch (max. 8 riadkov):</p>\
                 <ol>\
-                <li>pri vytváraní žiadanky: s tromi poľami oddelenými bodkočiarkou alebo <b>lomkou /</b> v poradí: <b>názov položky a množstvo / odhadovaná cena s DPH / CPV kód</b>, napr. <b>Euroobal A4 50 ks / 7,50 / 30193300-1</b>. </li>\
-                <li>pri vytváraní žiadosti o preplatenie: aktualizujte zadané polia podľa účtového dokladu. </li>\
-                <li>po spracovaní v Softipe: do každého riadka na posledné miesto doplňte ekonomickú klasifikáciu (EKRK) tovaru podľa údajov zo Softipu.\
+                <li>pri vytváraní žiadanky zadajte 4 polia oddelené bodkočiarkou alebo <b>lomkou /</b> v poradí: <b>názov položky a množstvo / odhadovaná cena s DPH / CPV kód</b> / EKRK, napr. <b>Euroobal A4 50 ks / 7,50 / 30193300-1 / 632003</b>. CPV kód možno nahradiť pomlčkou '-'. </li>\
+                <li>pri vytváraní žiadosti o preplatenie aktualizujte zadané polia podľa dokladu o úhrade. </li>\
+                <li>po spracovaní v Softipe aktualizujte ekonomickú klasifikáciu (EKRK) tovaru podľa údajov zo Softipu.\
                 </ol>"),
             max_length=5000, null=True, blank=True)
-    cena = models.DecimalField("Cena",
+    cena = models.DecimalField("Suma",
             help_text = "Cena s DPH. Vypočíta sa z údajov v poli 'Objednane položky'",
             max_digits=8,
             decimal_places=2,
@@ -2765,7 +2765,7 @@ class NakupSUhradou(models.Model):
             max_length=50,
             blank=True, null=True)
     datum_uhradenia = models.DateField('Dátum uhradenia',
-            help_text = "Dátum uhradenia podľa Softipu (aj pri preplatení na účet a aj cez pokladňu). Pred zadaním treba na základe údajov z učtárne doplniť EKRK v poli 'Objednané položky'.",
+            help_text = "Dátum uhradenia podľa Softipu (aj pri preplatení na účet a aj cez pokladňu). Pred zadaním treba na základe údajov z učtárne upraviť EKRK v poli 'Objednané položky'.",
             blank=True, null=True)
 
     def clean(self):
