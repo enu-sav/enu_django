@@ -295,5 +295,7 @@ SITE_HOST = "samba"
 #Vedenie 
 HEAD_NAME=os.environ['HEAD_NAME']
 HEAD_ROLE=os.environ['HEAD_ROLE']
+#kontaktná osoba v učtárni
+UCTAREN_NAME=os.environ['UCTAREN_NAME']
 
 mimetypes.add_type("application/vnd.oasis.opendocument.text", ".fodt", True)

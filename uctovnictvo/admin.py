@@ -244,17 +244,19 @@ class ObjednavkaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, 
 @admin.register(NakupSUhradou)
 class NakupSUhradouAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
     form = NakupSUhradouForm
-    list_display = ("cislo", "vybavuje", "ziadatel", "predmet", "cena", "zamietnute", "forma_uhrady", "subor_ziadanky", "datum_ziadanky", "subor_ucty", "subor_preplatenie", "datum_preplatenie", "datum_uhradenia")
+    list_display = ("cislo", "vybavuje", "ziadatel", "popis", "cena", "zamietnute", "forma_uhrady", "subor_ziadanky", "datum_ziadanky", "subor_ucty", "subor_preplatenie", "datum_vybavenia", "pokladna_vpd", "datum_uhradenia")
     #actions = [ 'vytvorit_subor_ziadanky', 'vytvorit_subor_objednavky' ]
     actions = [ 'vytvorit_subor_ziadanky', "vytvorit_subor_preplatenie"]
 
     def get_readonly_fields(self, request, obj=None):
         fields = [f.name for f in NakupSUhradou._meta.get_fields()]
+        #pole  "pokladna_pokladna" pridané v Pokladna.ziadanka. Nesmie byť odstránené, inak nastane chyba "missing 1 required keyword-only argument: 'manager'"
+        if "pokladna_pokladna" in fields: fields.remove("pokladna_pokladna")
         if not obj or not obj.subor_ziadanky:
             fields.remove("cislo")
             fields.remove("vybavuje")
             fields.remove("ziadatel")
-            fields.remove("predmet")
+            fields.remove("popis")
             fields.remove("zdroj")
             fields.remove("zakazka")
             fields.remove("forma_uhrady")
@@ -273,7 +275,7 @@ class NakupSUhradouAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmi
             fields.remove("cislo")
             fields.remove("vybavuje")
             fields.remove("ziadatel")
-            fields.remove("predmet")
+            fields.remove("popis")
             fields.remove("zdroj")
             fields.remove("zakazka")
             fields.remove("forma_uhrady")
@@ -289,11 +291,11 @@ class NakupSUhradouAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmi
             fields.remove("objednane_polozky")
             fields.remove("forma_uhrady")
             return fields
-        if obj.subor_preplatenie and not obj.datum_preplatenie:
+        if obj.subor_preplatenie and not obj.datum_vybavenia:
             fields.remove("objednane_polozky")
-            fields.remove("datum_preplatenie")
+            fields.remove("datum_vybavenia")
             return fields
-        if obj.datum_preplatenie:
+        if obj.datum_vybavenia:
             # možnou upravovať položky (kvôli EKRK) a dátum zo SOFTIPU
             fields.remove("objednane_polozky")
             fields.remove("datum_uhradenia")
@@ -349,22 +351,21 @@ class NakupSUhradouAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmi
             if not nakup.subor_ucty:
                 self.message_user(request, f"Súbor nebol vytvorený, lebo pole '{NakupSUhradou._meta.get_field('subor_ucty').verbose_name}' nie je vyplnené.", messages.ERROR)
                 return
-            if nakup.datum_uhradenia:
-                self.message_user(request, f"Žiadosť o preplatenie {nakup.cislo} už bola spracovaná. Opakované vytváranie jej súboru nie je možné.", messages.ERROR)
+            if nakup.datum_vybavenia:
+                self.message_user(request, f"Žiadosť o preplatenie {nakup.cislo} už bola daná na vybavenie. Opakované vytváranie jej súboru nie je možné.", messages.ERROR)
                 return
             status, msg, vytvoreny_subor = nakup_actions.VytvoritSuborPreplatenie(nakup)
             self.message_user(request, msg, status)
             if status != messages.ERROR:
                 nakup.subor_preplatenie = vytvoreny_subor
                 nakup.save()
-                t_datum_preplatenie = NakupSUhradou._meta.get_field('datum_preplatenie').verbose_name
+                t_datum_vybavenia = NakupSUhradou._meta.get_field('datum_vybavenia').verbose_name
                 if nakup.forma_uhrady == FormaUhrady.UCET:
-                    self.message_user(request, f"Vytvorenú žiadosť o preplatenie dajte na podpis a potom ju odošlite do učtárne. Následne vyplňte pole '{t_datum_preplatenie}'.", messages.WARNING)
+                    self.message_user(request, f"Vytvorenú žiadosť o preplatenie dajte na podpis a potom ju odošlite do učtárne. Následne vyplňte pole '{t_datum_vybavenia}'.", messages.WARNING)
                 else:
-                    pass
-                t_objednane_polozky = NakupSUhradou._meta.get_field('objednane_polozky').verbose_name
-                t_datum_uhradenia = NakupSUhradou._meta.get_field('datum_uhradenia').verbose_name
-                self.message_user(request, f"Po spracovaní učtárňou na základe údajov z učtárne vyplňte pole '{t_datum_uhradenia}' a v poli '{t_objednane_polozky}' doplňte EKRK položiek.", messages.WARNING)
+                    self.message_user(request, f"Vytvorenú žiadosť o preplatenie dajte na podpis a vyplňte pole '{t_datum_vybavenia}'. Vytvorí sa záznam pokladne", messages.WARNING)
+                #t_objednane_polozky = NakupSUhradou._meta.get_field('objednane_polozky').verbose_name
+                #t_datum_uhradenia = NakupSUhradou._meta.get_field('datum_uhradenia').verbose_name
     vytvorit_subor_preplatenie.short_description = "Vytvoriť súbor žiadosti o preplatenie"
     #Oprávnenie na použitie akcie, viazané na 'change'
     vytvorit_subor_preplatenie.allowed_permissions = ('change',)

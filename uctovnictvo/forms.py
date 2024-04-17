@@ -5,12 +5,13 @@ from django.core.exceptions import ValidationError
 from ipdb import set_trace as trace
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
-from .models import nasledujuce_cislo, nasledujuce_VPD, nasledujuce_PPD, nasledujuce_Zmluva, NakupSUhradou
+from .models import nasledujuce_cislo, nasledujuce_VPD, nasledujuce_PPD, nasledujuce_Zmluva, NakupSUhradou, FormaUhrady
 from .models import PrijataFaktura, Objednavka, PrispevokNaStravne, DoPC, DoVP, DoBPS, PlatovyVymer, VystavenaFaktura
 from .models import VyplacanieDohod, StavDohody, Dohoda, PravidelnaPlatba, TypPP, InternyPrevod, Nepritomnost, TypNepritomnosti
 from .models import Najomnik, NajomnaZmluva, NajomneFaktura, TypPN, RozpoctovaPolozkaDotacia, RozpoctovaPolozkaPresun, RozpoctovaPolozka, Zmluva
 from .models import PlatbaBezPrikazu, Pokladna, TypPokladna, SocialnyFond, PrispevokNaRekreaciu, OdmenaOprava, AnoNie
 from .common import meno_priezvisko
+from beliana import settings
 from dennik.models import Dokument, SposobDorucenia, TypDokumentu, InOut
 from datetime import date, datetime
 import re
@@ -63,14 +64,46 @@ class NakupSUhradouForm(DennikZaznam):
             self.initial[polecislo] = nasledujuce
 
     def clean(self):
-        if 'predmet' in self.changed_data:
+        t_objednane_polozky = NakupSUhradou._meta.get_field('objednane_polozky').verbose_name
+        t_datum_uhradenia = NakupSUhradou._meta.get_field('datum_uhradenia').verbose_name
+        t_forma_uhrady = NakupSUhradou._meta.get_field('forma_uhrady').verbose_name
+        if 'popis' in self.changed_data:
             messages.warning(self.request, f"Súbor žiadanky vytvorte akciou 'Vytvoriť súbor žiadanky'")
         if 'zamietnute' in self.changed_data and self.cleaned_data['zamietnute'] == AnoNie.ANO:
             messages.warning(self.request, f"Zamietnutú žiadanku založte do šanonu vyplňte pole '{NakupSUhradou._meta.get_field('datum_ziadanky').verbose_name}'.")
         if 'datum_ziadanky' in self.changed_data:
             messages.warning(self.request, f"Po realizácii nákupu zoskenujte účet a vložte do poľa '{NakupSUhradou._meta.get_field('subor_ucty').verbose_name}'")
         if 'subor_ucty' in self.changed_data:
-            messages.warning(self.request, f"Podľa účtu aktualizujte hodnoty v poli '{NakupSUhradou._meta.get_field('objednane_polozky').verbose_name}' a akciou  'Vytvoriť súbor žiadosti o preplatenie' vygenerujte súbor žiadosti.")
+            messages.warning(self.request, f"Podľa účtu aktualizujte hodnoty v poli '{t_objednane_polozky}' (naposledy môžete zmeniť {t_forma_uhrady}) a akciou  'Vytvoriť súbor žiadosti o preplatenie' vygenerujte súbor žiadosti.")
+        if 'datum_vybavenia' in self.changed_data:
+            if self.instance.forma_uhrady == FormaUhrady.HOTOVOST:
+                cislo = nasledujuce_cislo(Pokladna)
+                cena = self.instance.cena
+                popis = self.instance.popis
+                polozka = Pokladna(
+                    cislo = cislo,
+                    cislo_VPD = nasledujuce_VPD(),
+                    typ_transakcie = TypPokladna.VPD,
+                    suma = cena,
+                    zamestnanec = self.instance.vybavuje,
+                    popis = self.instance.popis,
+                    datum_transakcie = self.instance.datum_vybavenia,
+                    ziadanka = self.instance 
+
+                    )
+                polozka.save()
+                messages.warning(self.request,
+                    format_html(
+                        "Vytvorený bol nový záznam pokladne č. {} s popisom '{}'. Pri vyplácaní pokračujte v ňom (treba vygenerovať VPD).",
+                        mark_safe(f'<a href="/admin/uctovnictvo/pokladna/{polozka.id}/change/">{cislo}</a>'),
+                        popis
+                    )
+                )
+                self.instance.pokladna_vpd = cislo
+                self.instance.save()
+            else:
+                self.dennik_zaznam(f"Žiadosť č. {self.instance.cislo}.", TypDokumentu.DROBNY_NAKUP, InOut.ODOSLANY, settings.UCTAREN_NAME, self.instance.subor_preplatenie.url)
+            messages.warning(self.request, f"Po spracovaní v Softipe treba aktualizovať pole '{t_objednane_polozky}' a vyplniť pole '{t_datum_uhradenia}'")
 
 class ObjednavkaForm(DennikZaznam):
     #inicializácia polí
@@ -941,7 +974,7 @@ class PokladnaForm(forms.ModelForm):
         self.request = kwargs.pop('request', None)
         super().__init__(*args, **kwargs)
         #self.initial['zdroj'] = 1       #111
-        #self.initial['program'] = 4     #nealokovaný
+        #self.initi1al['program'] = 4     #nealokovaný
         #self.initial['zakazka'] = 2     #11010001 spol. zák.	Činnosti z prostriedkov SAV - rozpočet 111
         #self.initial['ekoklas'] = 108   #642014 Transfery jednotlivcom
         #self.initial['cinnost'] = 2     #1a

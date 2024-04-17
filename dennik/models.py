@@ -36,6 +36,7 @@ class TypDokumentu(models.TextChoices):
     DOKUMENT = 'posta', 'Pošta'
     NEPRITOMNOST = 'nepritomnost', 'Neprítomnosť'
     ODMENA_OPRAVA = 'odmena_oprava', 'Odmena/Oprava'
+    DROBNY_NAKUP = 'drobny_nákup', 'Drobný nákup'
     INY = 'iny', 'Iný'
 
 class TypListu(models.TextChoices):
