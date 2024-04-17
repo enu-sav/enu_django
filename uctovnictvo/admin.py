@@ -388,6 +388,8 @@ class NakupSUhradouAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmi
                 poznamka = f"Údaje prenesené z {item.cislo}"
                 )
             nakup.save()
+            item.ziadanka = nakup
+            item.save()
             pass
         def prenos_bez(year,item):
             popis = "Neurčené"
@@ -515,8 +517,8 @@ class PlatbaBezPrikazuAdmin(ZobrazitZmeny, SimpleHistoryAdmin, ImportExportModel
 @admin.register(Pokladna)
 class PokladnaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
     form = PokladnaForm
-    list_display = ["cislo", "typ_transakcie", "cislo_VPD", "suma", "zamestnanec", "subor_doklad", "subor_vpd", "datum_transakcie", "datum_softip", "popis", "ekoklas", "zdroj", "zakazka", "cinnost"]
-    search_fields = ["cislo", "typ_transakcie","ekoklas__kod", "zdroj__kod", "zakazka__kod", "cinnost__kod"]
+    list_display = ["cislo", "typ_transakcie", "cislo_VPD", "suma", "zamestnanec", "ziadanka", "subor_doklad", "subor_vpd", "datum_transakcie", "datum_softip", "popis", "ekoklas", "zdroj", "zakazka", "cinnost"]
+    search_fields = ["cislo", "typ_transakcie","ziadanka__cislo", "ekoklas__kod", "zdroj__kod", "zakazka__kod", "cinnost__kod"]
     #actions = [export_selected_objects]
     actions = ['vytvorit_vpd', 'generovat_stranu_PD', 'duplikovat_zaznam']
 

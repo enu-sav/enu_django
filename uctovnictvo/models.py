@@ -2843,6 +2843,7 @@ class Pokladna(models.Model):
         )
     ziadanka = models.ForeignKey(NakupSUhradou,
             help_text = "Žiadanka. Vypĺňa sa automaticky",
+            verbose_name = "Žiadanka",
             on_delete=models.PROTECT,
             related_name='%(class)s_pokladna',
             blank = True,
