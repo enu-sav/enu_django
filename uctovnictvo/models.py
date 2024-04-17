@@ -2856,6 +2856,7 @@ class Pokladna(models.Model):
             blank = True,
             null = True
             )
+    '''
     subor_ziadanky = models.FileField("Súbor žiadanky",
             help_text = "Súbor so žiadankou a krycím listom. Generuje sa akciou 'Vytvoriť žiadanku'",
             upload_to=pokladna_upload_location,
@@ -2864,6 +2865,7 @@ class Pokladna(models.Model):
             help_text = "Súbor so zoskenovaným dokladom o úhrade",
             upload_to=pokladna_upload_location, 
             null = True, blank = True)
+    '''
     subor_vpd = models.FileField("Súbor PD",
             help_text = "Súbor pokladničného dokladu (VPD, PPD). Generuje sa akciou 'Vytvoriť PD'",
             upload_to=pokladna_upload_location, 
@@ -2883,6 +2885,7 @@ class Pokladna(models.Model):
             blank = True,
             null=True
             )
+    '''
     zdroj = models.ForeignKey(Zdroj,
             help_text = "V prípade dotácie nechajte prázdne, inak je povinné",
             on_delete=models.PROTECT,
@@ -2914,6 +2917,7 @@ class Pokladna(models.Model):
             blank = True,
             null = True
             )
+    '''
     history = HistoricalRecords()
 
     def clean(self): 
