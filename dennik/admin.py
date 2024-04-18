@@ -12,7 +12,7 @@ from django.contrib import messages
 from zmluvy.models import ZmluvaAutor, ZmluvaGrafik, VytvarnaObjednavkaPlatba, PlatbaAutorskaSumar
 from uctovnictvo.models import Objednavka, PrijataFaktura, PrispevokNaStravne, DoVP, DoPC, DoBPS
 from uctovnictvo.models import PlatovyVymer, PravidelnaPlatba, NajomneFaktura, InternyPrevod, Poistovna
-from uctovnictvo.models import RozpoctovaPolozka, PlatbaBezPrikazu, Pokladna, PrispevokNaRekreaciu, OdmenaOprava
+from uctovnictvo.models import RozpoctovaPolozka, PlatbaBezPrikazu, PrispevokNaRekreaciu, OdmenaOprava
 from uctovnictvo.models import TypDochodku, AnoNie, Zdroj, TypZakazky, EkonomickaKlasifikacia, Zamestnanec 
 from uctovnictvo.models import Nepritomnost, VystavenaFaktura
 from uctovnictvo.odvody import Poistne
@@ -307,7 +307,7 @@ class CerpanieRozpoctuAdmin(ModelAdminTotals):
         md1list.append(date(rok+1, 1, 1))
 
         typyOstatne = [PravidelnaPlatba, PrijataFaktura, VystavenaFaktura, PlatbaAutorskaSumar, VytvarnaObjednavkaPlatba, NajomneFaktura, 
-                       RozpoctovaPolozka, PlatbaBezPrikazu, Pokladna, PrispevokNaRekreaciu, InternyPrevod]
+                       RozpoctovaPolozka, PlatbaBezPrikazu, PrispevokNaRekreaciu, InternyPrevod]
 
         cerpanie_spolu = defaultdict(dict) # Obsah cerpanie_spolu zapísať do databázy a do hárka Prehľad
         polozky_riadok = [] #individuálne položky do hárka Položky

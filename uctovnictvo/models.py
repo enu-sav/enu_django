@@ -2927,24 +2927,8 @@ class Pokladna(models.Model):
         if chyby:
             raise ValidationError(chyby)
 
-    #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
-    def cerpanie_rozpoctu(self, zden):
-        if self.typ_transakcie == TypPokladna.DOTACIA: return []
-        if not self.datum_softip: return []
-        if self.datum_softip <zden: return []
-        kdatum =  date(zden.year, zden.month+1, zden.day) if zden.month+1 <= 12 else  date(zden.year+1, 1, 1)
-        if self.datum_softip >= kdatum: return []
-        platba = {
-                "nazov": "Pokladňa",
-                "suma": self.suma,
-                "datum": self.datum_transakcie,
-                "subjekt": f"{self.zamestnanec.priezvisko}, {self.zamestnanec.meno}", 
-                "cislo": self.cislo,
-                "zdroj": self.zdroj,
-                "zakazka": self.zakazka,
-                "ekoklas": self.ekoklas
-                }
-        return [platba]
+    #V Pokladna nie sú položky pre čerpanie rozpočtu
+    #def cerpanie_rozpoctu(self, zden):pass
 
     class Meta:
         verbose_name = 'Drobný nákup - Záznam pokladne'
