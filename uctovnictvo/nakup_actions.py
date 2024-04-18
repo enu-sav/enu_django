@@ -119,7 +119,7 @@ def VytvoritSuborZiadanky(objednavka):
     ws_obj, prvy_riadok, pocet_riadkov = VyplnitHarok(workbook["Žiadanka - žiadosť"], objednavka, False)
 
     ws_kl = workbook["Krycí list"]
-    ws_kl["A1"].value = ws_kl["A1"].value.replace("[[cislo]]", objednavka.cislo[2:])
+    ws_kl["A1"].value = ws_kl["A1"].value.replace("[[cislo]]", objednavka.cislo)
 
     #uložiť
     nazov = f'{objednavka.cislo[2:]}-ziadanka.xlsx'
@@ -135,7 +135,7 @@ def VytvoritSuborPreplatenie(objednavka):
     ws_obj, prvy_riadok, pocet_riadkov = VyplnitHarok(workbook["Žiadanka - žiadosť"], objednavka, True)
 
     ws_kl = workbook["Krycí list"]
-    ws_kl["A2"].value = ws_kl["A2"].value.replace("[[cislo]]", objednavka.cislo[2:])
+    ws_kl["A2"].value = ws_kl["A2"].value.replace("[[cislo]]", objednavka.cislo)
 
     #uložiť
     nazov = f'{objednavka.cislo[2:]}-vyplatenie.xlsx'
