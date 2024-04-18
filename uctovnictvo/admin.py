@@ -246,7 +246,7 @@ class NakupSUhradouAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmi
     form = NakupSUhradouForm
     list_display = ("cislo", "vybavuje", "ziadatel", "popis", "cena", "zamietnute", "forma_uhrady", "subor_ziadanky", "datum_ziadanky", "subor_ucty", "subor_preplatenie", "datum_vybavenia", "pokladna_vpd", "datum_uhradenia")
     #actions = [ 'vytvorit_subor_ziadanky', 'vytvorit_subor_objednavky' ]
-    actions = [ 'vytvorit_subor_ziadanky', "vytvorit_subor_preplatenie", "prenos"]
+    actions = [ 'vytvorit_subor_ziadanky', "vytvorit_subor_preplatenie"]
     search_fields = ["^cislo", "^pokladna_vpd", "popis", "forma_uhrady"]
 
     def get_readonly_fields(self, request, obj=None):
@@ -371,6 +371,7 @@ class NakupSUhradouAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmi
     #Oprávnenie na použitie akcie, viazané na 'change'
     vytvorit_subor_preplatenie.allowed_permissions = ('change',)
 
+    #Prenos položiek z Pokladna a PlatbaBezPrikazuForm. Aakcia na jednorazové použitie po zavedení triedy NakupSUhradou 
     def prenos(self, request, queryset):
         def prenos_pok(year,item):
             nakup = NakupSUhradou(
