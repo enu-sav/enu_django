@@ -519,7 +519,7 @@ class PlatbaBezPrikazuAdmin(ZobrazitZmeny, SimpleHistoryAdmin, ImportExportModel
 class PokladnaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
     form = PokladnaForm
     list_display = ["cislo", "typ_transakcie", "cislo_VPD", "suma", "zamestnanec", "ziadanka", "subor_vpd", "datum_transakcie", "datum_softip", "popis"] 
-    search_fields = ["cislo", "typ_transakcie","ziadanka__cislo", "ekoklas__kod", "zdroj__kod", "zakazka__kod", "cinnost__kod"]
+    search_fields = ["cislo", "typ_transakcie","ziadanka__cislo"]
     #actions = [export_selected_objects]
     actions = ['vytvorit_vpd', 'generovat_stranu_PD', 'duplikovat_zaznam']
 
