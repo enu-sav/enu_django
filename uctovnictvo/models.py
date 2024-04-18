@@ -25,7 +25,7 @@ from dateutil.relativedelta import relativedelta
 import numpy as np
 from ipdb import set_trace as trace
 
-#access label: AnoNie('ano').label
+#access label: AnoNie('ano').label alebo AnoNie.ANO.label
 class OdmenaAleboOprava(models.TextChoices):
     ODMENA = 'odmena', 'Odmena'
     ODMENAS = 'odmenasubor', 'XLSX súbor s odmenami'
@@ -131,8 +131,10 @@ def nasledujuce_PPD():
         return itemlist.last().cislo_VPD+1 if itemlist else 1
 
 def rozdelit_polozky(string):
-    if ";" in string: return string.split(";")
-    if "/" in string: return string.split("/")
+    if ";" in string: 
+        return [pp.strip() for pp in string.split(";")]
+    if "/" in string: 
+        return [pp.strip() for pp in string.split("/")]
     return [string]
 
 #ak sa doplni stav pred 'PODPISANA_ENU', treba doplniť test vo funkcii vytvorit_subory_zmluvy
@@ -2785,10 +2787,10 @@ class NakupSUhradou(models.Model):
             )
         objednane = self.objednane_polozky.split("\n")
         pocet_poli = len(rozdelit_polozky(objednane[0]))
-        if not pocet_poli in (3,4):
+        if not pocet_poli in (4,):
             pole = "pole" if pocet_poli==1 else "polia" if pocet_poli < 5 else "polí"
             raise ValidationError({
-                "objednane_polozky":f"Prvá položka má {pocet_poli} {pole}, povolený počet je 3 alebo 4 (skontrolujte oddeľovače)"
+                "objednane_polozky":f"Prvá položka má {pocet_poli} {pole}, povolený počet je 4 (skontrolujte oddeľovače)"
                 }
             )
         for rr, polozka in enumerate(objednane):
@@ -2799,13 +2801,30 @@ class NakupSUhradou(models.Model):
                     }
                 )
         celkova_suma = 0
+        je_kladna = None
         for rr, polozka in enumerate(objednane):
             pp = rozdelit_polozky(polozka)
             if not is_number(pp[1].replace(",",".")):
                 raise ValidationError({
                     "objednane_polozky":f"Druhá položka ({pp[1]}) na riadku {rr+1} musí byť číslo"
                     })
-            celkova_suma += float(pp[1].replace(",","."))
+            if not EkonomickaKlasifikacia.objects.filter(kod=str(pp[-1])):
+                raise ValidationError({
+                    "objednane_polozky":f"EKRK '{pp[-1]}' na riadku {rr+1} sa v zozname '{EkonomickaKlasifikacia._meta.verbose_name_plural.title()}' nenachádza. Opravte ju alebo ju do zoznamu doplňte."
+                    })
+            suma = float(pp[1].replace(",","."))
+            if rr > 0:
+                if je_kladna != (suma > 0): 
+                    raise ValidationError({
+                        "objednane_polozky":f"Suma {suma} na riadku {rr+1} má iné znamienko ako suma na predchádzajúcom riadku. Znamienko opravte alebo Žiadanku rozdeľte na dve žiadanky"
+                        })
+            je_kladna = suma > 0
+            celkova_suma += suma
+        if celkova_suma < 0 and self.forma_uhrady == FormaUhrady.UCET:
+            t_forma_uhrady = NakupSUhradou._meta.get_field('forma_uhrady').verbose_name
+            raise ValidationError({
+                "forma_uhrady":f"Suma položiek je záporná, ide teda o vrátenie do pokladne. Ako formu úhrady ste však zadali '{FormaUhrady.UCET.label}'. Zmeňte ju na '{FormaUhrady.HOTOVOST.label}' alebo opravte znamienko ceny."
+                })
         self.cena = Decimal(celkova_suma)
 
     history = HistoricalRecords()
@@ -2856,16 +2875,6 @@ class Pokladna(models.Model):
             blank = True,
             null = True
             )
-    '''
-    subor_ziadanky = models.FileField("Súbor žiadanky",
-            help_text = "Súbor so žiadankou a krycím listom. Generuje sa akciou 'Vytvoriť žiadanku'",
-            upload_to=pokladna_upload_location,
-            null = True, blank = True)
-    subor_doklad = models.FileField("Doklad o úhrade",
-            help_text = "Súbor so zoskenovaným dokladom o úhrade",
-            upload_to=pokladna_upload_location, 
-            null = True, blank = True)
-    '''
     subor_vpd = models.FileField("Súbor PD",
             help_text = "Súbor pokladničného dokladu (VPD, PPD). Generuje sa akciou 'Vytvoriť PD'",
             upload_to=pokladna_upload_location, 
@@ -2885,39 +2894,6 @@ class Pokladna(models.Model):
             blank = True,
             null=True
             )
-    '''
-    zdroj = models.ForeignKey(Zdroj,
-            help_text = "V prípade dotácie nechajte prázdne, inak je povinné",
-            on_delete=models.PROTECT,
-            related_name='%(class)s_pokladna',
-            blank = True,
-            null = True
-            )
-    zakazka = models.ForeignKey(TypZakazky,
-            on_delete=models.PROTECT,
-            help_text = "V prípade dotácie nechajte prázdne, inak je povinné",
-            verbose_name = "Typ zákazky",
-            related_name='%(class)s_pokladna',
-            blank = True,
-            null = True
-            )
-    ekoklas = models.ForeignKey(EkonomickaKlasifikacia,
-            on_delete=models.PROTECT,
-            help_text = "V prípade dotácie nechajte prázdne, inak je povinné",
-            verbose_name = "Ekonomická klasifikácia",
-            related_name='%(class)s_pokladna',
-            blank = True,
-            null = True
-            )
-    cinnost = models.ForeignKey(Cinnost,
-            on_delete=models.PROTECT,
-            help_text = "V prípade dotácie nechajte prázdne, inak je povinné",
-            verbose_name = "Činnosť",
-            related_name='%(class)s_pokladna',
-            blank = True,
-            null = True
-            )
-    '''
     history = HistoricalRecords()
 
     def clean(self): 
