@@ -2724,9 +2724,10 @@ class NakupSUhradou(models.Model):
     objednane_polozky = models.TextField("Objednané položky",
             help_text = mark_safe("<p>Žiadané položky zadajte po riadkoch (max. 8 riadkov):</p>\
                 <ol>\
-                <li>pri vytváraní žiadanky zadajte 4 polia oddelené bodkočiarkou alebo <b>lomkou /</b> v poradí: <b>názov položky a množstvo / odhadovaná cena s DPH / CPV kód</b> / EKRK, napr. <b>Euroobal A4 50 ks / 7,50 / 30193300-1 / 632003</b>. CPV kód možno nahradiť pomlčkou '-'. </li>\
-                <li>pri vytváraní žiadosti o preplatenie aktualizujte zadané polia podľa dokladu o úhrade. </li>\
-                <li>po spracovaní v Softipe aktualizujte ekonomickú klasifikáciu (EKRK) tovaru podľa údajov zo Softipu.\
+                <li>Pri vytváraní žiadanky zadajte 4 polia oddelené bodkočiarkou alebo <b>lomkou /</b> v poradí: <b>názov položky a množstvo / odhadovaná cena s DPH / CPV kód</b> / EKRK, napr. <b>Euroobal A4 50 ks / 7,50 / 30193300-1 / 632003</b>. CPV kód možno nahradiť pomlčkou '-'. </li>\
+                <li>Cena tovaru/služby sa uvádza ako <b>kladná</b>, suma vrátená do pokladne ako <b>záporná</b>. </li>\
+                <li>Pri vytváraní žiadosti o preplatenie aktualizujte zadané polia podľa dokladu o úhrade. </li>\
+                <li>Po spracovaní v Softipe aktualizujte ekonomickú klasifikáciu (EKRK) tovaru podľa údajov zo Softipu.\
                 </ol>"),
             max_length=5000, null=True, blank=True)
     cena = models.DecimalField("Suma",
@@ -2825,7 +2826,7 @@ class NakupSUhradou(models.Model):
             raise ValidationError({
                 "forma_uhrady":f"Suma položiek je záporná, ide teda o vrátenie do pokladne. Ako formu úhrady ste však zadali '{FormaUhrady.UCET.label}'. Zmeňte ju na '{FormaUhrady.HOTOVOST.label}' alebo opravte znamienko ceny."
                 })
-        self.cena = Decimal(celkova_suma)
+        self.cena = -Decimal(celkova_suma)
 
     history = HistoricalRecords()
     class Meta:

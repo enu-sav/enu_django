@@ -699,9 +699,9 @@ def VytvoritSuborPD(vpd):
 
     kl = workbook["Krycí list"]
     kl["A2"].value = kl["A2"].value.replace("[[xx-xxxx]]", cislovpd) 
-    kl["B10"].value = vpd.zdroj.kod
-    kl["D10"].value = vpd.zakazka.kod
-    kl["G10"].value = vpd.ekoklas.kod
+    kl["B10"].value = vpd.ziadanka.zdroj.kod
+    kl["D10"].value = vpd.ziadanka.zakazka.kod
+    #kl["G10"].value = vpd.ziadanka.ekoklas.kod
 
     #ulozit
     #Create directory admin.rs_login if necessary

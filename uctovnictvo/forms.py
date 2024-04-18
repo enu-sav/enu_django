@@ -74,7 +74,7 @@ class NakupSUhradouForm(DennikZaznam):
         if 'datum_ziadanky' in self.changed_data:
             messages.warning(self.request, f"Po realizácii nákupu zoskenujte účet a vložte do poľa '{NakupSUhradou._meta.get_field('subor_ucty').verbose_name}'")
         if 'subor_ucty' in self.changed_data:
-            messages.warning(self.request, f"Podľa účtu aktualizujte hodnoty v poli '{t_objednane_polozky}' (naposledy môžete zmeniť {t_forma_uhrady}) a akciou  'Vytvoriť súbor žiadosti o preplatenie' vygenerujte súbor žiadosti.")
+            messages.warning(self.request, f"Podľa účtu aktualizujte hodnoty v poli '{t_objednane_polozky}' (môžete tiež zmeniť {t_forma_uhrady}) a akciou  'Vytvoriť súbor žiadosti o preplatenie' vygenerujte súbor žiadosti.")
         if 'datum_vybavenia' in self.changed_data:
             if self.instance.forma_uhrady == FormaUhrady.HOTOVOST:
                 cislo = nasledujuce_cislo(Pokladna)
@@ -82,21 +82,22 @@ class NakupSUhradouForm(DennikZaznam):
                 popis = self.instance.popis
                 polozka = Pokladna(
                     cislo = cislo,
-                    cislo_VPD = nasledujuce_VPD(),
-                    typ_transakcie = TypPokladna.VPD,
+                    cislo_VPD = nasledujuce_VPD() if cena < 0 else nasledujuce_PPD(),
+                    typ_transakcie = TypPokladna.VPD if cena < 0 else TypPokladna.PPD,
                     suma = cena,
                     zamestnanec = self.instance.vybavuje,
                     popis = self.instance.popis,
-                    datum_transakcie = self.instance.datum_vybavenia,
+                    datum_transakcie = self.cleaned_data['datum_vybavenia'],
                     ziadanka = self.instance 
 
                     )
                 polozka.save()
                 messages.warning(self.request,
                     format_html(
-                        "Vytvorený bol nový záznam pokladne č. {} s popisom '{}'. Pri vyplácaní pokračujte v ňom (treba vygenerovať VPD).",
+                        "Vytvorený bol nový záznam pokladne č. {} s popisom '{}'. Pokračujte v ňom (treba vygenerovať {}).",
                         mark_safe(f'<a href="/admin/uctovnictvo/pokladna/{polozka.id}/change/">{cislo}</a>'),
-                        popis
+                        popis,
+                        f"{'VPD' if cena < 0 else 'PPD'}"
                     )
                 )
                 self.instance.pokladna_vpd = cislo

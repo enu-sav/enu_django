@@ -371,7 +371,7 @@ class NakupSUhradouAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmi
     #Oprávnenie na použitie akcie, viazané na 'change'
     vytvorit_subor_preplatenie.allowed_permissions = ('change',)
 
-    #Prenos položiek z Pokladna a PlatbaBezPrikazuForm. Aakcia na jednorazové použitie po zavedení triedy NakupSUhradou 
+    #Prenos položiek z Pokladna a PlatbaBezPrikazuForm. Akcia na jednorazové použitie po zavedení triedy NakupSUhradou 
     def prenos(self, request, queryset):
         def prenos_pok(year,item):
             nakup = NakupSUhradou(
