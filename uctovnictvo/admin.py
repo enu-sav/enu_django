@@ -242,12 +242,16 @@ class ObjednavkaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, 
     vytvorit_subor_ziadanky.allowed_permissions = ('change',)
 
 @admin.register(NakupSUhradou)
-class NakupSUhradouAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
+#class NakupSUhradouAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
+class NakupSUhradouAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
     form = NakupSUhradouForm
     list_display = ("cislo", "vybavuje", "ziadatel", "popis", "cena", "zamietnute", "forma_uhrady", "subor_ziadanky", "datum_ziadanky", "subor_ucty", "subor_preplatenie", "datum_vybavenia", "pokladna_vpd", "datum_uhradenia")
     #actions = [ 'vytvorit_subor_ziadanky', 'vytvorit_subor_objednavky' ]
     actions = [ 'vytvorit_subor_ziadanky', "vytvorit_subor_preplatenie"]
     search_fields = ["^cislo", "^pokladna_vpd", "popis", "forma_uhrady"]
+    list_totals = [
+        ('cena', Sum),
+    ]
 
     def get_readonly_fields(self, request, obj=None):
         fields = [f.name for f in NakupSUhradou._meta.get_fields()]

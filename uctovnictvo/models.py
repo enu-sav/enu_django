@@ -1341,7 +1341,7 @@ class NajomneFaktura(Klasifikacia, GetAdminURL):
 
     #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
     def cerpanie_rozpoctu(self, zden):
-        datum = self.uhradene_dna if self.uhradene_dna else self.dane_na_uhradu if dane_na_uhradu else None
+        datum = self.uhradene_dna if self.uhradene_dna else self.dane_na_uhradu if self.dane_na_uhradu else None
         if not datum:
             f1 = self._meta.get_field('uhradene_dna').verbose_name
             f2 = self._meta.get_field('dane_na_uhradu').verbose_name
@@ -2687,7 +2687,7 @@ class VyplacanieDohod(models.Model):
 
 def nakup_upload_location(instance, filename):
     return os.path.join(POKLADNA_DIR, filename)
-class NakupSUhradou(models.Model):
+class NakupSUhradou(models.Model, GetAdminURL):
     oznacenie = "N"
     cislo = models.CharField("Číslo",
             #help_text: definovaný vo forms
@@ -2827,6 +2827,39 @@ class NakupSUhradou(models.Model):
                 "forma_uhrady":f"Suma položiek je záporná, ide teda o vrátenie do pokladne. Ako formu úhrady ste však zadali '{FormaUhrady.UCET.label}'. Zmeňte ju na '{FormaUhrady.HOTOVOST.label}' alebo opravte znamienko ceny."
                 })
         self.cena = -Decimal(celkova_suma)
+
+    #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
+    def cerpanie_rozpoctu(self, zden):
+        datum = None
+        if self.datum_uhradenia: datum = self.datum_uhradenia
+        if not datum and self.datum_vybavenia: datum = self.datum_vybavenia
+        if not datum: 
+            f1 = self._meta.get_field('datum_uhradenia').verbose_name
+            f2 = self._meta.get_field('datum_vybavenia').verbose_name
+            return f"Drobný nákup {self.get_admin_url()} musí mať vyplnené aspoň jedno z polí <em>{f1}</em> alebo <em>{f2}</em>." 
+        if datum < zden: return []
+        kdatum =  date(zden.year, zden.month+1, zden.day) if zden.month+1 <= 12 else  date(zden.year+1, 1, 1)
+        if datum >= kdatum: return []
+        #Spočítať podľa ekoklas
+        platby = {}
+        objednane = self.objednane_polozky.split("\n")
+        for polozka in objednane:
+            pp = rozdelit_polozky(polozka)
+            suma = float(pp[1].replace(",","."))
+            ekrk = pp[-1]
+            if not ekrk in platby:
+                platby[ekrk] = {
+                    "nazov": "Drobný nákup",
+                    "suma": 0,
+                    "datum": datum,
+                    #"subjekt": f"{self.zamestnanec.priezvisko}, {self.zamestnanec.meno}", 
+                    "cislo": self.cislo,
+                    "zdroj": self.zdroj,
+                    "zakazka": self.zakazka,
+                    "ekoklas": EkonomickaKlasifikacia.objects.get(kod=ekrk)
+                    }
+            platby[ekrk]["suma"] -= suma
+        return [platby[pp] for pp in platby]
 
     history = HistoricalRecords()
     class Meta:

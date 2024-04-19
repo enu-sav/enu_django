@@ -14,7 +14,7 @@ from uctovnictvo.models import Objednavka, PrijataFaktura, PrispevokNaStravne, D
 from uctovnictvo.models import PlatovyVymer, PravidelnaPlatba, NajomneFaktura, InternyPrevod, Poistovna
 from uctovnictvo.models import RozpoctovaPolozka, PlatbaBezPrikazu, PrispevokNaRekreaciu, OdmenaOprava
 from uctovnictvo.models import TypDochodku, AnoNie, Zdroj, TypZakazky, EkonomickaKlasifikacia, Zamestnanec 
-from uctovnictvo.models import Nepritomnost, VystavenaFaktura
+from uctovnictvo.models import Nepritomnost, VystavenaFaktura, NakupSUhradou
 from uctovnictvo.odvody import Poistne
 import re
 from import_export.admin import ImportExportModelAdmin
@@ -306,7 +306,7 @@ class CerpanieRozpoctuAdmin(ModelAdminTotals):
         md1list = [date(rok, mm+1, 1) for mm in range(12)]
         md1list.append(date(rok+1, 1, 1))
 
-        typyOstatne = [PravidelnaPlatba, PrijataFaktura, VystavenaFaktura, PlatbaAutorskaSumar, VytvarnaObjednavkaPlatba, NajomneFaktura, 
+        typyOstatne = [NakupSUhradou, PravidelnaPlatba, PrijataFaktura, VystavenaFaktura, PlatbaAutorskaSumar, VytvarnaObjednavkaPlatba, NajomneFaktura, 
                        RozpoctovaPolozka, PlatbaBezPrikazu, PrispevokNaRekreaciu, InternyPrevod]
 
         cerpanie_spolu = defaultdict(dict) # Obsah cerpanie_spolu zapísať do databázy a do hárka Prehľad
