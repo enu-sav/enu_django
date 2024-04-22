@@ -1350,25 +1350,31 @@ class RozpoctovaPolozkaPresunAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleH
 @admin.register(PrispevokNaStravne)
 class PrispevokNaStravneAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
     form = PrispevokNaStravneForm
-    list_display = ["cislo", "typ_zoznamu", "za_mesiac", "datum_odoslania", "po_zamestnancoch", "suma_zamestnavatel", "suma_socfond", "_suma_spolu"]
+    list_display = ["cislo", "typ_zoznamu", "za_mesiac", "datum_odoslania", "po_zamestnancoch", "suma_zamestnavatel", "zrazka_zamestnavatel", "_suma_spolu", "suma_socfond", "zrazka_socfond", "_zrazka_spolu"]
     search_fields = ["cislo","^typ_zoznamu", "^za_mesiac"]
     # určiť poradie poli v editovacom formulári
-    fields = ["cislo", "typ_zoznamu", "za_mesiac", "datum_odoslania", "suma_zamestnavatel", "suma_socfond", "po_zamestnancoch", "zdroj", "zakazka", "ekoklas", "cinnost" ]
+    fields = ["cislo", "typ_zoznamu", "za_mesiac", "datum_odoslania", "suma_zamestnavatel", "zrazka_zamestnavatel", "suma_socfond", "zrazka_socfond", "po_zamestnancoch", "zdroj", "zakazka", "ekoklas", "cinnost" ]
+
+    def _zrazka_spolu(self, obj):
+        return obj.zrazka_zamestnavatel + obj.zrazka_socfond
+    _zrazka_spolu.short_description = "Zrážky spolu"
 
     def _suma_spolu(self, obj):
         return obj.suma_zamestnavatel + obj.suma_socfond
-    _suma_spolu.short_description = "Spolu"
-
+    _suma_spolu.short_description = "Prísp. polu"
 
     list_totals = [
         ('suma_zamestnavatel', Sum),
         ('suma_socfond', Sum),
+        ('zrazka_zamestnavatel', Sum),
+        ('zrazka_socfond', Sum),
     ]
     def get_readonly_fields(self, request, obj=None):
-        if obj:
-            return [ "program", "ekoklas", "zakazka", "zdroj", "cinnost"]
-        else:
-            return []
+        fields = [f.name for f in PrispevokNaStravne._meta.get_fields()]
+        to_remove = ["cislo", "za_mesiac", "program", "ekoklas", "zakazka", "zdroj", "cinnost"]
+        for tr in to_remove:
+            fields.remove(tr)
+        return fields
 
     # do AdminForm pridať request, aby v jej __init__ bolo request dostupné
     def get_form(self, request, obj=None, **kwargs):

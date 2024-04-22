@@ -74,6 +74,7 @@ priblizny_kurz = {
 class Stravne(models.TextChoices):
     PRISPEVKY = "prispevky", "Príspevky na stravné"
     ZRAZKY = "zrazky", "Zrážky za stravné"
+    PRI_ZRA = "pri_zra", "Príspevky a zrážky"
 
 # Pre triedu classname určí číslo nasledujúceho záznamu v tvare X-2021-NNN
 def nasledujuce_cislo(classname, rok=None):
@@ -1566,22 +1567,23 @@ class PrispevokNaStravne(Klasifikacia):
 
     za_mesiac = models.CharField("Mesiac", 
             max_length=20, 
-            help_text = "Zadajte uplynulý kalendárny mesiac.<br /> <strong>Príspevok na stravné</strong> sa vypočíta na nasledujúci mesiac. Napr. ak koncom mája chcete vytvoriť zoznam príspevkov na jún, zvoľte 'máj'. Vytvorí sa zoznam na jún, v zozname aj bude uvedené 'na jún'.<br /><strong>Zrážka za stravné</strong> sa vypočíta za uplynulý mesiac.",
+            help_text = "Zadajte mzdové obdobie.<br />Napr., ak koncom apríla chcete vytvoriť dokument na máj, zvoľte 'máj'. Vytvorí sa zoznam príspevkov na máj a zrážky za stravné sa vypočítajú za apríl.",
             null = True,
             choices=Mesiace.choices)
 
     typ_zoznamu = models.CharField("Typ zoznamu",
             max_length=20,
-            help_text = "Zvoľte typ zoznamu.<br/>Položku uložte a následne akciou 'Generovať zoznam príspevkov/zrážok' vytvorte súbor so zoznamom.",
+            help_text = "Typ zoznamu. Od apríla 2024 je povolené len 'Príspevky a zrážky'",
             null = True,
+            default = Stravne.PRI_ZRA,
             choices=Stravne.choices)
 
     datum_odoslania = models.DateField('Dátum odoslania',
             help_text = "Zadajte dátum odoslania tabuľky so zoznamom. Po zadaní dátumu sa vytvorí záznam v Denníku prijatej a odoslanej pošty",
             blank=True, null=True)
 
-    suma_zamestnavatel = models.DecimalField("Príspevok (zrážka) zamestnávateľ", 
-            help_text = "Príspevok zamestnávateľa (Ek. klas. 642014) na stravné.<br />Ak ide o vyplatenie zamestnancovi, uveďte zápornú hodnotu, ak ide o zrážku, tak kladnú hodnotu.<br />Suma sa automaticky generuje akciou 'Generovať zoznam príspevkov/zrážok'",
+    suma_zamestnavatel = models.DecimalField("Prísp. zam.", 
+            help_text = "Príspevok zamestnávateľa (Ek. klas. 642014) na stravné (záporná hodnota). Suma sa automaticky generuje akciou 'Generovať zoznam príspevkov/zrážok'",
             max_digits=8, 
             decimal_places=2, 
             null = True,
@@ -1589,8 +1591,25 @@ class PrispevokNaStravne(Klasifikacia):
             default=0)
 
     # Položka suma_socfond nemá Ek. klasifikáciu, soc. fond nie sú peniaze EnÚ
-    suma_socfond = models.DecimalField("Príspevok (zrážka) soc. fond", 
-            help_text = "Príspevok zo sociálneho fondu (Ek. klas. 642014) na stravné.<br />Ak ide o vyplatenie zamestnancovi, uveďte zápornú hodnotu, ak ide o zrážku, tak kladnú hodnotu.<br />Vytvorením Príspevku na stravné sa automaticky vytvorí položka sociálneho fondu. <br /> Suma sa automaticky generuje akciou 'Generovať zoznam príspevkov/zrážok'",
+    suma_socfond = models.DecimalField("Prísp. SF", 
+            help_text = "Príspevok SF na stravné (záporná hodnota). Suma sa automaticky generuje akciou 'Generovať zoznam príspevkov/zrážok'",
+            max_digits=8, 
+            decimal_places=2, 
+            null = True,
+            blank=True,
+            default=0)
+
+    zrazka_zamestnavatel = models.DecimalField("Zrážky zam.", 
+            help_text = "Zrážka zamestnanca (Ek. klas. 642014) za stravné (kladná hodnota). Suma sa automaticky generuje akciou 'Generovať zoznam príspevkov/zrážok'",
+            max_digits=8, 
+            decimal_places=2, 
+            null = True,
+            blank=True,
+            default=0)
+
+    # Položka suma_socfond nemá Ek. klasifikáciu, soc. fond nie sú peniaze EnÚ
+    zrazka_socfond = models.DecimalField("Zrážky SF", 
+            help_text = "Zrážka SF za stravné (kladná hodnota). Suma sa automaticky generuje akciou 'Generovať zoznam príspevkov/zrážok'",
             max_digits=8, 
             decimal_places=2, 
             null = True,
@@ -1603,28 +1622,52 @@ class PrispevokNaStravne(Klasifikacia):
             blank=True)
     history = HistoricalRecords()
 
-    # test platnosti dát
-    def clean(self): 
-        if self.suma_zamestnavatel * self.suma_socfond < 0:
-            raise ValidationError("Položky 'Príspevok zamestnávateľa' a 'Príspevok zo soc. fondu' musia byť buď len kladné alebo len záporné.")
-        if not self.suma_zamestnavatel or not self.suma_socfond: self.aktualizovat_SF
-
     #vytvoriť alebo aktualizovať súvisiacu položku v účte SF
     def aktualizovat_SF(self):
-        qs = SocialnyFond.objects.filter(predmet__startswith = self.cislo)
-        if not qs:
-            sf = SocialnyFond(
-                cislo = nasledujuce_cislo(SocialnyFond),
-                suma = self.suma_socfond,
-                datum_platby = date.today(),
-                predmet = f'{self.cislo} - {"príspevok na stravné" if self.typ_zoznamu==Stravne.PRISPEVKY else "zrážka za stravné"} za {Mesiace(self.za_mesiac).label}'
-            )
+        if typ_zoznamu == Stravne.PRI_ZRA: #Od apríla 2024
+            qs = SocialnyFond.objects.filter(predmet__startswith = f"{self.cislo} - príspevok")
+            if not qs:
+                sfp = SocialnyFond(
+                    cislo = nasledujuce_cislo(SocialnyFond),
+                    suma = self.suma_socfond,
+                    datum_platby = date.today(),
+                    predmet = f'{self.cislo} - príspevok na stravné za {Mesiace(self.za_mesiac).label}'
+                )
+            else:
+                sfp = qs[0]
+                sfp.datum_platby = date.today()
+                sfp.suma = self.suma_socfond
+                sfp.save()
+            qs = SocialnyFond.objects.filter(predmet__startswith = f"{self.cislo} - zrážka")
+            if not qs:
+                z_mesiac = self.za_mesiac -1 if self.za_mesiac > 1 else 12
+                sfz = SocialnyFond(
+                    cislo = nasledujuce_cislo(SocialnyFond),
+                    suma = self.suma_socfond,
+                    datum_platby = date.today(),
+                    predmet = f'{self.cislo} - zrážka za stravné za {Mesiace(z_mesiac).label}'
+                )
+            else:
+                sfz = qs[0]
+                sfz.datum_platby = date.today()
+                sfz.suma = self.suma_socfond
+                sfz.save()
+            return sfp.id, sfp.cislo, sfz.id, sfz.cislo
         else:
-            sf = qs[0]
-            sf.datum_platby = date.today()
-            sf.suma = self.suma_socfond
-        sf.save()
-        return sf.id, sf.cislo
+            qs = SocialnyFond.objects.filter(predmet__startswith = self.cislo)
+            if not qs:
+                sf = SocialnyFond(
+                    cislo = nasledujuce_cislo(SocialnyFond),
+                    suma = self.suma_socfond,
+                    datum_platby = date.today(),
+                    predmet = f'{self.cislo} - {"príspevok na stravné" if self.typ_zoznamu==Stravne.PRISPEVKY else "zrážka za stravné"} za {Mesiace(self.za_mesiac).label}'
+                )
+            else:
+                sf = qs[0]
+                sf.datum_platby = date.today()
+                sf.suma = self.suma_socfond
+                sf.save()
+            return sf.id, sf.cislo
 
     #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
     #V starších pdf s príspevkami (do 08/2023) je v hlavičke nesprávny údaj o mesiaci, ktorého sa príspevok týka.
