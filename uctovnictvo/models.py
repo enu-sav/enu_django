@@ -149,7 +149,7 @@ class StavDohody(models.TextChoices):
     DOKONCENA = "dokoncena", "Dokončená"
 
 class TypNepritomnosti(models.TextChoices):
-    MATERSKA = "materská", "Materská"           #Náhrada mzdy - prekážky osobné
+    MATERSKA = "materská", "MD/RD"              #Náhrada mzdy - prekážky osobné
     OCR = "ocr", "OČR"                          #NP
     PN = "pn", "PN"                             #Náhrada mzdy - prekážky osobné
     DOVOLENKA = "dovolenka", "Dovolenka"        #Náhrada mzdy - dovolenka
@@ -1624,7 +1624,7 @@ class PrispevokNaStravne(Klasifikacia):
 
     #vytvoriť alebo aktualizovať súvisiacu položku v účte SF
     def aktualizovat_SF(self):
-        if typ_zoznamu == Stravne.PRI_ZRA: #Od apríla 2024
+        if self.typ_zoznamu == Stravne.PRI_ZRA: #Od apríla 2024
             qs = SocialnyFond.objects.filter(predmet__startswith = f"{self.cislo} - príspevok")
             if not qs:
                 sfp = SocialnyFond(
@@ -1851,6 +1851,7 @@ class PlatovyVymer(Klasifikacia):
         docr = 0         #Počet dní OČR
 
         pdni = int(self.uvazok/self.uvazok_denne)    #počet pracovných dní v týždni, napr. 18.85/6.25=3
+        typy_nepritomnosti = []
         for nn in qs2:  #môže byť viac neprítomností za mesiac
             if nn.nepritomnost_typ == TypNepritomnosti.ZRUSENA: continue
             try:
@@ -1898,10 +1899,12 @@ class PlatovyVymer(Klasifikacia):
                     pass    #normálna mzda
                 else:   #Osobné prekážky (Pracovné voľno)
                     dosob += prac_dni(prvy,posledny, pdni, zahrnut_sviatky=True)    #Osobné prekážky vo sviatok sa nemajú čo vyskytovať
+
+                typy_nepritomnosti.append(nn.nepritomnost_typ)
             except TypeError:
                 raise TypeError(f"Chyba pri spracovaní platového výmeru '{self}', neprítomnosť '{nn}'")
 
-        return [pdni, ddov, ddov2, dosob, dnepl, dpn1, dpn2, docr]
+        return [typy_nepritomnosti, pdni, ddov, ddov2, dosob, dnepl, dpn1, dpn2, docr]
 
     #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
     #Mzdy sa vyplácajú spätne, t.j. v máji sa vypláca mzda za apríl
@@ -1913,7 +1916,7 @@ class PlatovyVymer(Klasifikacia):
 
         nepritomnost = self.nepritomnost_za_mesiac(zden)
         if not nepritomnost: return []
-        pdni, ddov, ddov2, dosob, dnepl, dpn1, dpn2, docr = nepritomnost
+        typy, pdni, ddov, ddov2, dosob, dnepl, dpn1, dpn2, docr = nepritomnost
         #Pridať OČR k neplateným, tu sa rátajú spolu
         dnepl += docr
         #Pripočítať poldni dovolenky

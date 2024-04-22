@@ -22,10 +22,10 @@ from .models import TypNepritomnosti, Stravne, VystavenaFaktura, NakupSUhradou, 
 
 from .common import VytvoritPlatobnyPrikaz, VytvoritSuborDohody
 from .common import VytvoritKryciList, VytvoritKryciListRekreacia, generovatIndividualneOdmeny, leapdays
-from .common import zmazatIndividualneOdmeny, generovatNepritomnost, exportovatNepritomnostUct, VytvoritKryciListOdmena, generovatStravne
+from .common import zmazatIndividualneOdmeny, generovatNepritomnost, exportovatNepritomnostUct, VytvoritKryciListOdmena
 from .common import VytvoritPlatobnyPrikazIP, VytvoritSuborPD, UlozitStranuPK, TarifnyPlatTabulky
 
-from uctovnictvo import objednavka_actions, nakup_actions
+from uctovnictvo import objednavka_actions, nakup_actions, stravne_actions
 #from .objednavka_actions import VytvoritSuborObjednavky, VytvoritSuborZiadanky
 
 from .forms import PrijataFakturaForm, AutorskeZmluvyForm, ObjednavkaForm, ZmluvaForm, PrispevokNaStravneForm, PravidelnaPlatbaForm
@@ -1422,7 +1422,7 @@ class PrispevokNaStravneAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistor
             messages.error(request, "Vybrať možno len jednu položku")
             return
         obj = queryset[0]
-        rslt = generovatStravne(obj)
+        rslt = stravne_actions.generovatStravne(obj)
         if len(rslt) == 1:  #Chyba
             messages.error(request, rslt[0])
             return
