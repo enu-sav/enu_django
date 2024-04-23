@@ -894,6 +894,9 @@ def generovatNepritomnostBiometric(cislo, start_from,ws):
         n_typ = []
         for s in range(31): # záznam o dochádzke má vždy 31 stĺpcov, vyplnené sú len prac. dni zamestnanca a sviatky
             value = ws.cell(row=riadok, column=s0+s).value
+            if value and "[" in value: #Záznam v Biometricu sa od apríla 2024 zmenil na: 7:30[HO 7:30] alebo [D 7:30] 
+                aux = re.findall("[[]([^ ]*)",value)
+                if aux: value = aux[0]
             if value and value != "S":
                 if s+1 < prvy_den and value != "PN": prvy_den = s+1 #PN ide vždy od začiatku mesiaca
                 if s+1 > posledny_den and value != "PN": posledny_den = s+1 #PN ide vždy až do konca mesiaca

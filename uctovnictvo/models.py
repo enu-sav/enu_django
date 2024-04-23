@@ -202,7 +202,37 @@ mesiace_num= {
     "oktober": [10, Mesiace.OKTOBER],
     "november": [11, Mesiace.NOVEMBER],
     "december": [12, Mesiace.DECEMBER]
-    }
+    } 
+#konvertuje číslo na Mesiace a naopak
+def mesiac__cislo(val):
+    if type(val) == int:
+        num_mesiac = {
+            1: Mesiace.JANUAR,
+            2: Mesiace.FEBRUAR,
+            3: Mesiace.MAREC,
+            4: Mesiace.APRIL,
+            5: Mesiace.MAJ,
+            6: Mesiace.JUN,
+            7: Mesiace.JUL,
+            8: Mesiace.AUGUST,
+            9: Mesiace.SEPTEMBER,
+            10: Mesiace.OKTOBER,
+            11: Mesiace.NOVEMBER,
+            12: Mesiace.DECEMBER
+        }
+        return num_mesiac[val]
+    else:
+        return mesiace_num[val][0]
+
+def nasl_mesiac(mes):
+    mes_num = mesiac__cislo(mes)
+    nasl = mes_num+1 if mes_num < 12 else 1
+    return mesiac__cislo(nasl)
+
+def predch_mesiac(mes):
+    mes_num = mesiac__cislo(mes)
+    nasl = mes_num-1 if mes_num > 1 else 12
+    return mesiac__cislo(nasl)
 
 class TypDochodku(models.TextChoices):
     STAROBNY = 'starobny', "starobný"
@@ -1631,34 +1661,33 @@ class PrispevokNaStravne(Klasifikacia):
                     cislo = nasledujuce_cislo(SocialnyFond),
                     suma = self.suma_socfond,
                     datum_platby = date.today(),
-                    predmet = f'{self.cislo} - príspevok na stravné za {Mesiace(self.za_mesiac).label}'
+                    predmet = f'{self.cislo} - príspevok na stravné za {Mesiace(nasl_mesiac(self.za_mesiac)).label}'
                 )
             else:
                 sfp = qs[0]
                 sfp.datum_platby = date.today()
                 sfp.suma = self.suma_socfond
-                sfp.save()
+            sfp.save()
             qs = SocialnyFond.objects.filter(predmet__startswith = f"{self.cislo} - zrážka")
             if not qs:
-                z_mesiac = self.za_mesiac -1 if self.za_mesiac > 1 else 12
                 sfz = SocialnyFond(
                     cislo = nasledujuce_cislo(SocialnyFond),
-                    suma = self.suma_socfond,
+                    suma = self.zrazka_socfond,
                     datum_platby = date.today(),
-                    predmet = f'{self.cislo} - zrážka za stravné za {Mesiace(z_mesiac).label}'
+                    predmet = f'{self.cislo} - zrážka za stravné za {Mesiace(self.za_mesiac).label}'
                 )
             else:
                 sfz = qs[0]
                 sfz.datum_platby = date.today()
-                sfz.suma = self.suma_socfond
-                sfz.save()
-            return sfp.id, sfp.cislo, sfz.id, sfz.cislo
+                sfz.suma = self.zrazka_socfond
+            sfz.save()
+            return [(sfp.id, sfp.cislo), (sfz.id, sfz.cislo)]
         else:
             qs = SocialnyFond.objects.filter(predmet__startswith = self.cislo)
             if not qs:
                 sf = SocialnyFond(
                     cislo = nasledujuce_cislo(SocialnyFond),
-                    suma = self.suma_socfond,
+                    suma = self.zrazka_socfond,
                     datum_platby = date.today(),
                     predmet = f'{self.cislo} - {"príspevok na stravné" if self.typ_zoznamu==Stravne.PRISPEVKY else "zrážka za stravné"} za {Mesiace(self.za_mesiac).label}'
                 )
@@ -1666,8 +1695,8 @@ class PrispevokNaStravne(Klasifikacia):
                 sf = qs[0]
                 sf.datum_platby = date.today()
                 sf.suma = self.suma_socfond
-                sf.save()
-            return sf.id, sf.cislo
+            sf.save()
+            return [(sf.id, sf.cislo)]
 
     #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
     #V starších pdf s príspevkami (do 08/2023) je v hlavičke nesprávny údaj o mesiaci, ktorého sa príspevok týka.

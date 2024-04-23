@@ -22,7 +22,7 @@ def d2s(ddate):
     if type(ddate) == str: return ddate
     return ddate.strftime("%-d.%-m.%Y")
 
-# Určí poslednú deň mesiaca k den
+# Určí posledný deň mesiaca k den
 def pden(den):
     next_month = den + relativedelta(months=1, day=1)  # 1. deň nasl. mesiaca
     return next_month - relativedelta(days=1) # koniec mesiaca

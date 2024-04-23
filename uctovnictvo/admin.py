@@ -1426,26 +1426,25 @@ class PrispevokNaStravneAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistor
         if len(rslt) == 1:  #Chyba
             messages.error(request, rslt[0])
             return
-        suma_enu, suma_sf, nzam, pokec, vytvoreny_subor = rslt
+        suma_enu_prispevok, suma_sf_prispevok, suma_enu_zrazky, suma_sf_zrazky, nzam, pokec, vytvoreny_subor = rslt
         obj.po_zamestnancoch = vytvoreny_subor
-        if obj.typ_zoznamu == Stravne.PRISPEVKY:
-            obj.suma_zamestnavatel = -suma_enu
-            obj.suma_socfond = -suma_sf
-        else:
-            obj.suma_zamestnavatel = suma_enu
-            obj.suma_socfond = suma_sf
+        obj.suma_zamestnavatel = -suma_enu_prispevok
+        obj.suma_socfond = -suma_sf_prispevok
+        obj.zrazka_zamestnavatel = suma_enu_zrazky
+        obj.zrazka_socfond = suma_sf_zrazky
         obj.save()
         messages.success(request, f"Vytvorený bol súbor '{Stravne(obj.typ_zoznamu).label}' pre {nzam} zamestnancov. Ak chcete súbor upraviť, stiahnite si ho, upravte a ručne vložte. Sumy v zázname následne upravte podľa novej verzie súboru (neaktualizujú sa automaticky)")
 
         #vytvoriť alebo aktualizovať súvisiacu položku v účte SF
-        sf_id, sf_cislo = obj.aktualizovat_SF()
-        messages.warning(request, 
-            format_html(
-                'Pridaná/aktualizovaná bola položka sociálneho fondu č. <em>{}</em>. <br />{}',
-                mark_safe(f'<a href="/admin/uctovnictvo/socialnyfond/{sf_id}/change/">{sf_cislo}</a>'),
-                mark_safe(pokec)
-                )
-        )
+        rslt = obj.aktualizovat_SF()
+        for item in rslt:
+            messages.warning(request, 
+                format_html(
+                    'Pridaná/aktualizovaná bola položka sociálneho fondu č. <em>{}</em>.',
+                    mark_safe(f'<a href="/admin/uctovnictvo/socialnyfond/{item[0]}/change/">{item[1]}</a>')
+                    )
+            )
+        self.message_user(request, mark_safe(pokec), messages.INFO)
         self.message_user(request, f"Vytvorenú tabuľku so zoznamom dajte na podpis a potom pred odoslaním vyplňte pole 'Dátum odoslania'. Automaticky sa vytvorí záznam v Denníku prijatej a odoslanej pošty.", messages.SUCCESS)
 
     generovat_prispevky_zrazky.short_description = "Generovať zoznam príspevkov/zrážok"
