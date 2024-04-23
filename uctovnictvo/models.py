@@ -1597,7 +1597,7 @@ class PrispevokNaStravne(Klasifikacia):
 
     za_mesiac = models.CharField("Mesiac", 
             max_length=20, 
-            help_text = "Zadajte mzdové obdobie.<br />Napr., ak koncom apríla chcete vytvoriť dokument na máj, zvoľte 'máj'. Vytvorí sa zoznam príspevkov na máj a zrážky za stravné sa vypočítajú za apríl.",
+            help_text = "Zadajte mzdové obdobie.<br />Napr., ak dokument vytvárate koncom apríla, zvoľte 'apríl'. Zrážky za stravné sa vypočítajú za apríl a vytvorí sa zoznam príspevkov na máj.",
             null = True,
             choices=Mesiace.choices)
 
