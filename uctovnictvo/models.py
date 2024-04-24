@@ -2465,10 +2465,6 @@ class Dohoda(PolymorphicModel, Klasifikacia):
     datum_do = models.DateField('Dátum do',
             help_text = "Zadajte dátum konca platnosti dohody",
             null=True)
-    pomocnik = models.CharField("Pomoc rod. príslušníkov", 
-            help_text = "Uveďte zoznam rod. príslušníkov, ktorí budú pomáhať pri vykonávaní činnosti, alebo nechajte prázdne. Pre každého uveďte meno a priezvisko.",
-            null = True, blank = True,
-            max_length=100)
     #Vypĺňa sa pri vytvorení vyplácania, pri opakovanej platbe obsahuje dátum za každú platbu
     vyplatene = models.CharField("Vyplatené", 
             help_text = "Dátum odoslania podkladov na vyplatenie, vypĺňa sa automaticky pri vyplnení položky 'PAM Vyplatenie dohody'",
