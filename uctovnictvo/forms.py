@@ -171,7 +171,21 @@ class PrijataFakturaForm(DennikZaznam):
                 self.initial[polecislo] = nasledujuce
             else: 
                 self.fields[polecislo].help_text = f"Číslo faktúry v tvare {PrijataFaktura.oznacenie}-RRRR-NNN."
-        self.fields['suma'].help_text = f"Vložte sumu s DPH.<br />Ak ide o <strong>platbu v cudzej mene</strong>, vyplňte polia 'Suma v cudzej mene' a 'Mena' a do tohoto poľa vložte nulu. Toto pole <strong>vyplňte až po určení</strong> skutočne vyplatenej sumy v EUR (podľa SOFTIPu).<br >Ak je <strong>faktúra v režime prenesenia daňovej povinnosti</strong>, zadajte <em>Áno</em> v poli <em>Prenos DP</em> a sem vložte sumu s DPH. Ak na takejto faktúre nie je uvedená suma s DPH, vloženú sumu treba <strong>vypočítať ručne</strong>."
+        self.fields['suma'].help_text = """
+            Vložte sumu s DPH (zápornú, ak ide o platbu).<br /><br />
+            Ak ide o <strong>platbu v cudzej mene</strong>, vyplňte polia 'Suma v cudzej mene' a 'Mena' a do tohoto poľa vložte nulu. Toto pole <strong>vyplňte až po určení</strong> skutočne vyplatenej sumy v EUR (podľa SOFTIPu).<br >
+            Ak je <strong>faktúra v režime prenesenia daňovej povinnosti</strong>, zadajte <em>Áno</em> v poli <em>Prenos DP</em> a sem vložte sumu s DPH. Ak na takejto faktúre nie je uvedená suma s DPH, vloženú sumu treba <strong>vypočítať ručne</strong>.
+            """
+        self.fields['rozpis_poloziek'].help_text = mark_safe( """
+            Vypĺňa sa, ak sú vo faktúre položky s rôznou klasifikáciou, alebo ak je faktúra rozdelená v Softipe<br /><br />
+            Zadajte 6 (7) polí oddelených <b>lomkou /</b> v poradí: <b>popis položky / cena bez DPH / DPH / Zdroj / Zákazka / EKRK /  Číslo faktúry v Softipe</b> <br />
+            Ak ide o platbu, cena sa tu uvádza ako <b>kladná</b>
+            Cenu možno zapísať aj ako súčet podpoložiek (napr. v prípade Telekomu) <br />
+            Príklad: <b>Mobilný Hlas / 1,866+4,9917 / 20 / 111 / 11010001 / 632005</b><br />
+            Príklad: <b>Mobilný internet / 24,9917+14,9917 / 20 / 111 / 11010001 / 632004</b><br />
+            Nepovinné pole 'Číslo faktúry v Softipe' sa zadáva kvôli softvérovému porovnaniu Djanga so Softipom
+            """
+            )
 
     # Skontrolovať platnost a keď je všetko OK, spraviť záznam do denníka
     def clean(self):

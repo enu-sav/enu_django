@@ -950,6 +950,9 @@ class PrijataFaktura(FakturaPravidelnaPlatba, GetAdminURL):
             decimal_places=2, 
             blank = True,
             null=True)
+    rozpis_poloziek = models.TextField("Rozpis položiek",
+            #help_text je vo forms.py
+            max_length=5000, null=True, blank=True)
     mena = models.CharField("Mena", 
             max_length=3, 
             default= Mena.EUR,
@@ -972,10 +975,47 @@ class PrijataFaktura(FakturaPravidelnaPlatba, GetAdminURL):
     history = HistoricalRecords()
 
     def clean(self):
+        def suma_riadok(pole):
+            pole = pole.replace(",",".")
+            sumy = pole.split("+")
+            celkove=0
+            for suma in sumy:
+                celkove += float(suma)
+            return celkove
+
         if type(self.objednavka_zmluva) == PrijataFaktura and self.objednavka_zmluva.platna_do and self.splatnost_datum > self.objednavka_zmluva.platna_do:
             raise ValidationError(f"Faktúra nemôže byť vytvorená, lebo zmluva {self.objednavka_zmluva} je platná len do {self.objednavka_zmluva.platna_do}.")
         if self.prenosDP == AnoNie.ANO and self.sadzbadph == SadzbaDPH.P0:
             raise ValidationError(f"Ak je faktúra v režime prenesenia daňovej povinnosti, tak Sadzba DPH nemôže byť 0 %")
+        #kontrola rozpísanych položiek
+        if self.rozpis_poloziek:
+            riadky = self.rozpis_poloziek.split("\n")
+            suma_spolu = 0
+            for nn, riadok in enumerate(riadky):
+                polia = rozdelit_polozky(riadok) 
+                pocet_poli = len(polia)
+                if not pocet_poli in (6,7):
+                    pp = "pole" if pocet_poli==1 else "polia" if pocet_poli < 5 else "polí"
+                    raise ValidationError({
+                        "rozpis_poloziek":f"riadok (nn+1) má {pocet_poli} {pp}, povolený počet je 6 alebo 7 (skontrolujte oddeľovače)"
+                    })
+                ekoklas = EkonomickaKlasifikacia.objects.filter(kod=polia[5])
+                if not ekoklas:
+                    raise ValidationError({
+                        "rozpis_poloziek":f"Kód ekonomickej klasifikácie '{polia[5]}' na riadku {nn+1} nie je platný (alebo nie je zaradený v 'Klasifikácia - Ekonomická klasifikácia')"
+                    })
+                try:
+                    suma_spolu += suma_riadok(polia[1])*(1+suma_riadok(polia[2])/100)
+                except ValueError as ex:
+                    raise ValidationError({
+                        "rozpis_poloziek":f"Na riadku {nn+1} je zadané nesprávne číslo: {ex.args[0]}"
+                    })
+            suma_spolu = round(suma_spolu, 2)
+            if np.abs(suma_spolu +float(self.suma)) >= 0.00999: #znamienka sú opačné
+                f1 = self._meta.get_field('suma').verbose_name
+                raise ValidationError({
+                    "rozpis_poloziek":f"Súčet čiastkových súm {suma_spolu} nie je zhodný s celkovou sumou {-self.suma} v poli '{f1}'" 
+                })
         super(PrijataFaktura, self).clean()
 
     #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
