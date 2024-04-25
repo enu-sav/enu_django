@@ -19,6 +19,8 @@ from beliana.settings import TMPLTS_DIR_NAME, PLATOVE_VYMERY_DIR, DOHODY_DIR, PR
 from beliana.settings import ODVODY_VYNIMKA, DAN_Z_PRIJMU, OBJEDNAVKY_DIR, STRAVNE_DIR, REKREACIA_DIR
 from beliana.settings import PN1, PN2, BEZ_PRIKAZU_DIR, DDS_PRISPEVOK, ODMENY_DIR, NEPRITOMNOST_DIR, SOCFOND_PRISPEVOK
 from beliana.settings import VYSTAVENEFAKTURY_DIR, NAJOMNEFAKTURY_DIR, POKLADNA_DIR
+from .utility import NacitatUdajeFakturyTelekom
+
 import os,re
 from datetime import timedelta, date, datetime
 from dateutil.relativedelta import relativedelta
@@ -988,6 +990,26 @@ class PrijataFaktura(FakturaPravidelnaPlatba, GetAdminURL):
         if self.prenosDP == AnoNie.ANO and self.sadzbadph == SadzbaDPH.P0:
             raise ValidationError(f"Ak je faktúra v režime prenesenia daňovej povinnosti, tak Sadzba DPH nemôže byť 0 %")
         #kontrola rozpísanych položiek
+        #Špeciálne zaobchádzanie:
+        #Faktúra Telekom
+        if type(self.objednavka_zmluva) == Zmluva and self.objednavka_zmluva == Zmluva.objects.get(nase_cislo="ZE-2018-003") and not self.rozpis_poloziek:
+            rslt = NacitatUdajeFakturyTelekom(self.prijata_faktura.file) if self.prijata_faktura else None
+            if rslt:
+                #self.suma = -Decimal(float(rslt["suma_na_uhradu"].replace(",",".")))
+                self.dcislo = rslt["cislo_faktury"]
+                self.rozpis_poloziek = f'Mobilný Hlas / {rslt["mobilny_hlas"]} / 20 / 111 / 11010001 / 632005\nMobilný internet / {rslt["mobilny_internet"]} / 20 / 111 / 11010001 / 632004'
+                if 'ostatne_spolu' in rslt and rslt['ostatne_spolu']:
+                    self.rozpis_poloziek = f"{self.rozpis_poloziek}\nOstatné / {rslt['ostatne_spolu']} / 0 / 111 / 11010001 / 632005"
+                #self.ekoklas =  EkonomickaKlasifikacia.objects.get(kod="632004")
+                #self.zdroj = Zdroj.objects.get(kod="111")
+                #self.zakazka = TypZakazky.objects.get(kod="11010001 spol. zák.")
+                ds = rslt["datum_splatnosti"].split(".")
+                self.datum_splatnosti = date(int(ds[2]), int(ds[1]), int(ds[0]))
+                #self.doslo_datum = date.today()
+                if not self.predmet: self.predmet = "Telefónny účet (hlas + internet)"
+                self.prenosDP = AnoNie.NIE
+                self.zrusena = AnoNie.NIE
+            
         if self.rozpis_poloziek:
             riadky = self.rozpis_poloziek.split("\n")
             suma_spolu = 0
@@ -1020,7 +1042,8 @@ class PrijataFaktura(FakturaPravidelnaPlatba, GetAdminURL):
                     raise ValidationError({
                         "rozpis_poloziek":f"Na riadku {nn+1} je zadané nesprávne číslo: {ex.args[0]}"
                     })
-            suma_spolu = round(suma_spolu, 2)
+            trace
+            #suma_spolu = round(suma_spolu, 2)  #Môže spôsobiť rozdiel väčší ako 0,01
             if np.abs(suma_spolu +float(self.suma)) >= 0.00999: #znamienka sú opačné
                 f1 = self._meta.get_field('suma').verbose_name
                 raise ValidationError({
