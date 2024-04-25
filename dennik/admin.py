@@ -308,6 +308,7 @@ class CerpanieRozpoctuAdmin(ModelAdminTotals):
 
         typyOstatne = [NakupSUhradou, PravidelnaPlatba, PrijataFaktura, VystavenaFaktura, PlatbaAutorskaSumar, VytvarnaObjednavkaPlatba, NajomneFaktura, 
                        RozpoctovaPolozka, PlatbaBezPrikazu, PrispevokNaRekreaciu, InternyPrevod]
+        #typyOstatne = [PrijataFaktura]
 
         cerpanie_spolu = defaultdict(dict) # Obsah cerpanie_spolu zapísať do databázy a do hárka Prehľad
         polozky_riadok = [] #individuálne položky do hárka Položky
@@ -315,6 +316,7 @@ class CerpanieRozpoctuAdmin(ModelAdminTotals):
         for zden in md1list[:-1]:    # po mesiacoch
             #Načítať jednotlivé položky
             cerpanie_mzdove = generovat_mzdove(request, zden, rekapitulacia=False)
+            #cerpanie_mzdove = []
             cerpanie_ostatne = []
             for typ in typyOstatne:
                 for polozka in typ.objects.filter():
