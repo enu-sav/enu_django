@@ -180,10 +180,11 @@ class PrijataFakturaForm(DennikZaznam):
             Vypĺňa sa, ak sú vo faktúre položky s rôznou klasifikáciou, alebo ak je faktúra rozdelená v Softipe<br /><br />
             Zadajte 6 (7) polí oddelených <b>lomkou /</b> v poradí: <b>popis položky / cena bez DPH / DPH / Zdroj / Zákazka / EKRK /  Číslo faktúry v Softipe</b> <br />
             Ak ide o platbu, cena sa tu uvádza ako <b>kladná</b>
-            Cenu možno zapísať aj ako súčet podpoložiek (napr. v prípade Telekomu) <br />
-            Príklad: <b>Mobilný Hlas / 1,866+4,9917 / 20 / 111 / 11010001 / 632005</b><br />
-            Príklad: <b>Mobilný internet / 24,9917+14,9917 / 20 / 111 / 11010001 / 632004</b><br />
-            Nepovinné pole 'Číslo faktúry v Softipe' sa zadáva kvôli softvérovému porovnaniu Djanga so Softipom
+            Cenu možno zapísať aj ako súčet podpoložiek (napr. v prípade Telekomu). Príklad: <br />
+            <b>Mobilný Hlas / 1,866+4,9917 / 20 / 111 / 11010001 / 632005</b><br />
+            <b>Mobilný internet / 24,9917+14,9917 / 20 / 111 / 11010001 / 632004</b><br />
+            Nepovinné pole 'Číslo faktúry v Softipe' sa zadáva kvôli softvérovému porovnaniu Djanga so Softipom (ak sa líši od poľa 'Číslo faktúry dodávateľa') <br />
+            <b>Trik</b> pri vkladaní faktúr Slovak Telekom: Najskôr faktúru vytvoriť, vyplniť (so súborom faktúry ale bez rozpisu položiek čísla faktúru) a uložiť. Potom otvoriť ešte raz a bez zmien uložiť. Rozpis položiek a číslo faktúry sa načítajú z faktúry.
             """
             )
 
@@ -229,7 +230,7 @@ class VystavenaFakturaForm(DennikZaznam):
         #pole dane_na_uhradu možno vyplniť až po vygenerovani platobného príkazu akciou 
         #"Vytvoriť platobný príkaz a krycí list"
         if 'dane_na_uhradu' in self.changed_data:
-            self.dennik_zaznam(f"Platobný príkaz do učtárne {self.instance.cislo} na vyplatenie", TypDokumentu.VYSTAVENAFAKTURA, InOut.ODOSLANY, "THS", self.instance.platobny_prikaz.url)
+            self.dennik_zaznam(f"Platobný príkaz do učtárne {self.instance.cislo} na vyplatenie", TypDokumentu.VYSTAVENAFAKTURA, InOut.ODOSLANY, "CSČ", self.instance.platobny_prikaz.url)
         return self.cleaned_data
 
     #Skryť položky vo formulári
