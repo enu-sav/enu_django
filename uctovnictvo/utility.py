@@ -19,17 +19,38 @@ def NacitatUdajeFakturyTelekom(fdata):
         page = pdf.getPage(nn)
         txt = page.extractText()
         pdftext += txt
+    #Od 04/2024 faktúry nerozlišujú súčty podľa Hlas a Internet
+    #do 03/2024
     mobilny_hlas = re.findall("Mobilný Hlas .* spolu ([0-9,]*)", pdftext)
     mobilny_internet = re.findall("Mobilný Internet .* spolu ([0-9,]*)", pdftext)
+    #do 03/2024, snáď aj neskôr
+    cislo_faktury = re.findall("FAKTÚRA č. (.*)",pdftext)[0]
+    datum_splatnosti = re.findall("DÁTUM SPLATNOSTI ([0-9.]*)", pdftext)[0]
     ostatne_spolu = re.findall("OSTATNÉ SPOLU ([0-9,]*)", pdftext)
     ostatne_spolu = str(ostatne_spolu[0]) if ostatne_spolu else ""
+    if ostatne_spolu:
+        if float(ostatne_spolu.replace(",",".")) == 0.0:
+                 ostatne_spolu = ""
+    #od 04/2024
+    if not mobilny_internet and not mobilny_hlas:
+        #načítať po blokoch "Mobilné služby - číslo" ..... "Mobilné služby - číslo spolu" 
+        mobilny_internet = []
+        mobilny_hlas = []
+        pdftext = pdftext.replace("\n", " ")
+        sluzby = re.findall("Mobilné služby - [0-9]* .*? Mobilné služby - [0-9]* *spolu [0-9,]*", pdftext)
+        for sluzba in sluzby:
+            suma = re.findall("([0-9,]*)$", sluzba)[0] #suma je na konci
+            if "internet" in sluzba: 
+                mobilny_internet.append(suma)
+            else:
+                mobilny_hlas.append(suma)
     data = {
-            "cislo_faktury": re.findall("FAKTÚRA č. (.*)",pdftext)[0],
-            "mobilny_hlas": "+".join(mobilny_hlas),
-            "mobilny_internet": "+".join(mobilny_internet),
-            "ostatne_spolu": ostatne_spolu,
-            "datum_splatnosti": re.findall("DÁTUM SPLATNOSTI ([0-9.]*)", pdftext)[0]
-            }
+        "cislo_faktury": cislo_faktury,
+        "mobilny_hlas": "+".join(mobilny_hlas),
+        "mobilny_internet": "+".join(mobilny_internet),
+        "ostatne_spolu": ostatne_spolu,
+        "datum_splatnosti": datum_splatnosti
+    }
 
     if type(fdata) == InMemoryUploadedFile:
         fdata.seek(0)
