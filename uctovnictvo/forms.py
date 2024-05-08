@@ -160,8 +160,13 @@ class PrijataFakturaForm(DennikZaznam):
         self.request = kwargs.pop('request', None)
         super().__init__(*args, **kwargs)
         #trieda PrijataFaktura dedí od triedy Platba, tak tu nastavíme help text
-        self.fields['zdroj'].help_text = f"Primárny zdroj platby a súvisiacej DPH"
-        self.fields['zakazka'].help_text = f"Primárna zákazka platby a súvisiacej DPH"
+        rozpis_poloziek_name = PrijataFaktura._meta.get_field('rozpis_poloziek').verbose_name
+        ignorovane = f"Pole je ignorované, ak je vyplnené pole {rozpis_poloziek_name}"
+        self.fields['zdroj'].help_text = f"Primárny zdroj platby a súvisiacej DPH. {ignorovane}."
+        self.fields['zakazka'].help_text = f"Primárna zákazka platby a súvisiacej DPH. {ignorovane}."
+        self.fields['sadzbadph'].help_text = f"Uveďte sadzbu DPH. {ignorovane}."
+        self.fields['ekoklas'].help_text = f"Ekonomická klasifikácia rozpočtovej klasifikácie. {ignorovane}."
+        self.fields['podiel2'].help_text = f"Podiel druhého zdroja/zákazky v prípade delenia faktúry, inak 0 %. Nemožno použiť spolu s poľom {rozpis_poloziek_name}"
         polecislo = "cislo"
         # Ak je pole readonly, tak sa nenachádza vo fields. Preto testujeme fields aj initial
         if polecislo in self.fields:

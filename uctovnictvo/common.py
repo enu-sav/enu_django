@@ -12,7 +12,7 @@ from django.utils.html import format_html
 from .models import SystemovySubor, PrijataFaktura, AnoNie, Objednavka, VystavenaFaktura, Rozhodnutie, Zmluva
 from .models import DoVP, DoPC, DoBPS, Poistovna, TypDochodku, Mena, PravidelnaPlatba, TypPP, TypPokladna, Pokladna
 from .models import NajomneFaktura, PrispevokNaRekreaciu, Zamestnanec, OdmenaOprava, OdmenaAleboOprava, TypNepritomnosti, Nepritomnost
-from .models import PlatovaStupnica, Stravne, mesiace_num, PlatovyVymer, Mesiace
+from .models import PlatovaStupnica, Stravne, mesiace_num, PlatovyVymer, Mesiace, rozdelit_polozky
 from .rokydni import mesiace, prac_dni, pden, s2d
 
 from openpyxl import load_workbook
@@ -338,6 +338,32 @@ def VytvoritPlatobnyPrikazIP(faktura, pouzivatel):
  
 # pouzivatel: aktualny pouzivatel
 def VytvoritPlatobnyPrikaz(faktura, pouzivatel):
+    def suma_riadok(pole):
+        pole = pole.replace(",",".")
+        sumy = pole.split("+")
+        celkove=0
+        for suma in sumy:
+            celkove += float(suma)
+        return celkove
+    def vyplnit_rozpisane(text, rozpis_poloziek):
+        locale.setlocale(locale.LC_ALL, 'sk_SK.UTF-8')
+        polozky = [f"{lt}popis%d{gt}", f"{lt}cbdph%d{gt}", f"{lt}d%d{gt}", f"{lt}zd%d{gt}", f"{lt}zak%d{gt}", f"{lt}ek%d{gt}"]
+        riadky = rozpis_poloziek.split("\n")
+        for nn, riadok in enumerate(riadky):
+            polia = rozdelit_polozky(riadok)
+            text = text.replace(polozky[0]%(nn+1), polia[0])
+            text = text.replace(polozky[2]%(nn+1), polia[2])
+            text = text.replace(polozky[3]%(nn+1), polia[3])
+            text = text.replace(polozky[4]%(nn+1), polia[4])
+            text = text.replace(polozky[5]%(nn+1), polia[5])
+            suma = suma_riadok(polia[1])*(1+suma_riadok(polia[2])/100)
+            text = text.replace(polozky[1]%(nn+1), f"{locale_format(round(Decimal(suma), 2))}")
+        #Zmazať ostatné
+        for nn in range(len(riadky)+1, 7):  #Máme 6 riadkov v šablóne
+            for polozka in polozky:
+                text = text.replace(polozka%nn,"")
+        return text
+
     #úvodné testy
     if not os.path.isdir(settings.PLATOBNE_PRIKAZY_DIR):
         os.makedirs(settings.PLATOBNE_PRIKAZY_DIR)
@@ -371,6 +397,7 @@ def VytvoritPlatobnyPrikaz(faktura, pouzivatel):
     if not faktura.suma and not faktura.sumacm:
         return messages.ERROR, "Vytváranie príkazu zlyhalo, lebo nebola zadaná suma v Eur a ani suma v cudzej mene.", None
     if jePF:    #prijatá faktúra môže byť aj v cudzej mene
+            
         sadzbadph = Decimal(faktura.sadzbadph)
         if faktura.mena == Mena.EUR:
             mena = "€"
@@ -391,17 +418,26 @@ def VytvoritPlatobnyPrikaz(faktura, pouzivatel):
             text = text.replace(f"{lt}DM{gt}", "")
             text = text.replace(f"{lt}CM{gt}", f"{locale_format(suma)} {mena}")     # suma je záporná, vo formulári chceme kladné
 
-        #text = text.replace(f"{lt}sadzbadph{gt}", faktura.sadzbadph)
-        #text = text.replace(f"{lt}sumadph{gt}", f"{locale_format(round(suma-zaklad_dane,2))} {mena}")
-        text = text.replace(f"{lt}suma1{gt}", f"{locale_format(round((1-faktura.podiel2/100)*suma,2))} {mena}")
-        if faktura.podiel2 > 0:
-            text = text.replace(f"{lt}suma2{gt}", f"{locale_format(round((faktura.podiel2)*suma/100,2))} {mena}")
-        else:
-            text = text.replace(f"{lt}suma2{gt}", f"0 {mena}")
         text = text.replace(f"{lt}dodavatel_faktura{gt}", faktura.dcislo if faktura.dcislo else "")
         text = text.replace(f"{lt}doslo_dna{gt}", faktura.doslo_datum.strftime("%d. %m. %Y") if faktura.doslo_datum else "" )
         text = text.replace(f"{lt}predmet_faktury{gt}", faktura.predmet)
-    elif jeVF:
+        #text = text.replace(f"{lt}sadzbadph{gt}", faktura.sadzbadph)
+        #text = text.replace(f"{lt}sumadph{gt}", f"{locale_format(round(suma-zaklad_dane,2))} {mena}")
+        if faktura.rozpis_poloziek:
+            #Skryť nevhodnú oblasť
+            text = text.replace( 'text:name="OblastJednaPolozka"', 'text:name="OblastJednaPolozka" text:display="none">')
+            text = vyplnit_rozpisane(text, faktura.rozpis_poloziek)
+            text = text.replace(f"{lt}mena{gt}", mena)  
+        else:
+            #Skryť nevhodnú oblasť
+            text = text.replace( 'text:name="OblastRozpisanePolozky"', 'text:name="OblastRozpisanePolozky" text:display="none">')
+            text = text.replace(f"{lt}suma1{gt}", f"{locale_format(round((1-faktura.podiel2/100)*suma,2))} {mena}")
+            if faktura.podiel2 > 0:
+                text = text.replace(f"{lt}suma2{gt}", f"{locale_format(round((faktura.podiel2)*suma/100,2))} {mena}")
+            else:
+                text = text.replace(f"{lt}suma2{gt}", f"0 {mena}")
+    elif jeVF:  #len ak ide o vrátenie sumy nájomníkovi
+        text = text.replace( 'text:name="OblastRozpisanePolozky"', 'text:name="OblastRozpisanePolozky" text:display="none">')
         suma = -faktura.suma    # suma je kladná, vo formulári chceme zápornú (ide o príjem)
         mena = "€"
         text = text.replace(f"{lt}DM{gt}", f"{locale_format(suma)} €")
@@ -416,6 +452,7 @@ def VytvoritPlatobnyPrikaz(faktura, pouzivatel):
         text = text.replace(f"{lt}doslo_dna{gt}", faktura.doslo_datum.strftime("%d. %m. %Y") if faktura.doslo_datum else "" )
         text = text.replace(f"{lt}predmet_faktury{gt}", faktura.predmet)
     else:   #PravidelnaPlatba, len v EUR
+        text = text.replace( 'text:name="OblastRozpisanePolozky"', 'text:name="OblastRozpisanePolozky" text:display="none">')
         suma = -faktura.suma
         mena = "€"
         text = text.replace(f"{lt}DM{gt}", f"{locale_format(suma)} €")     # suma je záporná, o formulári chceme kladné

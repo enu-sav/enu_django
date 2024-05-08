@@ -990,6 +990,8 @@ class PrijataFaktura(FakturaPravidelnaPlatba, GetAdminURL):
         if self.prenosDP == AnoNie.ANO and self.sadzbadph == SadzbaDPH.P0:
             raise ValidationError(f"Ak je faktúra v režime prenesenia daňovej povinnosti, tak Sadzba DPH nemôže byť 0 %")
         #kontrola rozpísanych položiek
+        if self.rozpis_poloziek and self.podiel2 > 0:
+            raise ValidationError(f"Polia 'Podiel 2' a 'Rozpis položiek' nemožno použiť súčasne." )
         #Špeciálne zaobchádzanie:
         #Faktúra Telekom
         if type(self.objednavka_zmluva) == Zmluva and self.objednavka_zmluva == Zmluva.objects.get(nase_cislo="ZE-2018-003") and not self.rozpis_poloziek:
@@ -997,7 +999,7 @@ class PrijataFaktura(FakturaPravidelnaPlatba, GetAdminURL):
             if rslt:
                 #self.suma = -Decimal(float(rslt["suma_na_uhradu"].replace(",",".")))
                 self.dcislo = rslt["cislo_faktury"]
-                self.rozpis_poloziek = f'Mobilný Hlas / {rslt["mobilny_hlas"]} / 20 / 111 / 11010001 / 632005\nMobilný internet / {rslt["mobilny_internet"]} / 20 / 111 / 11010001 / 632004'
+                self.rozpis_poloziek = f'Mobilný hlas / {rslt["mobilny_hlas"]} / 20 / 111 / 11010001 / 632005\nMobilný internet / {rslt["mobilny_internet"]} / 20 / 111 / 11010001 / 632004'
                 if 'ostatne_spolu' in rslt and rslt['ostatne_spolu']:
                     self.rozpis_poloziek = f"{self.rozpis_poloziek}\nOstatné / {rslt['ostatne_spolu']} / 0 / 111 / 11010001 / 632005"
                 #self.ekoklas =  EkonomickaKlasifikacia.objects.get(kod="632004")
@@ -2099,6 +2101,8 @@ class PlatovyVymer(Klasifikacia):
         zdroj = zdroj if zdroj else self.zdroj
         zakazka = zakazka if zakazka else self.zakazka
 
+        tabulkovy_plat = float(self.tarifny_plat) + float(self.osobny_priplatok) + float(self.funkcny_priplatok)
+
         #Odpracované dni
         tarifny = {
                 "nazov":"Plat tarifný plat",
@@ -2133,25 +2137,6 @@ class PlatovyVymer(Klasifikacia):
                 "cislo": self.cislo if self.cislo else "-",
                 "ekoklas": EkonomickaKlasifikacia.objects.get(kod="612002")
                 }
-        tabulkovy_plat = float(self.tarifny_plat) + float(self.osobny_priplatok) + float(self.funkcny_priplatok)
-
-        #PN
-        nahrada_pn = None
-        if dpn1 or dpn2:
-            denny_vz, text_vz = self.urcit_VZ(zden)
-            nahrada_pn = {
-                    "nazov": "Náhrada mzdy - PN",
-                    "suma": -round(Decimal((dpn1*PN1(zden)+dpn2*PN2(zden))*denny_vz/100),2),
-                    "zdroj": zdroj,
-                    "zakazka": zakazka,
-                    "datum": zden if zden < date.today() else None,
-                    "osoba": self.zamestnanec,
-                    "subjekt": f"{self.zamestnanec.priezvisko}, {self.zamestnanec.meno}",
-                    "cislo": self.cislo if self.cislo else "-",
-                    "ekoklas": EkonomickaKlasifikacia.objects.get(kod="642015")
-                    }
-            if text_vz and "približne" in text_vz:
-                nahrada_pn["poznamka"] = f"Čerpanie rozpočtu: vypočítaná suma náhrad PN je približná. V údajoch zamestnanca '{self.zamestnanec}' treba na základe údajov v Softipe doplniť denný vymeriavací základ za mesiac {zden.year}/{zden.month}."
 
         #Osobné prekážky
         nahrada_osob = None
@@ -2181,6 +2166,24 @@ class PlatovyVymer(Klasifikacia):
                     "cislo": self.cislo if self.cislo else "-",
                     "ekoklas": EkonomickaKlasifikacia.objects.get(kod="611")
                     }
+
+        #PN
+        nahrada_pn = None
+        if dpn1 or dpn2:
+            denny_vz, text_vz = self.urcit_VZ(zden)
+            nahrada_pn = {
+                    "nazov": "Náhrada mzdy - PN",
+                    "suma": -round(Decimal((dpn1*PN1(zden)+dpn2*PN2(zden))*denny_vz/100),2),
+                    "zdroj": zdroj,
+                    "zakazka": zakazka,
+                    "datum": zden if zden < date.today() else None,
+                    "osoba": self.zamestnanec,
+                    "subjekt": f"{self.zamestnanec.priezvisko}, {self.zamestnanec.meno}",
+                    "cislo": self.cislo if self.cislo else "-",
+                    "ekoklas": EkonomickaKlasifikacia.objects.get(kod="642015")
+                    }
+            if text_vz and "približne" in text_vz:
+                nahrada_pn["poznamka"] = f"Čerpanie rozpočtu: vypočítaná suma náhrad PN je približná. V údajoch zamestnanca '{self.zamestnanec}' treba na základe údajov v Softipe doplniť denný vymeriavací základ za mesiac {zden.year}/{zden.month}."
 
         retlist = [tarifny, osobny, funkcny]
         if nahrada_dov: retlist.append(nahrada_dov)
