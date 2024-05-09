@@ -622,7 +622,8 @@ def generovat_mzdove(request, zden, rekapitulacia):
             if not data: continue   #netýka sa akuálneho mesiaca
             for item in data:
                 if rekapitulacia and item['nazov'] == 'Stravné príspevok':
-                    item['suma'] += item['socfond'] # V mzdovej rekapitulácii sa uvádza súčet zamestnávateľ + socfond
+                    if 'socfond' in item: #len do 03/2024, od 04/2024 sa v rekapitulácii uvádza príspevok zamestnávateľa a socfondu nezávisle (socfond tu ignorujeme)
+                        item['suma'] += item['socfond'] # V mzdovej rekapitulácii sa uvádza súčet zamestnávateľ + socfond
                 if rekapitulacia and item['nazov'] == 'Stravné zrážky':
                     item['suma'] = -item['suma'] - item['socfond']  # V mzdovej rekapitulácii sa uvádza súčet zamestnávateľ + socfond
                 po_osobach[item['subjekt']].append(item)
