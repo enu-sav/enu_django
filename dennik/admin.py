@@ -572,6 +572,8 @@ class PlatovaRekapitulaciaAdmin(ModelAdminTotals):
                     ws.column_dimensions[get_column_letter(cc+1)].width = fw[cc]
                 zapisat_riadok(ws_prehlad, fw, qn*len(typ_zakazky)+2+zn, [za_mesiac.identifikator, zakazka, f"='{za_mesiac.identifikator}'!C{(1+zn)*(len(polozky)+2)}", f"='{za_mesiac.identifikator}'!D{(1+zn)*(len(polozky)+2)}", rozdiel_minus, rozdiel_plus])
                 #Uložiť do databázy
+                rozdiel_plus_all = max(rozdiel_plus_all, rozdiel_plus)
+                rozdiel_minus_all = min(rozdiel_minus_all, rozdiel_minus)
                 nn_blok += 2 + len(polozky)
             za_mesiac.rozdiel_plus=rozdiel_plus_all
             za_mesiac.rozdiel_minus=rozdiel_minus_all
