@@ -353,7 +353,7 @@ class ZmluvaGrafikAdmin(ZmluvaAdmin, AdminChangeLinksMixin, SimpleHistoryAdmin, 
     # modifikovať formulár na pridanie poľa Popis zmeny
     form = ZmluvaGrafikForm
     def get_list_display(self, request):
-        return ("cislo", "zmluvna_strana_link") + super(ZmluvaGrafikAdmin, self).get_list_display(request)
+        return ("cislo",) + super(ZmluvaGrafikAdmin, self).get_list_display(request)
 
     #fields = ('cislo', 'stav_zmluvy', 'zmluva_odoslana', 'zmluva_vratena', 'zmluvna_strana',
             #'honorar_ah', 'url_zmluvy', 'datum_zverejnenia_CRZ', 'datum_pridania', 'datum_aktualizacie')
