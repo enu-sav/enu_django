@@ -366,7 +366,7 @@ class NakupSUhradouAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmi
                 nakup.save()
                 t_datum_vybavenia = NakupSUhradou._meta.get_field('datum_vybavenia').verbose_name
                 if nakup.forma_uhrady == FormaUhrady.UCET:
-                    self.message_user(request, f"Vytvorenú žiadosť o preplatenie dajte na podpis a potom ju odošlite do učtárne. Následne vyplňte pole '{t_datum_vybavenia}'.", messages.WARNING)
+                    self.message_user(request, f"Vytvorenú žiadosť o preplatenie dajte na podpis a potom ju odovzdajte do pošty. Následne vyplňte pole '{t_datum_vybavenia}'.", messages.WARNING)
                 else:
                     self.message_user(request, f"Vytvorenú žiadosť o preplatenie dajte na podpis a vyplňte pole '{t_datum_vybavenia}'. Vytvorí sa záznam pokladne", messages.WARNING)
                 #t_objednane_polozky = NakupSUhradou._meta.get_field('objednane_polozky').verbose_name

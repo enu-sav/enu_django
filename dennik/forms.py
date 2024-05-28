@@ -8,7 +8,7 @@ from .models import Dokument, InOut, TypDokumentu, Formular, CerpanieRozpoctu
 from zmluvy.models import ZmluvaAutor, ZmluvaGrafik, VytvarnaObjednavkaPlatba, PlatbaAutorskaSumar
 from uctovnictvo.models import Objednavka, PrijataFaktura, PrispevokNaStravne, DoVP, DoPC, DoBPS, NajomneFaktura
 from uctovnictvo.models import PravidelnaPlatba, InternyPrevod, PrispevokNaRekreaciu, Nepritomnost
-from uctovnictvo.models import VystavenaFaktura
+from uctovnictvo.models import VystavenaFaktura, NakupSUhradou
 from datetime import datetime
 from django.core.exceptions import ValidationError
 import re
@@ -32,7 +32,8 @@ triedy = {
     PrispevokNaRekreaciu.oznacenie: PrispevokNaRekreaciu,
     Dokument.oznacenie: Dokument,
     Nepritomnost.oznacenie: Nepritomnost,
-    Formular.oznacenie: Formular
+    Formular.oznacenie: Formular,
+    NakupSUhradou.oznacenie: NakupSUhradou
 }
 
     #
@@ -61,7 +62,8 @@ def normalizovat_cislo(cislo):
         PrispevokNaRekreaciu.oznacenie.lower(): PrispevokNaRekreaciu.oznacenie,
         Dokument.oznacenie.lower(): Dokument.oznacenie,
         Nepritomnost.oznacenie.lower(): Nepritomnost.oznacenie,
-        Formular.oznacenie.lower(): Formular.oznacenie
+        Formular.oznacenie.lower(): Formular.oznacenie,
+        NakupSUhradou.oznacenie.lower(): NakupSUhradou.oznacenie
     }
     aux = parse_cislo(cislo)
     if aux:

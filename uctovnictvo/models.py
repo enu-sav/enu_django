@@ -2963,7 +2963,7 @@ class NakupSUhradou(models.Model, GetAdminURL):
     datum_vybavenia = models.DateField('Dátum vybavenia',
             help_text = mark_safe(
                 "<ol>"
-                "<li>Zadajte dátum odoslania žiadosti o preplatenie do účtárne</li>"
+                "<li>Zadajte dátum odovzdania žiadosti o preplatenie do pošty</li>"
                 "<li>Ak ide o vyplatenie cez pokladňu, zadajte dnešný dátum. Vytvorí sa záznam v Pokladni</li>"
                 "</ol>"
             ),

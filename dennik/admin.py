@@ -56,6 +56,7 @@ typ_dokumentu = {
     PrispevokNaRekreaciu.oznacenie: TypDokumentu.REKREACIA,
     Dokument.oznacenie: TypDokumentu.DOKUMENT ,
     Nepritomnost.oznacenie: TypDokumentu.NEPRITOMNOST,
+    NakupSUhradou.oznacenie: TypDokumentu.DROBNY_NAKUP,
     Formular.oznacenie: TypDokumentu.HROMADNY  #Formular je pomenovany ako Hromadný dokument
 }
 
