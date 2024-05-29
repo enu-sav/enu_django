@@ -647,12 +647,6 @@ def VytvoritSuborDohody(dohoda):
     text = text.replace("[[datum]]", timezone.now().strftime("%d. %m. %Y"))
     text = text.replace("[[zdroj]]", dohoda.zdroj.kod)
     text = text.replace("[[zakazka]]", dohoda.zakazka.kod)
-    if dohoda.pomocnik:
-        text = text.replace("[[osobne_pomoc]]", "za pomoci rod. príslušníkov ")
-        text = text.replace("[[pomocnik]]", dohoda.pomocnik)
-    else:
-        text = text.replace("[[osobne_pomoc]]", "osobne")
-        text = text.replace("[[pomocnik]]", "")
 
     # vložiť údaje DoVP
     if type(dohoda) == DoVP:
