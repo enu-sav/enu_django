@@ -34,6 +34,7 @@ def VyplnitHarok(ws_obj, objednavka, je_vyplatenie):
         ws_obj["A2"].value = "na obstaranie tovarov, služieb a stavebných prác formou drobného nákupu"
         ws_obj["L4"].value = today
         ws_obj["C25"].value = ""
+        ws_obj["A33"].value = "Súhlasím s objednaním tovarov / služieb / stavebných prác podľa zadania v tejto žiadanke"
         ws_obj["A5"].value = ziadatel.menopriezvisko(True)
 
     ws_obj["G8"].value = objednavka.popis
