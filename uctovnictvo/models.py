@@ -2032,6 +2032,9 @@ class PlatovyVymer(Klasifikacia):
                 if nn.nepritomnost_typ == TypNepritomnosti.DOVOLENKA2:
                     #Stravné: pri poldni dovolenky sa nevypláca
                     ddov2 += 1
+                elif nn.nepritomnost_typ == TypNepritomnosti.SLUZOBNA:
+                    if pre_stravne:
+                        dnepl += prac_dni(prvy,posledny, pdni, zahrnut_sviatky=False)
                 elif nn.nepritomnost_typ == TypNepritomnosti.DOVOLENKA:
                     ddov += prac_dni(prvy,posledny, pdni, zahrnut_sviatky=False)    #Sviatky sa nezarátajú do dovolenky, ale ako bežný prac. deň
                 elif nn.nepritomnost_typ == TypNepritomnosti.PN:
