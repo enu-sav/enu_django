@@ -849,7 +849,7 @@ def generovatNepritomnost(sumarna_nepritomnost, start_from):
     else:
         return [
                 [messages.ERROR, f"Nepodporovaný typ xlsx súboru ({sumarna_nepritomnost.subor_nepritomnost.file.name}). Zrejme ide o súbor, ktorý bol exportovaný nesprávnym spôsobom."],
-                [messages.WARNING, mark_safe("Postup exportovania neprítomnosti z Biometricu platný od 1. 2. 2024: <strong> Reporty a exporty > Evidencia dochádzaky > (zvoliť obdobie) > Spustiť report > (zvoliť Excel)</strong>")]
+                [messages.WARNING, mark_safe("Postup exportovania neprítomnosti z Biometricu platný od 1. 2. 2024: <strong> Reporty a exporty > Evidencia dochádzaky > (zvoliť obdobie) > Spustiť export > (zvoliť Excel)</strong>")]
                ]
 
 # generovat jednotlive zaznamy nepritomnosti zamestnancov na zaklade exportu z Biometricu: Reporty a exporty > Evidencia dochádzky
@@ -894,6 +894,7 @@ def generovatNepritomnostBiometric(cislo, start_from,ws):
             "PN": TypNepritomnosti.PN,
             "OČR": TypNepritomnosti.OCR,
             "SD": TypNepritomnosti.PZV,
+            "SLC": TypNepritomnosti.SLUZOBNA,
             "§": TypNepritomnosti.PV,
             "Nep. V": TypNepritomnosti.NEPLATENE,
             "P22": TypNepritomnosti.MATERSKA
@@ -1002,7 +1003,7 @@ def generovatNepritomnostBiometric(cislo, start_from,ws):
                             ])
 
         #intervalové neprítomnosti
-        for ntyp in ["D", "NV", "OČR"]:  
+        for ntyp in ["D", "NV", "OČR", "SLC"]:
             nz = np.nonzero(np.array(n_typ) == ntyp)
             if len(nz[0]):
                 useky = segment(nz)
@@ -1015,7 +1016,7 @@ def generovatNepritomnostBiometric(cislo, start_from,ws):
                         zset.add(str(zamestnanec))
                         npocet += 1
         for den, ntyp in zip(n_dni, n_typ):
-            if ntyp in ["D", "PN", "NV", "OČR"]:  #intervalové neprítomnosti už vyriešené
+            if ntyp in ["D", "PN", "NV", "OČR", "SLC"]:  #intervalové neprítomnosti už vyriešené
                 continue
             elif ntyp in typy: #Jednodňové neprítomnosti
                 od = datetime.date(rok, mesiac,den)
@@ -1144,7 +1145,8 @@ def exportovatNepritomnostUct(polozka):
         "lekardoprovod": "L/D",
         "pzv": "PzV",
         "pv": "PV",
-        "neplatene": "NV"
+        "neplatene": "NV",
+        "sluzobna": "SC"
         }
 
     m_od = obdobie_nepritomnosti(polozka.subor_nepritomnost.file.name)
