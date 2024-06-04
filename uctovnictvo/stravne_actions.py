@@ -273,7 +273,7 @@ def generovatStravne_od_04_2024(polozka):
         # Počet pracovných dní v aktuálnom mesiaci
         pocet_prac_dni = prac_dni(od, do, ppd=0 if vymer.uvazok > 37 else 3)
         #dlhodobá neprítomnost
-        #bez_stravneho_od brat do úvahy len vtedy, keď aktuálne známa neprítomnost je celý mesiac 
+        #bez_stravneho_od brať do úvahy len vtedy, keď aktuálne známa neprítomnost je celý mesiac 
         nepritomnost = vymer.nepritomnost_za_mesiac(mesiac_prispevku, pre_stravne = True)
         typy, pdni, ddov, ddov2, dosob, dnepl, dpn1, dpn2, docr = nepritomnost
         if dnepl == pocet_prac_dni: #nutná podmienka nevyplácania
@@ -296,6 +296,10 @@ def generovatStravne_od_04_2024(polozka):
     #Najst platové výmery aktívne v mesiaci zrážok
     qs = PlatovyVymer.objects.filter(datum_od__lte=mesiac_zrazky)
     qs1 = qs.exclude(datum_do__lt=mesiac_zrazky)
+
+    od = mesiac_zrazky
+    next_month = od + relativedelta(months=1, day=1)  # 1. deň nasl. mesiaca
+    do=next_month - relativedelta(days=1) # koniec mesiaca
  
     dni_zrazky = 0
     for vymer in qs1:
