@@ -1197,7 +1197,7 @@ class NajomneFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdm
     list_display = ("cislo", "cislo_softip", "zo_softipu", "zmluva_link", "typ", "splatnost_datum", "dane_na_uhradu", "uhradene_dna", "suma", "dan", "zakazka", "ekoklas", "platobny_prikaz")
 
     #Vyhľadávanie podľa 'typ' nefunguje
-    search_fields = ("zmluva")
+    search_fields = ("zmluva", "^zakazka", "^ekoklas")
     #search_fields = ("zmluva", "typ")
     def get_readonly_fields(self, request, obj=None):
         if not obj:
