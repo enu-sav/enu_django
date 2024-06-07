@@ -189,7 +189,8 @@ class PrijataFakturaForm(DennikZaznam):
             <b>Mobilný Hlas / 1,866+4,9917 / 20 / 111 / 11010001 / 632005</b><br />
             <b>Mobilný internet / 24,9917+14,9917 / 20 / 111 / 11010001 / 632004</b><br />
             Nepovinné pole 'Číslo faktúry v Softipe' sa zadáva kvôli softvérovému porovnaniu Djanga so Softipom (ak sa líši od poľa 'Číslo faktúry dodávateľa') <br />
-            <b>Trik</b> pri vkladaní faktúr Slovak Telekom: Najskôr faktúru vytvoriť, vyplniť (so súborom faktúry ale bez rozpisu položiek čísla faktúru) a uložiť. Potom otvoriť ešte raz a bez zmien uložiť. Rozpis položiek a číslo faktúry sa načítajú z faktúry.
+            <b>Trik 1:</b> Pri vkladaní faktúr Slovak Telekom: Najskôr faktúru vytvoriť, vyplniť (so súborom faktúry ale bez rozpisu položiek čísla faktúru) a uložiť. Potom otvoriť ešte raz a bez zmien uložiť. Rozpis položiek a číslo faktúry sa načítajú z faktúry.
+            <b>Trik 2:</b> Do druhého poľa možno zadať aj <strong>sumu s DPH</strong>, a to tak, že na začiatku pred prvé číslo sa napíše písmeno <strong>x</strong>, napr. <strong>x120</strong> alebo <strong>x120+200</strong>.
             """
             )
 

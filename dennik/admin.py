@@ -330,6 +330,9 @@ class CerpanieRozpoctuAdmin(ModelAdminTotals):
             for item in cerpanie_mzdove+cerpanie_ostatne:
                 #na rozlíšenie podtypov poistenia
                 item['nazov'] = item['podnazov'] if 'podnazov' in item else item['nazov']
+                if not 'zdroj' in item:
+                    trace()
+                    pass
                 identif = f"{item['nazov']} {item['zdroj']} {item['zakazka']} {item['ekoklas']} {zden}"
                 polozky_riadok.append([item['nazov'],
                                        item['suma'],
