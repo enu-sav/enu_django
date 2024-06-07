@@ -308,7 +308,7 @@ class CerpanieRozpoctuAdmin(ModelAdminTotals):
         md1list.append(date(rok+1, 1, 1))
 
         typyOstatne = [NakupSUhradou, PravidelnaPlatba, PrijataFaktura, VystavenaFaktura, PlatbaAutorskaSumar, VytvarnaObjednavkaPlatba, NajomneFaktura, 
-                       RozpoctovaPolozka, PlatbaBezPrikazu, PrispevokNaRekreaciu, InternyPrevod]
+                       RozpoctovaPolozka, PlatbaBezPrikazu, InternyPrevod]
         #typyOstatne = [PrijataFaktura]
 
         cerpanie_spolu = defaultdict(dict) # Obsah cerpanie_spolu zapísať do databázy a do hárka Prehľad
