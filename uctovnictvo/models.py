@@ -1828,7 +1828,7 @@ class PrispevokNaStravne(Klasifikacia):
         if self.typ_zoznamu == Stravne.PRI_ZRA: #od 04/2024 sa v rekapitulácii uvádza príspevok zamestnávateľa a socfondu nezávisle (socfond tu ignorujeme)
             platba = {
                 "nazov":"Stravné príspevok",
-                "suma": self.suma_zamestnavatel + self.zrazka_zamestnavatel,
+                "suma": self.suma_zamestnavatel,
                 "datum": zden,
                 "subjekt": "Zamestnanci",
                 "osoba": "Zamestnanci",
@@ -1837,7 +1837,19 @@ class PrispevokNaStravne(Klasifikacia):
                 "zakazka": self.zakazka,
                 "ekoklas": self.ekoklas
                 }
-            platby.append(platba)
+            platby.append(platba.copy())
+            platba = {
+                "nazov":"Stravné zrážky",
+                "suma": self.zrazka_zamestnavatel,
+                "datum": zden,
+                "subjekt": "Zamestnanci",
+                "osoba": "Zamestnanci",
+                "cislo": self.cislo,
+                "zdroj": self.zdroj,
+                "zakazka": self.zakazka,
+                "ekoklas": self.ekoklas
+                }
+            platby.append(platba.copy())
         else:   #do 03/2024
             if self.suma_zamestnavatel < 0:
                 platba = {
