@@ -1944,9 +1944,10 @@ class OdmenaOpravaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
 
 
 @admin.register(PrispevokNaRekreaciu)
-class PrispevokNaRekreaciuAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
+#class PrispevokNaRekreaciuAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
+class PrispevokNaRekreaciuAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
     form = PrispevokNaRekreaciuForm
-    list_display = ["cislo", "zamestnanec_link", "datum", "_subor_ziadost", "datum_podpisu_ziadosti", "_subor_vyuctovanie", "_subor_kl", "datum_kl", "prispevok", "vyplatene_v_obdobi"]
+    list_display = ["cislo", "zamestnanec_link", "datum", "_subor_ziadost", "datum_podpisu_ziadosti", "_subor_vyuctovanie", "_subor_kl", "datum_kl", "prispevok", "vyplatene_v_obdobi", "datum_vyplatenia"]
     # ^: v poli vyhľadávať len od začiatku
     search_fields = ["cislo", "zamestnanec__meno", "zamestnanec__priezvisko"]
     list_totals = [
@@ -2010,7 +2011,7 @@ class PrispevokNaRekreaciuAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHist
         elif obj.subor_kl and not obj.datum_kl:
             editable += ['datum_kl']
         elif obj.subor_kl:  #for the case, when KL was created off-Django and needs to be replaced
-            editable += ['subor_kl']
+            editable += ['subor_kl', 'datum_vyplatenia']
         for rr in editable: fields.remove(rr)
         return fields
 
