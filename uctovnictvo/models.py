@@ -2523,30 +2523,30 @@ class PrispevokNaRekreaciu(Klasifikacia):
             blank=True, 
             null=True
             )
-    datum_vyplatenia = models.DateField('Dátum vyplatenia',
-            help_text = "Dátum vyplatenia podľa Softipu. Obvykle najbližší výplatný termím (v nasledujúcom mesiaci).",
-            null=True
-            )
     history = HistoricalRecords()
 
+    @staticmethod
+    def check_vyplatene_v(value):
+        return re.findall(r"[0-9][0-9]/[0-9][0-9][0-9][0-9]", value)
+
+
     def clean(self): 
-        if (self.prispevok or self.subor_vyuctovanie or self.vyplatene_v_obdobi) and  not (self.prispevok and self.subor_vyuctovanie):
-            raise ValidationError("Vyplniť treba polia 'Vyúčtovanie príspevku' a 'Na vyplatenie'")
+        if (self.prispevok or self.subor_vyuctovanie or self.vyplatene_v_obdobi) and  not (self.prispevok and self.subor_vyuctovanie and self.vyplatene_v_obdobi):
+            raise ValidationError("Vyplniť treba všetky tri polia 'Vyúčtovanie príspevku', 'Na vyplatenie' a 'Vyplatené v'")
         if self.prispevok and self.prispevok > 0:
             raise ValidationError("Suma 'Na vyplatenie' musí byť záporná")
+        if self.vyplatene_v_obdobi and not PrispevokNaRekreaciu.check_vyplatene_v(self.vyplatene_v_obdobi):
+            self.vyplatene_v_obdobi = None
+            raise ValidationError("Údaj v poli 'Vyplatené v' musí byť v tvare MM/RRRR (napr. 07/2022)")
 
     #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
     def cerpanie_rozpoctu(self, zden):
         zobdobie = "%02d/%d"%(zden.month,zden.year)
         if zobdobie != self.vyplatene_v_obdobi: return []
-        datum = self.datum_vyplatenia if self.datum_vyplatenia else self.datum_kl
-        if datum <zden: return []
-        kdatum =  date(zden.year, zden.month+1, zden.day) if zden.month+1 <= 12 else  date(zden.year+1, 1, 1)
-        if datum >= kdatum: return []
         platba = {
                 "nazov": "Príspevok na rekreáciu",
                 "suma": self.prispevok,
-                "datum": datum,
+                "datum": self.datum,
                 "subjekt": f"{self.zamestnanec.priezvisko}, {self.zamestnanec.meno}", 
                 "cislo": self.cislo,
                 "zdroj": self.zdroj,
