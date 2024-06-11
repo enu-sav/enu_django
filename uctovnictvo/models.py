@@ -133,6 +133,25 @@ def nasledujuce_PPD():
         itemlist=qs.exclude(cislo_VPD__isnull=True).order_by("cislo_VPD")
         return itemlist.last().cislo_VPD+1 if itemlist else 1
 
+#Vráti výplatný termín zodovedajúci k mesiacu vyplácania. 
+# za_mesiac môže byť date alebo string v tvare mm/rrrr 
+def vyplatny_termin(za_mesiac):
+    if type(za_mesiac) == date:
+        mesiac = za_mesiac.month
+        rok = za_mesiac.year
+        #trace()
+        pass
+    else:
+        zsplit = za_mesiac.split("/")
+        mesiac = int(zsplit[0])
+        rok = int(zsplit[1])
+    #Za december sa vypláca ešte v decembri, inak v nasledujúcom mesiaci
+    return date(rok, mesiac+1, 5) if mesiac < 12 else date(rok, mesiac, 22)
+
+# použité pri mzdových položkách v čerpaní rozpočtu
+def mzda_odhad(zden):
+    return "" if zden < date.today() else " (odhad)"
+
 def rozdelit_polozky(string):
     if ";" in string: 
         return [pp.strip() for pp in string.split(";")]
@@ -1858,7 +1877,7 @@ class PrispevokNaStravne(Klasifikacia):
             platba = {
                 "nazov":"Stravné príspevok",
                 "suma": self.suma_zamestnavatel,
-                "datum": zden,
+                "datum": vyplatny_termin(zden),
                 "subjekt": "Zamestnanci",
                 "osoba": "Zamestnanci",
                 "cislo": self.cislo,
@@ -1870,7 +1889,7 @@ class PrispevokNaStravne(Klasifikacia):
             platba = {
                 "nazov":"Stravné zrážky",
                 "suma": self.zrazka_zamestnavatel,
-                "datum": zden,
+                "datum": vyplatny_termin(zden),
                 "subjekt": "Zamestnanci",
                 "osoba": "Zamestnanci",
                 "cislo": self.cislo,
@@ -1885,7 +1904,7 @@ class PrispevokNaStravne(Klasifikacia):
                     "nazov":"Stravné príspevok",
                     "suma": self.suma_zamestnavatel,
                     "socfond": self.suma_socfond,
-                    "datum": zden,
+                    "datum": vyplatny_termin(zden),
                     "subjekt": "Zamestnanci",
                     "osoba": "Zamestnanci",
                     "cislo": self.cislo,
@@ -1899,7 +1918,7 @@ class PrispevokNaStravne(Klasifikacia):
                     "nazov":"Stravné zrážky",
                     "suma": self.suma_zamestnavatel,
                     "socfond": self.suma_socfond,
-                    "datum": zden,
+                    "datum": vyplatny_termin(zden),
                     "subjekt": "Zamestnanci",
                     "osoba": "Zamestnanci",
                     "cislo": self.cislo,
@@ -2161,36 +2180,39 @@ class PlatovyVymer(Klasifikacia):
 
         tabulkovy_plat = float(self.tarifny_plat) + float(self.osobny_priplatok) + float(self.funkcny_priplatok)
 
+        vtermin = vyplatny_termin(zden)
+        odhad = mzda_odhad(zden)
+
         #Odpracované dni
         tarifny = {
-                "nazov":"Plat tarifný plat",
+                "nazov":f"Plat tarifný plat{odhad}",
                 "osoba": self.zamestnanec,
                 "suma": -round(Decimal(koef_prac*float(self.tarifny_plat)),2),
                 "zdroj": zdroj,
                 "zakazka": zakazka,
-                "datum": zden if zden < date.today() else None,
+                "datum": vtermin,
                 "subjekt": f"{self.zamestnanec.priezvisko}, {self.zamestnanec.meno}",
                 "cislo": self.cislo if self.cislo else "-",
                 "ekoklas": self.ekoklas
                 }
         osobny = {
-                "nazov": "Plat osobný príplatok",
+                "nazov": f"Plat osobný príplatok{odhad}",
                 "osoba": self.zamestnanec,
                 "suma": -round(Decimal(koef_prac*float(self.osobny_priplatok)),2),
                 "zdroj": zdroj,
                 "zakazka": zakazka,
-                "datum": zden if zden < date.today() else None,
+                "datum": vtermin,
                 "subjekt": f"{self.zamestnanec.priezvisko}, {self.zamestnanec.meno}",
                 "cislo": self.cislo if self.cislo else "-",
                 "ekoklas": EkonomickaKlasifikacia.objects.get(kod="612001")
                 }
         funkcny = {
-                "nazov": "Plat príplatok za riadenie",
+                "nazov": f"Plat príplatok za riadenie{odhad}",
                 "osoba": self.zamestnanec,
                 "suma": -round(Decimal(koef_prac*float(self.funkcny_priplatok)),2),
                 "zdroj": zdroj,
                 "zakazka": zakazka,
-                "datum": zden if zden < date.today() else None,
+                "datum": vtermin,
                 "subjekt": f"{self.zamestnanec.priezvisko}, {self.zamestnanec.meno}",
                 "cislo": self.cislo if self.cislo else "-",
                 "ekoklas": EkonomickaKlasifikacia.objects.get(kod="612002")
@@ -2204,7 +2226,7 @@ class PlatovyVymer(Klasifikacia):
                     "suma": -round(Decimal(tabulkovy_plat*koef_osob),2),
                     "zdroj": zdroj,
                     "zakazka": zakazka,
-                    "datum": zden if zden < date.today() else None,
+                    "datum": vtermin,
                     "osoba": self.zamestnanec,
                     "subjekt": f"{self.zamestnanec.priezvisko}, {self.zamestnanec.meno}",
                     "cislo": self.cislo if self.cislo else "-",
@@ -2218,7 +2240,7 @@ class PlatovyVymer(Klasifikacia):
                     "suma": -round(Decimal(koef_dov*tabulkovy_plat),2),
                     "zdroj": zdroj,
                     "zakazka": zakazka,
-                    "datum": zden if zden < date.today() else None,
+                    "datum": vtermin,
                     "osoba": self.zamestnanec,
                     "subjekt": f"{self.zamestnanec.priezvisko}, {self.zamestnanec.meno}",
                     "cislo": self.cislo if self.cislo else "-",
@@ -2234,7 +2256,7 @@ class PlatovyVymer(Klasifikacia):
                     "suma": -round(Decimal((dpn1*PN1(zden)+dpn2*PN2(zden))*denny_vz/100),2),
                     "zdroj": zdroj,
                     "zakazka": zakazka,
-                    "datum": zden if zden < date.today() else None,
+                    "datum": vtermin,
                     "osoba": self.zamestnanec,
                     "subjekt": f"{self.zamestnanec.priezvisko}, {self.zamestnanec.meno}",
                     "cislo": self.cislo if self.cislo else "-",
@@ -2451,7 +2473,7 @@ class OdmenaOprava(Klasifikacia):
             "nazov": nazov,
             "osoba": self.zamestnanec,
             "suma": self.suma,
-            "datum": zden,
+            "datum": vyplatny_termin(zden),
             "osoba": self.zamestnanec,
             "subjekt": f"{self.zamestnanec.priezvisko}, {self.zamestnanec.meno}", 
             "cislo": self.cislo,
@@ -2546,7 +2568,8 @@ class PrispevokNaRekreaciu(Klasifikacia):
         platba = {
                 "nazov": "Príspevok na rekreáciu",
                 "suma": self.prispevok,
-                "datum": self.datum,
+                "osoba": self.zamestnanec,
+                "datum": vyplatny_termin(self.vyplatene_v_obdobi),
                 "subjekt": f"{self.zamestnanec.priezvisko}, {self.zamestnanec.meno}", 
                 "cislo": self.cislo,
                 "zdroj": self.zdroj,
@@ -2673,7 +2696,7 @@ class DoVP(Dohoda):
         platba = {
                 "nazov":f"DoVP odmena (int. prevod)" if self.interny_prevod==AnoNie.ANO else "DoVP odmena",
                 "suma": -Decimal(self.vyplatena_odmena if self.datum_ukoncenia else self.odmena_celkom),
-                "datum": zden,
+                "datum": vyplatny_termin(zden),
                 "subjekt": f"{self.zmluvna_strana.priezvisko}, {self.zmluvna_strana.meno}", 
                 "osoba": self.zmluvna_strana,
                 "vynimka": self.vynimka,
@@ -2793,7 +2816,7 @@ class DoPC(Dohoda):
         platba = {
                 "nazov":f"DoPC odmena",
                 "suma": -Decimal(odmena_mesacne),
-                "datum": zden,
+                "datum": vyplatny_termin(zden),
                 "subjekt": f"{self.zmluvna_strana.priezvisko}, {self.zmluvna_strana.meno}", 
                 "osoba": self.zmluvna_strana,
                 "vynimka": self.vynimka,

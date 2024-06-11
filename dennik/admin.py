@@ -14,7 +14,7 @@ from uctovnictvo.models import Objednavka, PrijataFaktura, PrispevokNaStravne, D
 from uctovnictvo.models import PlatovyVymer, PravidelnaPlatba, NajomneFaktura, InternyPrevod, Poistovna
 from uctovnictvo.models import RozpoctovaPolozka, PlatbaBezPrikazu, PrispevokNaRekreaciu, OdmenaOprava
 from uctovnictvo.models import TypDochodku, AnoNie, Zdroj, TypZakazky, EkonomickaKlasifikacia, Zamestnanec 
-from uctovnictvo.models import Nepritomnost, VystavenaFaktura, NakupSUhradou
+from uctovnictvo.models import Nepritomnost, VystavenaFaktura, NakupSUhradou, vyplatny_termin, mzda_odhad
 from uctovnictvo.odvody import Poistne
 import re
 from import_export.admin import ImportExportModelAdmin
@@ -307,7 +307,8 @@ class CerpanieRozpoctuAdmin(ModelAdminTotals):
         md1list = [date(rok, mm+1, 1) for mm in range(12)]
         md1list.append(date(rok+1, 1, 1))
 
-        typyOstatne = [NakupSUhradou, PravidelnaPlatba, PrijataFaktura, VystavenaFaktura, PlatbaAutorskaSumar, VytvarnaObjednavkaPlatba, NajomneFaktura, 
+        typyOstatne = [NakupSUhradou, PravidelnaPlatba, PrijataFaktura, VystavenaFaktura, 
+                       PlatbaAutorskaSumar, VytvarnaObjednavkaPlatba, NajomneFaktura, 
                        RozpoctovaPolozka, PlatbaBezPrikazu, InternyPrevod]
         #typyOstatne = [PrijataFaktura]
 
@@ -622,7 +623,7 @@ class PlatovaRekapitulaciaAdmin(ModelAdminTotals):
 def generovat_mzdove(request, zden, rekapitulacia):
     #Po osobách (zamestnanci a dohodári) vytvoriť zoznam všetkých relevantných položiek
     po_osobach = defaultdict(list)
-    for typ in [PrispevokNaStravne, PlatovyVymer, OdmenaOprava, DoPC, DoVP, DoBPS, PrispevokNaRekreaciu]:
+    for typ in [PrispevokNaRekreaciu, PrispevokNaStravne, PlatovyVymer, OdmenaOprava, DoPC, DoVP, DoBPS]:
         for polozka in typ.objects.filter():
             data = polozka.cerpanie_rozpoctu(zden)
             if not data: continue   #netýka sa akuálneho mesiaca
@@ -745,7 +746,7 @@ def gen_soczdrav(poistne, osoba, typ, suma, zden, td_konv, zdroj, zakazka, vynim
             "suma": -round(Decimal(socpoist[item]),2),
             "zdroj": zdroj,
             "zakazka": zakazka,
-            "datum": zden,
+            "datum": vyplatny_termin(zden),
             "subjekt": subjekt,
             "cislo": "-",
             "ekoklas": ek
@@ -759,7 +760,7 @@ def gen_soczdrav(poistne, osoba, typ, suma, zden, td_konv, zdroj, zakazka, vynim
         "suma": -round(Decimal(zdravpoist['zdravotne']),2),
         "zdroj": zdroj,
         "zakazka": zakazka,
-        "datum": zden,
+        "datum": vyplatny_termin(zden),
         "subjekt": subjekt,
         "cislo": "-",
         "ekoklas": EkonomickaKlasifikacia.objects.get(kod=ekoklas)
@@ -778,7 +779,7 @@ def gen_dds(poistne, zamestnanec, suma, zden, td_konv):
         "suma": round(Decimal(suma),2),
         "zdroj": Zdroj.objects.get(kod="111"),
         "zakazka": TypZakazky.objects.get(kod="11010001 spol. zák."),
-        "datum": zden,
+        "datum": vyplatny_termin(zden),
         "subjekt": subjekt,
         "cislo": "-",
         "ekoklas": EkonomickaKlasifikacia.objects.get(kod="627")
@@ -792,7 +793,7 @@ def gen_dds(poistne, zamestnanec, suma, zden, td_konv):
         "suma": round(Decimal(zdravpoist['zdravotne']),2),
         "zdroj": Zdroj.objects.get(kod="111"),
         "zakazka": TypZakazky.objects.get(kod="11010001 spol. zák."),
-        "datum": zden,
+        "datum": vyplatny_termin(zden),
         "subjekt": subjekt,
         "cislo": "-",
         "ekoklas": EkonomickaKlasifikacia.objects.get(kod=ekoklas)
@@ -810,7 +811,7 @@ def gen_socfond(zamestnanec, suma, zden):
         "suma": round(Decimal(suma),2),
         "zdroj": zdroj,
         "zakazka": zakazka,
-        "datum": zden if zden < date.today() else None,
+        "datum": vyplatny_termin(zden),
         "subjekt": subjekt,
         "cislo": "-",
         "ekoklas": EkonomickaKlasifikacia.objects.get(kod="637016")
