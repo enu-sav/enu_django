@@ -148,10 +148,6 @@ def vyplatny_termin(za_mesiac):
     #Za december sa vypláca ešte v decembri, inak v nasledujúcom mesiaci
     return date(rok, mesiac+1, 5) if mesiac < 12 else date(rok, mesiac, 22)
 
-# použité pri mzdových položkách v čerpaní rozpočtu
-def mzda_odhad(zden):
-    return "" if zden < date.today() else " (odhad)"
-
 def rozdelit_polozky(string):
     if ";" in string: 
         return [pp.strip() for pp in string.split(";")]
@@ -2181,11 +2177,10 @@ class PlatovyVymer(Klasifikacia):
         tabulkovy_plat = float(self.tarifny_plat) + float(self.osobny_priplatok) + float(self.funkcny_priplatok)
 
         vtermin = vyplatny_termin(zden)
-        odhad = mzda_odhad(zden)
 
         #Odpracované dni
         tarifny = {
-                "nazov":f"Plat tarifný plat{odhad}",
+                "nazov":f"Plat tarifný plat",
                 "osoba": self.zamestnanec,
                 "suma": -round(Decimal(koef_prac*float(self.tarifny_plat)),2),
                 "zdroj": zdroj,
@@ -2196,7 +2191,7 @@ class PlatovyVymer(Klasifikacia):
                 "ekoklas": self.ekoklas
                 }
         osobny = {
-                "nazov": f"Plat osobný príplatok{odhad}",
+                "nazov": f"Plat osobný príplatok",
                 "osoba": self.zamestnanec,
                 "suma": -round(Decimal(koef_prac*float(self.osobny_priplatok)),2),
                 "zdroj": zdroj,
@@ -2207,7 +2202,7 @@ class PlatovyVymer(Klasifikacia):
                 "ekoklas": EkonomickaKlasifikacia.objects.get(kod="612001")
                 }
         funkcny = {
-                "nazov": f"Plat príplatok za riadenie{odhad}",
+                "nazov": f"Plat príplatok za riadenie",
                 "osoba": self.zamestnanec,
                 "suma": -round(Decimal(koef_prac*float(self.funkcny_priplatok)),2),
                 "zdroj": zdroj,

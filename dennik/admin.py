@@ -14,7 +14,7 @@ from uctovnictvo.models import Objednavka, PrijataFaktura, PrispevokNaStravne, D
 from uctovnictvo.models import PlatovyVymer, PravidelnaPlatba, NajomneFaktura, InternyPrevod, Poistovna
 from uctovnictvo.models import RozpoctovaPolozka, PlatbaBezPrikazu, PrispevokNaRekreaciu, OdmenaOprava
 from uctovnictvo.models import TypDochodku, AnoNie, Zdroj, TypZakazky, EkonomickaKlasifikacia, Zamestnanec 
-from uctovnictvo.models import Nepritomnost, VystavenaFaktura, NakupSUhradou, vyplatny_termin, mzda_odhad
+from uctovnictvo.models import Nepritomnost, VystavenaFaktura, NakupSUhradou, vyplatny_termin
 from uctovnictvo.odvody import Poistne
 import re
 from import_export.admin import ImportExportModelAdmin
@@ -334,7 +334,9 @@ class CerpanieRozpoctuAdmin(ModelAdminTotals):
                 if not 'zdroj' in item:
                     trace()
                     pass
-                identif = f"{item['nazov']} {item['zdroj']} {item['zakazka']} {item['ekoklas']} {zden}"
+                #Dotácia nemá dátum
+                idatum = item['datum'] if 'datum' in item else None
+                identif = f"{item['nazov']} {item['zdroj']} {item['zakazka']} {item['ekoklas']} {idatum}"
                 polozky_riadok.append([item['nazov'],
                                        item['suma'],
                                        item['subjekt'] if "subjekt" in item else "",
@@ -348,7 +350,7 @@ class CerpanieRozpoctuAdmin(ModelAdminTotals):
 
                 if not identif in cerpanie_spolu:
                     cerpanie_spolu[identif] = item
-                    cerpanie_spolu[identif]['zden'] = zden
+                    cerpanie_spolu[identif]['datum'] = idatum
                     nazov = item['podnazov'] if 'podnazov' in item else item['nazov']
                 else:
                     cerpanie_spolu[identif]['suma'] += item['suma']
@@ -380,14 +382,14 @@ class CerpanieRozpoctuAdmin(ModelAdminTotals):
             cr = CerpanieRozpoctu (
                 unikatny = item,
                 polozka = cerpanie_spolu[item]['nazov'],
-                mesiac = None if "Dotácia" in item else cerpanie_spolu[item]['zden'],
+                mesiac = None if "Dotácia" in item else cerpanie_spolu[item]['datum'],
                 suma = cerpanie_spolu[item]['suma'],
                 zdroj = cerpanie_spolu[item]['zdroj'],
                 zakazka = cerpanie_spolu[item]['zakazka'],
                 ekoklas = cerpanie_spolu[item]['ekoklas'],
                 ).save()
             polozky = [cerpanie_spolu[item]['nazov'],
-                       cerpanie_spolu[item]['zden'],
+                       cerpanie_spolu[item]['datum'],
                        cerpanie_spolu[item]['suma'],
                        cerpanie_spolu[item]['zdroj'].kod,
                        cerpanie_spolu[item]['zakazka'].kod,
