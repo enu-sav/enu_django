@@ -1370,6 +1370,7 @@ class PrispevokNaStravneAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistor
         ('zrazka_socfond', Sum),
     ]
     def get_readonly_fields(self, request, obj=None):
+        if request.user.is_superuser: return []
         fields = [f.name for f in PrispevokNaStravne._meta.get_fields()]
         to_remove = ["cislo", "za_mesiac", "program", "ekoklas", "zakazka", "zdroj", "cinnost"]
         for tr in to_remove:
