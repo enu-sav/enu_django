@@ -315,6 +315,12 @@ class CerpanieRozpoctuAdmin(ModelAdminTotals):
         cerpanie_spolu = defaultdict(dict) # Obsah cerpanie_spolu zapísať do databázy a do hárka Prehľad
         polozky_riadok = [] #individuálne položky do hárka Položky
         items_failed = set()  #Chyby cerpanie_rozpoctu
+        kvartaly = {
+            0: {},
+            1: {},
+            2: {},
+            3: {},
+            }
         for zden in md1list[:-1]:    # po mesiacoch
             #Načítať jednotlivé položky
             cerpanie_mzdove = generovat_mzdove(request, zden, rekapitulacia=False)
@@ -331,12 +337,9 @@ class CerpanieRozpoctuAdmin(ModelAdminTotals):
             for item in cerpanie_mzdove+cerpanie_ostatne:
                 #na rozlíšenie podtypov poistenia
                 item['nazov'] = item['podnazov'] if 'podnazov' in item else item['nazov']
-                if not 'zdroj' in item:
-                    trace()
-                    pass
                 #Dotácia nemá dátum
                 idatum = item['datum'] if 'datum' in item else None
-                identif = f"{item['nazov']} {item['zdroj']} {item['zakazka']} {item['ekoklas']} {idatum}"
+                ident = f"{item['nazov']} {item['zdroj']} {item['zakazka']} {item['ekoklas']} {idatum}"
                 polozky_riadok.append([item['nazov'],
                                        item['suma'],
                                        item['subjekt'] if "subjekt" in item else "",
@@ -348,14 +351,38 @@ class CerpanieRozpoctuAdmin(ModelAdminTotals):
                                        item['ekoklas'].nazov
                                        ])
 
-                if not identif in cerpanie_spolu:
-                    cerpanie_spolu[identif] = item
-                    cerpanie_spolu[identif]['datum'] = idatum
+                if not ident in cerpanie_spolu:
+                    cerpanie_spolu[ident] = item.copy()
+                    cerpanie_spolu[ident]['datum'] = idatum
                     nazov = item['podnazov'] if 'podnazov' in item else item['nazov']
                 else:
-                    cerpanie_spolu[identif]['suma'] += item['suma']
+                    cerpanie_spolu[ident]['suma'] += item['suma']
                 if 'poznamka' in  item:
                     messages.warning(request, format_html(item['poznamka']))
+
+            #Vytvoriť sumárne po kvartáloch
+            for item in cerpanie_mzdove+cerpanie_ostatne:
+                #na rozlíšenie podtypov poistenia
+                item['nazov'] = item['podnazov'] if 'podnazov' in item else item['nazov']
+                #Dotácia nemá dátum
+                if not 'datum' in item or not item['datum']: continue
+                ident = f"{item['zdroj']} {item['zakazka']} {item['ekoklas']}"
+                ikvartal = int(item['mesiac'].month/4)
+                if not ident in kvartaly[ikvartal]:
+                    kvartaly[ikvartal][ident] = []
+                klist = [
+                    item['mesiac'],
+                    item['suma'],
+                    item['subjekt'] if "subjekt" in item else "",
+                    item['datum'] if "datum" in item else "",
+                    item['cislo'], 
+                    item['zdroj'].kod,
+                    item['zakazka'].kod,
+                    item['ekoklas'].kod,
+                    item['ekoklas'].nazov
+                   ]
+                kvartaly[ikvartal][ident].append(klist)
+
         for msg in items_failed:
             messages.warning(request, format_html(msg))
 
@@ -400,6 +427,23 @@ class CerpanieRozpoctuAdmin(ModelAdminTotals):
             riadok +=1
         for cc in fw:
             ws_prehlad.column_dimensions[get_column_letter(cc+1)].width = fw[cc]
+
+        #zapísať kvartály
+        nazvy = ["Suma", "Zdroj", "Zákazka", "Klasifikácia", "Klasifikácia - názov"]
+        fw = {} #field width
+        for kv in kvartaly:
+            ws = wb.create_sheet(title=f"{kv+1}. kvartál")
+            zapisat_riadok(ws, fw, 1, nazvy, header=True)
+            riadok=2
+            for ident in kvartaly[kv]:
+                suma = 0
+                for polozka in kvartaly[kv][ident]:
+                    suma += float(polozka[1])
+                row = [suma] + polozka[5:] 
+                zapisat_riadok(ws, fw, riadok, row, header=False)
+                riadok +=1
+            for cc in fw:
+                ws.column_dimensions[get_column_letter(cc+1)].width = fw[cc]
 
         #Uložiť a zobraziť 
         response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
@@ -749,6 +793,7 @@ def gen_soczdrav(poistne, osoba, typ, suma, zden, td_konv, zdroj, zakazka, vynim
             "zdroj": zdroj,
             "zakazka": zakazka,
             "datum": vyplatny_termin(zden),
+            "mesiac": zden,
             "subjekt": subjekt,
             "cislo": "-",
             "ekoklas": ek
@@ -763,6 +808,7 @@ def gen_soczdrav(poistne, osoba, typ, suma, zden, td_konv, zdroj, zakazka, vynim
         "zdroj": zdroj,
         "zakazka": zakazka,
         "datum": vyplatny_termin(zden),
+        "mesiac": zden,
         "subjekt": subjekt,
         "cislo": "-",
         "ekoklas": EkonomickaKlasifikacia.objects.get(kod=ekoklas)
@@ -782,6 +828,7 @@ def gen_dds(poistne, zamestnanec, suma, zden, td_konv):
         "zdroj": Zdroj.objects.get(kod="111"),
         "zakazka": TypZakazky.objects.get(kod="11010001 spol. zák."),
         "datum": vyplatny_termin(zden),
+        "mesiac": zden,
         "subjekt": subjekt,
         "cislo": "-",
         "ekoklas": EkonomickaKlasifikacia.objects.get(kod="627")
@@ -796,6 +843,7 @@ def gen_dds(poistne, zamestnanec, suma, zden, td_konv):
         "zdroj": Zdroj.objects.get(kod="111"),
         "zakazka": TypZakazky.objects.get(kod="11010001 spol. zák."),
         "datum": vyplatny_termin(zden),
+        "mesiac": zden,
         "subjekt": subjekt,
         "cislo": "-",
         "ekoklas": EkonomickaKlasifikacia.objects.get(kod=ekoklas)
@@ -814,6 +862,7 @@ def gen_socfond(zamestnanec, suma, zden):
         "zdroj": zdroj,
         "zakazka": zakazka,
         "datum": vyplatny_termin(zden),
+        "mesiac": zden,
         "subjekt": subjekt,
         "cislo": "-",
         "ekoklas": EkonomickaKlasifikacia.objects.get(kod="637016")
