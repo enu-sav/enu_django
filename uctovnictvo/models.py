@@ -1222,6 +1222,9 @@ class PrijataFaktura(FakturaPravidelnaPlatba, GetAdminURL):
         kdatum =  date(zden.year, zden.month+1, zden.day) if zden.month+1 <= 12 else  date(zden.year+1, 1, 1)
         if datum_uhradenia >= kdatum: return []
 
+        if self.cislo == "Fa-2024-036":
+            #trace()
+            pass
         #Šablóny pre čerpanie
         typ = "zmluva" if type(self.objednavka_zmluva) == Zmluva else "objednávka" if type(self.objednavka_zmluva) == Objednavka else "rozhodnutie" 
         platba_sablona = {

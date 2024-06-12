@@ -366,10 +366,10 @@ class VytvarnaObjednavkaPlatba(models.Model, GetAdminURL):
 
         platby = PlatbaAutorskaOdmena.objects.filter(cislo=self.cislo)
         odmeny = [platba.honorar for platba in platby]
-        #trace()
+        platby = []
         platba = {
-                "nazov": "Honoráre výtvarné",
-                "suma": -self.honorar,
+                "nazov": "Autori grafika honorár",
+                "suma": -(self.honorar - self.odvedena_dan) ,
                 "datum": self.datum_uhradenia,
                 "subjekt": self.pm(),
                 "cislo": self.cislo,
@@ -377,7 +377,20 @@ class VytvarnaObjednavkaPlatba(models.Model, GetAdminURL):
                 "zakazka": zakazka,
                 "ekoklas": EkonomickaKlasifikacia.objects.get(kod="633018") #licencie
                 }
-        return [platba]
+        platby.append(platba.copy())
+        if self.odvedena_dan:
+            platba = {
+                "nazov": "Autori grafika zrážková daň",
+                "suma": -self.odvedena_dan,
+                "datum": self.datum_uhradenia,
+                "subjekt": self.pm(),
+                "cislo": self.cislo,
+                "zdroj": zdroj,
+                "zakazka": zakazka,
+                "ekoklas": EkonomickaKlasifikacia.objects.get(kod="637026") #licencie
+                }
+            platby.append(platba.copy())
+        return platby
 
     class Meta:
         verbose_name = 'Objednávka a vyplatenie výtvarných diel'
@@ -479,19 +492,34 @@ class PlatbaAutorskaSumar(models.Model, GetAdminURL):
             zdroj = Zdroj.objects.get(kod="111")
             zakazka = TypZakazky.objects.get(kod="11070002 Beliana")
 
-        platby = PlatbaAutorskaOdmena.objects.filter(cislo=self.cislo)
-        odmeny = [platba.honorar for platba in platby]
-        platba = {
-                "nazov": "Honoráre autori",
-                "suma": -sum(odmeny),
+        po_autoroch = PlatbaAutorskaOdmena.objects.filter(cislo=self.cislo)
+        platby = []
+        odvedena_dan = 0
+        for item in po_autoroch:
+            platba = {
+                "nazov": "Autori heslo honorár",
+                "suma": -item.uhradena_suma,
                 "datum": self.datum_uhradenia if self.datum_uhradenia else self.datum_importovania,
-                "subjekt": "Autori",
+                "subjekt": item.autor.mp(),
                 "cislo": self.cislo,
                 "zdroj": zdroj,
                 "zakazka": zakazka,
                 "ekoklas": EkonomickaKlasifikacia.objects.get(kod="633018") #licencie
                 }
-        return [platba]
+            odvedena_dan -= item.odvedena_dan
+            platby.append(platba.copy())
+        platba = {
+            "nazov": "Autori heslo zrážková daň",
+            "suma": odvedena_dan,
+            "datum": self.datum_uhradenia if self.datum_uhradenia else self.datum_importovania,
+            "subjekt": "autori",
+            "cislo": self.cislo,
+            "zdroj": zdroj,
+            "zakazka": zakazka,
+            "ekoklas": EkonomickaKlasifikacia.objects.get(kod="637026") #Dane
+            }
+        platby.append(platba.copy())
+        return platby
 
     class Meta:
         verbose_name = 'Vyplácanie aut. honorárov'
