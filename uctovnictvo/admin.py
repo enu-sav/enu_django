@@ -486,6 +486,7 @@ class PlatbaBezPrikazuAdmin(ZobrazitZmeny, SimpleHistoryAdmin, ImportExportModel
                 zdroj = stara.zdroj,
                 cinnost = stara.cinnost,
                 predmet = stara.predmet,
+                ucet = stara.ucet,
             )
         nova_platba.save()
         self.message_user(request, f"Vytvorená bola nová platba číslo '{nc}', aktualizujte polia", messages.SUCCESS)
