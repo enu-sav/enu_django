@@ -32,6 +32,7 @@ if os.path.isfile(dotenv_file):
 SECRET_KEY = os.environ['SECRET_KEY'] # Instead of your actual secret key
 
 DEBUG = os.environ['DEBUG']
+DEPLOY_STATE = os.environ['DEPLOY_STATE']
 
 ALLOWED_HOSTS = os.environ['ALLOWED_HOSTS']
 

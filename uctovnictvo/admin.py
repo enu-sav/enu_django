@@ -34,7 +34,7 @@ from .forms import DoPCForm, DoVPForm, DoBPSForm, VyplacanieDohodForm
 from .forms import InternyPrevodForm, NepritomnostForm, RozpoctovaPolozkaDotaciaForm, RozpoctovaPolozkaPresunForm, RozpoctovaPolozkaForm
 from .forms import PokladnaForm, SocialnyFondForm, PrispevokNaRekreaciuForm, OdmenaOpravaForm, VystavenaFakturaForm, NakupSUhradouForm 
 from .rokydni import datum_postupu, vypocet_prax, vypocet_zamestnanie, postup_roky, roky_postupu
-from beliana.settings import DPH, MEDIA_ROOT, MEDIA_URL, UVAZOK_TYZDENNE
+from beliana.settings import DPH, MEDIA_ROOT, MEDIA_URL, UVAZOK_TYZDENNE, DEPLAY_STATE
 from dennik.models import Dokument, TypDokumentu, InOut
 
 #zobrazenie histórie
@@ -259,6 +259,7 @@ class NakupSUhradouAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmi
     ]
 
     def get_readonly_fields(self, request, obj=None):
+        if DEPLOY_STATE == "production" and request.user.is_superuser: return []
         fields = [f.name for f in NakupSUhradou._meta.get_fields()]
         #pole  "pokladna_pokladna" pridané v Pokladna.ziadanka. Nesmie byť odstránené, inak nastane chyba "missing 1 required keyword-only argument: 'manager'"
         if "pokladna_pokladna" in fields: fields.remove("pokladna_pokladna")
@@ -269,6 +270,7 @@ class NakupSUhradouAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmi
             fields.remove("popis")
             fields.remove("zdroj")
             fields.remove("zakazka")
+            fields.remove("ucet")
             fields.remove("forma_uhrady")
             fields.remove("poznamka")
             fields.remove("objednane_polozky")
@@ -288,6 +290,7 @@ class NakupSUhradouAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmi
             fields.remove("popis")
             fields.remove("zdroj")
             fields.remove("zakazka")
+            fields.remove("ucet")
             fields.remove("forma_uhrady")
             fields.remove("poznamka")
             fields.remove("zamietnute")
@@ -1375,7 +1378,7 @@ class PrispevokNaStravneAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistor
         ('zrazka_socfond', Sum),
     ]
     def get_readonly_fields(self, request, obj=None):
-        if request.user.is_superuser: return []
+        if DEPLOY_STATE == "production" and request.user.is_superuser: return []
         fields = [f.name for f in PrispevokNaStravne._meta.get_fields()]
         to_remove = ["cislo", "za_mesiac", "program", "ekoklas", "zakazka", "zdroj", "cinnost"]
         for tr in to_remove:
