@@ -688,8 +688,8 @@ class ZmluvaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, Impo
 class PrijataFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
 #class PrijataFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
     form = PrijataFakturaForm
-    list_display = ["cislo", "dcislo", "objednavka_zmluva_link", "url_faktury", "suma", "sadzbadph", "prenosDP", "zrusena", "podiel2", "predmet", "platobny_prikaz", "dane_na_uhradu", "uhradene_dna", "mena", "zdroj", "zakazka", "zdroj2", "zakazka2", "ekoklas"]
-    search_fields = ["^cislo", "^dcislo", "^objednavka_zmluva__dodavatel__nazov", "objednavka_zmluva__cislo", "predmet", "^zdroj__kod", "^zakazka__kod", "^ekoklas__kod", "^ekoklas__nazov",  "^cinnost__kod", "cinnost__nazov" ]
+    list_display = ["cislo", "dcislo", "objednavka_zmluva_link", "url_faktury", "suma", "sadzbadph", "prenosDP", "zrusena", "podiel2", "predmet", "platobny_prikaz", "dane_na_uhradu", "uhradene_dna", "mena", "zdroj", "zakazka", "zdroj2", "zakazka2", "ucet", "ekoklas"]
+    search_fields = ["^cislo", "^dcislo", "^objednavka_zmluva__dodavatel__nazov", "objednavka_zmluva__cislo", "predmet", "^zdroj__kod", "^zakazka__kod", "^ekoklas__kod", "^ekoklas__nazov", "ucet_kod","^cinnost__kod", "cinnost__nazov" ]
 
     # zoraďovateľný odkaz na dodávateľa
     # umožnené prostredníctvom AdminChangeLinksMixin
@@ -1033,8 +1033,8 @@ class VystavenaFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryA
 #class PravidelnaPlatbaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
 class PravidelnaPlatbaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
     form = PravidelnaPlatbaForm
-    list_display = ["cislo", "typ", "objednavka_zmluva_link", "suma", "platobny_prikaz", "splatnost_datum", "dane_na_uhradu", "uhradene_dna", "zdroj", "zakazka", "ekoklas"]
-    search_fields = ["^cislo","typ", "objednavka_zmluva__dodavatel__nazov", "^zdroj__kod", "^zakazka__kod", "^ekoklas__kod" ]
+    list_display = ["cislo", "typ", "objednavka_zmluva_link", "suma", "platobny_prikaz", "splatnost_datum", "dane_na_uhradu", "uhradene_dna", "zdroj", "zakazka", "ucet", "ekoklas"]
+    search_fields = ["^cislo","typ", "objednavka_zmluva__dodavatel__nazov", "^zdroj__kod", "^zakazka__kod", "ucet__kod", "^ekoklas__kod" ]
     def get_readonly_fields(self, request, obj=None):
         if obj:
             #return ["objednavka_zmluva", "cislo", "splatnost_datum", "typ", "program", "ekoklas", "zakazka", "zdroj", "platobny_prikaz"]
@@ -1096,8 +1096,8 @@ class PravidelnaPlatbaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryA
 #class InternyPrevodAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
 class InternyPrevodAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
     form = InternyPrevodForm
-    list_display = ["cislo", "partner_link", "suma", "predmet", "na_zaklade", "platobny_prikaz", "doslo_datum", "splatnost_datum", "dane_na_uhradu", "uhradene_dna", "zdroj", "zakazka", "ekoklas"]
-    search_fields = ["^cislo", "partner__nazov", "^zdroj__kod", "^zakazka__kod", "^ekoklas__kod" ]
+    list_display = ["cislo", "partner_link", "suma", "predmet", "na_zaklade", "platobny_prikaz", "doslo_datum", "splatnost_datum", "dane_na_uhradu", "uhradene_dna", "zdroj", "zakazka", "ucet", "ekoklas"]
+    search_fields = ["^cislo", "partner__nazov", "^zdroj__kod", "^zakazka__kod", "ucet__kod", "^ekoklas__kod" ]
     def get_readonly_fields(self, request, obj=None):
         if obj:
             #return ["objednavka_zmluva", "cislo", "splatnost_datum", "typ", "program", "ekoklas", "zakazka", "zdroj", "platobny_prikaz"]
@@ -1199,7 +1199,7 @@ class NajomnaZmluvaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmi
 @admin.register(NajomneFaktura)
 class NajomneFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
     form = NajomneFakturaForm
-    list_display = ("cislo", "cislo_softip", "zo_softipu", "zmluva_link", "typ", "splatnost_datum", "dane_na_uhradu", "uhradene_dna", "suma", "dan", "zakazka", "ekoklas", "platobny_prikaz")
+    list_display = ("cislo", "cislo_softip", "zo_softipu", "zmluva_link", "typ", "splatnost_datum", "dane_na_uhradu", "uhradene_dna", "suma", "dan", "zakazka", "ucet", "ekoklas", "platobny_prikaz")
 
     #Vyhľadávanie podľa 'typ' nefunguje
     search_fields = ("zmluva", "^zakazka", "^ekoklas")

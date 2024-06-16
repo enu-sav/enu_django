@@ -814,6 +814,11 @@ class Klasifikacia(models.Model):
             on_delete=models.PROTECT,
             verbose_name = "Ekonomická klasifikácia",
             related_name='%(class)s_klasifikacia')
+    ucet = models.ForeignKey(UcetUctovnejOsnovy,
+            on_delete=models.PROTECT,
+            verbose_name = "Účet",
+            default = 1,    #Nezadaný
+            related_name='%(class)s_klasifikacia')
     cinnost = models.ForeignKey(Cinnost,
             on_delete=models.PROTECT,
             verbose_name = "Činnosť",
