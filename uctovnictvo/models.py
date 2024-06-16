@@ -3029,6 +3029,11 @@ class NakupSUhradou(models.Model, GetAdminURL):
             on_delete=models.PROTECT,
             verbose_name = "Typ zákazky",
             related_name='%(class)s_nakup')
+    ucet = models.ForeignKey(UcetUctovnejOsnovy,
+            on_delete=models.PROTECT,
+            verbose_name = "Účet",
+            default = 1,    #Nezadaný
+            related_name='%(class)s_nakup')
     forma_uhrady = models.CharField("Forma úhrady",
             max_length=10,
             choices=FormaUhrady.choices)
