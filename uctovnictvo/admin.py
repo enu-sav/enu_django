@@ -18,7 +18,7 @@ from .models import Najomnik, NajomnaZmluva, NajomneFaktura, TypPP, TypPN, Cinno
 from .models import InternyPartner, InternyPrevod, Nepritomnost, RozpoctovaPolozka, RozpoctovaPolozkaDotacia
 from .models import RozpoctovaPolozkaPresun, PlatbaBezPrikazu, Pokladna, TypPokladna, SadzbaDPH
 from .models import nasledujuce_cislo, nasledujuce_VPD, SocialnyFond, PrispevokNaRekreaciu, OdmenaOprava, OdmenaAleboOprava
-from .models import TypNepritomnosti, Stravne, VystavenaFaktura, NakupSUhradou, FormaUhrady
+from .models import TypNepritomnosti, Stravne, VystavenaFaktura, NakupSUhradou, FormaUhrady, UcetUctovnejOsnovy
 
 from .common import VytvoritPlatobnyPrikaz, VytvoritSuborDohody
 from .common import VytvoritKryciList, VytvoritKryciListRekreacia, generovatIndividualneOdmeny, leapdays
@@ -129,6 +129,11 @@ class TypZakazkyAdmin(ZobrazitZmeny, SimpleHistoryAdmin, ImportExportModelAdmin)
 
 @admin.register(EkonomickaKlasifikacia)
 class EkonomickaKlasifikaciaAdmin(ZobrazitZmeny, SimpleHistoryAdmin, ImportExportModelAdmin):
+    list_display = ("kod", "nazov")
+    search_fields = ("^kod", "nazov")
+
+@admin.register(UcetUctovnejOsnovy)
+class UcetUctovnejOsnovyAdmin(ZobrazitZmeny, SimpleHistoryAdmin, ImportExportModelAdmin):
     list_display = ("kod", "nazov")
     search_fields = ("^kod", "nazov")
 

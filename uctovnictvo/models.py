@@ -324,6 +324,20 @@ class TypZakazky(models.Model):
         verbose_name = 'Typ zákazky'
         verbose_name_plural = 'Klasifikácia - Typy zákazky'
 
+class UcetUctovnejOsnovy(models.Model):
+    kod = models.CharField("Kód", 
+            help_text = "Zadajte kód účtu účtovnej osnovy",
+            max_length=10)
+    nazov = models.CharField("Názov", 
+            help_text = "Zadajte názov účtu účtovnej osnovy",
+            max_length=100)
+    history = HistoricalRecords()
+    def __str__(self):
+        return f"{self.kod} - {' '.join(self.nazov.split(' ')[:4])}"
+    class Meta:
+        verbose_name = 'Účet účovnej osnovy',
+        verbose_name_plural = 'Klasifikácia - Účet'
+
 class EkonomickaKlasifikacia(models.Model):
     kod = models.CharField("Kód", 
             help_text = "Zadajte kód položky/podpoložky ekonomickej klasifikácie napr. 614 alebo 632001 (bez medzery)",
