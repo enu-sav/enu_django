@@ -511,7 +511,7 @@ class PlatovaRekapitulaciaAdmin(ModelAdminTotals):
             "Plat odmena": ["Odmeny spolu", 0, "614"],
             "Plat osobný príplatok": ["Osobný príplatok", 1, "612001"],
             "Plat príplatok za riadenie": ["Príplatok za riadenie", 1, "612002"],
-            "Zdravotné poistné": ["Zdravotné poistné spolu", 2, "623"],
+            "Zdravotné poistné": ["Zdravotné poistné spolu", 2, "621+623"],
             "DDS príspevok": ["Doplnkové dôchodkové sporenie spolu", 1, "627"],
             #"Sociálne poistné": ["Sociálne poistné spolu", 1],
             "Sociálne poistné 625001": ["Nemocenské poistné", 2, ""],
