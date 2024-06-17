@@ -666,6 +666,7 @@ class PlatovaRekapitulaciaAdmin(ModelAdminTotals):
                 ws[f"d{row}"].value = f"=SUM('{fs}'!D{row}:'{ls}'!D{row})"
                 ws[f"e{row}"].value = f"=c{row}-d{row}"
                 ws.cell(row=row, column=4).number_format="0.00"
+                ws.cell(row=row, column=5).number_format="0.00"
             row += 1
 
         #Uložiť a zobraziť 
