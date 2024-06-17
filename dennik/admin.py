@@ -495,6 +495,8 @@ class PlatovaRekapitulaciaAdmin(ModelAdminTotals):
                 txt = page.extractText()
                 zakazka = re.findall("Zákazka: _*(.*)", txt)
                 zakazka = zakazka[0] if zakazka else "Celkom"
+                #Fix problem with data from MÚ"
+                zakazka = "46010001" if zakazka=="42002200" else zakazka
                 if not zakazka in pdftext:
                     pdftext[zakazka] = txt
                 else:
