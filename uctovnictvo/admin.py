@@ -1370,7 +1370,7 @@ class PrispevokNaStravneAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistor
 
     def _suma_spolu(self, obj):
         return obj.suma_zamestnavatel + obj.suma_socfond
-    _suma_spolu.short_description = "Prísp. polu"
+    _suma_spolu.short_description = "Prísp.spolu"
 
     list_totals = [
         ('suma_zamestnavatel', Sum),

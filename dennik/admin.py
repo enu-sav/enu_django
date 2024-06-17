@@ -524,14 +524,17 @@ class PlatovaRekapitulaciaAdmin(ModelAdminTotals):
             "Sociálny fond": ["Sociálny fond", 2, "637016"],
             "DoPC odmena": ["Dohody o pracovnej činnosti", 1, "637027"],
             "DoVP odmena": ["Dohody o vykonaní práce", 1, "637027"],
-            "Stravné príspevok": ["Fin.prísp.na stravu z-teľ", 0, "642014"],
-            "Stravné zrážky": ["Spoločné zrážky \(N5241\)", 1, "642014"],
+            "Stravné zamestnávateľ": ["Fin.prísp.na stravu z-teľ", 0, "642014"],    #od 04-2024
+            "Stravné soc. fond": ["Fin.prísp.na stravu zo SF", 0, "642014"],       #od 04-2024
+            "Stravné príspevok": ["Fin.prísp.na stravu z-teľ", 0, "642014"],    #do 3-2024
+            "Stravné zrážky": ["Spoločné zrážky \(N5241\)", 1, "642014"],       #do 3-2024
             "Plat odstupné": ["Odstupné", 0, "642012"],     #zatiaľ sa nevyskytlo
             "Plat odchodné": ["Odchodné", 0, "642013"],     #zatiaľ sa nevyskytlo
             "Stravné zrážky": ["Spoločné zrážky \(N5241\)", 1, "642014"],
             "Náhrada mzdy - PN": ["Náhrada príjmu pri DPN", 1, "642015"],
             }
 
+        # body kontrola_rekapitulacie 
         #Zistiť typy zákazok vo všetkých súboroch
         pdftext_vsetky = {}
         typ_zakazky = {}
@@ -560,6 +563,12 @@ class PlatovaRekapitulaciaAdmin(ModelAdminTotals):
         fw ={}  #Šírka poľa
         zapisat_riadok(ws_prehlad, fw, 1, ["Mesiac", "Zákazka", "Mzdová učtáreň", "Django", "Rozdiel mínus", "Rozdiel plus"], header=True) 
         for qn, za_mesiac in enumerate(sorted(queryset, key=lambda x: x.identifikator)):  #queryset: zoznam mesiacov, za ktoré treba spraviť rekapituláciu
+            #či máme stravné v novej verzii od 04-2024
+            rok, mesiac = za_mesiac.identifikator.split("-")
+            rok = int(rok)
+            mesiac = int(mesiac)
+            stravne_od_2024_04 = (rok >= 2024 and mesiac >= 4)
+
             ws = wb.create_sheet(title=za_mesiac.identifikator)
             zapisat_riadok(ws, fw, 1, ["Položka", "Zákazka", "Mzdová učtáreň", "Django", "Rozdiel C-D"], header=True) 
 
@@ -589,7 +598,10 @@ class PlatovaRekapitulaciaAdmin(ModelAdminTotals):
                 rozdiel_minus = 0
                 rozdiel_plus = 0
                 for nn, polozka in enumerate(polozky):
-                    if not zakazka in pdftext:
+                    if polozka == "Stravné zamestnávateľ" or polozka == "Stravné príspevok":
+                        #trace()
+                        pass
+                    if (not zakazka in pdftext) or (not stravne_od_2024_04 and polozka == "Stravné zamestnávateľ") or (stravne_od_2024_04 and polozka == "Stravné príspevok"):
                         zapisat = [
                             polozka + f" {polozky[polozka][2]}", 
                             zakazka,

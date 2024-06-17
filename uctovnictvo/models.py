@@ -1903,10 +1903,10 @@ class PrispevokNaStravne(Klasifikacia):
         if not str(zden.year) in self.cislo: return []  #nesprávny rok
         if zden.month != mesiace_num[self.za_mesiac][0]: return [] #nesprávny mesiac 
         platby = []
-        if self.typ_zoznamu == Stravne.PRI_ZRA: #od 04/2024 sa v rekapitulácii uvádza príspevok zamestnávateľa a socfondu nezávisle (socfond tu ignorujeme)
+        if self.typ_zoznamu == Stravne.PRI_ZRA: #od 04/2024 sa v rekapitulácii uvádza príspevok zamestnávateľa a socfondu nezávisle
             platba = {
-                "nazov":"Stravné príspevok",
-                "suma": self.suma_zamestnavatel,
+                "nazov":"Stravné zamestnávateľ",
+                "suma": self.suma_zamestnavatel + self.zrazka_zamestnavatel,
                 "datum": vyplatny_termin(zden),
                 "mesiac": zden,
                 "subjekt": "Zamestnanci",
@@ -1918,8 +1918,8 @@ class PrispevokNaStravne(Klasifikacia):
                 }
             platby.append(platba.copy())
             platba = {
-                "nazov":"Stravné zrážky",
-                "suma": self.zrazka_zamestnavatel,
+                "nazov":"Stravné soc. fond",
+                "suma": self.suma_socfond + self.zrazka_socfond,
                 "datum": vyplatny_termin(zden),
                 "mesiac": zden,
                 "subjekt": "Zamestnanci",
