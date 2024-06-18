@@ -366,8 +366,8 @@ class CerpanieRozpoctuAdmin(ModelAdminTotals):
                 item['nazov'] = item['podnazov'] if 'podnazov' in item else item['nazov']
                 #Dotácia nemá dátum
                 if not 'datum' in item or not item['datum']: continue
-                ident = f"{item['zdroj']} {item['zakazka']} {item['ekoklas']}"
-                ikvartal = int(item['mesiac'].month/4)
+                ident = f"{item['zdroj']}//{item['zakazka']}//{item['ekoklas']}"
+                ikvartal = int((item['mesiac'].month-1)/3)
                 if not ident in kvartaly[ikvartal]:
                     kvartaly[ikvartal][ident] = []
                 klist = [
@@ -430,17 +430,33 @@ class CerpanieRozpoctuAdmin(ModelAdminTotals):
 
         #zapísať kvartály
         nazvy = ["Suma", "Zdroj", "Zákazka", "Klasifikácia", "Klasifikácia - názov"]
+        #Zoznam všetkých možných ident
+        ident_set = set()
+        for kv in kvartaly:
+            for ident in kvartaly[kv]:
+                ident_set.add(ident)
+        ident_set = sorted(ident_set)
+
         fw = {} #field width
         for kv in kvartaly:
             ws = wb.create_sheet(title=f"{kv+1}. kvartál")
+            #hlavička
             zapisat_riadok(ws, fw, 1, nazvy, header=True)
             riadok=2
-            for ident in kvartaly[kv]:
+            #dáta
+            for ident in ident_set: #access by sorted key
+                if not ident in kvartaly[kv]:
+                    zdroj, zakazka, ekoklas = ident.split("//")
+                    zapisat_riadok(ws, fw, riadok, [0, zdroj.split(" ")[0], zakazka, ekoklas.split(" - ")[0], ekoklas.split(" - ")[1]], header=False)
+                    ws.cell(row=row, column=1).number_format="0.00"
+                    riadok +=1
+                    continue
                 suma = 0
-                for polozka in kvartaly[kv][ident]:
-                    suma += float(polozka[1])
-                row = [suma] + polozka[5:] 
+                for item in kvartaly[kv][ident]:
+                    suma += float(item[1])
+                row = [suma] + item[5:] 
                 zapisat_riadok(ws, fw, riadok, row, header=False)
+                ws.cell(row=row, column=1).number_format="0.00"
                 riadok +=1
             for cc in fw:
                 ws.column_dimensions[get_column_letter(cc+1)].width = fw[cc]
