@@ -448,7 +448,7 @@ class CerpanieRozpoctuAdmin(ModelAdminTotals):
                 if not ident in kvartaly[kv]:
                     zdroj, zakazka, ekoklas = ident.split("//")
                     zapisat_riadok(ws, fw, riadok, [0, zdroj.split(" ")[0], zakazka, ekoklas.split(" - ")[0], ekoklas.split(" - ")[1]], header=False)
-                    ws.cell(row=row, column=1).number_format="0.00"
+                    #ws.cell(row=riadok, column=1).number_format="0.00"
                     riadok +=1
                     continue
                 suma = 0
@@ -456,7 +456,7 @@ class CerpanieRozpoctuAdmin(ModelAdminTotals):
                     suma += float(item[1])
                 row = [suma] + item[5:] 
                 zapisat_riadok(ws, fw, riadok, row, header=False)
-                ws.cell(row=row, column=1).number_format="0.00"
+                #ws.cell(row=riadok, column=1).number_format="0.00"
                 riadok +=1
             for cc in fw:
                 ws.column_dimensions[get_column_letter(cc+1)].width = fw[cc]
@@ -856,8 +856,9 @@ def gen_dds(poistne, zamestnanec, suma, zden, td_konv):
     dds = {
         "nazov": "DDS príspevok",
         "suma": round(Decimal(suma),2),
-        "zdroj": Zdroj.objects.get(kod="111"),
-        "zakazka": TypZakazky.objects.get(kod="11010001 spol. zák."),
+        # od 1.1.2024 účtujene 627 na 46
+        "zdroj": Zdroj.objects.get(kod="111") if zden < date(2024,1,1) else Zdroj.objects.get(kod="46"),
+        "zakazka": TypZakazky.objects.get(kod="11010001 spol. zák.")  if zden < date(2024,1,1) else TypZakazky.objects.get(kod="46010001"),
         "datum": vyplatny_termin(zden),
         "mesiac": zden,
         "subjekt": subjekt,
