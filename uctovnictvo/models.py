@@ -331,12 +331,15 @@ class UcetUctovnejOsnovy(models.Model):
     nazov = models.CharField("Názov", 
             help_text = "Zadajte názov účtu účtovnej osnovy",
             max_length=100)
+    kategoria = models.CharField("Kategória účtu", 
+            help_text = "Zadajte kategóriu účtu",
+            max_length=100)
     history = HistoricalRecords()
     def __str__(self):
         return f"{self.kod} - {' '.join(self.nazov.split(' ')[:4])}"
     class Meta:
         verbose_name = 'Účet účovnej osnovy',
-        verbose_name_plural = 'Klasifikácia - Účet'
+        verbose_name_plural = 'Klasifikácia - Účty'
 
 class EkonomickaKlasifikacia(models.Model):
     kod = models.CharField("Kód", 

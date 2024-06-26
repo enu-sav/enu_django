@@ -134,7 +134,7 @@ class EkonomickaKlasifikaciaAdmin(ZobrazitZmeny, SimpleHistoryAdmin, ImportExpor
 
 @admin.register(UcetUctovnejOsnovy)
 class UcetUctovnejOsnovyAdmin(ZobrazitZmeny, SimpleHistoryAdmin, ImportExportModelAdmin):
-    list_display = ("kod", "nazov")
+    list_display = ("kod", "nazov", "kategoria")
     search_fields = ("^kod", "nazov")
 
 @admin.register(Cinnost)
