@@ -1381,7 +1381,7 @@ class PrispevokNaStravneAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistor
     def get_readonly_fields(self, request, obj=None):
         if DEPLOY_STATE == "production" and request.user.is_superuser: return []
         fields = [f.name for f in PrispevokNaStravne._meta.get_fields()]
-        to_remove = ["cislo", "za_mesiac", "program", "ekoklas", "zakazka", "zdroj", "cinnost"]
+        to_remove = ["datum_odoslania", "cislo", "za_mesiac", "program", "ekoklas", "zakazka", "zdroj", "cinnost"]
         for tr in to_remove:
             fields.remove(tr)
         return fields
