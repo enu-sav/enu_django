@@ -863,12 +863,12 @@ class Klasifikacia2(Klasifikacia):
             validators=PERCENTAGE_VALIDATOR)
     def clean(self):
         # test, či sú všetky vyplnené alebo či sú všetky prázdne
-        values =[not self.zdroj2 is None, not self.zakazka2 is None, self.podiel2 != Decimal(0.00)]
+        values =[not self.zdroj2, not self.zakazka2, not self.podiel2]
         if len(set(values)) > 1:
             raise ValidationError({
-                "zdroj2":"Polia 'Zdroj 2', 'Typ zákazky 2' a 'Podiel 2' musia byť buď všetky vyplnené alebo žiadne nesmie byť vyplnené",
-                "zakazka2":"Polia 'Zdroj 2', 'Typ zákazky 2' a 'Podiel 2' musia byť buď všetky vyplnené alebo žiadne nesmie byť vyplnené", 
-                "podiel2":"Polia 'Zdroj 2', 'Typ zákazky 2' a 'Podiel 2' musia byť buď všetky vyplnené alebo žiadne nesmie byť vyplnené", 
+                "zdroj2":"Polia 'Zdroj 2', 'Typ zákazky 2' a 'Podiel 2' musia byť buď všetky vyplnené/rôzne od 0 alebo žiadne nesmie byť vyplnené",
+                "zakazka2":"Polia 'Zdroj 2', 'Typ zákazky 2' a 'Podiel 2' musia byť buď všetky vyplnené/rôzne od 0 alebo žiadne nesmie byť vyplnené", 
+                "podiel2":"Polia 'Zdroj 2', 'Typ zákazky 2' a 'Podiel 2' musia byť buď všetky vyplnené/rôzne od 0 alebo žiadne nesmie byť vyplnené", 
                 }
             )
 
