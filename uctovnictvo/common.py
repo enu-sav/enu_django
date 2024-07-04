@@ -349,6 +349,7 @@ def VytvoritPlatobnyPrikaz(faktura, pouzivatel):
         locale.setlocale(locale.LC_ALL, 'sk_SK.UTF-8')
         polozky = [f"{lt}popis%d{gt}", f"{lt}cbdph%d{gt}", f"{lt}d%d{gt}", f"{lt}zd%d{gt}", f"{lt}zak%d{gt}", f"{lt}ek%d{gt}"]
         riadky = rozpis_poloziek.split("\n")
+        suma_spolu = Decimal(0)
         for nn, riadok in enumerate(riadky):
             polia = rozdelit_polozky(riadok)
             text = text.replace(polozky[0]%(nn+1), polia[0])
@@ -357,7 +358,10 @@ def VytvoritPlatobnyPrikaz(faktura, pouzivatel):
             text = text.replace(polozky[4]%(nn+1), polia[4])
             text = text.replace(polozky[5]%(nn+1), polia[5])
             suma = suma_riadok(polia[1])*(1+suma_riadok(polia[2])/100)
-            text = text.replace(polozky[1]%(nn+1), f"{locale_format(round(Decimal(suma), 2))}")
+            suma = round(Decimal(suma), 2)
+            text = text.replace(polozky[1]%(nn+1), f"{locale_format(suma)}")
+            suma_spolu += suma
+        text = text.replace("[[spolu]]", f"{locale_format(suma_spolu)}")
         #Zmazať ostatné
         for nn in range(len(riadky)+1, 7):  #Máme 6 riadkov v šablóne
             for polozka in polozky:
@@ -367,6 +371,8 @@ def VytvoritPlatobnyPrikaz(faktura, pouzivatel):
     #úvodné testy
     if not os.path.isdir(settings.PLATOBNE_PRIKAZY_DIR):
         os.makedirs(settings.PLATOBNE_PRIKAZY_DIR)
+    # faktura.podiel2 môže byť prázdne alebo rovné 0
+    podiel2 = faktura.podiel2 if faktura.podiel2 else 0
     
     lt="[["
     gt="]]"
@@ -431,9 +437,10 @@ def VytvoritPlatobnyPrikaz(faktura, pouzivatel):
         else:
             #Skryť nevhodnú oblasť
             text = text.replace( 'text:name="OblastRozpisanePolozky"', 'text:name="OblastRozpisanePolozky" text:display="none">')
-            text = text.replace(f"{lt}suma1{gt}", f"{locale_format(round((1-faktura.podiel2/100)*suma,2))} {mena}")
-            if faktura.podiel2 > 0:
-                text = text.replace(f"{lt}suma2{gt}", f"{locale_format(round((faktura.podiel2)*suma/100,2))} {mena}")
+            trace()
+            text = text.replace(f"{lt}suma1{gt}", f"{locale_format(round(Decimal(1-podiel2/100)*suma,2))} {mena}")
+            if podiel2 > 0:
+                text = text.replace(f"{lt}suma2{gt}", f"{locale_format(round(Decimal(podiel2/100)*suma,2))} {mena}")
             else:
                 text = text.replace(f"{lt}suma2{gt}", f"0 {mena}")
     elif jeVF:  #len ak ide o vrátenie sumy nájomníkovi
@@ -442,9 +449,9 @@ def VytvoritPlatobnyPrikaz(faktura, pouzivatel):
         mena = "€"
         text = text.replace(f"{lt}DM{gt}", f"{locale_format(suma)} €")
         text = text.replace(f"{lt}CM{gt}", "")
-        text = text.replace(f"{lt}suma1{gt}", f"{locale_format(round((1-faktura.podiel2/100)*suma,2))} {mena}")
-        if faktura.podiel2 > 0:
-            text = text.replace(f"{lt}suma2{gt}", f"{locale_format(round((faktura.podiel2)*suma/100,2))} {mena}")
+        text = text.replace(f"{lt}suma1{gt}", f"{locale_format(round(Decimal(1-podiel2/100)*suma,2))} {mena}")
+        if podiel2 > 0:
+            text = text.replace(f"{lt}suma2{gt}", f"{locale_format(round(Decimal(podiel2/100)*suma,2))} {mena}")
         else:
             text = text.replace(f"{lt}suma2{gt}", f"0 {mena}")
         text = text.replace(f"{lt}PDP{gt}", "Nie")
@@ -457,9 +464,9 @@ def VytvoritPlatobnyPrikaz(faktura, pouzivatel):
         mena = "€"
         text = text.replace(f"{lt}DM{gt}", f"{locale_format(suma)} €")     # suma je záporná, o formulári chceme kladné
         text = text.replace(f"{lt}CM{gt}", "")
-        text = text.replace(f"{lt}suma1{gt}", f"{locale_format(round((1-faktura.podiel2/100)*suma,2))} {mena}")
-        if faktura.podiel2 > 0:
-            text = text.replace(f"{lt}suma2{gt}", f"{locale_format(round((faktura.podiel2)*suma/100,2))} {mena}")
+        text = text.replace(f"{lt}suma1{gt}", f"{locale_format(round((1-podiel2/100)*suma,2))} {mena}")
+        if podiel2 > 0:
+            text = text.replace(f"{lt}suma2{gt}", f"{locale_format(round((podiel2)*suma/100,2))} {mena}")
         else:
             text = text.replace(f"{lt}suma2{gt}", f"0 {mena}")
         text = text.replace(f"{lt}PDP{gt}", "Nie")
@@ -469,12 +476,12 @@ def VytvoritPlatobnyPrikaz(faktura, pouzivatel):
 
     text = text.replace(f"{lt}ekoklas{gt}", faktura.ekoklas.kod)
     text = text.replace(f"{lt}zdroj1{gt}", faktura.zdroj.kod)
-    text = text.replace(f"{lt}podiel1{gt}", f"{locale_format(100-faktura.podiel2)}") 
+    text = text.replace(f"{lt}podiel1{gt}", f"{100-podiel2}") 
     text = text.replace(f"{lt}zakazka1{gt}", faktura.zakazka.kod)
-    if faktura.podiel2 > 0:
+    if podiel2 > 0:
         text = text.replace(f"{lt}zakazka2{gt}", faktura.zakazka2.kod)
         text = text.replace(f"{lt}zdroj2{gt}", faktura.zdroj2.kod)
-        text = text.replace(f"{lt}podiel2{gt}", f"{locale_format(faktura.podiel2)}") 
+        text = text.replace(f"{lt}podiel2{gt}", f"{podiel2}") 
     else:
         text = text.replace(f"{lt}zakazka2{gt}", "-")
         text = text.replace(f"{lt}zdroj2{gt}", "-")
