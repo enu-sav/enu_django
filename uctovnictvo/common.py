@@ -437,7 +437,6 @@ def VytvoritPlatobnyPrikaz(faktura, pouzivatel):
         else:
             #Skryť nevhodnú oblasť
             text = text.replace( 'text:name="OblastRozpisanePolozky"', 'text:name="OblastRozpisanePolozky" text:display="none">')
-            trace()
             text = text.replace(f"{lt}suma1{gt}", f"{locale_format(round(Decimal(1-podiel2/100)*suma,2))} {mena}")
             if podiel2 > 0:
                 text = text.replace(f"{lt}suma2{gt}", f"{locale_format(round(Decimal(podiel2/100)*suma,2))} {mena}")
