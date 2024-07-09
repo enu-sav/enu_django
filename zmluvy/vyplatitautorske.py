@@ -436,7 +436,7 @@ class VyplatitAutorskeOdmeny(VyplatitOdmeny):
                 vyplatit[f"A{b}"] = "IBAN:"
                 vyplatit[f"B{b}"] = adata.bankovy_kontakt
                 vyplatit[f"A{c}"] = "VS:"
-                vyplatit[f"B{c}"] = self.cislo
+                vyplatit[f"B{c}"] = "%05d"%adata.id
                 vyplatit[f"A{d}"] = "Suma na úhradu:"
                 vyplatit[f"B{d}"] = f"=Výpočet!L{i+2}"
                 vyplatit[f"B{d}"].number_format= "0.00"
