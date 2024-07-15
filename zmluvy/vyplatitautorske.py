@@ -51,6 +51,16 @@ class VyplatitAutorskeOdmeny(VyplatitOdmeny):
         self.kpos2 =self.kstart2 #aktuálny riadok záznamu o autorovi v hárku 'Krycí list', strana 2
         self.error_list = [] #chyby na zápis do hárku Chyby.
         self.logs = []
+        # styly buniek, https://openpyxl.readthedocs.io/en/default/styles.html
+        # default font dokumentu je Arial
+        self.fbold = Font(name="Arial", bold=True)
+        self.fsize9 = Font(name="Arial", size=9)
+        self.fbsize9 = Font(name="Arial", size=9, bold=True)
+        self.aright = Alignment(horizontal='right')
+        self.acenter = Alignment(horizontal='center')
+        self.ashrinkcenter = Alignment(horizontal='center',shrinkToFit=True)
+        self.aleft = Alignment(horizontal='left')
+
 
     def log(self, status, msg):
         self.logs.append([status,msg])
@@ -63,7 +73,7 @@ class VyplatitAutorskeOdmeny(VyplatitOdmeny):
 
     def hlavicka_test(self, fname, row):
         # povinné stĺpce v csv súbore:
-        povinne = ["Nid", "Prihlásiť sa", "nazov", "Zmluva na vyplatenie", "Vyplatenie odmeny", "Dĺžka autorom odovzdaného textu", "Dátum záznamu dĺžky", "Dátum vyplatenia", "Lexikálna skupina"]
+        povinne = ["Nid", "Prihlásiť sa", "nazov", "Zmluva na vyplatenie", "Vyplatenie odmeny", "Dĺžka autorom odovzdaného textu", "Dátum záznamu dĺžky", "Dátum vyplatenia", "Lexikálna skupina", "Objednávka"]
         for item in povinne:
             if not item in row:
                 raise Exception(f"Súbor {fname} musí obsahovať stĺpec '{item}'")
@@ -126,13 +136,19 @@ class VyplatitAutorskeOdmeny(VyplatitOdmeny):
                             self.error_list.append([login, "", msg])
                         else:   # vytvoriť záznam na vyplatenie
                             if not cislo_zmluvy in self.data[login][rs_webrs]: self.data[login][rs_webrs][cislo_zmluvy] = []
+                            datum_zaznamu = re.sub(r"<[^>]*>","",row[hdr['Dátum záznamu dĺžky']])
+                            if "/" in datum_zaznamu:
+                                mes,den,rok = datum_zaznamu.split("/")
+                                datum_zaznamu = date(2000+int(rok), int(mes), int(den)).strftime("%d.%m.%Y")
+
                             self.data[login][rs_webrs][cislo_zmluvy].append([
                                 int(row[hdr["Dĺžka autorom odovzdaného textu"]]),
                                 rs_webrs,
                                 f'=HYPERLINK("{nid}";"{row[hdr["nazov"]]}")',
                                 row[hdr['Zmluva na vyplatenie']],
-                                re.sub(r"<[^>]*>","",row[hdr['Dátum záznamu dĺžky']]),
-                                row[hdr["Lexikálna skupina"]]
+                                datum_zaznamu,
+                                row[hdr["Lexikálna skupina"]],
+                                row[hdr["Objednávka"]]
                             ])
                     else:
                         msg = f"Chyba zmluvy, autor nemá priradenú zmluvu {cislo_zmluvy}: {login}, {row[hdr['nazov']]}, {nid}, súbor {fn}."
@@ -268,13 +284,6 @@ class VyplatitAutorskeOdmeny(VyplatitOdmeny):
             self.log(messages.INFO, f"Neboli načítané žiadne platné dáta pre vyplácanie. Súbory na vyplácanie neboli vytvorené.")
             return None
 
-        # styly buniek, https://openpyxl.readthedocs.io/en/default/styles.html
-        # default font dokumentu je Arial
-        self.fbold = Font(name="Arial", bold=True)
-        self.aright = Alignment(horizontal='right')
-        acenter = Alignment(horizontal='center')
-        aleft = Alignment(horizontal='left')
-
         workbook = load_workbook(filename=ws_template)
 
         #upraviť vlastnosti dokumentu
@@ -358,7 +367,7 @@ class VyplatitAutorskeOdmeny(VyplatitOdmeny):
             vyplatit["A4"].value = vyplatit["A4"].value.replace("[[coho]]","autorských honorárov")
         vyplatit.merge_cells('A5:G5')
         vyplatit["A5"] = f"identifikátor vyplácania {self.cislo}"
-        vyplatit["A5"].alignment = acenter
+        vyplatit["A5"].alignment = self.acenter
 
         vyplatit["A7"] = "Prevody spolu:"
         #vyplatit.merge_cells("B7:G7")
@@ -367,11 +376,11 @@ class VyplatitAutorskeOdmeny(VyplatitOdmeny):
         else:
             vyplatit["B7"] = f"=Výpočet!L{sum_row}" # autorské honoráre
         vyplatit[f"B7"].number_format= "0.00"
-        vyplatit[f"B7"].alignment = aleft
+        vyplatit[f"B7"].alignment = self.aleft
         vyplatit[f"B7"].font = self.fbold
         vyplatit["D7"] = "EKRK:"
         vyplatit["E7"] = "633018"
-        vyplatit[f"E7"].alignment = aleft
+        vyplatit[f"E7"].alignment = self.aleft
         vyplatit[f"E7"].font = self.fbold
         vyplatit["A8"] = "Z čísla účtu EnÚ:"
         vyplatit["B8"] = VyplatitAutorskeOdmeny.ucetEnÚ
@@ -398,7 +407,7 @@ class VyplatitAutorskeOdmeny(VyplatitOdmeny):
             vyplatit[f"A{e}"] = "Suma na úhradu:"
             vyplatit[f"B{e}"] = f"=Výpočet!K{sum_row}" if  self.datum_vyplatenia else "Ešte neurčené"
             vyplatit[f"B{e}"].number_format= "0.00"
-            vyplatit[f"B{e}"].alignment = aleft
+            vyplatit[f"B{e}"].alignment = self.aleft
             vyplatit[f"B{e}"].font = self.fbold
 
             # Farba pozadia
@@ -440,7 +449,7 @@ class VyplatitAutorskeOdmeny(VyplatitOdmeny):
                 vyplatit[f"A{d}"] = "Suma na úhradu:"
                 vyplatit[f"B{d}"] = f"=Výpočet!L{i+2}"
                 vyplatit[f"B{d}"].number_format= "0.00"
-                vyplatit[f"B{d}"].alignment = aleft
+                vyplatit[f"B{d}"].alignment = self.aleft
                 vyplatit[f"B{d}"].font = self.fbold
                 pos += 5
                 #zalomiť stranu tak, aby záznam autora sa nerozdelil
@@ -669,7 +678,7 @@ class VyplatitAutorskeOdmeny(VyplatitOdmeny):
 
         ftitle = Font(name="Arial", bold=True, size='14')
 
-        ws.merge_cells(f'A{self.ppos}:H{self.ppos}')
+        ws.merge_cells(f'A{self.ppos}:I{self.ppos}')
         ws[f'A{self.ppos}'] = f"Vyplatenie autorského honorára č. {self.cislo}"
         ws[f"A{self.ppos}"].alignment = Alignment(horizontal='center', vertical='center')
         ws.row_dimensions[self.ppos].height = 70
@@ -718,15 +727,15 @@ class VyplatitAutorskeOdmeny(VyplatitOdmeny):
                 if not self.je_rezident(adata):
                     dan = 0
                     vyplatit = round(vypocet,2)
-                    self.bb( f"Daň:", f"nezdanuje sa (nerezident, {adata.adresa_stat})")
+                    self.bb( f"Zrážková daň:", f"nezdanuje sa (nerezident, {adata.adresa_stat})")
                 elif self.zmluva_nezdanit(adata):  
                     dan = 0
                     vyplatit = round(vypocet,2)
-                    self.bb( f"Daň:", "nezdaňuje sa (podpísaná dohoda)")
+                    self.bb( f"Zrážková daň:", "nezdaňuje sa (podpísaná dohoda)")
                 else:
                     dan = round(vypocet*VyplatitAutorskeOdmeny.dan_odvod/100,2)
                     vyplatit = round(vypocet - dan,2)
-                    self.bb( f"Daň ({VyplatitAutorskeOdmeny.dan_odvod} %, zaokr.):", dan)
+                    self.bb( f"Zrážková daň ({VyplatitAutorskeOdmeny.dan_odvod} %, zaokr.):", dan)
 
                 self.bb( "Vyplatiť:", vyplatit)
                 self.bb( "Nová hodnota preplatku:", 0)
@@ -776,7 +785,7 @@ class VyplatitAutorskeOdmeny(VyplatitOdmeny):
                 #adata.save()
         self.ppos  += 1  
 
-        ws.merge_cells(f'A{self.ppos}:H{self.ppos}')
+        ws.merge_cells(f'A{self.ppos}:I{self.ppos}')
         ws[f'A{self.ppos}'] = "Prehľad platieb po heslách"
         ws[f"A{self.ppos}"].alignment = Alignment(horizontal='center', vertical='center')
         ws.row_dimensions[self.ppos].height = 40
@@ -784,7 +793,7 @@ class VyplatitAutorskeOdmeny(VyplatitOdmeny):
         self.ppos  += 1  
 
         #vypísať vyplatené heslá a zrátať výslednú sumu
-        self.bb3(["Kniha/web","Zmluva","Heslo","Dátum zadania", "Suma [€/AH]","Počet znakov", "Vyplatiť [€]"],hdr=True)
+        self.bb3(["Kniha/web","Zmluva","Heslo","Dátum zadania", "Objednávka", "Suma [€/AH]","Počet znakov", "Vyplatiť [€]"],hdr=True)
         zdata = ZmluvaAutor.objects.filter(zmluvna_strana__rs_login=autor)
         zvyplatit = {}
         for zmluva in zdata:
@@ -794,12 +803,12 @@ class VyplatitAutorskeOdmeny(VyplatitOdmeny):
             for zmluva in self.data[autor][rstype]:
                 for heslo in self.data[autor][rstype][zmluva]:
                     if rstype=="rs":
-                        self.bb3(["kniha", zmluva , heslo[2], heslo[4], zvyplatit[zmluva], heslo[0]])
+                        self.bb3(["kniha", zmluva , heslo[2], heslo[4], heslo[-1], zvyplatit[zmluva], heslo[0]])
                         vdata["honorar_rs"] += zvyplatit[zmluva] * heslo[0] / 36000 
                         vdata["znaky_rs"] += heslo[0]
                         vdata["zmluva"].add(zmluva)
                     else:
-                        self.bb3(["web", zmluva , heslo[2], heslo[4], zvyplatit[zmluva], heslo[0]])
+                        self.bb3(["web", zmluva , heslo[2], heslo[4], heslo[-1], zvyplatit[zmluva], heslo[0]])
                         vdata["honorar_webrs"] += zvyplatit[zmluva] * heslo[0] / 36000 
                         vdata["znaky_webrs"] += heslo[0]
                         vdata["zmluva"].add(zmluva)
@@ -811,14 +820,14 @@ class VyplatitAutorskeOdmeny(VyplatitOdmeny):
         #stĺpec so sumou: H
         ws.merge_cells(f'A{self.ppos}:G{self.ppos}')
         if vyplaca_sa:
-            ws[f'A{self.ppos}'] = "Honorár za heslá (vyplatí sa po odčítaní preplatku a odvodov)"
+            ws[f'A{self.ppos}'] = "Honorár za heslá (vyplatí sa po odčítaní zrážkovej dane)"
         else:
             ws[f'A{self.ppos}'] = "Honorár za heslá (nevyplatí sa, odpočíta sa z preplatku)"
         ws[f'A{self.ppos}'].font = self.fbold
-        ws[f"H{self.ppos}"].alignment = Alignment(horizontal='right')
-        ws[f'H{self.ppos}'] = "=SUM(H{}:H{}".format(self.ppos-nitems,self.ppos-1) 
-        ws[f'H{self.ppos}'].font = self.fbold
-        ws[f"H{self.ppos}"].number_format= "0.00"
+        ws[f"I{self.ppos}"].alignment = Alignment(horizontal='right')
+        ws[f'I{self.ppos}'] = "=SUM(I{}:I{}".format(self.ppos-nitems,self.ppos-1) 
+        ws[f'I{self.ppos}'].font = self.fbold
+        ws[f"I{self.ppos}"].number_format= "0.00"
         self.ppos  += 2  
         ws.merge_cells(f'A{self.ppos}:F{self.ppos}')
         ws[f"A{self.ppos}"] = "Výpočet autorských odmien bol realizovaný softvérovo na základe údajov z redakčného systému Encyclopaedie Beliany"
@@ -858,7 +867,7 @@ class VyplatitAutorskeOdmeny(VyplatitOdmeny):
     def bb(self, v1, v2):
         ws = self.poautoroch
         ws.merge_cells(f'A{self.ppos}:D{self.ppos}')
-        ws.merge_cells(f'E{self.ppos}:H{self.ppos}')
+        ws.merge_cells(f'E{self.ppos}:I{self.ppos}')
         ws[f"A{self.ppos}"] = v1
         ws[f"E{self.ppos}"] = v2
         ws[f"E{self.ppos}"].alignment = Alignment(horizontal='left')
@@ -869,41 +878,46 @@ class VyplatitAutorskeOdmeny(VyplatitOdmeny):
         col="ABCDEFGHIJK"
         ws = self.poautoroch
 
-        nc = 0
-        acenter = Alignment(horizontal='center')
+        nc = 0  #počet zlúčených buniek
         if hdr:
             ws.row_dimensions[self.ppos].height = 30
-            for n, item in enumerate(items):
-                ws[f"{col[n+nc]}{self.ppos}"].font = self.fbold
-                ws[f"{col[n+nc]}{self.ppos}"].alignment = Alignment(wrapText=True, horizontal='center')
-                ws[f"{col[n+nc]}{self.ppos}"] = item
+            widths = [1.31, 1.96, 1.74, 2.7, 1.8, 2.5, 1.35, 1.35, 1.42]     #in cm
+            pxcm = 4.95
+            for nn, item in enumerate(items):
+                ws[f"{col[nn+nc]}{self.ppos}"].font = self.fbold
+                ws[f"{col[nn+nc]}{self.ppos}"].alignment = Alignment(wrapText=True, horizontal='center')
+                ws[f"{col[nn+nc]}{self.ppos}"] = item
+                ws[f"{col[nn+nc]}{self.ppos}"].font = self.fbsize9
+                ws.column_dimensions[f"{col[nn+nc]}"].width = widths[nn+nc]*pxcm
                 if type(item) is str and "Heslo" in item:
-                    ws.merge_cells(f'{col[n]}{self.ppos}:{col[n+1]}{self.ppos}')
+                    ws.merge_cells(f'{col[nn]}{self.ppos}:{col[nn+1]}{self.ppos}')
+                    ws[f"{col[nn]}{self.ppos}"].alignment = self.aleft
                     nc = 1
         else:
             nc = 0
-            for n, item in enumerate(items):
+            for nn, item in enumerate(items):
                 if type(item) is str and "HYPERLINK" in item:
                     #=HYPERLINK("https://rs.beliana.sav.sk/node/218406";"langusta")
                     link, lname = re.findall(r'"([^"]*)"',item) 
-                    ws[f"{col[n+nc]}{self.ppos}"].alignment = acenter
-                    ws.merge_cells(f'{col[n]}{self.ppos}:{col[n+1]}{self.ppos}')
+                    ws[f"{col[nn+nc]}{self.ppos}"].alignment = self.ashrinkcenter
+                    ws.merge_cells(f'{col[nn]}{self.ppos}:{col[nn+1]}{self.ppos}')
+                    ws[f"{col[nn+nc]}{self.ppos}"].hyperlink = link
+                    ws[f"{col[nn+nc]}{self.ppos}"].value = lname
+                    ws[f"{col[nn+nc]}{self.ppos}"].style = "Hyperlink"
+                    ws[f"{col[nn+nc]}{self.ppos}"].font = self.fsize9
                     nc = 1
-                    ws[f"{col[n]}{self.ppos}"].hyperlink = link
-                    ws[f"{col[n]}{self.ppos}"].value = lname
-                    ws[f"{col[n]}{self.ppos}"].style = "Hyperlink"
                 else:
-                    ws[f"{col[n+nc]}{self.ppos}"] = item
-                    ws[f"{col[n+nc]}{self.ppos}"].alignment = acenter
-            #Zmluva sa občas nezmesti
-            ws[f'B{self.ppos}'].alignment = Alignment(shrinkToFit=True)
-            # suma za heslo, posledné 2 položky sú suma/AH a počet znakov
-            ws[f"{col[n+nc]}{self.ppos}"].alignment = Alignment(horizontal='right')
-            #ws[f"{col[n+nc+1]}{self.ppos}"] = f"={col[n+nc-1]}{self.ppos}*{col[n+nc]}{self.ppos}/36000"
-            ws[f"{col[n+nc+1]}{self.ppos}"].value = round(items[-2]*items[-1]/36000,2)
-            ws[f"{col[n+nc+1]}{self.ppos}"].alignment = Alignment(horizontal='right')
-            #ws[f"{col[n+nc+1]}{self.ppos}"].style.number_format= numbers.NumberFormat.FORMAT_NUMBER_00
-            ws[f"{col[n+nc+1]}{self.ppos}"].number_format= "0.00"
+                    ws[f"{col[nn+nc]}{self.ppos}"] = item
+                    ws[f"{col[nn+nc]}{self.ppos}"].alignment = self.ashrinkcenter
+                ws[f"{col[nn+nc]}{self.ppos}"].font = self.fsize9
+            # vypočítaná suma za heslo, posledné 2 položky sú suma/AH a počet znakov
+            ws[f"{col[nn+nc+1]}{self.ppos}"].alignment = Alignment(horizontal='right')
+            #ws[f"{col[nn+nc+1]}{self.ppos}"] = f"={col[nn+nc-1]}{self.ppos}*{col[nn+nc]}{self.ppos}/36000"
+            ws[f"{col[nn+nc+1]}{self.ppos}"].value = round(items[-2]*items[-1]/36000,2)
+            ws[f"{col[nn+nc+1]}{self.ppos}"].alignment = Alignment(horizontal='right')
+            #ws[f"{col[nn+nc+1]}{self.ppos}"].style.number_format= numbers.NumberFormat.FORMAT_NUMBER_00
+            ws[f"{col[nn+nc+1]}{self.ppos}"].number_format= "0.00"
+            ws[f"{col[nn+nc+1]}{self.ppos}"].font = self.fsize9
             ws.row_dimensions[self.ppos].height = 16
         self.ppos  += 1  
 
@@ -925,6 +939,15 @@ class VyplatitAutorskeOdmeny(VyplatitOdmeny):
 class VyplatitOdmenyGrafik(VyplatitOdmeny):
     def __init__(self, platba): 
         self.platba = platba
+        # styly buniek, https://openpyxl.readthedocs.io/en/default/styles.html
+        # default font dokumentu je Arial
+        self.fbold = Font(name="Arial", bold=True)
+        self.fsize9 = Font(name="Arial", size=9)
+        self.fbsize9 = Font(name="Arial", size=9, bold=True)
+        self.aright = Alignment(horizontal='right')
+        self.acenter = Alignment(horizontal='center')
+        self.aleft = Alignment(horizontal='left')
+
         pass
     # pouzivatel: aktualny pouzivatel
     def vytvorit_prikaz(self):
@@ -935,13 +958,6 @@ class VyplatitOdmenyGrafik(VyplatitOdmeny):
             self.log(messages.ERROR, f"V systéme nie je definovaný súbor '{nazov_objektu}'.")
             return None
         ws_template = sablona[0].subor.file.name 
-
-        # styly buniek, https://openpyxl.readthedocs.io/en/default/styles.html
-        # default font dokumentu je Arial
-        self.fbold = Font(name="Arial", bold=True)
-        self.aright = Alignment(horizontal='right')
-        acenter = Alignment(horizontal='center')
-        aleft = Alignment(horizontal='left')
 
         workbook = load_workbook(filename=ws_template)
 
@@ -962,16 +978,16 @@ class VyplatitOdmenyGrafik(VyplatitOdmeny):
         vyplatit["A4"].value = vyplatit["A4"].value.replace("[[coho]]","autorského honoráru")
         #vyplatit.merge_cells('A5:G5')
         vyplatit["C5"] = f"identifikátor vyplácania {self.platba.cislo}"
-        #vyplatit["A5"].alignment = acenter
+        #vyplatit["A5"].alignment = self.acenter
 
         vyplatit["A7"] = "Prevody spolu:"
         vyplatit["B7"] = self.platba.honorar    # honorár + daň + LF
         vyplatit[f"B7"].number_format= "0.00"
-        vyplatit[f"B7"].alignment = aleft
+        vyplatit[f"B7"].alignment = self.aleft
         vyplatit[f"B7"].font = self.fbold
         vyplatit["D7"] = "EKRK:"
         vyplatit["E7"] = "633018"
-        vyplatit[f"E7"].alignment = aleft
+        vyplatit[f"E7"].alignment = self.aleft
         vyplatit[f"E7"].font = self.fbold
         vyplatit["A8"] = "Z čísla účtu EnÚ:"
         vyplatit["B8"] = VyplatitAutorskeOdmeny.ucetEnÚ
@@ -995,7 +1011,7 @@ class VyplatitOdmenyGrafik(VyplatitOdmeny):
         vyplatit[f"A{f}"] = "Suma na úhradu:"
         vyplatit[f"B{f}"] = self.platba.odvod_LF
         vyplatit[f"B{f}"].number_format= "0.00"
-        vyplatit[f"B{f}"].alignment = aleft
+        vyplatit[f"B{f}"].alignment = self.aleft
         vyplatit[f"B{f}"].font = self.fbold
         pos += 7
 
@@ -1012,7 +1028,7 @@ class VyplatitOdmenyGrafik(VyplatitOdmeny):
         vyplatit[f"A{e}"] = "Suma na úhradu:"
         vyplatit[f"B{e}"] = self.platba.odvedena_dan
         vyplatit[f"B{e}"].number_format= "0.00"
-        vyplatit[f"B{e}"].alignment = aleft
+        vyplatit[f"B{e}"].alignment = self.aleft
         vyplatit[f"B{e}"].font = self.fbold
         pos = pos+8
 
@@ -1027,7 +1043,7 @@ class VyplatitOdmenyGrafik(VyplatitOdmeny):
         vyplatit[f"A{d}"] = "Suma na úhradu:"
         vyplatit[f"B{d}"] = self.platba.honorar - self.platba.odvedena_dan - self.platba.odvod_LF
         vyplatit[f"B{d}"].number_format= "0.00"
-        vyplatit[f"B{d}"].alignment = aleft
+        vyplatit[f"B{d}"].alignment = self.aleft
         vyplatit[f"B{d}"].font = self.fbold
         pos += 8
 
