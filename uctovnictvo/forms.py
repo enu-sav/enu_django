@@ -126,6 +126,8 @@ class ObjednavkaForm(DennikZaznam):
             raise ValidationError({"datum_odoslania": "Dátum odoslania možno vyplniť až po vygenerovaní objednávky."})
         if 'datum_odoslania' in self.changed_data:
             self.dennik_zaznam(f"Objednávka č. {self.instance.cislo}.", TypDokumentu.OBJEDNAVKA, InOut.ODOSLANY, self.instance.dodavatel, self.instance.subor_objednavky.url)
+    class Meta:
+        widgets = { 'predmet': forms.TextInput(attrs={'size': 100})}
 
 class PlatbaBezPrikazuForm(forms.ModelForm):
     #inicializácia polí
