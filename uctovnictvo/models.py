@@ -668,7 +668,7 @@ class Objednavka(ObjednavkaZmluva):
                 <li>možnosť: ako jednoduchý text s jednou bodkočiarkou alebo lomkou, za ktorou nasleduje CPV kód, napr. <strong>Objednávame tovar podľa  priloženého zoznamu; 45321000-3</strong>.<br />Súbor takejto ponuky alebo zoznamu vložte do poľa <em>Súbor prílohy</em> a <strong>predpokladanú cenu bez DPH</strong> vložte do poľa <em>Predpokladaná cena</em>.</li>\
                 </ol>"),
 
-            max_length=5000, null=True, blank=True)
+            max_length=5000, null=True)
     ziadatel = models.ForeignKey(ZamestnanecDohodar,
             on_delete=models.PROTECT, 
             verbose_name = "Žiadateľ",
@@ -715,6 +715,11 @@ class Objednavka(ObjednavkaZmluva):
 	        except ValueError:
 		        return False
 
+        if not self.objednane_polozky:
+            raise ValidationError({
+                "objednane_polozky":f"Pole treba vyplneniť."
+                }
+            )
         # test počtu riadkov v objednane_polozky
         pocet_riadkov = 12 #definované v common.VytvoritSuborObjednavky.pocet_riadkov
         pocet_poloziek = len(self.objednane_polozky.split("\r\n"))
