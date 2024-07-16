@@ -113,6 +113,8 @@ class ObjednavkaForm(DennikZaznam):
         self.request = kwargs.pop('request', None)
         super().__init__(*args, **kwargs)
         self.fields["dodavatel"].help_text = "V žiadanke nepovinné, pri generovaní objednávky musí byť vyplnené"
+        self.fields["predmet"].help_text = "Zadajte stručné zdôvodnenie, napr. 'Kontrolná tlač strán Beliany'"
+        self.fields["predmet"].label = "Zdôvodnenie"
         polecislo = "cislo"
         # Ak je pole readonly, tak sa nenachádza vo fields. Preto testujeme fields aj initial
         if polecislo in self.fields and not polecislo in self.initial:
