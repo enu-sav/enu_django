@@ -857,8 +857,11 @@ def gen_dds(poistne, zamestnanec, suma, zden, td_konv):
         "nazov": "DDS príspevok",
         "suma": round(Decimal(suma),2),
         # od 1.1.2024 účtujene 627 na 46
-        "zdroj": Zdroj.objects.get(kod="111") if zden < date(2024,1,1) else Zdroj.objects.get(kod="46"),
-        "zakazka": TypZakazky.objects.get(kod="11010001 spol. zák.")  if zden < date(2024,1,1) else TypZakazky.objects.get(kod="46010001"),
+        # Bola to zlá interpretácia, zrušené
+        #"zdroj": Zdroj.objects.get(kod="111") if zden < date(2024,1,1) else Zdroj.objects.get(kod="46"),
+        #"zakazka": TypZakazky.objects.get(kod="11010001 spol. zák.")  if zden < date(2024,1,1) else TypZakazky.objects.get(kod="46010001"),
+        "zdroj": Zdroj.objects.get(kod="111"),
+        "zakazka": TypZakazky.objects.get(kod="11010001 spol. zák."),
         "datum": vyplatny_termin(zden),
         "mesiac": zden,
         "subjekt": subjekt,
