@@ -15,7 +15,8 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 from django.contrib.auth.models import User
 PERCENTAGE_VALIDATOR = [MinValueValidator(0), MaxValueValidator(100)]
 
-from beliana.settings import TMPLTS_DIR_NAME, PLATOVE_VYMERY_DIR, DOHODY_DIR, PRIJATEFAKTURY_DIR, PLATOBNE_PRIKAZY_DIR, STRAVNE_HOD
+from beliana.settings import TMPLTS_DIR_NAME, PLATOVE_VYMERY_DIR, DOHODY_DIR, PRIJATEFAKTURY_DIR
+from beliana.settings import PLATOBNE_PRIKAZY_DIR, STRAVNE_HOD, PRILOHA_DIR
 from beliana.settings import ODVODY_VYNIMKA, DAN_Z_PRIJMU, OBJEDNAVKY_DIR, STRAVNE_DIR, REKREACIA_DIR
 from beliana.settings import PN1, PN2, BEZ_PRIKAZU_DIR, DDS_PRISPEVOK, ODMENY_DIR, NEPRITOMNOST_DIR, SOCFOND_PRISPEVOK
 from beliana.settings import VYSTAVENEFAKTURY_DIR, NAJOMNEFAKTURY_DIR, POKLADNA_DIR
@@ -407,6 +408,9 @@ class FyzickaOsoba(PersonCommon):
     def __str__(self):
         return self.rs_login
 
+def priloha_file_path(instance, filename):
+    return os.path.join(PRILOHA_DIR, filename)
+
 class ZamestnanecDohodar(PolymorphicModel, FyzickaOsoba):
     datum_nar = models.DateField('Dátum narodenia', null=True)
     rod_priezvisko = models.CharField("Rodné priezvisko", max_length=100, blank=True, null=True)
@@ -417,6 +421,13 @@ class ZamestnanecDohodar(PolymorphicModel, FyzickaOsoba):
             max_length=10, 
             null=True, 
             choices=AnoNie.choices)
+    suborpriloha = models.FileField("Príloha",
+            help_text = "Vložte súbor prílohy",
+            storage=OverwriteStorage(), 
+            upload_to=priloha_file_path, 
+            null = True, 
+            blank = True 
+            )
     typ_doch = models.CharField("Typ dôchodku", 
             max_length=100, 
             null=True, 

@@ -261,6 +261,7 @@ RLTS_DIR = os.path.join(MEDIA_ROOT,RLTS_DIR_NAME)
 BEZ_PRIKAZU_DIR="BezPrikazu"
 PLATOBNE_PRIKAZY_DIR="PlatobnePrikazy"
 PLATOVE_VYMERY_DIR="PlatoveVymery"
+PRILOHA_DIR="Prilohy"
 DOHODY_DIR="Dohody"
 ODMENY_DIR="Odmeny"
 OBJEDNAVKY_DIR="Objednavky"
