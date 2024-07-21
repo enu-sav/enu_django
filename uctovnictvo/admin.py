@@ -692,7 +692,7 @@ class ZmluvaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, Impo
 class PrijataFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
 #class PrijataFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
     form = PrijataFakturaForm
-    list_display = ["cislo", "dcislo", "objednavka_zmluva_link", "url_faktury", "suma", "sadzbadph", "prenosDP", "zrusena", "podiel2", "predmet", "platobny_prikaz", "dane_na_uhradu", "uhradene_dna", "mena", "zdroj", "zakazka", "zdroj2", "zakazka2", "ucet", "ekoklas"]
+    list_display = ["cislo", "dcislo", "objednavka_zmluva_link", "url_faktury", "url_dodaci", "suma", "sadzbadph", "prenosDP", "zrusena", "podiel2", "predmet", "platobny_prikaz", "dane_na_uhradu", "uhradene_dna", "mena", "zdroj", "zakazka", "zdroj2", "zakazka2", "ucet", "ekoklas"]
     search_fields = ["^cislo", "^dcislo", "^objednavka_zmluva__dodavatel__nazov", "objednavka_zmluva__cislo", "predmet", "^zdroj__kod", "^zakazka__kod", "^ekoklas__kod", "^ekoklas__nazov", "ucet__kod","^cinnost__kod", "cinnost__nazov" ]
 
     # zoraďovateľný odkaz na dodávateľa
@@ -722,7 +722,18 @@ class PrijataFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdm
             return format_html(f'<a href="{obj.prijata_faktura.url}" target="_blank">{ddir}/***.{suffix}</a>')
         else:
             return None
-    url_faktury.short_description = "Prijatá faktúra"
+    url_faktury.short_description = "Faktúra"
+
+    # formátovať pole url_dodaci
+    def url_dodaci(self, obj):
+        #trace()
+        if obj.dodaci_list:
+            suffix = obj.dodaci_list.name.split(".")[-1]        
+            ddir = obj.prijata_dodaci_list.name.split("/")[0]        
+            return format_html(f'<a href="{obj.dodaci_list.url}" target="_blank">{ddir}/***.{suffix}</a>')
+        else:
+            return None
+    url_dodaci.short_description = "Dodací list"
 
     #obj is None during the object creation, but set to the object being edited during an edit
     #"platobny_prikaz" je generovaný, preto je vždy readonly

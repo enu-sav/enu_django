@@ -1018,6 +1018,11 @@ class PrijataFaktura(FakturaPravidelnaPlatba, GetAdminURL):
             upload_to=prijata_faktura_upload_location, 
             blank = True,
             null = True)
+    dodaci_list = models.FileField("Dodací list",
+            help_text = "Súbor s dodacím listom",
+            upload_to=prijata_faktura_upload_location, 
+            blank = True,
+            null = True)
     prenosDP = models.CharField("Prenos DP", 
             max_length=3, 
             help_text = "Uveďte 'Áno', ak je faktúra v režime prenesenia daňovej povinnosti.",
