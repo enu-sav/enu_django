@@ -431,19 +431,19 @@ def VytvoritPlatobnyPrikaz(faktura, pouzivatel):
         #text = text.replace(f"{lt}sumadph{gt}", f"{locale_format(round(suma-zaklad_dane,2))} {mena}")
         if faktura.rozpis_poloziek:
             #Skryť nevhodnú oblasť
-            text = text.replace( 'text:name="OblastJednaPolozka"', 'text:name="OblastJednaPolozka" text:display="none">')
+            text = text.replace( 'text:name="OblastJednaPolozka"', 'text:name="OblastJednaPolozka" text:display="none"')
             text = vyplnit_rozpisane(text, faktura.rozpis_poloziek)
             text = text.replace(f"{lt}mena{gt}", mena)  
         else:
             #Skryť nevhodnú oblasť
-            text = text.replace( 'text:name="OblastRozpisanePolozky"', 'text:name="OblastRozpisanePolozky" text:display="none">')
+            text = text.replace( 'text:name="OblastRozpisanePolozky"', 'text:name="OblastRozpisanePolozky" text:display="none"')
             text = text.replace(f"{lt}suma1{gt}", f"{locale_format(round(Decimal(1-podiel2/100)*suma,2))} {mena}")
             if podiel2 > 0:
                 text = text.replace(f"{lt}suma2{gt}", f"{locale_format(round(Decimal(podiel2/100)*suma,2))} {mena}")
             else:
                 text = text.replace(f"{lt}suma2{gt}", f"0 {mena}")
     elif jeVF:  #len ak ide o vrátenie sumy nájomníkovi
-        text = text.replace( 'text:name="OblastRozpisanePolozky"', 'text:name="OblastRozpisanePolozky" text:display="none">')
+        text = text.replace( 'text:name="OblastRozpisanePolozky"', 'text:name="OblastRozpisanePolozky" text:display="none"')
         suma = -faktura.suma    # suma je kladná, vo formulári chceme zápornú (ide o príjem)
         mena = "€"
         text = text.replace(f"{lt}DM{gt}", f"{locale_format(suma)} €")
@@ -458,7 +458,7 @@ def VytvoritPlatobnyPrikaz(faktura, pouzivatel):
         text = text.replace(f"{lt}doslo_dna{gt}", faktura.doslo_datum.strftime("%d. %m. %Y") if faktura.doslo_datum else "" )
         text = text.replace(f"{lt}predmet_faktury{gt}", faktura.predmet)
     else:   #PravidelnaPlatba, len v EUR
-        text = text.replace( 'text:name="OblastRozpisanePolozky"', 'text:name="OblastRozpisanePolozky" text:display="none">')
+        text = text.replace( 'text:name="OblastRozpisanePolozky"', 'text:name="OblastRozpisanePolozky" text:display="none"')
         suma = -faktura.suma
         mena = "€"
         text = text.replace(f"{lt}DM{gt}", f"{locale_format(suma)} €")     # suma je záporná, o formulári chceme kladné
