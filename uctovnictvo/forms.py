@@ -247,7 +247,7 @@ class VystavenaFakturaForm(DennikZaznam):
     class Meta:
         exclude = ['zdroj2', 'zakazka2', 'podiel2']
 
-class InternyPrevodForm(forms.ModelForm):
+class InternyPrevodForm(DennikZaznam):
     #inicializácia polí
     def __init__(self, *args, **kwargs):
         # do Admin treba pridať metódu get_form
