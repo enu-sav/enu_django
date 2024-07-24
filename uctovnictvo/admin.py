@@ -729,7 +729,7 @@ class PrijataFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdm
         #trace()
         if obj.dodaci_list:
             suffix = obj.dodaci_list.name.split(".")[-1]        
-            ddir = obj.prijata_dodaci_list.name.split("/")[0]        
+            ddir = obj.dodaci_list.name.split("/")[0]
             return format_html(f'<a href="{obj.dodaci_list.url}" target="_blank">{ddir}/***.{suffix}</a>')
         else:
             return None
