@@ -262,7 +262,7 @@ class VytvarnaObjednavkaPlatbaForm(forms.ModelForm):
                     datumvytvorenia = date.today(),
                     typdokumentu = TypDokumentu.VYPLACANIE_VH,
                     inout = InOut.ODOSLANY,
-                    adresat = "THS",
+                    adresat = settings.UCTOVNICKA_CSC,
                     vec = f'<a href="{self.instance.subor_prikaz.url}">{vec}</a>',
                     prijalodoslal=self.request.user.username, #zámena mien prijalodoslal - zaznamvytvoril
                 )
@@ -310,7 +310,7 @@ class PlatbaAutorskaSumarForm(forms.ModelForm):
                         cislo = cislo,
                         #datum = self.cleaned_data['podklady_odoslane'],
                         cislopolozky = self.instance.cislo,
-                        adresat = "Účtovník", 
+                        adresat = settings.UCTOVNICKA_CSC,
                         inout = InOut.ODOSLANY,
                         typdokumentu = TypDokumentu.VYPLACANIE_AH,
                         datumvytvorenia = date.today(), 

@@ -206,7 +206,7 @@ class PrijataFakturaForm(DennikZaznam):
         #pole dane_na_uhradu možno vyplniť až po vygenerovani platobného príkazu akciou 
         #"Vytvoriť platobný príkaz a krycí list"
         if 'dane_na_uhradu' in self.changed_data:
-            self.dennik_zaznam(f"Platobný príkaz do učtárne {self.instance.cislo} na vyplatenie", TypDokumentu.FAKTURA, InOut.ODOSLANY, "THS", self.instance.platobny_prikaz.url)
+            self.dennik_zaznam(f"Platobný príkaz do učtárne {self.instance.cislo} na vyplatenie", TypDokumentu.FAKTURA, InOut.ODOSLANY, settings.UCTOVNICKA_CSC, self.instance.platobny_prikaz.url)
         return self.cleaned_data
 
 class VystavenaFakturaForm(DennikZaznam):
@@ -308,7 +308,7 @@ class InternyPrevodForm(DennikZaznam):
         #pole dane_na_uhradu možno vyplniť až po vygenerovani platobného príkazu akciou 
         #"Vytvoriť platobný príkaz a krycí list"
         if 'dane_na_uhradu' in self.changed_data:
-            self.dennik_zaznam(f"Platobný príkaz do učtárne {self.instance.cislo} na vyplatenie", TypDokumentu.INTERNYPREVOD, InOut.ODOSLANY, "THS", self.instance.platobny_prikaz.url)
+            self.dennik_zaznam(f"Platobný príkaz do učtárne {self.instance.cislo} na vyplatenie", TypDokumentu.INTERNYPREVOD, InOut.ODOSLANY, settings.UCTOVNICKA_CSC, self.instance.platobny_prikaz.url)
         return self.cleaned_data
 
 class PravidelnaPlatbaForm(forms.ModelForm):
