@@ -103,6 +103,11 @@ class FyzickaOsoba(PersonCommon):
             help_text = "Zadajte dátum oznámenia existencie dohody o nezdaňovaní Finančnej správe. Oznámenie sa posiela v termíne do konca januára roku, ktorý nasleduje po roku, keď po prvýkrát nebol honorár zdanený.",
             blank=True, null=True)
     poznamka = models.CharField("Poznámka", max_length=200, blank=True)
+    var_symbol = models.CharField("Variabilný symbol", 
+            help_text = "Variabilný symbol platieb. Vytvára sa automaticky",
+            max_length=20, 
+            null=True, 
+            blank=True) 
     #pub_date = models.DateField('date published')
 
     #priezvisko, meno
@@ -145,6 +150,9 @@ class OsobaAutor (OsobaAuGaKo):
     history = HistoricalRecords()
     def __str__(self):
         return f"{self.rs_login} A"
+    def clean(self):
+        if not self.var_symbol:
+            self.var_symbol = "%05d"%self.id
     class Meta:
         verbose_name = 'Autor'
         verbose_name_plural = 'Autori'
@@ -153,6 +161,9 @@ class OsobaGrafik (FyzickaOsoba):
     history = HistoricalRecords()
     def __str__(self):
         return f"{self.priezvisko}{self.meno}G"
+    def clean(self):
+        if not self.var_symbol:
+            self.var_symbol = "1%04d"%self.id
     class Meta:
         verbose_name = 'Grafik'
         verbose_name_plural = 'Grafici'

@@ -65,10 +65,10 @@ class PersonCommonAdmin():
 
 class FyzickaOsobaAdmin(PersonCommonAdmin):
     def get_list_display(self, request):
-        return ("menopriezvisko",'email', 'rezident', 'nevyplacat', 'zdanit', "dohodasubor", "datum_dohoda_oznamenie", "datum_dohoda_podpis") + super(FyzickaOsobaAdmin, self).get_list_display(request)
+        return ("menopriezvisko",'email', 'var_symbol', 'rezident', 'nevyplacat', 'zdanit', "dohodasubor", "datum_dohoda_oznamenie", "datum_dohoda_podpis") + super(FyzickaOsobaAdmin, self).get_list_display(request)
 
     def get_search_fields(self, request):
-        return ("priezvisko", "email")
+        return ("priezvisko", "email", "var_symbol")
 
     def menopriezvisko(self, obj):
         if obj.priezvisko:
@@ -146,11 +146,11 @@ class OsobaAutorAdmin(OsobaAuGaKoAdmin, AdminChangeLinksMixin, SimpleHistoryAdmi
             if obj.zdanit == AnoNie.ANO:
                 #ak su polia dohoda readonly, tak nemozeme zmenit stav zdanit==ANO nas zdanit==Nie
                 #return ["rs_uid", "rs_login","datum_dohoda_podpis", "datum_dohoda_oznamenie", "dohodasubor"]
-                return ["rs_uid", "rs_login"]
+                return ["rs_uid", "rs_login", "var_symbol"]
             else:
-                return ["rs_uid", "rs_login"]
+                return ["rs_uid", "rs_login", "var_symbol"]
         else:
-            return []
+            return ["var_symbol"]
 
 @admin.register(OsobaGrafik)
 class OsobaGrafikAdmin(FyzickaOsobaAdmin, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
