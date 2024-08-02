@@ -463,9 +463,9 @@ def VytvoritPlatobnyPrikaz(faktura, pouzivatel):
         mena = "€"
         text = text.replace(f"{lt}DM{gt}", f"{locale_format(suma)} €")     # suma je záporná, o formulári chceme kladné
         text = text.replace(f"{lt}CM{gt}", "")
-        text = text.replace(f"{lt}suma1{gt}", f"{locale_format(round((1-podiel2/100)*suma,2))} {mena}")
+        text = text.replace(f"{lt}suma1{gt}", f"{locale_format(round(Decimal((1-podiel2/100)*float(suma)),2))} {mena}")
         if podiel2 > 0:
-            text = text.replace(f"{lt}suma2{gt}", f"{locale_format(round((podiel2)*suma/100,2))} {mena}")
+            text = text.replace(f"{lt}suma2{gt}", f"{locale_format(round(Decimal((podiel2)*float(suma)/100),2))} {mena}")
         else:
             text = text.replace(f"{lt}suma2{gt}", f"0 {mena}")
         text = text.replace(f"{lt}PDP{gt}", "Nie")
