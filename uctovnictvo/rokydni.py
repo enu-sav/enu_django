@@ -156,14 +156,8 @@ def prac_dni(od, do = None):
         return np.busday_count(m1, mp)
         #return np.busday_count(m1, mp, holidays=sviatky)
 
-#vypočítať počet pracovných dní
-#sviatky sa ignorujú
-#od, do: očakávame, že sú len v jednom mesiaci. Použité na výpočet neprítomnosti, sviatky sú brané, akoby bol zamestnanec v práci
-#do: vrátane
-#do: aj nie je zadané, rátame za celý mesiac. Sviatky sú ignorované
-#ppd: počet prac. dní v týždni. 
-def prac_dni(od, do = None, ppd=None, zahrnut_sviatky=False):
-    #Pracovné dni v mesiaci
+def pracuje_v(ppd):
+    #ppd: počet pracovných dní
     if not ppd:
         wm=[1,1,1,1,1,0,0]
     elif ppd == 1:
@@ -176,6 +170,17 @@ def prac_dni(od, do = None, ppd=None, zahrnut_sviatky=False):
         wm=[1,1,1,1,1,0,0]  #Predpokladáme, že pracuje Pondelok - Štvrtok
     elif ppd == 5:
         wm=[1,1,1,1,1,0,0]  #Predpokladáme, že pracuje Pondelok - Piatok
+    return wm
+
+#vypočítať počet pracovných dní
+#sviatky sa ignorujú
+#od, do: očakávame, že sú len v jednom mesiaci. Použité na výpočet neprítomnosti, sviatky sú brané, akoby bol zamestnanec v práci
+#do: vrátane
+#do: aj nie je zadané, rátame za celý mesiac. Sviatky sú ignorované
+#ppd: počet prac. dní v týždni. 
+def prac_dni(od, do = None, ppd=None, zahrnut_sviatky=False):
+    #Pracovné dni v mesiaci
+    wm = pracuje_v(ppd)
     if do:
         #print(od,do)
         #Vygenerovať sviatky za aktuálny rok
