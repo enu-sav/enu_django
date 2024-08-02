@@ -13,7 +13,7 @@ from .models import SystemovySubor, PrijataFaktura, AnoNie, Objednavka, Vystaven
 from .models import DoVP, DoPC, DoBPS, Poistovna, TypDochodku, Mena, PravidelnaPlatba, TypPP, TypPokladna, Pokladna
 from .models import NajomneFaktura, PrispevokNaRekreaciu, Zamestnanec, OdmenaOprava, OdmenaAleboOprava, TypNepritomnosti, Nepritomnost
 from .models import PlatovaStupnica, Stravne, mesiace_num, PlatovyVymer, Mesiace, rozdelit_polozky
-from .rokydni import mesiace, prac_dni, pden, s2d
+from .rokydni import mesiace, prac_dni, pden, s2d, pracuje_v
 
 from openpyxl import load_workbook
 from openpyxl.styles import Font, Color, colors, Alignment, PatternFill , numbers
@@ -1113,7 +1113,7 @@ def exportovatNepritomnostUct(polozka):
         vymer_list = sorted([*qs1], key=lambda x: unidecode(x.zamestnanec.priezvisko))
         zamestnanci = []
         for vymer in vymer_list:
-            zamestnanci.append(vymer.zamestnanec.priezviskomeno(", "))
+            zamestnanci.append([vymer.zamestnanec.priezviskomeno(", "), vymer.uvazok/vymer.uvazok_denne])
         return zamestnanci
 
     def obdobie_nepritomnosti(subor):
@@ -1169,15 +1169,20 @@ def exportovatNepritomnostUct(polozka):
     ws = wb.active
     #Vyplnit zamestnancov
     zamestnanci = {}
-    for row, meno in enumerate(mena):
+    for row, meno_pd in enumerate(mena):
+        meno, prac_dni = meno_pd
         ws.cell(row=row+2, column = 1).value = meno
-        zamestnanci[meno.split(",")[0]]=row + 2
+        zamestnanci[meno.split(",")[0]]=[row + 2, prac_dni]
 
     for item in nepritomnosti:
         n_od = max(m_od,item.nepritomnost_od)
         n_do = min(m_do,item.nepritomnost_do) if item.nepritomnost_do else m_do
-        row = zamestnanci[item.zamestnanec.priezvisko]
+        row = zamestnanci[item.zamestnanec.priezvisko][0]
+        prac_dni = pracuje_v(zamestnanci[item.zamestnanec.priezvisko][1])
+        prac_dni = np.nonzero(prac_dni)[0]
         for den in range(n_od.day, n_do.day+1):
+            den_tyzdni = datetime.date(n_od.year, n_od.month,den).weekday() 
+            if not den_tyzdni in prac_dni: continue
             cell = ws.cell(row=row, column = den+1)
             cell.value = konv[item.nepritomnost_typ]
             cell.alignment = copy(formaty[cell.value]["alignment"])
