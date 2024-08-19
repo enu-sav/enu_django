@@ -6,6 +6,7 @@ from ipdb import set_trace as trace
 from zmluvy.storage import OverwriteStorage
 from django.utils.safestring import mark_safe
 from django.urls import reverse
+from django.db.models import Max
 
 from beliana.settings import CONTRACTS_DIR_NAME, RLTS_DIR_NAME, TMPLTS_DIR_NAME, TAX_AGMT_DIR_NAME
 import os,re
@@ -151,8 +152,10 @@ class OsobaAutor (OsobaAuGaKo):
     def __str__(self):
         return f"{self.rs_login} A"
     def clean(self):
+        trace()
         if not self.var_symbol:
-            self.var_symbol = "%05d"%self.id
+            _id = self.id if self.id else OsobaAutor.objects.aggregate(Max('id'))['id__max']+1
+            self.var_symbol = "%05d"%_id
     class Meta:
         verbose_name = 'Autor'
         verbose_name_plural = 'Autori'
