@@ -152,7 +152,6 @@ class OsobaAutor (OsobaAuGaKo):
     def __str__(self):
         return f"{self.rs_login} A"
     def clean(self):
-        trace()
         if not self.var_symbol:
             _id = self.id if self.id else OsobaAutor.objects.aggregate(Max('id'))['id__max']+1
             self.var_symbol = "%05d"%_id
