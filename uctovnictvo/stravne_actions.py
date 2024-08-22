@@ -200,7 +200,12 @@ def generovatStravne_do_03_2024(polozka):
         return 0, 0, round(suma_enu,2), round(suma_sf,2), n_zam, msg, opath
 
 def generovatStravne_od_04_2024(polozka):
-    #načítať tabuľky stupnice pre daný rok
+    def stravne(tab, datum):
+        for entry in tab[::-1]: #prehliadať v opačnom poradí
+            if datum >= entry[0]:
+                return entry[1:]
+
+    #načítať šablónu stravného
     nazov_objektu = "Šablóna stravné od 04.2024"  #Presne takto musí byť objekt pomenovaný
     sablona = SystemovySubor.objects.filter(subor_nazov = nazov_objektu)
     if not sablona:
@@ -211,6 +216,16 @@ def generovatStravne_od_04_2024(polozka):
     for harok in ['FP', 'Krycí list']:
         if not harok in workbook.sheetnames:
             return [f"Súbor '{nazov_objektu}' nemá hárok {harok}"]
+
+    #Načítať výšku stravného
+    harok_stravne = workbook["Výška stravného"]
+    row = 2
+    stravne_tab = []
+    while harok_stravne[f"A{row}"].value: 
+        #datum: [prispevok EnU, prispevok SF]
+        dt = harok_stravne[f"A{row}"].value
+        stravne_tab.append([datetime.date(dt.year, dt.month, dt.day), harok_stravne[f"B{row}"].value, harok_stravne[f"C{row}"].value])
+        row += 1
 
     #Určiť mesiac príspevku a zrážky
     # Príspevky sú za nasledujúci mesiac
@@ -234,9 +249,17 @@ def generovatStravne_od_04_2024(polozka):
             id_row[str(val)] = rr
 
     ws["H2"].value = mesiac_zrazky_sk
+    ws["I2"].value = mesiac_zrazky.year
     #ws["H3"].value = rok   #readonly
     ws["H8"].value = mesiac_prispevku_sk
     ws["C44"].value = datetime.date.today().strftime('%d. %m. %Y')
+
+    zrazka_enu, zrazka_sf = stravne(stravne_tab, mesiac_zrazky)
+    ws["F7"].value = zrazka_enu
+    ws["G7"].value = zrazka_sf
+    prispevok_enu, prispevok_sf = stravne(stravne_tab, mesiac_prispevku)
+    ws["I7"].value = prispevok_enu
+    ws["J7"].value = prispevok_sf
 
     prispevok_enu_sadzba = ws["F7"].value
     prispevok_sf_sadzba = ws["G7"].value
@@ -348,6 +371,7 @@ def generovatStravne_od_04_2024(polozka):
         msg = f"{msg}.<br />"
         msg = f"{msg}Ak treba, dlhodobú neprítomnosť zamestnancov upravte (vyplňte pole <em>Zamestnanec > Bez stravného od / do</em>) a súbor s príspevkami/zrážkami vygenerujte znovu." 
 
+    workbook.remove_sheet(workbook.get_sheet_by_name("Výška stravného"))
     nazov = f"Stravne-%4d-%02d.xlsx"%(mesiac_zrazky.year, mesiac_zrazky.month) 
     opath = os.path.join(settings.STRAVNE_DIR,nazov)
     workbook.save(os.path.join(settings.MEDIA_ROOT,opath))
