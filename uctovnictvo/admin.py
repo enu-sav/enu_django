@@ -1370,7 +1370,7 @@ class RozpoctovaPolozkaPresunAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleH
 @admin.register(PrispevokNaStravne)
 class PrispevokNaStravneAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
     form = PrispevokNaStravneForm
-    list_display = ["cislo", "typ_zoznamu", "za_mesiac", "datum_odoslania", "po_zamestnancoch", "suma_zamestnavatel", "zrazka_zamestnavatel", "_suma_spolu", "suma_socfond", "zrazka_socfond", "_zrazka_spolu"]
+    list_display = ["cislo", "typ_zoznamu", "za_mesiac", "datum_odoslania", "po_zamestnancoch", "suma_zamestnavatel", "zrazka_zamestnavatel", "suma_socfond", "zrazka_socfond"]
     search_fields = ["cislo","^typ_zoznamu", "^za_mesiac"]
     # určiť poradie poli v editovacom formulári
     fields = ["cislo", "typ_zoznamu", "za_mesiac", "datum_odoslania", "suma_zamestnavatel", "zrazka_zamestnavatel", "suma_socfond", "zrazka_socfond", "po_zamestnancoch", "zdroj", "zakazka", "ekoklas", "cinnost" ]
