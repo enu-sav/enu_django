@@ -800,11 +800,12 @@ class PrijataFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdm
                 cinnost = stara.cinnost,
                 predmet = stara.predmet,
                 prenosDP = stara.prenosDP,
-                sadzbadph = stara.sadzbadph,
-                objednavka_zmluva = stara.objednavka_zmluva
+                sadzbadph = stara.sadzbadph
             )
+        if type(stara.objednavka_zmluva) in [Zmluva, Rozhodnutie]:
+            nova_faktura.objednavka_zmluva = stara.objednavka_zmluva
         nova_faktura.save()
-        self.message_user(request, f"Vytvorená bola nová faktúra dodávateľa '{nova_faktura.objednavka_zmluva.dodavatel.nazov}' číslo '{nc}', aktualizujte polia", messages.SUCCESS)
+        self.message_user(request, f"Vytvorená bola nová faktúra dodávateľa '{stara.objednavka_zmluva.dodavatel.nazov}' číslo '{nc}', aktualizujte polia", messages.SUCCESS)
         vec = f"Faktúra {nc}"
         cislo_posta = nasledujuce_cislo(Dokument)
         dok = Dokument(
