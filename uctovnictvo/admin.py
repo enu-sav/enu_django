@@ -206,11 +206,10 @@ class ObjednavkaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, 
 
     #obj is None during the object creation, but set to the object being edited during an edit
     def get_readonly_fields(self, request, obj=None):
-        if obj and obj.datum_odoslania:
-            return ['cislo'] if request.user.has_perm('uctovnictvo.delete_objednavka') else [f.name for f in self.model._meta.fields]
-        elif obj:
-            return ["cislo"]
-        return []
+        readonly = ["subor_ziadanky", "subor_objednavky"]
+        if obj:
+            readonly.append("cislo")
+        return readonly
 
     def vytvorit_subor_objednavky(self, request, queryset):
         if len(queryset) != 1:

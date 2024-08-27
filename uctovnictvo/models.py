@@ -1954,37 +1954,36 @@ class PrispevokNaStravne(Klasifikacia):
                 "ekoklas": self.ekoklas
                 }
             platby.append(platba.copy())
-        else:   #do 03/2024
-            if self.suma_zamestnavatel < 0:
-                platba = {
-                    "nazov":"Stravné príspevok",
-                    "suma": self.suma_zamestnavatel,
-                    "socfond": self.suma_socfond,
-                    "datum": vyplatny_termin(zden),
-                    "mesiac": zden,
-                    "subjekt": "Zamestnanci",
-                    "osoba": "Zamestnanci",
-                    "cislo": self.cislo,
-                    "zdroj": self.zdroj,
-                    "zakazka": self.zakazka,
-                    "ekoklas": self.ekoklas
-                    }
-                platby.append(platba)
-            else:
-                platba = {
-                    "nazov":"Stravné zrážky",
-                    "suma": self.suma_zamestnavatel,
-                    "socfond": self.suma_socfond,
-                    "datum": vyplatny_termin(zden),
-                    "mesiac": zden,
-                    "subjekt": "Zamestnanci",
-                    "osoba": "Zamestnanci",
-                    "cislo": self.cislo,
-                    "zdroj": self.zdroj,
-                    "zakazka": self.zakazka,
-                    "ekoklas": self.ekoklas
-                    }
-                platby.append(platba)
+        elif  self.typ_zoznamu == Stravne.PRISPEVKY:   #do 03/2024
+            platba = {
+                "nazov":"Stravné príspevok",
+                "suma": self.suma_zamestnavatel,
+                "socfond": self.suma_socfond,
+                "datum": vyplatny_termin(zden),
+                "mesiac": zden,
+                "subjekt": "Zamestnanci",
+                "osoba": "Zamestnanci",
+                "cislo": self.cislo,
+                "zdroj": self.zdroj,
+                "zakazka": self.zakazka,
+                "ekoklas": self.ekoklas
+                }
+            platby.append(platba)
+        else:   #do 03/2024, Stravne.ZRAZKY
+            platba = {
+                "nazov":"Stravné zrážky",
+                "suma": self.zrazka_zamestnavatel,
+                "socfond": self.zrazka_socfond,
+                "datum": vyplatny_termin(zden),
+                "mesiac": zden,
+                "subjekt": "Zamestnanci",
+                "osoba": "Zamestnanci",
+                "cislo": self.cislo,
+                "zdroj": self.zdroj,
+                "zakazka": self.zakazka,
+                "ekoklas": self.ekoklas
+                }
+            platby.append(platba)
         return platby
 
     class Meta:
