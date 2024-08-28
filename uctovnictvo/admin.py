@@ -1851,7 +1851,7 @@ class NepritomnostAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
             messages.error(request, "Vybrať možno len jednu položku")
             return
         polozka = queryset[0]
-        # Určiť začíatočné číslo generovaných neprítomností
+        # Určiť začiatočné číslo generovaných neprítomností
         uz_generovane = Nepritomnost.objects.filter(cislo__startswith="%s-"%polozka.cislo).order_by("-cislo")
         if uz_generovane:
             zacat_od = int(uz_generovane[0].cislo.split("-")[-1]) + 1

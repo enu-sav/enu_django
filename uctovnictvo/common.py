@@ -916,8 +916,6 @@ def generovatNepritomnostBiometric(cislo, start_from,ws):
     msgs = []
 
     #Načítať dáta všetkých zamestnancov a zistit prvy a posledny pracovny den v mesiaci (potrebne pre PN)
-    prvy_den = 31
-    posledny_den = 1
     dni_v_mesiaci = monthrange(rok, mesiac)[1] 
     zam_data = []
     while ws[f"A{riadok}"].value: 
@@ -936,8 +934,6 @@ def generovatNepritomnostBiometric(cislo, start_from,ws):
                 aux = re.findall("[[]([^ ]*)",value)
                 if aux: value = aux[0]
             if value and value != "S":
-                if s+1 < prvy_den and value != "PN": prvy_den = s+1 #PN ide vždy od začiatku mesiaca
-                if s+1 > posledny_den and value != "PN": posledny_den = s+1 #PN ide vždy až do konca mesiaca
                 n_dni.append(s+1)
                 n_typ.append(value)
         zam_data.append((zamestnanec, n_dni, n_typ))
@@ -959,12 +955,12 @@ def generovatNepritomnostBiometric(cislo, start_from,ws):
                 neukoncene = Nepritomnost.objects.filter(zamestnanec=zamestnanec, nepritomnost_typ = typy["PN"], nepritomnost_do__isnull = True)
                 if neukoncene: 
                     neukoncena = neukoncene[0]
-                    if n_dni[span[0]] == prvy_den and n_dni[span[1]] == posledny_den:
+                    if span[1] - span[0] == dni_v_mesiaci:  #trvá celý mesiac
                         msgs.append([
                             messages.SUCCESS, 
                             mark_safe(f'Dlhodobá práceneschopnosť {neukoncena.cislo} zamestnanca {zamestnanec} od {neukoncena.nepritomnost_od} naďalej pokračuje.')
                             ])
-                    elif n_dni[span[0]] == prvy_den:
+                    elif n_dni[span[0]] == 1:
                         neukoncena.nepritomnost_do = do
                         neukoncena.save()
                         msgs.append([
@@ -975,7 +971,7 @@ def generovatNepritomnostBiometric(cislo, start_from,ws):
 
                 #Ak aktuálna PN začína od prvého dňa v mesiaci a predchádzajúca končí posledným dňom predch. mesiaca, tak v nej pokračovať 
                 aktualna_pn = None
-                if n_dni[span[0]] == prvy_den:  #PN začína prvým dňom v mesiaci
+                if n_dni[span[0]] == 1:  #PN začína prvým dňom v mesiaci
                     predchadzajuce = Nepritomnost.objects.filter(zamestnanec=zamestnanec, nepritomnost_typ = typy["PN"])
                     predchadzajuca = predchadzajuce.order_by("-nepritomnost_do")[0]
                     diff = (od - predchadzajuca.nepritomnost_do).days
@@ -997,15 +993,10 @@ def generovatNepritomnostBiometric(cislo, start_from,ws):
                         zset.add(str(zamestnanec))
                 #Vypísať upozornenie o potrebe úpravy)
                 if aktualna_pn:
-                    if n_dni[span[1]] == posledny_den and posledny_den == dni_v_mesiaci: 
+                    if n_dni[span[1]] == dni_v_mesiaci: 
                         msgs.append([
                             messages.WARNING, 
                             mark_safe(f'Práceneschopnosť {aktualna_pn.cislo} zamestnanca {zamestnanec} od {od} do {do} končí v posledný deň mesiaca. Ak sa predpokladá PN do konca roka, zmažte dátum <a href="/admin/uctovnictvo/nepritomnost/{aktualna_pn.id}/change/">v jej poli Neprítomnosť do</a>.')
-                            ])
-                    elif n_dni[span[1]] == posledny_den:
-                        msgs.append([
-                            messages.WARNING, 
-                            mark_safe(f'Práceneschopnosť {aktualna_pn.cislo} zamestnanca {zamestnanec} od {od} do {do} končí v posledný pracovný deň mesiaca. Ak PN k tomuto dňu nebola ukončená a bude pokračovať v nasledujúcom mesiaci, <a href="/admin/uctovnictvo/nepritomnost/{aktualna_pn.id}/change/">v jej poli Neprítomnosť do</a> zadajte posledný deň mesiaca ({datetime.date(rok, mesiac, dni_v_mesiaci)}). Ak sa predpokladá PN do konca roka, dátum v tomto poli zmažte.')
                             ])
 
         #intervalové neprítomnosti
