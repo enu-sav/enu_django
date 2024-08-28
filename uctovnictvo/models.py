@@ -15,7 +15,7 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 from django.contrib.auth.models import User
 PERCENTAGE_VALIDATOR = [MinValueValidator(0), MaxValueValidator(100)]
 
-from beliana.settings import TMPLTS_DIR_NAME, PLATOVE_VYMERY_DIR, DOHODY_DIR, PRIJATEFAKTURY_DIR
+from beliana.settings import TMPLTS_DIR_NAME, PLATOVE_VYMERY_DIR, DOHODY_DIR, PRIJATEFAKTURY_DIR, ZAMESTNANCI_DIR
 from beliana.settings import PLATOBNE_PRIKAZY_DIR, STRAVNE_HOD, PRILOHA_DIR
 from beliana.settings import ODVODY_VYNIMKA, DAN_Z_PRIJMU, OBJEDNAVKY_DIR, STRAVNE_DIR, REKREACIA_DIR
 from beliana.settings import PN1, PN2, BEZ_PRIKAZU_DIR, DDS_PRISPEVOK, ODMENY_DIR, NEPRITOMNOST_DIR, SOCFOND_PRISPEVOK
@@ -464,6 +464,8 @@ class ZamestnanecDohodar(PolymorphicModel, FyzickaOsoba):
     def __str__(self):
         return f"{self.priezvisko}, {self.meno}"
 
+def zamestnanci_upload_location(instance, filename):
+    return os.path.join(ZAMESTNANCI_DIR, filename)
 class Zamestnanec(ZamestnanecDohodar):
     cislo_zamestnanca = models.CharField("ČísloZam", 
             null = True,
@@ -471,6 +473,14 @@ class Zamestnanec(ZamestnanecDohodar):
     cislo_biometric = models.IntegerField("ČísloBiom", 
             help_text = "Uveďte číslo zamestnanca v Biometricu",
             null = True)
+    subor_zmluva = models.FileField("Pracovná zmluva",
+            help_text = "Súbor s textom pracovnej zmluvy (zoskenovať a vložiť)",
+            upload_to=zamestnanci_upload_location, 
+            null = True, blank = True)
+    subor_pracnapln = models.FileField("Pracovná náplň",
+            help_text = "Súbor s textom pracovnej náplne (zoskenovať a vložiť)",
+            upload_to=zamestnanci_upload_location, 
+            null = True, blank = True)
     zamestnanie_od = models.DateField('1. zamestnanie od',
             help_text = "Dátum nástupu do 1. zamestnania. Preberá sa zo Softipu, kde sa vypočíta z dátumu nástupu do EnÚ a započítanej praxe",
             blank=True,
