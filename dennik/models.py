@@ -333,6 +333,11 @@ class PlatovaRekapitulacia(models.Model):
             decimal_places=2, 
             null=True,
             blank=True)
+    poznamka = models.CharField("Poznámka", 
+            max_length=80,
+            blank = True,
+            null=True
+            )
 
     history = HistoricalRecords()
     class Meta:

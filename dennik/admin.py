@@ -475,7 +475,7 @@ class CerpanieRozpoctuAdmin(ModelAdminTotals):
 
 @admin.register(PlatovaRekapitulacia)
 class PlatovaRekapitulaciaAdmin(ModelAdminTotals):
-    list_display = ["identifikator","subor", "rozdiel_minus", "rozdiel_plus"]
+    list_display = ["identifikator","subor", "rozdiel_minus", "rozdiel_plus", "poznamka"]
     search_fields = ["^identifikator"]
     actions = ["kontrola_rekapitulacie"]
 
