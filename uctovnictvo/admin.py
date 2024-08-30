@@ -6,6 +6,7 @@ from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 from django.db.models.functions import Collate, Length
 from django.db.models import Q
+from django.core.exceptions import ValidationError
 import re, os
 from decimal import Decimal
 from datetime import date, datetime, timedelta
@@ -217,7 +218,7 @@ class ObjednavkaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, 
             return
         objednavka = queryset[0]
         status, msg, vytvoreny_subor = objednavka_actions.VytvoritSuborObjednavky(objednavka)
-        self.message_user(request, msg, status)
+        self.message_user(request, format_html(mark_safe(msg)), status)
         if status != messages.ERROR:
             objednavka.subor_objednavky = vytvoreny_subor
             objednavka.save()

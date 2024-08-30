@@ -682,8 +682,8 @@ def objednavka_upload_location(instance, filename):
 class Objednavka(ObjednavkaZmluva):
     oznacenie = "O"    #v čísle faktúry, Fa-2021-123
     # Polia
-    objednane_polozky = models.TextField("Objednané položky", 
-            help_text = mark_safe("<p>Po riadkoch zadajte objednávané položky:</p>\
+    objednane_polozky = models.TextField("Text žiadanky / Objednané položky", 
+            help_text = mark_safe("<p>Na vytvorenie žiadanky (krok 1) vložte text žiadanky (voľný text). Na vytvorenie objednávky (krok 2) po riadkoch zadajte objednávané položky:</p>\
                 <ol>\
                 <li>možnosť: s 5 poľami oddelenými bodkočiarkou alebo lomkou / v poradí: <b>názov položky</b> / <b>merná jednotka</b> - ks, kg, l, m, m2, m3 / <b>množstvo</b> / <b>cena za jednotku bez DPH / CPV kód</b>, napr. <strong>Euroobal A4 / bal / 10 / 7,50 / 30193300-1</strong>. <br />Cena za jednotlivé položky a celková suma sa dopočíta. Pri výpočte sa berie do úvahy, či dodávateľ účtuje alebo neúčtuje cenu s DPH. </li>\
                 <li>možnosť: ako jednoduchý text s jednou bodkočiarkou alebo lomkou, za ktorou nasleduje CPV kód, napr. <strong>Objednávame tovar podľa  priloženého zoznamu; 45321000-3</strong>.<br />Súbor takejto ponuky alebo zoznamu vložte do poľa <em>Súbor prílohy</em> a <strong>predpokladanú cenu bez DPH</strong> vložte do poľa <em>Predpokladaná cena</em>.</li>\
@@ -698,12 +698,14 @@ class Objednavka(ObjednavkaZmluva):
             blank = True,
             related_name='%(class)s_requests_created')  #zabezpečí rozlíšenie modelov Objednavka a PrijataFaktura 
     predpokladana_cena = models.DecimalField("Predpokladaná cena", 
-            help_text = "Zadajte predpokladanú cenu bez DPH, ak už nie je zadaná v poli <em>Objednané položky</em>. <br />Vo vygenerovanej objednávke sa zoberie do úvahy, či dodávateľ účtuje alebo neúčtuje cenu s DPH.",
+            help_text = "Zadajte predpokladanú cenu bez DPH.<br />\
+                    Ak sú cenové údaje zadané v poli <em>Objednané položky</em>, tak hodnota v tomto poli sa podľa nich vypočíta a aktualizuje. <br />\
+                    Vo vygenerovanej objednávke sa zoberie do úvahy, či dodávateľ účtuje alebo neúčtuje cenu s DPH.",
             max_digits=8, 
             decimal_places=2, 
-            null=True, blank=True)
+            null=True)
     datum_odoslania = models.DateField('Dátum odoslania',
-            help_text = "Zadajte dátum odoslania objednávky. Po zadaní dátumu sa vytvorí záznam v Denníku prijatej a odoslanej pošty",
+            help_text = "Zadajte dátum odoslania objednávky dodávateľovi. Po zadaní dátumu sa vytvorí záznam v Denníku prijatej a odoslanej pošty",
             blank=True, null=True)
     datum_vytvorenia = models.DateField('Dátum vytvorenia',
             help_text = "Zadajte dátum vytvorenia objednávky",
@@ -727,58 +729,6 @@ class Objednavka(ObjednavkaZmluva):
             null=True,
             blank=True)
     history = HistoricalRecords()
-
-    def clean(self):
-        def is_number(string):
-	        try:
-		        float(string)
-		        return True
-	        except ValueError:
-		        return False
-
-        if not self.objednane_polozky:
-            raise ValidationError({
-                "objednane_polozky":f"Pole treba vyplneniť."
-                }
-            )
-        # test počtu riadkov v objednane_polozky
-        pocet_riadkov = 12 #definované v common.VytvoritSuborObjednavky.pocet_riadkov
-        pocet_poloziek = len(self.objednane_polozky.split("\r\n"))
-        if pocet_poloziek > pocet_riadkov:
-            raise ValidationError({
-                "objednane_polozky":f"Zadaných bolo {pocet_poloziek} položiek. Maximálny povolený počet je {pocet_riadkov}."
-                }
-            )
-        objednane = self.objednane_polozky.split("\n")
-        pocet_poli = len(objednane[0].split(";"))
-        if not pocet_poli in (2,5):
-            pole = "pole" if pocet_poli==1 else "polia" if pocet_poli < 5 else "polí"
-            raise ValidationError({
-                "objednane_polozky":f"Prvá položka má {pocet_poli} {pole}, povolený počet je 2 alebo 5 (skontrolujte oddeľovače)"
-                }
-            )
-        for rr, polozka in enumerate(objednane):
-            pp = len(polozka.split(";"))
-            if pp != pocet_poli:
-                raise ValidationError({
-                    "objednane_polozky":f"Položka na riadku {rr+1} má {pp} polí, povolený počet je {pocet_poli}  (skontrolujte oddeľovače)"
-                    }
-                )
-        if pocet_poli == 2 and not self.predpokladana_cena:
-            raise ValidationError({
-                "predpokladana_cena":f"Ak položka v 'Objednané položky' má len dve polia, tak v tomto poli musí byť uvedená suma."
-                }
-            )
-        if pocet_poli == 5:
-            celkova_suma = 0
-            for rr, polozka in enumerate(objednane):
-                pp = polozka.split(";")
-                if not (is_number(pp[2].replace(",",".")) and is_number(pp[3].replace(",","."))):
-                    raise ValidationError({
-                        "objednane_polozky":f"Tretia ({pp[2]}) a štvrtá ({pp[3]}) položka na riadku {rr+1} musia byť číslo"
-                        })
-                celkova_suma += float(pp[2].replace(",",".")) * float(pp[3].replace(",","."))
-            self.predpokladana_cena = Decimal(celkova_suma)
 
     class Meta:
         verbose_name = 'Objednávka'
