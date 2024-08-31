@@ -49,7 +49,7 @@ def VytvoritSuborObjednavky(objednavka):
         ws_obj["D7"].value = objednavka.dodavatel.adresa_ulica
         ws_obj["D8"].value = objednavka.dodavatel.adresa_mesto
         ws_obj["D9"].value = objednavka.dodavatel.adresa_stat
-        ws_zak["D10"].value = f"Účtované s DPH: {AnoNie(objednavka.dodavatel.s_danou).label}"
+        ws_obj["D10"].value = f"Účtované s DPH: {AnoNie(objednavka.dodavatel.s_danou).label}"
     
         #položky
         add_sum = True  # či s má do posledného riadka vložiť súčet
@@ -146,6 +146,7 @@ def VytvoritSuborObjednavky(objednavka):
         else:   #2 polia
             if re.sub(r"[0-9-]", "", polozky[0].strip()):
                 return f"{co}: Posledná položka na riadku 1 musí byť CPV kód alebo pomlčka. {sn}"
+    #end def KontrolaZadania
 
     if not objednavka.dodavatel:
         return messages.ERROR, f"Pole Dodávateľ v objednávke {objednavka.cislo} nie je vyplnené.{sn}", None
@@ -153,11 +154,14 @@ def VytvoritSuborObjednavky(objednavka):
     if not objednavka.subor_ziadanky:
         return messages.ERROR, f"Súbor objednávky nemôže byť vytvorený, lebo ešte nebol vytvorený súbor žiadanky.", None
 
+    if objednavka.datum_odoslania:
+        return messages.ERROR, f"Súbor objednávky nemôže byť vytvorený, lebo je už vyplnené pole 'Dátum odoslania'.", None
+
     workbook = OtvoritSablonuObjednavky()
 
     oddelovac = Oddelovac(objednavka)
     if len(oddelovac) > 1:
-        return messages.ERROR, error, None
+        return messages.ERROR, oddelovac, None  #'oddelovac' obsahuje chybovú správu
 
     error = KontrolaZadania(objednavka, oddelovac)
     if error:

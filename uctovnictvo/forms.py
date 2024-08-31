@@ -123,6 +123,7 @@ class ObjednavkaForm(DennikZaznam):
             nasledujuce = nasledujuce_cislo(Objednavka)
             self.fields[polecislo].help_text = f"Zadajte číslo novej objednávky v tvare {Objednavka.oznacenie}-RRRR-NNN. Predvolené číslo '{nasledujuce}' bolo určené na základe čísel existujúcich objednávok ako nasledujúce v poradí."
             self.initial[polecislo] = nasledujuce
+
     def clean(self):
         if 'datum_odoslania' in self.changed_data and not self.instance.subor_objednavky:
             raise ValidationError({"datum_odoslania": "Dátum odoslania možno vyplniť až po vygenerovaní objednávky."})
