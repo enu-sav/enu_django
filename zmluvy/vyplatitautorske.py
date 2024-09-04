@@ -357,6 +357,7 @@ class VyplatitAutorskeOdmeny(VyplatitOdmeny):
         else:
             self.kryci_list["A2"].value = self.kryci_list["A2"].value.replace("[[coho]]", "autorských honorárov") 
         self.kryci_list["A2"].value = self.kryci_list["A2"].value.replace("[[xx-xxxx]]", self.cislo)
+        self.kryci_list["C21"].value = settings.UCTAREN_NAME
         self.kryci_list.print_area = [] #Zrušiť oblasť tlače
 
         # vyplnit harok Na vyplatenie
@@ -1056,6 +1057,7 @@ class VyplatitOdmenyGrafik(VyplatitOdmeny):
         # upraviť hárok Krycí list
         self.kryci_list["A2"].value = self.kryci_list["A2"].value.replace("[[coho]]", "autorského honoráru") 
         self.kryci_list["A2"].value = self.kryci_list["A2"].value.replace("[[xx-xxxx]]", self.platba.cislo)
+        self.kryci_list["C21"].value = settings.UCTAREN_NAME
         self.kryci_list.print_area = [] #Zrušiť oblasť tlače
 
         #save the file

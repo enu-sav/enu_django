@@ -6,6 +6,7 @@ from ipdb import set_trace as trace
 from .models import OsobaAutor, ZmluvaAutor, PlatbaAutorskaSumar, OsobaGrafik, ZmluvaGrafik, VytvarnaObjednavkaPlatba, StavZmluvy
 from dennik.models import Dokument, SposobDorucenia, TypDokumentu, InOut
 from dennik.forms import nasledujuce_cislo
+from beliana import settings
 from django.core.exceptions import ValidationError
 from django.contrib import messages #import messages
 import re
@@ -262,7 +263,7 @@ class VytvarnaObjednavkaPlatbaForm(forms.ModelForm):
                     datumvytvorenia = date.today(),
                     typdokumentu = TypDokumentu.VYPLACANIE_VH,
                     inout = InOut.ODOSLANY,
-                    adresat = settings.UCTOVNICKA_CSC,
+                    adresat = settings.UCTAREN_NAME,
                     vec = f'<a href="{self.instance.subor_prikaz.url}">{vec}</a>',
                     prijalodoslal=self.request.user.username, #zámena mien prijalodoslal - zaznamvytvoril
                 )
@@ -310,7 +311,7 @@ class PlatbaAutorskaSumarForm(forms.ModelForm):
                         cislo = cislo,
                         #datum = self.cleaned_data['podklady_odoslane'],
                         cislopolozky = self.instance.cislo,
-                        adresat = settings.UCTOVNICKA_CSC,
+                        adresat = settings.UCTAREN_NAME,
                         inout = InOut.ODOSLANY,
                         typdokumentu = TypDokumentu.VYPLACANIE_AH,
                         datumvytvorenia = date.today(), 

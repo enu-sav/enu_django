@@ -249,12 +249,6 @@ TMPLTS_DIR_NAME = os.environ["TMPLTS_DIR_NAME"]
 AUTHORS_CONTRACT_TEMPLATE = os.environ['AUTHORS_CONTRACT_TEMPLATE']
 TAX_AGMT_DIR_NAME = os.environ["TAX_AGMT_DIR_NAME"]
 
-
-if "UCTOVNICKA_CSC" in os.environ:
-    UCTOVNICKA_CSC = os.environ["UCTOVNICKA_CSC"]
-else:
-    UCTOVNICKA_CSC = "Účtovníčka CSČ"
-
 # potrebné kvôli generovaniu zmlúv
 MEDIA_ROOT = os.environ['MEDIA_ROOT']
 #URL MEDIA_ROOT bude 127.0.0.1:8000/subory/...
