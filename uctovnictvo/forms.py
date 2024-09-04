@@ -67,6 +67,8 @@ class NakupSUhradouForm(DennikZaznam):
         t_objednane_polozky = NakupSUhradou._meta.get_field('objednane_polozky').verbose_name
         t_datum_uhradenia = NakupSUhradou._meta.get_field('datum_uhradenia').verbose_name
         t_forma_uhrady = NakupSUhradou._meta.get_field('forma_uhrady').verbose_name
+        if 'zamietnute' in self.changed_data and self.cleaned_data['zamietnute'] == AnoNie.ANO and not self.cleaned_data['poznamka']:
+            raise ValidationError({ "poznamka":f"Uveďte dôvod zamietnutia žiadanky." })
         if 'popis' in self.changed_data:
             messages.warning(self.request, f"Súbor žiadanky vytvorte akciou 'Vytvoriť súbor žiadanky'")
         if 'zamietnute' in self.changed_data and self.cleaned_data['zamietnute'] == AnoNie.ANO:

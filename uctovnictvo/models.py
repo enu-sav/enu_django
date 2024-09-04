@@ -3039,7 +3039,7 @@ class NakupSUhradou(models.Model, GetAdminURL):
             null=True, blank=True)
     zamietnute = models.CharField("Zamietnuté",
             max_length=3,
-            help_text = "Uveďte 'Áno', ak bola žiadanka zamietnutá",
+            help_text = "Uveďte 'Áno', ak bola žiadanka zamietnutá. V tom prípade uveďte dôvod v poli Poznámka",
             choices=AnoNie.choices,
             null=True, blank=True)
     subor_ziadanky = models.FileField("Súbor žiadanky",

@@ -279,6 +279,7 @@ class NakupSUhradouAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmi
             if not obj.datum_ziadanky:
                 fields.remove("zamietnute")
                 fields.remove("datum_ziadanky")
+                fields.remove("poznamka")
             else:
                 #hotovo, nič sa nedá upravovať
                 pass
