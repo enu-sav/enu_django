@@ -213,7 +213,7 @@ def generovatStravne_od_04_2024(polozka):
     nazov_suboru = sablona[0].subor.file.name 
     workbook = load_workbook(filename=nazov_suboru)
     #testovať správnosť
-    for harok in ['FP', 'Krycí list']:
+    for harok in ['FP', 'Krycí list', 'Krycí list učtáreň']:
         if not harok in workbook.sheetnames:
             return [f"Súbor '{nazov_objektu}' nemá hárok {harok}"]
 
@@ -348,6 +348,12 @@ def generovatStravne_od_04_2024(polozka):
     #Aktualizovať hárok Krycí list
     kryci_list = workbook["Krycí list"]
     kryci_list.cell(row=3, column=1).value = f"Mzdové obdobie {mesiac_zrazky_sk}/{rok}"
+    
+    #Aktualizovať hárok Krycí list učtáreň
+    kryci_list = workbook["Krycí list učtáreň"]
+    kryci_list.cell(row=3, column=1).value = f"Mzdové obdobie {mesiac_zrazky_sk}/{rok}"
+    kryci_list["C20"].value = settings.UCTAREN_NAME
+    kryci_list.print_area = [] #Zrušiť oblasť tlače
     
     #Save the workbook
     mmm = ""
