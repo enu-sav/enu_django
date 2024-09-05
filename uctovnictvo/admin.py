@@ -1597,7 +1597,7 @@ class DohodaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, Mode
 
 @admin.register(DoVP)
 class DoVPAdmin(DohodaAdmin):
-    #Polia DoVP: odmena_celkom hod_celkom id_tsh pomocnik
+    #Polia DoVP: odmena_celkom hod_celkom id_tsh
     form = DoVPForm
     def get_list_display(self, request):
         list_display = ("cislo", "zmluvna_strana_link", "odmena_celkom", "hod_celkom", "interny_prevod", "poznamka" )
@@ -1610,13 +1610,13 @@ class DoVPAdmin(DohodaAdmin):
         elif obj.stav_dohody == StavDohody.NOVA or obj.stav_dohody == StavDohody.VYTVORENA: 
             return ro_parent
         elif obj.stav_dohody == StavDohody.NAPODPIS: 
-            return ro_parent + ["odmena_celkom", "hod_celkom", "pomocnik"]
+            return ro_parent + ["odmena_celkom", "hod_celkom"]
         elif obj.stav_dohody == StavDohody.ODOSLANA_DOHODAROVI: 
-            return ro_parent + ["odmena_celkom", "hod_celkom", "pomocnik"]
+            return ro_parent + ["odmena_celkom", "hod_celkom"]
         elif obj.stav_dohody == StavDohody.PODPISANA_DOHODAROM:
-            return ro_parent + ["odmena_celkom", "hod_celkom", "pomocnik"]
+            return ro_parent + ["odmena_celkom", "hod_celkom"]
         elif obj.stav_dohody == StavDohody.DOKONCENA:
-            return ro_parent + ["odmena_celkom", "hod_celkom", "pomocnik"]
+            return ro_parent + ["odmena_celkom", "hod_celkom"]
         else:
             #sem by sme nemali prist
             trace()
