@@ -13,7 +13,7 @@ from datetime import date, datetime, timedelta
 from ipdb import set_trace as trace
 from .models import EkonomickaKlasifikacia, TypZakazky, Zdroj, Program, Dodavatel, ObjednavkaZmluva
 from .models import Objednavka, Zmluva, PrijataFaktura, SystemovySubor, Rozhodnutie, PrispevokNaStravne
-from .models import Dohoda, DoVP, DoPC, DoBPS, VyplacanieDohod, AnoNie, PlatovyVymer, Vybavovatel
+from .models import Dohoda, DoVP, DoPC, DoBPS, AnoNie, PlatovyVymer, Vybavovatel
 from .models import ZamestnanecDohodar, Zamestnanec, Dohodar, StavDohody, PravidelnaPlatba
 from .models import Najomnik, NajomnaZmluva, NajomneFaktura, TypPP, TypPN, Cinnost
 from .models import InternyPartner, InternyPrevod, Nepritomnost, RozpoctovaPolozka, RozpoctovaPolozkaDotacia
@@ -31,7 +31,7 @@ from uctovnictvo import objednavka_actions, nakup_actions, stravne_actions
 
 from .forms import PrijataFakturaForm, AutorskeZmluvyForm, ObjednavkaForm, ZmluvaForm, PrispevokNaStravneForm, PravidelnaPlatbaForm
 from .forms import PlatovyVymerForm, NajomneFakturaForm, NajomnaZmluvaForm, PlatbaBezPrikazuForm
-from .forms import DoPCForm, DoVPForm, DoBPSForm, VyplacanieDohodForm
+from .forms import DoPCForm, DoVPForm, DoBPSForm
 from .forms import InternyPrevodForm, NepritomnostForm, RozpoctovaPolozkaDotaciaForm, RozpoctovaPolozkaPresunForm, RozpoctovaPolozkaForm
 from .forms import PokladnaForm, SocialnyFondForm, PrispevokNaRekreaciuForm, OdmenaOpravaForm, VystavenaFakturaForm, NakupSUhradouForm 
 from .rokydni import datum_postupu, vypocet_prax, vypocet_zamestnanie, postup_roky, roky_postupu
@@ -82,9 +82,6 @@ def formfield_for_foreignkey(instance, db_field, request, **kwargs):
 
     if db_field.name == "dodatok_k" and instance.model in [DoPC]:
         kwargs["queryset"] = DoPC.objects.annotate(text_len=Length('cislo')).filter(text_len__lte=15).order_by(Collate('zmluvna_strana__priezvisko', 'nocase'))
-
-    if db_field.name == "dohoda" and instance.model in [VyplacanieDohod]:
-        kwargs["queryset"] = Dohoda.objects.filter().order_by(Collate('zmluvna_strana__priezvisko', 'nocase'))
 
     if db_field.name == "zdroj":
         kwargs["queryset"] = Zdroj.objects.filter().order_by('kod')
@@ -1733,48 +1730,6 @@ class DoPCAdmin(DohodaAdmin):
     list_totals = [
         ('odmena_mesacne', Sum),
     ]
-
-@admin.register(VyplacanieDohod)
-class VyplacanieDohodAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
-    form = VyplacanieDohodForm
-    list_display = ["datum_vyplatenia", "dohoda_link", "vyplatena_odmena", "poistne_zamestnavatel", "poistne_dohodar", "dan_dohodar", "na_ucet"]
-    search_fields = ["dohoda__cislo", "dohoda__zmluvna_strana__priezvisko"]
-    list_totals = [
-        ('vyplatena_odmena', Sum),
-        ('poistne_dohodar', Sum),
-        ('poistne_zamestnavatel', Sum),
-        ('dan_dohodar', Sum),
-        ('na_ucet', Sum)
-    ]
-
-    # zoraďovateľný odkaz na dodávateľa
-    change_links = [
-        ('dohoda', {
-            'admin_order_field': 'dohoda__cislo', # Allow to sort members by the column
-        })
-    ]
-
-    # Zoradiť položky v pulldown menu
-    def formfield_for_foreignkey(self, db_field, request, **kwargs):
-        return formfield_for_foreignkey(self, db_field, request, **kwargs)
-
-    def get_readonly_fields(self, request, obj=None):
-        fields = [f.name for f in VyplacanieDohod._meta.get_fields()]
-        fields.remove("id")
-        if not obj:
-            fields.remove("dohoda")
-            fields.remove("datum_vyplatenia")
-            fields.remove("vyplatena_odmena")
-        return fields
-
-    # do AdminForm pridať request, aby v jej __init__ bolo request dostupné
-    def get_form(self, request, obj=None, **kwargs):
-        AdminForm = super(VyplacanieDohodAdmin, self).get_form(request, obj, **kwargs)
-        class AdminFormMod(AdminForm):
-            def __new__(cls, *args, **kwargs):
-                kwargs['request'] = request
-                return AdminForm(*args, **kwargs)
-        return AdminFormMod
 
 @admin.register(Nepritomnost)
 class NepritomnostAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):

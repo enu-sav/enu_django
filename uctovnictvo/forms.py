@@ -7,7 +7,7 @@ from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 from .models import nasledujuce_cislo, nasledujuce_VPD, nasledujuce_PPD, nasledujuce_Zmluva, NakupSUhradou, FormaUhrady
 from .models import PrijataFaktura, Objednavka, PrispevokNaStravne, DoPC, DoVP, DoBPS, PlatovyVymer, VystavenaFaktura
-from .models import VyplacanieDohod, StavDohody, Dohoda, PravidelnaPlatba, TypPP, InternyPrevod, Nepritomnost, TypNepritomnosti
+from .models import StavDohody, Dohoda, PravidelnaPlatba, TypPP, InternyPrevod, Nepritomnost, TypNepritomnosti
 from .models import Najomnik, NajomnaZmluva, NajomneFaktura, TypPN, RozpoctovaPolozkaDotacia, RozpoctovaPolozkaPresun, RozpoctovaPolozka, Zmluva
 from .models import PlatbaBezPrikazu, Pokladna, TypPokladna, SocialnyFond, PrispevokNaRekreaciu, OdmenaOprava, AnoNie
 from .common import meno_priezvisko
@@ -775,54 +775,6 @@ class NepritomnostForm(DennikZaznam):
                 self.cleaned_data["dlzka_nepritomnosti"] = None
                 messages.warning(self.request, "Dĺžka neprítomnosti sa pre daný typ neprítomnosti neuvádza. Zadaná hodnota bola odstránená.")
         return self.cleaned_data
-
-class VyplacanieDohodForm(forms.ModelForm):
-    #inicializácia polí
-    def __init__(self, *args, **kwargs):
-        # do Admin treba pridať metódu get_form
-        self.request = kwargs.pop('request', None)
-        super().__init__(*args, **kwargs)
-
-    # Skontrolovať platnost a keď je všetko OK, spraviť záznam do denníka
-    def clean(self):
-        d_name = VyplacanieDohod._meta.get_field('dohoda').verbose_name
-        dv_name = VyplacanieDohod._meta.get_field('datum_vyplatenia').verbose_name
-        try:
-            if not self.instance.dohoda and not 'dohoda' in self.changed_data:
-                raise ValidationError("")
-            if not self.instance.datum_vyplatenia and not 'datum_vyplatenia' in self.changed_data:
-                raise ValidationError("")
-            #kontrola
-            cislo = nasledujuce_cislo(Dokument)
-            dohoda = self.cleaned_data['dohoda']
-            vec = f"Podklady na vyplatenie dohody {dohoda}"
-            if type(dohoda) == DoVP:
-                dtype="dovp"
-            elif type(dohoda) == DoPC:
-                dtype="dopc"
-            elif type(dohoda) == DoBPS:
-                dtype="dobps"
-            dok = Dokument(
-                cislo = cislo,
-                inout = InOut.ODOSLANY,
-                typdokumentu = TypDokumentu.DoVP if type(dohoda)== DoVP else TypDokumentu.DoPC if type(dohoda) == DoPC else TypDokumentu.DoBPS,
-                adresat = "Mzdové oddelenie", 
-                vec = f'Podklady na vyplatenie dohody <a href="/admin/uctovnictvo/{dtype}/{dohoda.id}/change/">{dohoda}</a>',
-                prijalodoslal=self.request.user.username, #zámena mien prijalodoslal - zaznamvytvoril
-                datumvytvorenia = date.today(), 
-                cislopolozky = dohoda.cislo
-            )
-            dok.save()
-            messages.warning(self.request, 
-                format_html(
-                    'Do denníka prijatej a odoslanej pošty bol pridaný záznam č. {}: <em>{}</em>, treba v ňom doplniť údaje o prijatí.',
-                    mark_safe(f'<a href="/admin/dennik/dokument/{dok.id}/change/">{cislo}</a>'),
-                    vec
-                    )
-            )
-            return self.cleaned_data
-        except ValidationError as ex:
-            raise ex
 
 class NajomnaZmluvaForm(forms.ModelForm):
     #inicializácia polí
