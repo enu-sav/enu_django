@@ -13,6 +13,7 @@ from openpyxl.styles import Font, Color, colors, Alignment, PatternFill , number
 from openpyxl.utils import get_column_letter
 from openpyxl.styles import Border, Side, PatternFill, Font, GradientFill, Alignment
 from decimal import Decimal
+from datetime import date, datetime
 
 ObjednavkaPocetPoloziek = 12
 
@@ -32,7 +33,7 @@ def OtvoritSablonuObjednavky():
     workbook = load_workbook(filename=nazov_suboru)
     return workbook
 
-def VytvoritSuborObjednavky(objednavka):
+def VytvoritSuborObjednavky(objednavka, username):
     sn = "<br /><strong>Súbor objednávky nebol vygenerovaný.</strong>"
     co = "Chyba v poli Objednané položky"
     def VyplnitHarok(ws_obj, objednavka, oddelovac):
@@ -159,6 +160,14 @@ def VytvoritSuborObjednavky(objednavka):
 
     workbook = OtvoritSablonuObjednavky()
 
+    workbook.properties.creator = f"{username} v systéme DjangoBel"
+    workbook.properties.title=f"Objednávka č. {objednavka.cislo}" 
+    workbook.properties.created = datetime.now()
+    workbook.properties.revision = 1
+    workbook.properties.modified = datetime.now()
+    workbook.properties.lastModifiedBy = f"{username}"
+    workbook.properties.lastPrinted = None
+
     oddelovac = Oddelovac(objednavka)
     if len(oddelovac) > 1:
         return messages.ERROR, oddelovac, None  #'oddelovac' obsahuje chybovú správu
@@ -191,13 +200,21 @@ def VytvoritSuborObjednavky(objednavka):
     workbook.save(os.path.join(settings.MEDIA_ROOT,opath))
     return messages.SUCCESS, f"Súbor objednávky {objednavka.cislo} bol úspešne vytvorený ({opath}).", opath
 
-def VytvoritSuborZiadanky(objednavka):
+def VytvoritSuborZiadanky(objednavka, username):
 
     if objednavka.subor_objednavky:
         return messages.ERROR, f"Súbor žiadanky nemôže byť vytvorený, lebo už bol vytvorený súbor objednávky.", None
     workbook = OtvoritSablonuObjednavky()
     if type(workbook) != Workbook:
         return workbook #Error
+
+    workbook.properties.creator = f"{username} v systéme DjangoBel"
+    workbook.properties.title=f"Žiadanka č. {objednavka.cislo}" 
+    workbook.properties.created = datetime.now()
+    workbook.properties.revision = 1
+    workbook.properties.modified = datetime.now()
+    workbook.properties.lastModifiedBy = f"{username}"
+    workbook.properties.lastPrinted = None
 
     ws_zak = workbook["Žiadanka"]
     prvy_riadok = 13 #prvy riadok tabulky
@@ -220,10 +237,10 @@ def VytvoritSuborZiadanky(objednavka):
         ws_zak["D10"].value = f"Účtované s DPH: {AnoNie(objednavka.dodavatel.s_danou).label}"
     
     #položky
-    ws_zak[f"B{prvy_riadok}"].value = objednavka.objednane_polozky
+    ws_zak[f"B{prvy_riadok}"].value = objednavka.objednane_polozky.replace("\r\n", ", ")
 
     #Predpokladaná cena
-    if objednavka.dodavatel and objednavka.dodavatel.s_danou:
+    if objednavka.dodavatel and objednavka.dodavatel.s_danou == AnoNie.ANO:
         ws_zak[f"A{prvy_riadok+ObjednavkaPocetPoloziek}"].value = "Predpokladaná cena (s DPH):"
         ws_zak[f"C{prvy_riadok+ObjednavkaPocetPoloziek}"].value = Decimal(dph)*objednavka.predpokladana_cena
     else:

@@ -214,7 +214,7 @@ class ObjednavkaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, 
             self.message_user(request, f"Vybrať možno len jednu objednavku", messages.ERROR)
             return
         objednavka = queryset[0]
-        status, msg, vytvoreny_subor = objednavka_actions.VytvoritSuborObjednavky(objednavka)
+        status, msg, vytvoreny_subor = objednavka_actions.VytvoritSuborObjednavky(objednavka, request.user.username)
         self.message_user(request, format_html(mark_safe(msg)), status)
         if status != messages.ERROR:
             objednavka.subor_objednavky = vytvoreny_subor
@@ -232,7 +232,7 @@ class ObjednavkaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, 
             #return
         #objednavka = queryset[0]
         for objednavka in queryset:
-            status, msg, vytvoreny_subor = objednavka_actions.VytvoritSuborZiadanky(objednavka)
+            status, msg, vytvoreny_subor = objednavka_actions.VytvoritSuborZiadanky(objednavka, request.user.username)
             self.message_user(request, msg, status)
             if status != messages.ERROR:
                 objednavka.subor_ziadanky = vytvoreny_subor
