@@ -400,8 +400,9 @@ def VytvoritPlatobnyPrikaz(faktura, pouzivatel):
     text=re.sub("<dc:date>[^<]*</dc:date>", f"<dc:date>{timezone.now().strftime('%Y-%m-%dT%H:%M:%S.%f')}</dc:date>", text)
     text = text.replace(f"{lt}nasa_faktura_cislo{gt}", faktura.cislo)
     locale.setlocale(locale.LC_ALL, 'sk_SK.UTF-8')
-    if not faktura.suma and not faktura.sumacm:
-        return messages.ERROR, "Vytváranie príkazu zlyhalo, lebo nebola zadaná suma v Eur a ani suma v cudzej mene.", None
+    #Test zrušený, lebo vyúčtovacia faktúra má hodnotu 0€ (platila sa predfaktúra)
+    #if not faktura.suma and not faktura.sumacm:
+        #return messages.ERROR, "Vytváranie príkazu zlyhalo, lebo nebola zadaná suma v Eur a ani suma v cudzej mene.", None
     if jePF:    #prijatá faktúra môže byť aj v cudzej mene
             
         sadzbadph = Decimal(faktura.sadzbadph)
