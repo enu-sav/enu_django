@@ -261,10 +261,6 @@ def generovatStravne_od_04_2024(polozka):
     ws["I7"].value = prispevok_enu
     ws["J7"].value = prispevok_sf
 
-    prispevok_enu_sadzba = ws["F7"].value
-    prispevok_sf_sadzba = ws["G7"].value
-
-
     # prispevky
     #mesiac od - do
     od = mesiac_prispevku
@@ -339,10 +335,10 @@ def generovatStravne_od_04_2024(polozka):
             pocet_dni = ddov + ddov2 + dosob + dnepl + docr #dpn1 a dpn2 sa neráta, je zahrnuté v dnepl
         ws.cell(row=id_row[zam_id], column=5).value = pocet_dni
         dni_zrazky += pocet_dni
-    suma_enu_prispevok = dni_prispevok * prispevok_enu_sadzba 
-    suma_enu_zrazky = dni_zrazky * prispevok_enu_sadzba
-    suma_sf_prispevok = dni_prispevok * prispevok_sf_sadzba
-    suma_sf_zrazky = dni_zrazky * prispevok_sf_sadzba
+    suma_enu_prispevok = dni_prispevok * prispevok_enu 
+    suma_enu_zrazky = dni_zrazky * zrazka_enu
+    suma_sf_prispevok = dni_prispevok * prispevok_sf
+    suma_sf_zrazky = dni_zrazky * zrazka_sf
     #krycí list
 
     #Aktualizovať hárok Krycí list
