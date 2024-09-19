@@ -233,10 +233,12 @@ def VytvoritKryciList(platba, pouzivatel):
     if type(platba) == NajomneFaktura:
         nazov = platba.zmluva.najomnik.nazov
         text = text.replace(f"{lt}popis{gt}", f"Platba č. {platba.cislo_softip}, {nazov}")
+        text = text.replace(f"{lt}zmluva{gt}", "s nájomnou zmluvou")
         meno_pola = "Dané na vybavenie dňa"
     elif type(platba) == VystavenaFaktura:
         nazov = platba.objednavka_zmluva.dodavatel.nazov
         text = text.replace(f"{lt}popis{gt}", f"Platba č. {platba.dcislo}, {nazov}")
+        text = text.replace(f"{lt}zmluva{gt}", "so zmluvou")
         meno_pola = "Dané na vybavenie dňa"
     else:
         text = text.replace(f"{lt}popis{gt}", "")
