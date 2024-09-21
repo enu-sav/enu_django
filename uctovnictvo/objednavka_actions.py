@@ -183,13 +183,15 @@ def VytvoritSuborObjednavky(objednavka, username):
         ws_obj[f"A{prvy_riadok+ObjednavkaPocetPoloziek+2}"].value = ws_obj[f"A{prvy_riadok+ObjednavkaPocetPoloziek+2}"].value.replace("[[termin_dodania]]", objednavka.termin_dodania)
     else:
         ws_obj[f"A{prvy_riadok+ObjednavkaPocetPoloziek+2}"].value = ws_obj[f"A{prvy_riadok+ObjednavkaPocetPoloziek+2}"].value.replace("[[termin_dodania]]", "")
-    if not objednavka.datum_vytvorenia:
-        return messages.ERROR, "Vytváranie súboru objednávky zlyhalo, lebo objednávka nemá zadaný dátum vytvorenia.", None
-    ws_obj[f"A{prvy_riadok+ObjednavkaPocetPoloziek+4}"].value = ws_obj[f"A{prvy_riadok+ObjednavkaPocetPoloziek+4}"].value.replace("[[datum]]", objednavka.datum_vytvorenia.strftime("%d. %m. %Y"))
+    ws_obj[f"A{prvy_riadok+ObjednavkaPocetPoloziek+4}"].value = ws_obj[f"A{prvy_riadok+ObjednavkaPocetPoloziek+4}"].value.replace("[[datum]]", datetime.now().strftime("%d. %m. %Y"))
   
     ws_kl = workbook["Finančná kontrola objednávka"]
     ws_kl["A1"].value = ws_kl["A1"].value.replace("[[cislo]]", objednavka.cislo)
-    ws_kl["A1"].value = ws_kl["A1"].value.replace("[[datum]]", objednavka.datum_vytvorenia.strftime("%d. %m. %Y"))
+    ws_kl["A1"].value = ws_kl["A1"].value.replace("[[datum]]", datetime.now().strftime("%d. %m. %Y"))
+
+    #aktualizovať dátum vystavenia objednávky
+    objednavka.datum_vytvorenia = datetime.now()
+    objednavka.save()
 
     #uložiť
     workbook.remove_sheet(workbook.get_sheet_by_name("Žiadanka"))
@@ -252,15 +254,13 @@ def VytvoritSuborZiadanky(objednavka, username):
         ws_zak[f"A{prvy_riadok+ObjednavkaPocetPoloziek+4}"].value = ws_zak[f"A{prvy_riadok+ObjednavkaPocetPoloziek+4}"].value.replace("[[termin_dodania]]", objednavka.termin_dodania)
     else:
         ws_zak[f"A{prvy_riadok+ObjednavkaPocetPoloziek+4}"].value = ws_zak[f"A{prvy_riadok+ObjednavkaPocetPoloziek+4}"].value.replace("[[termin_dodania]]", "")
-    if not objednavka.datum_vytvorenia:
-        return messages.ERROR, "Vytváranie súboru žiadanky zlyhalo, lebo objednávka nemá zadaný dátum vytvorenia.", None
-    ws_zak[f"A{prvy_riadok+ObjednavkaPocetPoloziek+6}"].value = ws_zak[f"A{prvy_riadok+ObjednavkaPocetPoloziek+6}"].value.replace("[[datum]]", objednavka.datum_vytvorenia.strftime("%d. %m. %Y"))
+    ws_zak[f"A{prvy_riadok+ObjednavkaPocetPoloziek+6}"].value = ws_zak[f"A{prvy_riadok+ObjednavkaPocetPoloziek+6}"].value.replace("[[datum]]", datetime.now().strftime("%d. %m. %Y"))
   
     ws_kl = workbook["Finančná kontrola žiadanka"]
     ws_kl["A1"].value = ws_kl["A1"].value.replace("[[cislo]]", objednavka.cislo[2:])
     vytvorene = objednavka.history.first().history_date
     #ws_kl["A1"].value = ws_kl["A1"].value.replace("[[datum]]", vytvorene.strftime("%d. %m. %Y"))
-    ws_kl["A1"].value = ws_kl["A1"].value.replace("[[datum]]", objednavka.datum_vytvorenia.strftime("%d. %m. %Y"))
+    ws_kl["A1"].value = ws_kl["A1"].value.replace("[[datum]]", datetime.now().strftime("%d. %m. %Y"))
 
     #uložiť
     workbook.remove_sheet(workbook.get_sheet_by_name("Objednávka"))

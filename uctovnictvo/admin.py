@@ -27,7 +27,6 @@ from .common import zmazatIndividualneOdmeny, generovatNepritomnost, exportovatN
 from .common import VytvoritPlatobnyPrikazIP, VytvoritSuborPD, UlozitStranuPK, TarifnyPlatTabulky
 
 from uctovnictvo import objednavka_actions, nakup_actions, stravne_actions
-#from .objednavka_actions import VytvoritSuborObjednavky, VytvoritSuborZiadanky
 
 from .forms import PrijataFakturaForm, AutorskeZmluvyForm, ObjednavkaForm, ZmluvaForm, PrispevokNaStravneForm, PravidelnaPlatbaForm
 from .forms import PlatovyVymerForm, NajomneFakturaForm, NajomnaZmluvaForm, PlatbaBezPrikazuForm
@@ -204,7 +203,7 @@ class ObjednavkaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, 
 
     #obj is None during the object creation, but set to the object being edited during an edit
     def get_readonly_fields(self, request, obj=None):
-        readonly = ["subor_ziadanky", "subor_objednavky"]
+        readonly = ["subor_ziadanky", "subor_objednavky", "datum_vytvorenia"]
         if obj:
             readonly.append("cislo")
         return readonly

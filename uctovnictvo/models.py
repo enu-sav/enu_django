@@ -708,8 +708,7 @@ class Objednavka(ObjednavkaZmluva):
             help_text = "Zadajte dátum odoslania objednávky dodávateľovi. Po zadaní dátumu sa vytvorí záznam v Denníku prijatej a odoslanej pošty",
             blank=True, null=True)
     datum_vytvorenia = models.DateField('Dátum vytvorenia',
-            help_text = "Zadajte dátum vytvorenia objednávky",
-            default=datetime.now,
+            help_text = "Dátum vytvorenia objednávky. Vypĺňa sa automaticky akciou 'vytvorit_subor_objednavky'",
             blank=True, null=True)
     subor_objednavky = models.FileField("Súbor objednávky",
             help_text = "Súbor s objednávkou a krycím listom. Generuje sa akciou 'Vytvoriť objednávku'",
