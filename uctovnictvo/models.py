@@ -730,8 +730,8 @@ class Objednavka(ObjednavkaZmluva):
     history = HistoricalRecords()
 
     class Meta:
-        verbose_name = 'Objednávka'
-        verbose_name_plural = 'Faktúry - Objednávky'
+        verbose_name = 'Žiadanka / Objednávka'
+        verbose_name_plural = 'Faktúry - Žiadanky / Objednávky'
     def __str__(self):
         return f"{self.dodavatel}, objednávka, {self.cislo}"
 
