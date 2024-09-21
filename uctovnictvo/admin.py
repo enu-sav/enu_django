@@ -218,7 +218,8 @@ class ObjednavkaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, 
         if status != messages.ERROR:
             objednavka.subor_objednavky = vytvoreny_subor
             objednavka.save()
-            self.message_user(request, f"Vytvorenú objednávku dajte na podpis a potom pred odoslaním vyplňte pole 'Dátum odoslania'. Automaticky sa vytvorí záznam v Denníku prijatej a odoslanej pošty.", messages.WARNING)
+            msg = f"Vytvorenú objednávku dajte na podpis a potom pred odoslaním <strong>vyplňte pole 'Dátum odoslania'</strong>. Automaticky sa vytvorí záznam v Denníku prijatej a odoslanej pošty."
+            self.message_user(request, format_html(msg), messages.WARNING)
 
     vytvorit_subor_objednavky.short_description = "Vytvoriť súbor objednavky"
     #Oprávnenie na použitie akcie, viazané na 'change'
