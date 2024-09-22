@@ -249,7 +249,7 @@ class ObjednavkaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, 
 #class NakupSUhradouAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
 class NakupSUhradouAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
     form = NakupSUhradouForm
-    list_display = ("cislo", "vybavuje", "ziadatel", "popis", "cena", "zamietnute", "forma_uhrady", "subor_ziadanky", "datum_ziadanky", "subor_ucty", "subor_preplatenie", "datum_vybavenia", "pokladna_vpd", "datum_uhradenia")
+    list_display = ("cislo", "ziadatel", "vybavuje", "popis", "cena", "zamietnute", "forma_uhrady", "subor_ziadanky", "datum_ziadanky", "subor_ucty", "subor_preplatenie", "datum_vybavenia", "pokladna_vpd", "datum_uhradenia")
     #actions = [ 'vytvorit_subor_ziadanky', 'vytvorit_subor_objednavky' ]
     actions = [ 'vytvorit_subor_ziadanky', "vytvorit_subor_preplatenie"]
     search_fields = ["^cislo", "^pokladna_vpd", "popis", "forma_uhrady"]
@@ -262,17 +262,15 @@ class NakupSUhradouAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmi
         fields = [f.name for f in NakupSUhradou._meta.get_fields()]
         #pole  "pokladna_pokladna" pridané v Pokladna.ziadanka. Nesmie byť odstránené, inak nastane chyba "missing 1 required keyword-only argument: 'manager'"
         if "pokladna_pokladna" in fields: fields.remove("pokladna_pokladna")
-        if not obj or not obj.subor_ziadanky:
+        if not obj or not obj.datum_ziadanky:
             fields.remove("cislo")
-            fields.remove("vybavuje")
             fields.remove("ziadatel")
             fields.remove("popis")
-            fields.remove("zdroj")
-            fields.remove("zakazka")
-            fields.remove("ucet")
-            fields.remove("forma_uhrady")
             fields.remove("poznamka")
             fields.remove("objednane_polozky")
+            fields.remove("cena")
+            if obj and obj.subor_ziadanky:
+                fields.remove("datum_ziadanky")
             return fields
         if obj.zamietnute and obj.zamietnute == AnoNie.ANO:
             if not obj.datum_ziadanky:
@@ -283,11 +281,8 @@ class NakupSUhradouAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmi
                 #hotovo, nič sa nedá upravovať
                 pass
             return fields
-        if not obj.datum_ziadanky: 
-            fields.remove("cislo")
+        if obj.datum_ziadanky and not obj.subor_ucty: 
             fields.remove("vybavuje")
-            fields.remove("ziadatel")
-            fields.remove("popis")
             fields.remove("zdroj")
             fields.remove("zakazka")
             fields.remove("ucet")
@@ -295,10 +290,9 @@ class NakupSUhradouAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmi
             fields.remove("poznamka")
             fields.remove("zamietnute")
             fields.remove("objednane_polozky")
-            fields.remove("datum_ziadanky")
+            fields.remove("subor_ucty") 
             return fields
         if obj.datum_ziadanky and not obj.subor_ucty: 
-            fields.remove("subor_ucty") 
             return fields
         if obj.subor_ucty and not obj.subor_preplatenie:
             fields.remove("objednane_polozky")
@@ -359,7 +353,9 @@ class NakupSUhradouAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmi
         #nakup = queryset[0]
         for nakup in queryset:
             if not nakup.datum_ziadanky:
-                self.message_user(request, f"Súbor nebol vytvorený, lebo pole '{NakupSUhradou._meta.get_field('datum_ziadanky').verbose_name}' nie je vyplnené.", messages.ERROR)
+                self.message_user(request, 
+                    f"Súbor nebol vytvorený, lebo pole '{NakupSUhradou._meta.get_field('datum_ziadanky').verbose_name}' nie je vyplnené.", 
+                    messages.ERROR)
                 return
             if not nakup.subor_ucty:
                 self.message_user(request, f"Súbor nebol vytvorený, lebo pole '{NakupSUhradou._meta.get_field('subor_ucty').verbose_name}' nie je vyplnené.", messages.ERROR)

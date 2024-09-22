@@ -19,51 +19,49 @@ def VyplnitHarok(ws_obj, objednavka, je_vyplatenie):
     prvy_riadok = 12 #prvy riadok tabulky
     pocet_riadkov = 8 # pri zmene zmeniť aj models.Objednavka.clean.pocet_riadkov
 
-    ziadatel = objednavka.ziadatel if objednavka.ziadatel else objednavka.vybavuje
+    #Od 2024/09 je ziadatel povinne
+    ziadatel = objednavka.ziadatel
     vybavuje = objednavka.vybavuje
     today = date.today().strftime("%d.%m.%Y")
 
-    if je_vyplatenie:
+    if je_vyplatenie:   #Žiadosť o preplatenie
         ws_obj["A1"].value = f"ŽIADOSŤ č. {objednavka.cislo}"
-        ws_obj["A2"].value = "o preplatenie nákladov za obstaranie tovarov, služieb a stavebných prác formou drobného nákupu"
         ws_obj["A5"].value = vybavuje.menopriezvisko(True)
         ws_obj["C25"].value = objednavka.vybavuje.bankovy_kontakt
         ws_obj["A33"].value = "Súhlasím s preplatením nákladov na obstaranie tovarov / služieb / stavebných prác podľa zoznamu"
-    else:
+        ws_obj["D22"].value = vybavuje.menopriezvisko(True)
+        ws_obj["C24"].value = vybavuje.menopriezvisko(True)
+        ws_obj["B30"].value = objednavka.zdroj.kod
+        ws_obj["H30"].value = objednavka.zakazka.kod
+        if objednavka.forma_uhrady == FormaUhrady.UCET:
+            ws_obj["A27"].value = "x"
+        else:
+            ws_obj["A28"].value = "x"
+        #položky
+        objednane = objednavka.objednane_polozky.split("\n")
+        for rr, polozka in enumerate(objednane):
+            riadok = prvy_riadok+rr
+            prvky = rozdelit_polozky(polozka)
+
+            nr =  int(1+len(prvky[0])/35)
+            if nr > 1: ws_obj.row_dimensions[riadok].height = 15 * nr
+            ws_obj.cell(row=riadok, column=1).value = rr+1
+            ws_obj.cell(row=riadok, column=2).value = prvky[0]
+            val = float(prvky[1].strip().replace(",","."))
+            ws_obj.cell(row=riadok, column=10).value = val
+            ws_obj.cell(row=riadok, column=10).number_format= "0.00"
+            ws_obj.cell(row=riadok, column=12).value = prvky[2]
+            if len(prvky) == 4:
+                ws_obj.cell(row=riadok, column=14).value = prvky[3]
+    else:   #Žiadanka na zakúpenie
         ws_obj["A1"].value = f"ŽIADANKA č. {objednavka.cislo}"
-        ws_obj["A2"].value = "na obstaranie tovarov, služieb a stavebných prác formou drobného nákupu"
-        ws_obj["L4"].value = today
-        ws_obj["C25"].value = ""
-        ws_obj["A33"].value = "Súhlasím s objednaním tovarov / služieb / stavebných prác podľa zadania v tejto žiadanke"
+        ws_obj["B12"].value = objednavka.objednane_polozky
         ws_obj["A5"].value = ziadatel.menopriezvisko(True)
+        ws_obj["L4"].value = today
+        ws_obj["A33"].value = "Súhlasím so obstaraním tovarov / služieb / stavebných prác podľa zadania v tejto žiadanke"
 
     ws_obj["G8"].value = objednavka.popis
-    ws_obj["D22"].value = vybavuje.menopriezvisko(True)
-    ws_obj["C24"].value = vybavuje.menopriezvisko(True)
-    ws_obj["B30"].value = objednavka.zdroj.kod
-    ws_obj["H30"].value = objednavka.zakazka.kod
-    if objednavka.forma_uhrady == FormaUhrady.UCET:
-        ws_obj["A27"].value = "x"
-    else:
-        ws_obj["A28"].value = "x"
 
-    #položky
-    objednane = objednavka.objednane_polozky.split("\n")
-    for rr, polozka in enumerate(objednane):
-        riadok = prvy_riadok+rr
-        prvky = rozdelit_polozky(polozka)
-
-        nr =  int(1+len(prvky[0])/35)
-        if nr > 1: ws_obj.row_dimensions[riadok].height = 15 * nr
-        ws_obj.cell(row=riadok, column=1).value = rr+1
-        ws_obj.cell(row=riadok, column=2).value = prvky[0]
-        val = float(prvky[1].strip().replace(",","."))
-        ws_obj.cell(row=riadok, column=10).value = val
-        ws_obj.cell(row=riadok, column=10).number_format= "0.00"
-        ws_obj.cell(row=riadok, column=12).value = prvky[2]
-        if len(prvky) == 4:
-            ws_obj.cell(row=riadok, column=14).value = prvky[3]
-        #
     return ws_obj, prvy_riadok, pocet_riadkov
 
 # lokálna funkcia, nemá zmysel ju volať zvonka
@@ -87,10 +85,12 @@ def VytvoritSuborZiadanky(objednavka):
     if type(workbook) != Workbook:
         return workbook #Error
 
-    ws_obj, prvy_riadok, pocet_riadkov = VyplnitHarok(workbook["Žiadanka - žiadosť"], objednavka, False)
+    ws_obj, prvy_riadok, pocet_riadkov = VyplnitHarok(workbook["Žiadanka"], objednavka, False)
+    workbook.remove_sheet(workbook.get_sheet_by_name("Žiadosť"))
 
     ws_kl = workbook["Krycí list"]
     ws_kl["A2"].value = f"Žiadanka č. {objednavka.cislo}"
+    ws_kl["A7"].value = "Finančnú operáciu overil a súhlasí  / nesúhlasí*  s jej pokračovaním"
 
     #uložiť
     nazov = f'{objednavka.cislo[2:]}-ziadanka.xlsx'
@@ -103,10 +103,12 @@ def VytvoritSuborPreplatenie(objednavka):
     if type(workbook) != Workbook:
         return workbook #Error
 
-    ws_obj, prvy_riadok, pocet_riadkov = VyplnitHarok(workbook["Žiadanka - žiadosť"], objednavka, True)
+    ws_obj, prvy_riadok, pocet_riadkov = VyplnitHarok(workbook["Žiadosť"], objednavka, True)
+    workbook.remove_sheet(workbook.get_sheet_by_name("Žiadanka"))
 
     ws_kl = workbook["Krycí list"]
     ws_kl["A2"].value = f"Žiadosť o preplatenie č. {objednavka.cislo}"
+    ws_kl["A7"].value = "Finančnú operáciu overil a súhlasí  / nesúhlasí*  s jej vykonaním (vrátane bankových poplatkov)"
 
     #uložiť
     nazov = f'{objednavka.cislo[2:]}-vyplatenie.xlsx'
