@@ -78,6 +78,8 @@ def formfield_for_foreignkey(instance, db_field, request, **kwargs):
         kwargs["queryset"] = ZamestnanecDohodar.objects.filter().order_by(Collate('priezvisko', 'nocase'))
     if db_field.name == "ziadatel" and instance.model in [NakupSUhradou]:
         kwargs["queryset"] = ZamestnanecDohodar.objects.filter().order_by(Collate('priezvisko', 'nocase'))
+    if db_field.name == "ziadatel" and instance.model in [Objednavka]:
+        kwargs["queryset"] = ZamestnanecDohodar.objects.filter().order_by(Collate('priezvisko', 'nocase'))
 
     if db_field.name == "dodatok_k" and instance.model in [DoPC]:
         kwargs["queryset"] = DoPC.objects.annotate(text_len=Length('cislo')).filter(text_len__lte=15).order_by(Collate('zmluvna_strana__priezvisko', 'nocase'))
