@@ -621,6 +621,14 @@ class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
             fields.remove("cislo")
         return fields
 
+    # pri štandardnom odstraňovaní Vymazať aj súvisiace záznamy
+    def delete_queryset(self, request, queryset):
+        for vyplacanie in queryset:
+            platby_autor = PlatbaAutorskaOdmena.objects.filter(cislo=vyplacanie.cislo)
+            for platba in platby_autor:
+                platba.delete()
+            vyplacanie.delete()
+
     def honorar_spolu(self, sumplatba):
         platby = PlatbaAutorskaOdmena.objects.filter(cislo=sumplatba.cislo)
         odmeny = [platba.honorar for platba in platby]
