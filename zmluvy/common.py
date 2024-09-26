@@ -309,6 +309,10 @@ def VytvoritVytvarnuObjednavku(objednavka, pouzivatel):
     obj[f'H{riadok+1}'] = f"=SUM(H{prvy_riadok}:H{riadok})"
     obj[f'H{riadok+1}'].font = fbold
 
+    #Krycí list
+    kl = workbook["Krycí list"]
+    kl[f'A2'].value = kl[f'A2'].value.replace("[[cislo]]",objednavka.cislo)
+
     #ulozit
     #Create directory admin.rs_login if necessary
     nazov = f'{objednavka.cislo}-{autor.priezvisko}.xlsx'
