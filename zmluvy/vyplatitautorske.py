@@ -680,7 +680,7 @@ class VyplatitAutorskeOdmeny(VyplatitOdmeny):
         ftitle = Font(name="Arial", bold=True, size='14')
 
         ws.merge_cells(f'A{self.ppos}:I{self.ppos}')
-        ws[f'A{self.ppos}'] = f"Vyplatenie autorského honorára č. {self.cislo}"
+        ws[f'A{self.ppos}'] = f"Vyplatenie licenčných poplatkov č. {self.cislo}"
         ws[f"A{self.ppos}"].alignment = Alignment(horizontal='center', vertical='center')
         ws.row_dimensions[self.ppos].height = 70
         ws[f"A{self.ppos}"].font = ftitle
@@ -976,7 +976,7 @@ class VyplatitOdmenyGrafik(VyplatitOdmeny):
         workbook.remove_sheet(workbook["Výpočet"])
 
         # upraviť hárok Na vyplatenie
-        vyplatit["A4"].value = vyplatit["A4"].value.replace("[[coho]]","autorského honoráru")
+        vyplatit["A4"].value = vyplatit["A4"].value.replace("[[coho]]","licenčných poplatkov")
         #vyplatit.merge_cells('A5:G5')
         vyplatit["C5"] = f"identifikátor vyplácania {self.platba.cislo}"
         #vyplatit["A5"].alignment = self.acenter
@@ -1055,7 +1055,7 @@ class VyplatitOdmenyGrafik(VyplatitOdmeny):
         vyplatit.print_area = []    #Zrušiť oblasť tlače
 
         # upraviť hárok Krycí list
-        self.kryci_list["A2"].value = self.kryci_list["A2"].value.replace("[[coho]]", "autorského honoráru") 
+        self.kryci_list["A2"].value = self.kryci_list["A2"].value.replace("[[coho]]", "licenčných poplatkov") 
         self.kryci_list["A2"].value = self.kryci_list["A2"].value.replace("[[xx-xxxx]]", self.platba.cislo)
         self.kryci_list["C21"].value = settings.UCTAREN_NAME
         self.kryci_list.print_area = [] #Zrušiť oblasť tlače
