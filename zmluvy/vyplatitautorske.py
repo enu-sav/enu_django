@@ -367,7 +367,7 @@ class VyplatitAutorskeOdmeny(VyplatitOdmeny):
         else:
             vyplatit["A4"].value = vyplatit["A4"].value.replace("[[coho]]","autorských honorárov")
         vyplatit.merge_cells('A5:G5')
-        vyplatit["A5"] = f"identifikátor vyplácania {self.cislo}"
+        vyplatit["A1"] = f"identifikátor vyplácania {self.cislo}"
         vyplatit["A5"].alignment = self.acenter
 
         vyplatit["A7"] = "Prevody spolu:"
@@ -978,7 +978,7 @@ class VyplatitOdmenyGrafik(VyplatitOdmeny):
         # upraviť hárok Na vyplatenie
         vyplatit["A4"].value = vyplatit["A4"].value.replace("[[coho]]","licenčných poplatkov")
         #vyplatit.merge_cells('A5:G5')
-        vyplatit["C5"] = f"identifikátor vyplácania {self.platba.cislo}"
+        vyplatit["A5"] = f"Objednávka č. {self.platba.cislo}, zmluva č. {self.platba.vytvarna_zmluva.cislo} "
         #vyplatit["A5"].alignment = self.acenter
 
         vyplatit["A7"] = "Prevody spolu:"
