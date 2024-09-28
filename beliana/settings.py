@@ -225,7 +225,8 @@ MAX_VZ ={
         2021:7644,
         2022:7931,
         2023:8477,
-        2024:9128
+        2024:9128,
+        2025:10010  #http://relia.sk/Article.aspx?ID=1154
         }
 #Ak má zamestnanec vyplatený príjem počas vylúčiteľnej doby (PN je vylučiteľná doba), ktorá trvá celý mesiac, zamestnávateľ odvedie iba úrazové a zdravotné poistenie z celého dosiahnutého zdaniteľného príjmu. Pozri https://www.kros.sk/forum/odmena-pocas-cerpania-pn/
 
