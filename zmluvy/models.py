@@ -402,7 +402,7 @@ class VytvarnaObjednavkaPlatba(models.Model, GetAdminURL):
                 "cislo": self.cislo,
                 "zdroj": zdroj,
                 "zakazka": zakazka,
-                "ekoklas": EkonomickaKlasifikacia.objects.get(kod="637026") #licencie
+                "ekoklas": EkonomickaKlasifikacia.objects.get(kod="633018") #licencie
                 }
             platby.append(platba.copy())
         return platby
@@ -533,7 +533,7 @@ class PlatbaAutorskaSumar(models.Model, GetAdminURL):
             "cislo": self.cislo,
             "zdroj": zdroj,
             "zakazka": zakazka,
-            "ekoklas": EkonomickaKlasifikacia.objects.get(kod="637026") #Dane
+            "ekoklas": EkonomickaKlasifikacia.objects.get(kod="633018") #Dane
             }
         platby.append(platba.copy())
         return platby
