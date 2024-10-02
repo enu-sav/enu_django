@@ -332,8 +332,8 @@ class CerpanieRozpoctuAdmin(ModelAdminTotals):
                         cerpanie_ostatne += data
             #Vytvoriť sumárne
             for item in cerpanie_mzdove+cerpanie_ostatne:
-                #Položka "Stravné soc. fond" sa zarátava len v platovej rekapitulácii, tu ju treba vynechať
-                if item["nazov"] == "Stravné soc. fond":
+                # Napr. položka "Stravné soc. fond" sa zarátava len v platovej rekapitulácii, tu ju treba vynechať
+                if "cerpanie_rekapitulacia" in item and item["cerpanie_rekapitulacia"] != "cerpanie":
                     continue
                 #na rozlíšenie podtypov poistenia
                 item['nazov'] = item['podnazov'] if 'podnazov' in item else item['nazov']
@@ -499,6 +499,7 @@ class PlatovaRekapitulaciaAdmin(ModelAdminTotals):
                     ws.cell(row=riadok, column=cc+1).number_format="0.00"
                     if not cc in fw: fw[cc] = 0
                     if fw[cc] < len(str(value))+2: fw[cc] = len(str(value))+2
+        #koniec zapisat_riadok
 
         #Načítať dáta z pdf podľa zákazok
         #Ak načítame súbor bez zákazok, Použije sa názov Celkom 
@@ -518,7 +519,9 @@ class PlatovaRekapitulaciaAdmin(ModelAdminTotals):
                 else:
                     pdftext[zakazka] = pdftext[zakazka] + txt
             return pdftext
+        #koniec zapisat_riadok
 
+        # body
         polozky= {
             #"Názov tu": ["Názov v pdf", poradie_poľa_v_riadku]
             "Plat tarifný plat": ["Tarifný plat spolu", 1, "611" ],
@@ -602,6 +605,8 @@ class PlatovaRekapitulaciaAdmin(ModelAdminTotals):
             for zakazka in typ_zakazky:
                 if not zakazka in sumarne: sumarne[zakazka] = {}
                 for item in cerpanie:
+                    if "cerpanie_rekapitulacia" in item and item["cerpanie_rekapitulacia"] != "rekapitulacia":
+                        continue
                     if zakazka in pdftext:
                         if zakazka == "Celkom":
                             sumarne[zakazka][item['nazov']] = sumarne[zakazka][item['nazov']] + item['suma'] if item['nazov'] in sumarne[zakazka] else item['suma']

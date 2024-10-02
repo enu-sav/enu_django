@@ -36,6 +36,7 @@ class OdmenaAleboOprava(models.TextChoices):
     OPRAVAOSOB = 'opravaosob', 'Oprava osobný pr.'
     OPRAVARIAD = 'opravariad', 'Oprava pr. za riadenie'
     OPRAVAZR = 'opravazr', 'Oprava zrážky - plat'
+    OPRAVAZRCERP = 'opravazrcerp', 'Oprava zrážky - plat (len pre čerpanie rozpočtu)'
     ODSTUPNE = 'odstupne', 'Odstupné'
     ODCHODNE = 'odchodne', 'Odchodné'
     DOVOLENKA = 'dovolenka', 'Náhrada mzdy - dovolenka'
@@ -1910,7 +1911,8 @@ class PrispevokNaStravne(Klasifikacia):
                 "cislo": self.cislo,
                 "zdroj": self.zdroj,
                 "zakazka": self.zakazka,
-                "ekoklas": self.ekoklas
+                "ekoklas": self.ekoklas,
+                "cerpanie_rekapitulacia": "rekapitulacia"   #nezarátať v čerpaní rozpočtu
                 }
             platby.append(platba.copy())
         elif  self.typ_zoznamu == Stravne.PRISPEVKY:   #do 03/2024
@@ -2400,7 +2402,7 @@ class OdmenaOprava(Klasifikacia):
             null = True,
             choices=OdmenaAleboOprava.choices)
     zamestnanec = models.ForeignKey(Zamestnanec,
-            help_text = "Nevypĺňa sa, ak sa vkladá súbor so zoznamom odmien",
+            help_text = "Nevypĺňa sa, ak sa vkladá súbor so zoznamom odmien alebo ak zamestnanec nie je určený (napr. v prípade 'Oprava zrážky - plat (len pre čerpanie rozpočtu)'.",
             on_delete=models.PROTECT, 
             verbose_name = "Zamestnanec",
             related_name='%(class)s_zamestnanec',  #zabezpečí rozlíšenie modelov, keby dačo
@@ -2471,6 +2473,7 @@ class OdmenaOprava(Klasifikacia):
 
         platby = []
         podnazov = ""
+        cerpanie_rekapitulacia = ""
         if self.typ == OdmenaAleboOprava.ODMENA:
             nazov = "Plat odmena"
         elif self.typ == OdmenaAleboOprava.OPRAVATARIF:
@@ -2489,6 +2492,11 @@ class OdmenaOprava(Klasifikacia):
             # Podľa admin.gen_soczdrav
             nazov = f"Sociálne poistné {self.ekoklas.kod}"
             podnazov = "Plat poistenie sociálne"
+        elif self.typ == OdmenaAleboOprava.OPRAVAZRCERP:
+            # Podľa admin.gen_soczdrav
+            nazov = f"Sociálne poistné {self.ekoklas.kod}"
+            podnazov = "Plat poistenie sociálne"
+            cerpanie_rekapitulacia = "cerpanie" #Zahrnúť len do čerpania rozpočtu, nie do platovej rekapitulácie
 
         platba = {
             "nazov": nazov,
@@ -2497,13 +2505,14 @@ class OdmenaOprava(Klasifikacia):
             "datum": vyplatny_termin(zden),
             "mesiac": zden,
             "osoba": self.zamestnanec,
-            "subjekt": f"{self.zamestnanec.priezvisko}, {self.zamestnanec.meno}", 
+            "subjekt": f"{self.zamestnanec.priezvisko}, {self.zamestnanec.meno}" if self.zamestnanec else '-', 
             "cislo": self.cislo,
             "zdroj": self.zdroj,
             "zakazka": self.zakazka,
             "ekoklas": self.ekoklas
             }
         if podnazov: platba["podnazov"] = podnazov
+        if cerpanie_rekapitulacia: platba["cerpanie_rekapitulacia"] = cerpanie_rekapitulacia
         platby.append(platba)
         return platby
 
@@ -2511,7 +2520,12 @@ class OdmenaOprava(Klasifikacia):
         verbose_name = "Odmena alebo oprava"
         verbose_name_plural = "PaM - Odmeny a opravy"
     def __str__(self):
-        subjekt = "Súbor so zoznamom odnmien" if self.typ == OdmenaAleboOprava.ODMENAS else f"{self.zamestnanec.priezvisko}, {self.zamestnanec.meno}"
+        if self.typ == OdmenaAleboOprava.ODMENAS: 
+            subjekt = "Súbor so zoznamom odmien"
+        elif self.typ == OdmenaAleboOprava.OPRAVAZRCERP:
+            subjekt = "Oprava odvodov"
+        else:
+            subjekt = f"{self.zamestnanec.priezvisko}, {self.zamestnanec.meno}"
         return f"{self.typ} {subjekt}"
 
 def rekreacia_upload_location(instance, filename):
