@@ -1901,7 +1901,7 @@ class PrispevokNaStravne(Klasifikacia):
                 }
             platby.append(platba.copy())
             platba = {
-                "nazov":"Stravné soc. fond",
+                "nazov":"Stravné soc. fond",    #Názov nemeniť, používa sa v CerpanieRozpoctuAdmin.generovat
                 "suma": self.suma_socfond + self.zrazka_socfond,
                 "datum": vyplatny_termin(zden),
                 "mesiac": zden,

@@ -332,6 +332,9 @@ class CerpanieRozpoctuAdmin(ModelAdminTotals):
                         cerpanie_ostatne += data
             #Vytvoriť sumárne
             for item in cerpanie_mzdove+cerpanie_ostatne:
+                #Položka "Stravné soc. fond" sa zarátava len v platovej rekapitulácii, tu ju treba vynechať
+                if item["nazov"] == "Stravné soc. fond":
+                    continue
                 #na rozlíšenie podtypov poistenia
                 item['nazov'] = item['podnazov'] if 'podnazov' in item else item['nazov']
                 #Dotácia nemá dátum
