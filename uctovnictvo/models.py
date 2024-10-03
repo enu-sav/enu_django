@@ -165,7 +165,7 @@ class StavDohody(models.TextChoices):
     NAPODPIS = "napodpis", "Daná na podpis vedeniu EnÚ"
     ODOSLANA_DOHODAROVI = "odoslana_dohodarovi", "Daná dohodárovi na podpis"
     PODPISANA_DOHODAROM = "podpisana_dohodarom", "Podpísaná dohodárom"
-    DOKONCENA = "dokoncena", "Dokončená"
+    DOKONCENA = "dokoncena", "Skončená"
 
 class TypNepritomnosti(models.TextChoices):
     MATERSKA = "materská", "MD/RD"              #Náhrada mzdy - prekážky osobné
