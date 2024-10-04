@@ -145,7 +145,8 @@ def VytvoritSuborObjednavky(objednavka, username):
                 if re.sub(r"[0-9-]", "", pp[-1].strip()):
                     return f"{co}: Posledná položka na riadku {rr+1} musí byť CPV kód alebo pomlčka. {sn}"
         else:   #2 polia
-            if re.sub(r"[0-9-]", "", polozky[0].strip()):
+            pp =  polozky[0].strip().split(oddelovac)
+            if re.sub(r"[0-9-]", "", pp[1].strip()):
                 return f"{co}: Posledná položka na riadku 1 musí byť CPV kód alebo pomlčka. {sn}"
     #end def KontrolaZadania
 
