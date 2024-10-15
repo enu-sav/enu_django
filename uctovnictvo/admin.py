@@ -281,19 +281,20 @@ class NakupSUhradouAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmi
                 #hotovo, nič sa nedá upravovať
                 pass
             return fields
-        if obj.datum_ziadanky and not obj.subor_ucty: 
+        # "Žiadanka do šanonu"
+        if obj.datum_ziadanky and not obj.datum_vybavenia: 
             fields.remove("vybavuje")
             fields.remove("zdroj")
             fields.remove("zakazka")
             fields.remove("ucet")
             fields.remove("forma_uhrady")
             fields.remove("poznamka")
-            fields.remove("zamietnute")
+            #fields.remove("zamietnute")
             fields.remove("objednane_polozky")
             fields.remove("subor_ucty") 
+            fields.remove("datum_vybavenia")
             return fields
-        if obj.datum_ziadanky and not obj.subor_ucty: 
-            return fields
+        '''
         if obj.subor_ucty and not obj.subor_preplatenie:
             fields.remove("objednane_polozky")
             fields.remove("forma_uhrady")
@@ -302,6 +303,7 @@ class NakupSUhradouAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmi
             fields.remove("objednane_polozky")
             fields.remove("datum_vybavenia")
             return fields
+        '''
         if obj.datum_vybavenia:
             # možnou upravovať položky (kvôli EKRK) a dátum zo SOFTIPU
             fields.remove("objednane_polozky")
@@ -356,6 +358,18 @@ class NakupSUhradouAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmi
                 self.message_user(request, 
                     f"Súbor nebol vytvorený, lebo pole '{NakupSUhradou._meta.get_field('datum_ziadanky').verbose_name}' nie je vyplnené.", 
                     messages.ERROR)
+                return
+            if not nakup.vybavuje:
+                self.message_user(request, f"Súbor nebol vytvorený, lebo pole '{NakupSUhradou._meta.get_field('vybavuje').verbose_name}' nie je vyplnené.", messages.ERROR)
+                return
+            if not nakup.zdroj:
+                self.message_user(request, f"Súbor nebol vytvorený, lebo pole '{NakupSUhradou._meta.get_field('zdroj').verbose_name}' nie je vyplnené.", messages.ERROR)
+                return
+            if not nakup.zdroj:
+                self.message_user(request, f"Súbor nebol vytvorený, lebo pole '{NakupSUhradou._meta.get_field('zdroj').verbose_name}' nie je vyplnené.", messages.ERROR)
+                return
+            if not nakup.zakazka:
+                self.message_user(request, f"Súbor nebol vytvorený, lebo pole '{NakupSUhradou._meta.get_field('zakazka').verbose_name}' nie je vyplnené.", messages.ERROR)
                 return
             if not nakup.subor_ucty:
                 self.message_user(request, f"Súbor nebol vytvorený, lebo pole '{NakupSUhradou._meta.get_field('subor_ucty').verbose_name}' nie je vyplnené.", messages.ERROR)

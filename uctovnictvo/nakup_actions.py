@@ -21,13 +21,13 @@ def VyplnitHarok(ws_obj, objednavka, je_vyplatenie):
 
     #Od 2024/09 je ziadatel povinne
     ziadatel = objednavka.ziadatel
-    vybavuje = objednavka.vybavuje
+    vybavuje = objednavka.vybavuje if objednavka.vybavuje else objednavka.ziadatel
     today = date.today().strftime("%d.%m.%Y")
 
     if je_vyplatenie:   #Žiadosť o preplatenie
         ws_obj["A1"].value = f"ŽIADOSŤ č. {objednavka.cislo}"
         ws_obj["A5"].value = vybavuje.menopriezvisko(True)
-        ws_obj["C25"].value = objednavka.vybavuje.bankovy_kontakt
+        ws_obj["C25"].value = vybavuje.bankovy_kontakt
         ws_obj["A33"].value = "Súhlasím s preplatením nákladov na obstaranie tovarov / služieb / stavebných prác podľa zoznamu"
         ws_obj["D22"].value = vybavuje.menopriezvisko(True)
         ws_obj["C24"].value = vybavuje.menopriezvisko(True)
