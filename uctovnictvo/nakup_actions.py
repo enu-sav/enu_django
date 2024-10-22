@@ -24,7 +24,7 @@ def VyplnitHarok(ws_obj, objednavka, je_vyplatenie):
     vybavuje = objednavka.vybavuje if objednavka.vybavuje else objednavka.ziadatel
     today = date.today().strftime("%d.%m.%Y")
 
-    if je_vyplatenie:   #Žiadosť o preplatenie
+    if je_vyplatenie:   #Žiadosť o vyplatenie
         ws_obj["A1"].value = f"ŽIADOSŤ č. {objednavka.cislo}"
         ws_obj["A5"].value = vybavuje.menopriezvisko(True)
         ws_obj["C25"].value = vybavuje.bankovy_kontakt
@@ -42,6 +42,8 @@ def VyplnitHarok(ws_obj, objednavka, je_vyplatenie):
         for rr, polozka in enumerate(objednane):
             riadok = prvy_riadok+rr
             prvky = rozdelit_polozky(polozka)
+            if len(prvky) != 4:
+                return messages.ERROR, f"V položke {objednavka.cislo} riadok {rr+1} v poli 'Položky nákupu' nemá 4 polia, skontrolujte oddeľovače"
 
             nr =  int(1+len(prvky[0])/35)
             if nr > 1: ws_obj.row_dimensions[riadok].height = 15 * nr
@@ -103,7 +105,10 @@ def VytvoritSuborPreplatenie(objednavka):
     if type(workbook) != Workbook:
         return workbook #Error
 
-    ws_obj, prvy_riadok, pocet_riadkov = VyplnitHarok(workbook["Žiadosť"], objednavka, True)
+    rslt = VyplnitHarok(workbook["Žiadosť"], objednavka, True)
+    if len(rslt) == 2:
+        return rslt[0], rslt[1], None
+    ws_obj, prvy_riadok, pocet_riadkov = rslt
     workbook.remove_sheet(workbook.get_sheet_by_name("Žiadanka"))
 
     ws_kl = workbook["Krycí list"]
