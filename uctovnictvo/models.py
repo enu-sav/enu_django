@@ -2892,12 +2892,15 @@ class NakupSUhradou(models.Model, GetAdminURL):
     oznacenie = "N"
     cislo = models.CharField("Číslo",
             #help_text: definovaný vo forms
+            null = True,
+            blank = True,
             max_length=50)
     ziadatel = models.ForeignKey(ZamestnanecDohodar,
             on_delete=models.PROTECT,
             verbose_name = "Žiadateľ",
             help_text = "Zadajte žiadateľa.",
             null = True,
+            blank = True,
             related_name='%(class)s_ziadatel')  #zabezpečí rozlíšenie modelov Objednavka a PrijataFaktura
     vybavuje = models.ForeignKey(ZamestnanecDohodar,
             help_text = "Osoba, ktorá veci kúpi a komu bude nákup vyúčtovaný. Zadáva sa až pre žiadosť o preplatenie",
@@ -2908,6 +2911,8 @@ class NakupSUhradou(models.Model, GetAdminURL):
             related_name='%(class)s_vybavuje')
     popis = models.CharField("Popis nákupu",
             help_text = "Zadajte stručný popis, napr. 'poštové známky'",
+            null = True,
+            blank = True,
             max_length=100)
     zdroj = models.ForeignKey(Zdroj,
             help_text = "Zadáva sa až pre žiadosť o preplatenie",
@@ -2947,10 +2952,13 @@ class NakupSUhradou(models.Model, GetAdminURL):
                 <li>Cena tovaru/služby sa uvádza ako <b>kladná</b>, suma vrátená do pokladne ako <b>záporná</b>. </li>\
                 <li>Po spracovaní v Softipe aktualizujte ekonomickú klasifikáciu (EKRK) tovaru podľa údajov zo Softipu.\
                 </ol>"),
-            max_length=5000, null=True)
+            null = True,
+            blank = True,
+            max_length=5000)
     cena = models.DecimalField("Suma",
             help_text = "Cena s DPH. <br />Pri žiadanke vložiť odhadovanú cenu.<br />Pri žiadosti o preplatenie sa vypočíta z údajov v poli 'Objednane položky'",
             null=True,
+            blank = True,
             max_digits=8,
             decimal_places=2)
     zamietnute = models.CharField("Zamietnuté",
