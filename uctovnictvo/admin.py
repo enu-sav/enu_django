@@ -249,68 +249,91 @@ class ObjednavkaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, 
 #class NakupSUhradouAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
 class NakupSUhradouAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
     form = NakupSUhradouForm
-    list_display = ("cislo", "ziadatel", "vybavuje", "popis", "cena", "zamietnute", "forma_uhrady", "subor_ziadanky", "datum_ziadanky", "subor_ucty", "subor_preplatenie", "datum_vybavenia", "pokladna_vpd", "datum_uhradenia")
-    #actions = [ 'vytvorit_subor_ziadanky', 'vytvorit_subor_objednavky' ]
+
+    #Členenie formulára na časti
+    fields_ziadanka = ["ziadatel", "popis", "cena", "subor_ziadanky", "zamietnute", "datum_ziadanky"]
+    fields_ziadost = ['vybavuje', 'forma_uhrady', 'zdroj', 'zakazka', 'subor_ucty', "subor_preplatenie", "datum_vybavenia", "pokladna_vpd", "datum_uhradenia"]
+    fieldsets = (
+        ('Žiadanka k nákupu', {
+            'fields': fields_ziadanka
+        }),
+        ('Spoločné polia', {
+            'fields': ["cislo", "objednane_polozky", "poznamka"]
+        }),
+        ('Žiadosť o preplatenie', {
+            'fields': fields_ziadost
+        }),
+    )
+
+    list_display = ['cislo'] + fields_ziadanka + ["objednane_polozky"] +fields_ziadost
     actions = [ 'vytvorit_subor_ziadanky', "vytvorit_subor_preplatenie"]
     search_fields = ["^cislo", "^pokladna_vpd", "popis", "forma_uhrady"]
     list_totals = [
         ('cena', Sum),
     ]
 
-    def get_readonly_fields(self, request, obj=None):
-        if DEPLOY_STATE == "production" and request.user.is_superuser: return []
-        fields = [f.name for f in NakupSUhradou._meta.get_fields()]
-        #pole  "pokladna_pokladna" pridané v Pokladna.ziadanka. Nesmie byť odstránené, inak nastane chyba "missing 1 required keyword-only argument: 'manager'"
-        if "pokladna_pokladna" in fields: fields.remove("pokladna_pokladna")
-        if not obj or not obj.datum_ziadanky:
-            fields.remove("cislo")
-            fields.remove("ziadatel")
-            fields.remove("popis")
-            fields.remove("poznamka")
-            fields.remove("objednane_polozky")
-            fields.remove("cena")
-            if obj and obj.subor_ziadanky:
-                fields.remove("datum_ziadanky")
-            return fields
-        if obj.zamietnute and obj.zamietnute == AnoNie.ANO:
-            if not obj.datum_ziadanky:
-                fields.remove("zamietnute")
-                fields.remove("datum_ziadanky")
-                fields.remove("poznamka")
-            else:
-                #hotovo, nič sa nedá upravovať
-                pass
-            return fields
-        # "Žiadanka do šanonu"
-        if obj.datum_ziadanky and not obj.datum_vybavenia: 
-            fields.remove("vybavuje")
-            fields.remove("zdroj")
-            fields.remove("zakazka")
-            fields.remove("ucet")
-            fields.remove("forma_uhrady")
-            fields.remove("poznamka")
-            #fields.remove("zamietnute")
-            fields.remove("objednane_polozky")
-            fields.remove("subor_ucty") 
-            fields.remove("datum_vybavenia")
-            return fields
-        '''
-        if obj.subor_ucty and not obj.subor_preplatenie:
-            fields.remove("objednane_polozky")
-            fields.remove("forma_uhrady")
-            return fields
-        if obj.subor_preplatenie and not obj.datum_vybavenia:
-            fields.remove("objednane_polozky")
-            fields.remove("datum_vybavenia")
-            return fields
-        '''
-        if obj.datum_vybavenia:
-            # možnou upravovať položky (kvôli EKRK) a dátum zo SOFTIPU
-            fields.remove("objednane_polozky")
-            fields.remove("datum_uhradenia")
-            return fields
-        return []
+    def get_field_classification(self, obj = None):
+        automatic_fields = ["subor_ziadanky",  "subor_preplatenie", "pokladna_vpd"]
+        fields_ziadost = NakupSUhradouAdmin.fields_ziadost
+        fields_ziadanka = NakupSUhradouAdmin.fields_ziadanka
+        extra_context = {
+                'disabled_fields': [],
+                'required_fields':  [],
+                'next_fields':  []
+            }
+        if DEPLOY_STATE == "production" and request.user.is_superuser: 
+            return extra_context
+        extra_context['disabled_fields'] += automatic_fields
 
+        #Nový formulár
+        if not obj:
+            extra_context['required_fields'] +=  ["cislo", "ziadatel", "popis", "cena", "objednane_polozky"]
+            extra_context['next_fields'] += []
+            extra_context['disabled_fields'] += fields_ziadost  
+            return extra_context
+
+        #Vyplnený formulár
+        if not obj.subor_ziadanky:
+            extra_context['required_fields'] +=  ["cislo", "ziadatel", "popis", "cena", "objednane_polozky"]
+            extra_context['next_fields'] += ["subor_ziadanky"]
+            extra_context['disabled_fields'] += fields_ziadost  
+        elif obj.zamietnute == AnoNie.ANO:
+            extra_context['required_fields'] +=  []
+            extra_context['next_fields'] += []
+            extra_context['disabled_fields'] += (fields_ziadost  + fields_ziadanka)
+        elif obj.subor_ziadanky and not obj.datum_ziadanky:
+            extra_context['required_fields'] +=  ["cislo", "ziadatel", "popis", "cena", "objednane_polozky"]
+            extra_context['next_fields'] += ["zamietnute", "datum_ziadanky"]
+            extra_context['disabled_fields'] += fields_ziadost  
+        elif obj.datum_ziadanky and not obj.subor_preplatenie:
+            extra_context['required_fields'] += ['objednane_polozky', 'vybavuje', 'forma_uhrady', 'zdroj', 'zakazka', 'subor_ucty']
+            extra_context['next_fields'] += ["subor_preplatenie"]
+            extra_context['disabled_fields'] += fields_ziadanka + ['cislo', "datum_vybavenia", "datum_uhradenia"]
+        elif obj.subor_preplatenie and not obj.datum_vybavenia:
+            extra_context['required_fields'] += ['objednane_polozky', 'vybavuje', 'forma_uhrady', 'zdroj', 'zakazka', 'subor_ucty']
+            extra_context['next_fields'] += ['datum_vybavenia']
+            extra_context['disabled_fields'] += fields_ziadanka + ['cislo', "datum_uhradenia"]
+        elif obj.datum_vybavenia and not obj.datum_uhradenia:
+            extra_context['required_fields'] += ["datum_uhradenia"]
+            extra_context['next_fields'] += ['datum_uhradenia']
+            extra_context['disabled_fields'] += fields_ziadanka + ['cislo', 'objednane_polozky', 'vybavuje', 'forma_uhrady', 'zdroj', 'zakazka', 'subor_ucty', "datum_vybavenia"]
+        else:
+            extra_context['required_fields'] += []
+            extra_context['next_fields'] += ["objednane_polozky"]
+            extra_context['disabled_fields'] += fields_ziadanka + fields_ziadost
+
+        return extra_context
+
+    def add_view(self, request, form_url='', extra_context=None):
+        self.extra_context = self.get_field_classification()
+        return super().add_view(request, form_url, extra_context=self.extra_context)
+        #return super().add_view(request, form_url)
+
+    def change_view(self, request, object_id, form_url='', extra_context=None):
+        obj = self.get_object(request, object_id)
+        self.extra_context = self.get_field_classification(obj)
+        return super().change_view(request, object_id, form_url, extra_context=self.extra_context)
+        #return super().change_view(request, object_id, form_url)
 
     # Zoradiť položky v pulldown menu
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
@@ -322,6 +345,7 @@ class NakupSUhradouAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmi
         class AdminFormMod(AdminForm):
             def __new__(cls, *args, **kwargs):
                 kwargs['request'] = request
+                kwargs['extra_context'] = self.extra_context
                 return AdminForm(*args, **kwargs)
         return AdminFormMod
 
@@ -1421,7 +1445,6 @@ class PrispevokNaStravneAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistor
 
     def __save_model(self, request, obj, form, change): #Dočasne vyradené, do vyriešenia automatického plnenia obsahu SocialnyFond
         #Ak ide o novú platbu, vytvoriť položku SF
-        trace()
         qs = PrispevokNaStravne.objects.filter(cislo = obj.cislo)
         if not qs:
             sf = SocialnyFond(

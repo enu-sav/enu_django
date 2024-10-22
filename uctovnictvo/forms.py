@@ -55,7 +55,17 @@ class NakupSUhradouForm(DennikZaznam):
     def __init__(self, *args, **kwargs):
         # do Admin treba pridať metódu get_form
         self.request = kwargs.pop('request', None)
+        self.extra_context = kwargs.pop('extra_context', None)
         super().__init__(*args, **kwargs)
+
+        # aktivovať a deaktivovať polia
+        for field in self.extra_context['disabled_fields']:
+            self.fields[field].disabled = True
+        for field in self.extra_context['required_fields']:
+            self.fields[field].required = True
+        for field in self.extra_context['next_fields']:
+            self.fields[field].label = f"🟢 {self.fields[field].label}"
+
         polecislo = "cislo"
         # Ak je pole readonly, tak sa nenachádza vo fields. Preto testujeme fields aj initial
         if polecislo in self.fields and not polecislo in self.initial:

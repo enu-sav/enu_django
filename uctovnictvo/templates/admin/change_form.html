@@ -1,0 +1,82 @@
+{% extends "admin/change_form.html" %}
+{% block extrahead %}
+    {{ block.super }}
+    <style>
+        .highlight-finished {
+            background-color: #d0ffd0; /* Light green background for finished fields */
+        }
+        .highlight-required {
+            background-color: #f8d7da; /* Red for required fields */
+        }
+        .highlight-optional {
+            background-color: #fff3cd; /* Orange for optional fields */
+        }
+        /* Add a more general rule for input fields */
+        input.highlight-required, select.highlight-required {
+            background-color: #f8d7da;
+        }
+        input.highlight-optional, select.highlight-optional {
+            background-color: #fff3cd;
+        }
+        /* Style for disabled fields (optional) */
+        input[disabled], select[disabled] {
+            background-color: #e9ecef; /* Light gray background for disabled fields */
+            cursor: not-allowed;       /* Change cursor to 'not allowed' when hovering over disabled fields */
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+    {{ block.super }}
+    <script>
+        // Example JavaScript to highlight fields based on the current step
+
+        function highlightFields() {
+            // Get lists of required and optional fields from the template context
+            var requiredFields = {{ required_fields|safe }};
+            var optionalFields = {{ optional_fields|safe }};
+            var finishedFields = {{ finished_fields|safe }};
+            var disabledFields = {{ disabled_fields|safe }};
+
+            //var requiredFields = ['ziadatel']; // Example required fields for current step
+            //var optionalFields = ['vybavuje']; // Example optional fields for current step
+            //var finishedFields = ['zdroj','xxx']; 
+
+            
+            // Loop through required fields and apply highlight
+            requiredFields.forEach(function(field) {
+                var fieldElement = document.getElementById('id_' + field);
+                if (fieldElement) {
+                    fieldElement.classList.add('highlight-required');
+                }
+            });
+
+            // Loop through optional fields and apply highlight
+            optionalFields.forEach(function(field) {
+                var fieldElement = document.getElementById('id_' + field);
+                if (fieldElement) {
+                    fieldElement.classList.add('highlight-optional');
+                }
+            });
+
+            // Loop through finished fields and apply highlight
+            finishedFields.forEach(function(field) {
+                var fieldElement = document.getElementById('id_' + field);
+                if (fieldElement) {
+                    fieldElement.classList.add('highlight-finished');
+                }
+            });
+
+            // Loop through finished fields and apply highlight
+            disabledFields.forEach(function(field) {
+                var fieldElement = document.getElementById('id_' + field);
+                if (fieldElement) {
+                    fieldElement.disabled = true;
+                }
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', highlightFields);
+    </script>
+{% endblock %}
+
