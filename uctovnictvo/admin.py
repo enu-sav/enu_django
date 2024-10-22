@@ -251,14 +251,14 @@ class NakupSUhradouAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmi
     form = NakupSUhradouForm
 
     #Členenie formulára na časti
-    fields_ziadanka = ["ziadatel", "popis", "cena", "subor_ziadanky", "zamietnute", "datum_ziadanky"]
+    fields_ziadanka = ["cislo", "ziadatel", "popis", "cena", "subor_ziadanky", "zamietnute", "datum_ziadanky"]
     fields_ziadost = ['vybavuje', 'forma_uhrady', 'zdroj', 'zakazka', 'subor_ucty', "subor_preplatenie", "datum_vybavenia", "pokladna_vpd", "datum_uhradenia"]
     fieldsets = (
         ('Žiadanka k nákupu', {
             'fields': fields_ziadanka
         }),
         ('Spoločné polia', {
-            'fields': ["cislo", "objednane_polozky", "poznamka"]
+            'fields': ["objednane_polozky", "poznamka"]
         }),
         ('Žiadosť o preplatenie', {
             'fields': fields_ziadost

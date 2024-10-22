@@ -2898,7 +2898,7 @@ class NakupSUhradou(models.Model, GetAdminURL):
     ziadatel = models.ForeignKey(ZamestnanecDohodar,
             on_delete=models.PROTECT,
             verbose_name = "Žiadateľ",
-            help_text = "Zadajte žiadateľa.",
+            help_text = "Zadajte žiadateľa o drobný nákup.",
             null = True,
             blank = True,
             related_name='%(class)s_ziadatel')  #zabezpečí rozlíšenie modelov Objednavka a PrijataFaktura
