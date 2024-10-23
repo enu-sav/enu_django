@@ -180,11 +180,13 @@ def VytvoritSuborObjednavky(objednavka, username):
     ws_obj = workbook["Objednávka"]
     ws_obj, prvy_riadok = VyplnitHarok(ws_obj, objednavka, oddelovac)
 
+    if objednavka.platba_vopred and objednavka.platba_vopred == AnoNie.ANO:
+        ws_obj[f"A{prvy_riadok+ObjednavkaPocetPoloziek+2}"].value = "Poznámka: Dodávateľ vyžaduje platbu vopred"
     if objednavka.termin_dodania:
-        ws_obj[f"A{prvy_riadok+ObjednavkaPocetPoloziek+2}"].value = ws_obj[f"A{prvy_riadok+ObjednavkaPocetPoloziek+2}"].value.replace("[[termin_dodania]]", objednavka.termin_dodania)
+        ws_obj[f"A{prvy_riadok+ObjednavkaPocetPoloziek+4}"].value = ws_obj[f"A{prvy_riadok+ObjednavkaPocetPoloziek+4}"].value.replace("[[termin_dodania]]", objednavka.termin_dodania)
     else:
-        ws_obj[f"A{prvy_riadok+ObjednavkaPocetPoloziek+2}"].value = ws_obj[f"A{prvy_riadok+ObjednavkaPocetPoloziek+2}"].value.replace("[[termin_dodania]]", "")
-    ws_obj[f"A{prvy_riadok+ObjednavkaPocetPoloziek+4}"].value = ws_obj[f"A{prvy_riadok+ObjednavkaPocetPoloziek+4}"].value.replace("[[datum]]", datetime.now().strftime("%d. %m. %Y"))
+        ws_obj[f"A{prvy_riadok+ObjednavkaPocetPoloziek+4}"].value = ws_obj[f"A{prvy_riadok+ObjednavkaPocetPoloziek+4}"].value.replace("[[termin_dodania]]", "")
+    ws_obj[f"A{prvy_riadok+ObjednavkaPocetPoloziek+6}"].value = ws_obj[f"A{prvy_riadok+ObjednavkaPocetPoloziek+6}"].value.replace("[[datum]]", datetime.now().strftime("%d. %m. %Y"))
   
     ws_kl = workbook["Finančná kontrola objednávka"]
     ws_kl["A1"].value = ws_kl["A1"].value.replace("[[cislo]]", objednavka.cislo)

@@ -706,6 +706,12 @@ class Objednavka(ObjednavkaZmluva):
             max_digits=8, 
             decimal_places=2, 
             null=True)
+    platba_vopred = models.CharField("Platba vopred", 
+            max_length=3, 
+            help_text = "Uveďte 'Áno', ak dodávateľ vyžaduje platbu vopred",
+            null = True,
+            blank = True,
+            choices=AnoNie.choices)
     datum_odoslania = models.DateField('Dátum odoslania',
             help_text = "Zadajte dátum odoslania objednávky dodávateľovi. Po zadaní dátumu sa vytvorí záznam v Denníku prijatej a odoslanej pošty",
             blank=True, null=True)
