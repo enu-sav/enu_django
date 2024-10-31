@@ -171,7 +171,9 @@ class ObjednavkaZmluvaAdmin(ZobrazitZmeny, ImportExportModelAdmin):
 @admin.register(Objednavka)
 class ObjednavkaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
     form = ObjednavkaForm
-    fields_ziadanka = ["cislo", "ziadatel", "predmet", "predpokladana_cena", "termin_dodania", "subor_ziadanky", ]
+
+    #Členenie formulára na časti
+    fields_ziadanka = ["cislo", "ziadatel", "predmet", "predpokladana_cena", "termin_dodania", "subor_ziadanky", "zamietnute", "datum_ziadanky", ]
     fields_objednavka = ["vybavuje2", "platba_vopred", "dodavatel", "subor_prilohy", "subor_objednavky", "datum_vytvorenia", "datum_odoslania", ]
     fieldsets = (
         ('Žiadanka na objednanie', {
@@ -196,6 +198,70 @@ class ObjednavkaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, 
     search_fields = ["cislo", "predmet", "dodavatel__nazov"]
     actions = [ 'vytvorit_subor_ziadanky', 'vytvorit_subor_objednavky' ]
 
+    #Implementácia pracovného postupu
+    def get_field_classification(self, obj = None):
+        automatic_fields = ["subor_ziadanky", "subor_objednavky", "datum_vytvorenia"]
+        fields_objednavka = ObjednavkaAdmin.fields_objednavka
+        fields_ziadanka = ObjednavkaAdmin.fields_ziadanka
+        extra_context = {
+                'disabled_fields': [],
+                'required_fields':  [],
+                'next_fields':  []
+            }
+        if DEPLOY_STATE == "production" and request.user.is_superuser: 
+            return extra_context
+        extra_context['disabled_fields'] += automatic_fields
+
+        #Nový formulár
+        if not obj:
+            extra_context['required_fields'] += ["cislo", "ziadatel", "predmet", "predpokladana_cena", "termin_dodania", "objednane_polozky", ]
+            extra_context['next_fields'] += []
+            extra_context['disabled_fields'] += fields_objednavka + ["zamietnute", "datum_ziadanky",]   
+            return extra_context
+
+        #Vyplnený formulár
+        if not obj.subor_ziadanky:
+            extra_context['required_fields'] += ["cislo", "ziadatel", "predmet", "predpokladana_cena", "termin_dodania", "objednane_polozky", ]
+            extra_context['next_fields'] += ["subor_ziadanky"]
+            extra_context['disabled_fields'] += fields_objednavka + ["zamietnute", "datum_ziadanky",]   
+        elif obj.zamietnute == AnoNie.ANO:
+            extra_context['required_fields'] +=  []
+            extra_context['next_fields'] += []
+            extra_context['disabled_fields'] += (fields_ziadost  + fields_ziadanka)
+        elif obj.subor_ziadanky and not obj.datum_ziadanky:
+            extra_context['required_fields'] += ["cislo", "ziadatel", "predmet", "predpokladana_cena", "termin_dodania", "objednane_polozky", ]
+            extra_context['next_fields'] += ["zamietnute", "datum_ziadanky"]
+            extra_context['disabled_fields'] += fields_objednavka  
+        elif obj.datum_ziadanky and not obj.dodavatel:
+            extra_context['required_fields'] += ['objednane_polozky', 'vybavuje2', "dodavatel", "platba_vopred"]
+            extra_context['next_fields'] += []
+            extra_context['disabled_fields'] += fields_ziadanka + ['cislo', "datum_vytvorenia", "datum_odoslania"]
+        elif obj.dodavatel and not obj.subor_objednavky:
+            extra_context['required_fields'] += ['objednane_polozky', 'vybavuje2', "dodavatel", "platba_vopred"]
+            extra_context['next_fields'] += ["subor_objednavky", "datum_vytvorenia"]
+            extra_context['disabled_fields'] += fields_ziadanka + ['cislo', "datum_vytvorenia", "datum_odoslania"]
+        elif obj.subor_objednavky and not obj.datum_odoslania:
+            extra_context['required_fields'] += ['objednane_polozky', 'vybavuje2', "dodavatel", "platba_vopred"]
+            extra_context['next_fields'] += ["datum_odoslania", "subor_objednavky", "datum_vytvorenia"]
+            extra_context['disabled_fields'] += fields_ziadanka + ['cislo', "datum_vytvorenia"]
+        elif obj.datum_odoslania:
+            extra_context['required_fields'] += []
+            extra_context['next_fields'] += []
+            extra_context['disabled_fields'] += fields_ziadanka + fields_objednavka + ["objednane_polozky"]
+
+        return extra_context
+
+    def add_view(self, request, form_url='', extra_context=None):
+        self.extra_context = self.get_field_classification()
+        return super().add_view(request, form_url, extra_context=self.extra_context)
+        #return super().add_view(request, form_url)
+
+    def change_view(self, request, object_id, form_url='', extra_context=None):
+        obj = self.get_object(request, object_id)
+        self.extra_context = self.get_field_classification(obj)
+        return super().change_view(request, object_id, form_url, extra_context=self.extra_context)
+        #return super().change_view(request, object_id, form_url)
+
     # zoraďovateľný odkaz na dodávateľa
     # umožnené prostredníctvom AdminChangeLinksMixin
     change_links = [
@@ -210,19 +276,13 @@ class ObjednavkaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, 
         class AdminFormMod(AdminForm):
             def __new__(cls, *args, **kwargs):
                 kwargs['request'] = request
+                kwargs['extra_context'] = self.extra_context
                 return AdminForm(*args, **kwargs)
         return AdminFormMod
 
     # Zoradiť položky v pulldown menu
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         return formfield_for_foreignkey(self, db_field, request, **kwargs)
-
-    #obj is None during the object creation, but set to the object being edited during an edit
-    def get_readonly_fields(self, request, obj=None):
-        readonly = ["subor_ziadanky", "subor_objednavky", "datum_vytvorenia"]
-        if obj:
-            readonly.append("cislo")
-        return readonly
 
     def vytvorit_subor_objednavky(self, request, queryset):
         if len(queryset) != 1:
@@ -265,7 +325,7 @@ class NakupSUhradouAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmi
     form = NakupSUhradouForm
 
     #Členenie formulára na časti
-    fields_ziadanka = ["cislo", "ziadatel", "popis", "cena", "subor_ziadanky", "zamietnute", "datum_ziadanky"]
+    fields_ziadanka = ["cislo", "ziadatel", "popis", "cena", "subor_ziadanky", "zamietnute", "datum_ziadanky", ]
     fields_ziadost = ['vybavuje', 'forma_uhrady', 'zdroj', 'zakazka', 'subor_ucty', "subor_preplatenie", "datum_vybavenia", "pokladna_vpd", "datum_uhradenia"]
     fieldsets = (
         ('Žiadanka k nákupu', {
@@ -286,6 +346,7 @@ class NakupSUhradouAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmi
         ('cena', Sum),
     ]
 
+    #Implementácia pracovného postupu
     def get_field_classification(self, obj = None):
         automatic_fields = ["subor_ziadanky",  "subor_preplatenie", "pokladna_vpd"]
         fields_ziadost = NakupSUhradouAdmin.fields_ziadost
@@ -303,14 +364,14 @@ class NakupSUhradouAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmi
         if not obj:
             extra_context['required_fields'] +=  ["cislo", "ziadatel", "popis", "cena", "objednane_polozky"]
             extra_context['next_fields'] += []
-            extra_context['disabled_fields'] += fields_ziadost  
+            extra_context['disabled_fields'] += fields_ziadost + ["zamietnute", "datum_ziadanky",]  
             return extra_context
 
         #Vyplnený formulár
         if not obj.subor_ziadanky:
             extra_context['required_fields'] +=  ["cislo", "ziadatel", "popis", "cena", "objednane_polozky"]
             extra_context['next_fields'] += ["subor_ziadanky"]
-            extra_context['disabled_fields'] += fields_ziadost  
+            extra_context['disabled_fields'] += fields_ziadost + ["zamietnute", "datum_ziadanky",]   
         elif obj.zamietnute == AnoNie.ANO:
             extra_context['required_fields'] +=  []
             extra_context['next_fields'] += []

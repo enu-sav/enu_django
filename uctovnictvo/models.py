@@ -692,7 +692,7 @@ class Objednavka(ObjednavkaZmluva):
     objednane_polozky = models.TextField("Text žiadanky / Objednané položky", 
             help_text = mark_safe("<p>Na vytvorenie žiadanky (krok 1) vložte text žiadanky (voľný text). Na vytvorenie objednávky (krok 2) po riadkoch zadajte objednávané položky:</p>\
                 <ol>\
-                <li>možnosť: s 5 poľami oddelenými bodkočiarkou alebo lomkou / v poradí: <b>názov položky</b> / <b>merná jednotka</b> - ks, kg, l, m, m2, m3 / <b>množstvo</b> / <b>cena za jednotku bez DPH / CPV kód</b>, napr. <strong>Euroobal A4 / bal / 10 / 7,50 / 30193300-1</strong>. <br />Cena za jednotlivé položky a celková suma sa dopočíta. Pri výpočte sa berie do úvahy, či dodávateľ účtuje alebo neúčtuje cenu s DPH. </li>\
+                <li>možnosť: s 5 poľami oddelenými bodkočiarkou alebo lomkou / v poradí: <b>názov položky</b> / <b>merná jednotka</b> - ks, kg, l, m, m2, m3 / <b>množstvo</b> / <b>cena za jednotku bez DPH / CPV kód</b>, napr. <strong>Euroobal A4 / bal / 10 / 7,50 / 30193300-1</strong> <br />Cena za jednotlivé položky a celková suma sa dopočíta. Pri výpočte sa berie do úvahy, či dodávateľ účtuje alebo neúčtuje cenu s DPH. </li>\
                 <li>možnosť: ako jednoduchý text s jednou bodkočiarkou alebo lomkou, za ktorou nasleduje CPV kód, napr. <strong>Objednávame tovar podľa  priloženého zoznamu; 45321000-3</strong>.<br />Súbor takejto ponuky alebo zoznamu vložte do poľa <em>Súbor prílohy</em> a <strong>predpokladanú cenu bez DPH</strong> vložte do poľa <em>Predpokladaná cena</em>.</li>\
                 </ol>"),
 
@@ -707,9 +707,7 @@ class Objednavka(ObjednavkaZmluva):
             blank = True,
             related_name='%(class)s_requests_created')  #zabezpečí rozlíšenie modelov Objednavka a PrijataFaktura 
     predpokladana_cena = models.DecimalField("Predpokladaná cena", 
-            help_text = "Zadajte predpokladanú cenu bez DPH.<br />\
-                    Ak sú cenové údaje zadané v poli <em>Objednané položky</em>, tak hodnota v tomto poli sa podľa nich vypočíta a aktualizuje. <br />\
-                    Vo vygenerovanej objednávke sa zoberie do úvahy, či dodávateľ účtuje alebo neúčtuje cenu s DPH.",
+            help_text = "Zadajte predpokladanú cenu bez DPH.",
             max_digits=8, 
             decimal_places=2, 
             blank = True,
@@ -724,18 +722,26 @@ class Objednavka(ObjednavkaZmluva):
             help_text = "Zadajte dátum odoslania objednávky dodávateľovi. Po zadaní dátumu sa vytvorí záznam v Denníku prijatej a odoslanej pošty",
             blank=True, null=True)
     datum_vytvorenia = models.DateField('Dátum vytvorenia',
-            help_text = "Dátum vytvorenia objednávky. Vypĺňa sa automaticky akciou 'vytvorit_subor_objednavky'",
+            help_text = "Dátum vytvorenia objednávky. Vypĺňa sa automaticky akciou 'Vytvoriť súbor objednávky'",
             blank=True, null=True)
     subor_objednavky = models.FileField("Súbor objednávky",
-            help_text = "Súbor s objednávkou a krycím listom. Generuje sa akciou 'Vytvoriť objednávku'",
+            help_text = "Súbor s objednávkou a krycím listom. Generuje sa akciou 'Vytvoriť súbor objednávky'",
             upload_to=objednavka_upload_location,
             null = True, blank = True)
     subor_ziadanky = models.FileField("Súbor žiadanky",
-            help_text = "Súbor so žiadankou a krycím listom. Generuje sa akciou 'Vytvoriť žiadanku'",
+            help_text = "Súbor so žiadankou a krycím listom. Generuje sa akciou 'Vytvoriť súbor žiadanky'",
             upload_to=objednavka_upload_location,
             null = True, blank = True)
+    zamietnute = models.CharField("Zamietnuté",
+            max_length=3,
+            help_text = "Uveďte 'Áno', ak bola žiadanka zamietnutá. V tom prípade uveďte dôvod v poli Poznámka",
+            choices=AnoNie.choices,
+            null=True, blank=True)
+    datum_ziadanky = models.DateField('Žiadanka do šanonu',
+            help_text = "Zadajte dátum založenia podpísanej žiadanky do šanonu",
+            blank=True, null=True)
     subor_prilohy = models.FileField("Súbor prílohy",
-            help_text = "Súbor s prílohou k žiadanke/objednávke. Použite, ak sa v poli <em>Objednané položky</em> takáto príloha spomína.", 
+            help_text = "Súbor s prílohou k objednávke, napr. ponuka od dodávateľa",
             upload_to=objednavka_upload_location,
             null = True, blank = True)
     termin_dodania = models.CharField("Termín dodania", 
@@ -2963,7 +2969,7 @@ class NakupSUhradou(models.Model, GetAdminURL):
             help_text = mark_safe("<p>V prípade Žiadanky voľne popíšte požadovaný nákup.</p>\
                 <p>V prípade Žiadosti o preplatenie zakúpené položky zadajte po riadkoch (max. 8 riadkov):</p>\
                 <ol>\
-                <li>Zadajte 4 polia oddelené bodkočiarkou alebo <b>lomkou /</b> v poradí: <b>názov položky a množstvo / odhadovaná cena s DPH / CPV kód</b> / EKRK, napr. <b>Euroobal A4 50 ks / 7,50 / 30193300-1 / 632003</b>. CPV kód možno nahradiť pomlčkou '-'. </li>\
+                <li>Zadajte 4 polia oddelené bodkočiarkou alebo <b>lomkou /</b> v poradí: <b>názov položky a množstvo / odhadovaná cena s DPH / CPV kód</b> / EKRK, napr. <b>Euroobal A4 50 ks / 7,50 / 30193300-1 / 632003</b> CPV kód možno nahradiť pomlčkou '-'. </li>\
                 <li>Cena tovaru/služby sa uvádza ako <b>kladná</b>, suma vrátená do pokladne ako <b>záporná</b>. </li>\
                 <li>Po spracovaní v Softipe aktualizujte ekonomickú klasifikáciu (EKRK) tovaru podľa údajov zo Softipu.\
                 </ol>"),

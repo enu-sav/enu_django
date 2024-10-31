@@ -123,9 +123,17 @@ class ObjednavkaForm(DennikZaznam):
     def __init__(self, *args, **kwargs):
         # do Admin treba pridať metódu get_form
         self.request = kwargs.pop('request', None)
+        self.extra_context = kwargs.pop('extra_context', None)
         super().__init__(*args, **kwargs)
-        if "dodavatel" in self.fields:
-            self.fields["dodavatel"].help_text = "V žiadanke nepovinné, pri generovaní objednávky musí byť vyplnené"
+
+        # aktivovať a deaktivovať polia
+        for field in self.extra_context['disabled_fields']:
+            self.fields[field].disabled = True
+        for field in self.extra_context['required_fields']:
+            self.fields[field].required = True
+        for field in self.extra_context['next_fields']:
+            self.fields[field].label = f"🟢 {self.fields[field].label}"
+
         if "predmet" in self.fields:
             self.fields["predmet"].help_text = "Zadajte stručné zdôvodnenie, napr. 'Kontrolná tlač strán Beliany'"
             self.fields["predmet"].label = "Zdôvodnenie"
