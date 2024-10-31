@@ -171,7 +171,21 @@ class ObjednavkaZmluvaAdmin(ZobrazitZmeny, ImportExportModelAdmin):
 @admin.register(Objednavka)
 class ObjednavkaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
     form = ObjednavkaForm
-    list_display = ("cislo", "datum_odoslania", "vybavuje2", "ziadatel", "subor_ziadanky", "platba_vopred", "subor_objednavky", "subor_prilohy", "predpokladana_cena", "datum_vytvorenia", "termin_dodania", "dodavatel_link","predmet")
+    fields_ziadanka = ["cislo", "ziadatel", "predmet", "predpokladana_cena", "termin_dodania", "subor_ziadanky", ]
+    fields_objednavka = ["vybavuje2", "platba_vopred", "dodavatel", "subor_prilohy", "subor_objednavky", "datum_vytvorenia", "datum_odoslania", ]
+    fieldsets = (
+        ('Žiadanka na objednanie', {
+            'fields': fields_ziadanka
+        }),
+        ('Spoločné polia', {
+            'fields': ["objednane_polozky", "poznamka"]
+        }),
+        ('Objednávka', {
+            'fields': fields_objednavka
+        }),
+    )
+    #list_display = ("subor_prilohy")
+    list_display = ("cislo", "datum_odoslania", "vybavuje2", "ziadatel", "subor_ziadanky", "platba_vopred", "subor_objednavky", "subor_prilohy", "datum_vytvorenia", "termin_dodania", "dodavatel_link","predmet")
     #def formfield_for_dbfield(self, db_field, **kwargs):
         #formfield = super(ObjednavkaAdmin, self).formfield_for_dbfield(db_field, **kwargs)
         #if db_field.name == 'objednane_polozky':
