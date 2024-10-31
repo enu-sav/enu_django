@@ -650,6 +650,8 @@ class Dodavatel(PersonCommon):
 class ObjednavkaZmluva(PolymorphicModel):
     cislo = models.CharField("Číslo", 
             #help_text: definovaný vo forms
+            null = True,
+            blank = True,
             max_length=50)
     dodavatel = models.ForeignKey(Dodavatel,
             on_delete=models.PROTECT, 
@@ -662,9 +664,12 @@ class ObjednavkaZmluva(PolymorphicModel):
             on_delete=models.PROTECT, 
             verbose_name = "Vybavuje",
             null = True,
+            blank = True,
             related_name='%(class)s_requests_created')  #zabezpečí rozlíšenie modelov Objednavka a PrijataFaktura 
     predmet = models.CharField("Predmet", 
             help_text = "Zadajte stručný popis, napr. 'Kávovar Saeco' alebo 'Servisná podpora RS Beliana'",
+            null = True,
+            blank = True,
             max_length=100)
     poznamka = models.CharField("Poznámka", 
             max_length=200, 
@@ -691,7 +696,9 @@ class Objednavka(ObjednavkaZmluva):
                 <li>možnosť: ako jednoduchý text s jednou bodkočiarkou alebo lomkou, za ktorou nasleduje CPV kód, napr. <strong>Objednávame tovar podľa  priloženého zoznamu; 45321000-3</strong>.<br />Súbor takejto ponuky alebo zoznamu vložte do poľa <em>Súbor prílohy</em> a <strong>predpokladanú cenu bez DPH</strong> vložte do poľa <em>Predpokladaná cena</em>.</li>\
                 </ol>"),
 
-            max_length=5000, null=True)
+            max_length=5000, 
+            blank = True,
+            null=True)
     ziadatel = models.ForeignKey(ZamestnanecDohodar,
             on_delete=models.PROTECT, 
             verbose_name = "Žiadateľ",
@@ -705,6 +712,7 @@ class Objednavka(ObjednavkaZmluva):
                     Vo vygenerovanej objednávke sa zoberie do úvahy, či dodávateľ účtuje alebo neúčtuje cenu s DPH.",
             max_digits=8, 
             decimal_places=2, 
+            blank = True,
             null=True)
     platba_vopred = models.CharField("Platba vopred", 
             max_length=3, 
@@ -730,9 +738,10 @@ class Objednavka(ObjednavkaZmluva):
             help_text = "Súbor s prílohou k žiadanke/objednávke. Použite, ak sa v poli <em>Objednané položky</em> takáto príloha spomína.", 
             upload_to=objednavka_upload_location,
             null = True, blank = True)
-    termin_dodania = models.CharField("Termím dodania", 
+    termin_dodania = models.CharField("Termín dodania", 
             max_length=30, 
             help_text = "Určite termín dodania (dátum alebo slovné určenie)",
+            blank = True,
             null=True)
     history = HistoricalRecords()
 
