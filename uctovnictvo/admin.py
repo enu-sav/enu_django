@@ -199,7 +199,7 @@ class ObjednavkaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, 
     actions = [ 'vytvorit_subor_ziadanky', 'vytvorit_subor_objednavky' ]
 
     #Implementácia pracovného postupu
-    def get_field_classification(self, obj = None):
+    def get_field_classification(self, request, obj = None):
         automatic_fields = ["subor_ziadanky", "subor_objednavky", "datum_vytvorenia"]
         fields_objednavka = ObjednavkaAdmin.fields_objednavka
         fields_ziadanka = ObjednavkaAdmin.fields_ziadanka
@@ -252,13 +252,13 @@ class ObjednavkaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, 
         return extra_context
 
     def add_view(self, request, form_url='', extra_context=None):
-        self.extra_context = self.get_field_classification()
+        self.extra_context = self.get_field_classification(request)
         return super().add_view(request, form_url, extra_context=self.extra_context)
         #return super().add_view(request, form_url)
 
     def change_view(self, request, object_id, form_url='', extra_context=None):
         obj = self.get_object(request, object_id)
-        self.extra_context = self.get_field_classification(obj)
+        self.extra_context = self.get_field_classification(request, obj)
         return super().change_view(request, object_id, form_url, extra_context=self.extra_context)
         #return super().change_view(request, object_id, form_url)
 
@@ -346,8 +346,7 @@ class NakupSUhradouAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmi
         ('cena', Sum),
     ]
 
-    #Implementácia pracovného postupu
-    def get_field_classification(self, obj = None):
+    def get_field_classification(self, request, obj = None):
         automatic_fields = ["subor_ziadanky",  "subor_preplatenie", "pokladna_vpd"]
         fields_ziadost = NakupSUhradouAdmin.fields_ziadost
         fields_ziadanka = NakupSUhradouAdmin.fields_ziadanka
@@ -400,13 +399,13 @@ class NakupSUhradouAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmi
         return extra_context
 
     def add_view(self, request, form_url='', extra_context=None):
-        self.extra_context = self.get_field_classification()
+        self.extra_context = self.get_field_classification(request)
         return super().add_view(request, form_url, extra_context=self.extra_context)
         #return super().add_view(request, form_url)
 
     def change_view(self, request, object_id, form_url='', extra_context=None):
         obj = self.get_object(request, object_id)
-        self.extra_context = self.get_field_classification(obj)
+        self.extra_context = self.get_field_classification(request, obj)
         return super().change_view(request, object_id, form_url, extra_context=self.extra_context)
         #return super().change_view(request, object_id, form_url)
 
