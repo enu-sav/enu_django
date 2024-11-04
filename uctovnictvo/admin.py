@@ -233,15 +233,15 @@ class ObjednavkaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, 
             extra_context['next_fields'] += ["zamietnute", "datum_ziadanky"]
             extra_context['disabled_fields'] += fields_objednavka  
         elif obj.datum_ziadanky and not obj.dodavatel:
-            extra_context['required_fields'] += ['objednane_polozky', 'vybavuje2', "dodavatel", "platba_vopred"]
+            extra_context['required_fields'] += ['objednane_polozky', 'vybavuje2', "dodavatel"]
             extra_context['next_fields'] += []
             extra_context['disabled_fields'] += fields_ziadanka + ['cislo', "datum_vytvorenia", "datum_odoslania"]
         elif obj.dodavatel and not obj.subor_objednavky:
-            extra_context['required_fields'] += ['objednane_polozky', 'vybavuje2', "dodavatel", "platba_vopred"]
+            extra_context['required_fields'] += ['objednane_polozky', 'vybavuje2', "dodavatel"]
             extra_context['next_fields'] += ["subor_objednavky", "datum_vytvorenia"]
             extra_context['disabled_fields'] += fields_ziadanka + ['cislo', "datum_vytvorenia", "datum_odoslania"]
         elif obj.subor_objednavky and not obj.datum_odoslania:
-            extra_context['required_fields'] += ['objednane_polozky', 'vybavuje2', "dodavatel", "platba_vopred"]
+            extra_context['required_fields'] += ['objednane_polozky', 'vybavuje2', "dodavatel"]
             extra_context['next_fields'] += ["datum_odoslania", "subor_objednavky", "datum_vytvorenia"]
             extra_context['disabled_fields'] += fields_ziadanka + ['cislo', "datum_vytvorenia"]
         elif obj.datum_odoslania:
