@@ -227,7 +227,7 @@ class ObjednavkaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, 
         elif obj.zamietnute == AnoNie.ANO:
             extra_context['required_fields'] +=  []
             extra_context['next_fields'] += []
-            extra_context['disabled_fields'] += (fields_ziadost  + fields_ziadanka)
+            extra_context['disabled_fields'] += (fields_ziadanka + fields_objednavka + ["objednane_polozky"])
         elif obj.subor_ziadanky and not obj.datum_ziadanky:
             extra_context['required_fields'] += ["cislo", "ziadatel", "predmet", "predpokladana_cena", "termin_dodania", "objednane_polozky", ]
             extra_context['next_fields'] += ["zamietnute", "datum_ziadanky"]
