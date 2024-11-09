@@ -134,6 +134,14 @@ class ObjednavkaForm(DennikZaznam):
         for field in self.extra_context['next_fields']:
             self.fields[field].label = f"🟢 {self.fields[field].label}"
 
+        #Zmeniť label a text 'predpokladana_cena' a "objednane_polozky" podľa postupu
+        if "termin_dodania" in self.extra_context['required_fields']:
+            self.fields["objednane_polozky"].label = "Text žiadanky"
+        else:
+            self.fields["predpokladana_cena"].help_text = "Zadajte cenu bez DPH.<br />Ak je v poli 'Objednané položky' uvedená cena (možnosť 1. s 5 poľami), aktualizuje sa automaticky"
+            self.fields["predpokladana_cena"].label = "Cena"
+            self.fields["objednane_polozky"].label = "Objednané položky"
+
         if "predmet" in self.fields:
             self.fields["predmet"].help_text = "Zadajte stručné zdôvodnenie, napr. 'Kontrolná tlač strán Beliany'"
             self.fields["predmet"].label = "Zdôvodnenie"

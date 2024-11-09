@@ -173,14 +173,14 @@ class ObjednavkaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, 
     form = ObjednavkaForm
 
     #Členenie formulára na časti
-    fields_ziadanka = ["cislo", "ziadatel", "predmet", "predpokladana_cena", "termin_dodania", "subor_ziadanky", "zamietnute", "datum_ziadanky", ]
+    fields_ziadanka = ["cislo", "ziadatel", "predmet", "termin_dodania", "subor_ziadanky", "zamietnute", "datum_ziadanky", ]
     fields_objednavka = ["vybavuje2", "platba_vopred", "dodavatel", "subor_prilohy", "subor_objednavky", "datum_vytvorenia", "datum_odoslania", ]
     fieldsets = (
         ('Žiadanka na objednanie', {
             'fields': fields_ziadanka
         }),
         ('Spoločné polia', {
-            'fields': ["objednane_polozky", "poznamka"]
+            'fields': ["objednane_polozky", "predpokladana_cena", "poznamka"]
         }),
         ('Objednávka', {
             'fields': fields_objednavka
@@ -242,12 +242,12 @@ class ObjednavkaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, 
             extra_context['disabled_fields'] += fields_ziadanka + ['cislo', "datum_vytvorenia", "datum_odoslania"]
         elif obj.subor_objednavky and not obj.datum_odoslania:
             extra_context['required_fields'] += ['objednane_polozky', 'vybavuje2', "dodavatel"]
-            extra_context['next_fields'] += ["datum_odoslania", "subor_objednavky", "datum_vytvorenia"]
+            extra_context['next_fields'] += ["datum_odoslania", "subor_objednavky", "datum_vytvorenia", ]
             extra_context['disabled_fields'] += fields_ziadanka + ['cislo', "datum_vytvorenia"]
         elif obj.datum_odoslania:
             extra_context['required_fields'] += []
             extra_context['next_fields'] += []
-            extra_context['disabled_fields'] += fields_ziadanka + fields_objednavka + ["objednane_polozky"]
+            extra_context['disabled_fields'] += fields_ziadanka + fields_objednavka + ["objednane_polozky", "predpokladana_cena"]
 
         return extra_context
 
