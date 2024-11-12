@@ -846,6 +846,7 @@ class PrijataFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdm
     #obj is None during the object creation, but set to the object being edited during an edit
     #"platobny_prikaz" je generovaný, preto je vždy readonly
     def get_readonly_fields(self, request, obj=None):
+        if DEPLOY_STATE == "production" and request.user.is_superuser: return []
         if not obj:
             return ["program", "platobny_prikaz", "dane_na_uhradu", "uhradene_dna"]
         elif not obj.platobny_prikaz:   #ešte nebola spustená akcia
