@@ -2204,7 +2204,7 @@ class PlatovyVymerAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
     def _top(self, obj):
         spolu = obj.tarifny_plat + obj.osobny_priplatok + obj.funkcny_priplatok
         return f"{obj.tarifny_plat} / {obj.osobny_priplatok} / {obj.funkcny_priplatok} // {spolu}".strip()
-    _top.short_description = "Tarifný/osobný/funkčný//spolu"
+    _top.short_description = "Tarifný/osobný/riadenie//funkčný"
 
     def _ts(self, obj):
         return f"{obj.platova_trieda} / {obj.platovy_stupen}".strip()
