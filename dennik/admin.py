@@ -253,7 +253,7 @@ class CerpanieRozpoctuAdmin(ModelAdminTotals):
 
     #Roky generovania sa automaticky posúvajú 1. septembra
     def generovat0(self, request, queryset):
-        self.generovat(request, (date.today()+relativedelta(months=4)).year-2)
+        return self.generovat(request, (date.today()+relativedelta(months=4)).year-2)
     generovat0.short_description = f"Generovať prehľad čerpania rozpočtu za {(date.today()+relativedelta(months=4)).year-2} (vyberte ľubovoľnú položku)"
     generovat0.allowed_permissions = ('change',)
 
