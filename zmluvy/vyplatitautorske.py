@@ -98,7 +98,7 @@ class VyplatitAutorskeOdmeny(VyplatitOdmeny):
                     duplitest.add(nid)
 
                     login = row[hdr["Prihlásiť sa"]]
-                    cislo_zmluvy = row[hdr['Zmluva na vyplatenie']].strip()   # odstranit medzery na zaciatku a konci
+                    cislo_zmluvy = row[hdr['Zmluva na vyplatenie']].replace(" ","")   # odstranit medzery
                     if not cislo_zmluvy:
                         msg = f"Chyba v hesle, chýba číslo zmluvy: {login}, {row[hdr['nazov']]}, {nid}, súbor {fn})."
                         #self.log(messages.ERROR, msg)
