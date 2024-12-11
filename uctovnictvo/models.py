@@ -1569,6 +1569,13 @@ class NajomneFaktura(Klasifikacia, GetAdminURL):
     def adresat_text(self):
         return self.objednavka_zmluva.najomnik.nazov if self.objednavka_zmluva else ""
 
+    def clean(self): 
+        errors={}
+        if self.suma <= 0:
+            errors["suma"] = "Suma faktúry musí byť kladná"
+        if errors:
+            raise ValidationError(errors)
+
     #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
     def cerpanie_rozpoctu(self, zden):
         datum = self.uhradene_dna if self.uhradene_dna else self.dane_na_uhradu if self.dane_na_uhradu else None
