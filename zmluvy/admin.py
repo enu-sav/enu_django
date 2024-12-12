@@ -592,6 +592,7 @@ class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
     #obj is None during the object creation, but set to the object being edited during an edit
     def get_readonly_fields(self, request, obj=None):
         fields = [f.name for f in PlatbaAutorskaSumar._meta.get_fields()]
+        return []
         if obj:
             #Pole Podklady odoslané
             if obj.vyplatit_ths and not obj.datum_uhradenia: 

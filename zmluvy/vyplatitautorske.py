@@ -98,6 +98,12 @@ class VyplatitAutorskeOdmeny(VyplatitOdmeny):
                     duplitest.add(nid)
 
                     login = row[hdr["Prihlásiť sa"]]
+                    '''
+                    if not row[hdr["Objednávka"]]:
+                        msg = f"Chyba v hesle, chýba objednávka: {login}, {row[hdr['nazov']]}, {nid}, súbor {fn})."
+                        self.error_list.append([login,"",msg])
+                        continue
+                    '''
                     cislo_zmluvy = row[hdr['Zmluva na vyplatenie']].replace(" ","")   # odstranit medzery
                     if not cislo_zmluvy:
                         msg = f"Chyba v hesle, chýba číslo zmluvy: {login}, {row[hdr['nazov']]}, {nid}, súbor {fn})."
@@ -794,7 +800,7 @@ class VyplatitAutorskeOdmeny(VyplatitOdmeny):
         self.ppos  += 1  
 
         #vypísať vyplatené heslá a zrátať výslednú sumu
-        self.bb3(["Kniha/web","Zmluva","Heslo","Dátum zadania", "Objednávka", "Suma [€/AH]","Počet znakov", "Vyplatiť [€]"],hdr=True)
+        self.bb3(["Kniha/web","Zmluva","Heslo","Dátum zadania platby", "Objednávka", "Suma [€/AH]","Počet znakov", "Vyplatiť [€]"],hdr=True)
         zdata = ZmluvaAutor.objects.filter(zmluvna_strana__rs_login=autor)
         zvyplatit = {}
         for zmluva in zdata:

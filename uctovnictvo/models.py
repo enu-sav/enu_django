@@ -179,6 +179,7 @@ class TypNepritomnosti(models.TextChoices):
     PV = "pv", "Pracovné voľno (PV, P, S, KZVS, POH)"    #Náhrada mzdy - prekážky osobné
     NEPLATENE = "neplatene", "Neplatené voľno"  # nič sa neplatí
     SLUZOBNA = "sluzobna", "Služobná cesta"     # normálna mzda
+    RIADITELSKEVOLNO = "riaditelskevolno", "Riaditelské voľno"     #Náhrada mzdy - prekážky osobné
     PRACADOMA = "pracadoma", "Práca na doma"    # normálna mzda
     SKOLENIE = "skolenie", "Školenie"           # normálna mzda
     ZRUSENA = "zrusena", "Zrušená"     # Záznam, ktorý bol spravený v Djangu, ale nedostal sa do Softipu

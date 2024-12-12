@@ -906,7 +906,8 @@ def generovatNepritomnostBiometric(cislo, start_from,ws):
             "SLC": TypNepritomnosti.SLUZOBNA,
             "§": TypNepritomnosti.PV,
             "Nep. V": TypNepritomnosti.NEPLATENE,
-            "P22": TypNepritomnosti.MATERSKA
+            "P22": TypNepritomnosti.MATERSKA,
+            "RV": TypNepritomnosti.RIADITELSKEVOLNO
             }
     # rok a mesiac
     a1split = ws["C3"].value.split("/")
@@ -1146,7 +1147,8 @@ def exportovatNepritomnostUct(polozka):
         "pzv": "PzV",
         "pv": "PV",
         "neplatene": "NV",
-        "sluzobna": "SC"
+        "sluzobna": "SC",
+        "riaditelskevolno": "RV"
         }
 
     m_od = obdobie_nepritomnosti(polozka.subor_nepritomnost.file.name)
