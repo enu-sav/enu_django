@@ -921,6 +921,11 @@ def generovatNepritomnostBiometric(cislo, start_from,ws):
 
     #Načítať dáta všetkých zamestnancov a zistit prvy a posledny pracovny den v mesiaci (potrebne pre PN)
     dni_v_mesiaci = monthrange(rok, mesiac)[1] 
+    #Dni weekendu
+    je_weekday = []
+    for day in range(dni_v_mesiaci):
+        if datetime.date(rok, mesiac, day+1).weekday() < 5:
+            je_weekday.append(day)
     zam_data = []
     while ws[f"A{riadok}"].value: 
         cislo_biometric = int(ws[f"A{riadok}"].value)
@@ -932,14 +937,16 @@ def generovatNepritomnostBiometric(cislo, start_from,ws):
             continue
         n_dni = []
         n_typ = []
-        for s in range(31): # záznam o dochádzke má vždy 31 stĺpcov, vyplnené sú len prac. dni zamestnanca a sviatky
+        for s in range(dni_v_mesiaci): # záznam o dochádzke má vždy 31 stĺpcov, vyplnené sú len prac. dni zamestnanca a sviatky
             value = ws.cell(row=riadok, column=s0+s).value
-            if value and "[" in value: #Záznam v Biometricu sa od apríla 2024 zmenil na: 7:30[HO 7:30] alebo [D 7:30] 
+            if value and "[" in value: 
+                #Záznam v Biometricu sa od apríla 2024 zmenil na: 7:30[HO 7:30] alebo [D 7:30] 
+                #Asi to závisí od toho, ako sa súbor exportuje (vyskytlo sa zatiaľ len v apríli 2024)
                 aux = re.findall("[[]([^ ]*)",value)
                 if aux: value = aux[0]
-            if value and value != "S":
+            if s in je_weekday and value != "S":  #neignorovať prázdne pracovné dni
                 n_dni.append(s+1)
-                n_typ.append(value)
+                n_typ.append(value if value else " ")
         zam_data.append((zamestnanec, n_dni, n_typ))
         riadok += 1
 
