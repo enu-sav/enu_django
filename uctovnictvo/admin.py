@@ -1661,8 +1661,6 @@ class DohodaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, Mode
             return polia_klasif + ["cislo", "zmluvna_strana", "subor_dohody", "sken_dohody", "dohoda_odoslana", "predmet", "datum_od", "datum_do", "vynimka", "vyplatene"]
         elif obj.stav_dohody == StavDohody.PODPISANA_DOHODAROM:
             return polia_klasif + ["cislo", "zmluvna_strana", "subor_dohody", "dohoda_odoslana", "predmet", "datum_od", "datum_do", "vynimka", "vyplatene"]
-        elif obj.stav_dohody == StavDohody.DOKONCENA:
-            return polia_klasif + ["cislo", "zmluvna_strana", "subor_dohody", "dohoda_odoslana", "predmet", "datum_od", "datum_do", "vynimka"]
         else:
             #sem by sme nemali prist
             return polia_klasif
@@ -1722,8 +1720,6 @@ class DoVPAdmin(DohodaAdmin):
             return ro_parent + ["odmena_celkom", "hod_celkom"]
         elif obj.stav_dohody == StavDohody.PODPISANA_DOHODAROM:
             return ro_parent + ["odmena_celkom", "hod_celkom"]
-        elif obj.stav_dohody == StavDohody.DOKONCENA:
-            return ro_parent + ["odmena_celkom", "hod_celkom"]
         else:
             #sem by sme nemali prist
             trace()
@@ -1769,8 +1765,6 @@ class DoBPSAdmin(DohodaAdmin):
             return ro_parent + ["odmena_celkom", "hod_mesacne", "datum_ukoncenia"]
         elif obj.stav_dohody == StavDohody.PODPISANA_DOHODAROM:
             return ro_parent + ["odmena_celkom", "hod_mesacne"]
-        elif obj.stav_dohody == StavDohody.DOKONCENA:
-            return ro_parent + ["odmena_celkom", "hod_mesacne"]
         else:
             #sem by sme nemali prist
             return ro_parent
@@ -1813,10 +1807,6 @@ class DoPCAdmin(DohodaAdmin):
         elif obj.stav_dohody == StavDohody.ODOSLANA_DOHODAROVI: 
             return ro_parent + ["odmena_mesacne", "hod_mesacne", "datum_ukoncenia", "dodatok_k"]
         elif obj.stav_dohody == StavDohody.PODPISANA_DOHODAROM:
-            #ro_parent.remove("zdroj")
-            #ro_parent.remove("zakazka")
-            return ro_parent + ["odmena_mesacne", "hod_mesacne", "dodatok_k"]
-        elif obj.stav_dohody == StavDohody.DOKONCENA:
             #ro_parent.remove("zdroj")
             #ro_parent.remove("zakazka")
             return ro_parent + ["odmena_mesacne", "hod_mesacne", "dodatok_k"]
