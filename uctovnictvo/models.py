@@ -1001,7 +1001,7 @@ class PrijataFaktura(FakturaPravidelnaPlatba, GetAdminURL):
             blank = True,
             null = True)
     dodaci_list = models.FileField("Dodací list",
-            help_text = "Súbor s dodacím listom",
+            help_text = "Súbor s dodacím listom alebo inými údajmi priloženými k faktúre",
             upload_to=prijata_faktura_upload_location, 
             blank = True,
             null = True)
