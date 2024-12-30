@@ -1948,7 +1948,7 @@ class NepritomnostAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
 class OdmenaOpravaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin):
 #class OdmenaOpravaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
     form = OdmenaOpravaForm
-    list_display = ["cislo", "typ", "zamestnanec_link", "subor_odmeny", "suma", "vyplatene_v_obdobi", "zakazka", "ekoklas", "subor_kl", "datum_kl"]
+    list_display = ["cislo", "typ", "zamestnanec_link", "subor_odmeny", "suma", "vyplatene_v_obdobi", "zakazka", "ekoklas", "program", "subor_kl", "datum_kl"]
     # ^: v poli vyhľadávať len od začiatku
     search_fields = ["cislo", "^typ", "zamestnanec__meno", "zamestnanec__priezvisko"]
 
