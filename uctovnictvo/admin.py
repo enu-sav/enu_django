@@ -815,7 +815,7 @@ class PrijataFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdm
     list_totals = [
         ('suma', Sum),
     ]
-    actions = ['vytvorit_platobny_prikaz', 'duplikovat_zaznam', "fix_dph"]
+    actions = ['vytvorit_platobny_prikaz', 'duplikovat_zaznam']
 
     # Zoradiť položky v pulldown menu
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
@@ -857,17 +857,6 @@ class PrijataFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdm
             return nearly_all
         else:   #všetko hotové, možno odoslať, ale stále možno aj editovať
             return ["program", "cislo"]
-
-    #temporary hepler
-    def fix_dph(self, request, queryset):
-        for faktura in queryset:
-            faktura.sadzbadph = SadzbaDPH.P20
-            faktura.save()
-
-    fix_dph.short_description = "Fix DPH"
-    #Oprávnenie na použitie akcie, viazané na 'change'
-    #fix_dph.allowed_permissions = ('change',)
-
 
     def vytvorit_platobny_prikaz(self, request, queryset):
         if len(queryset) != 1:
