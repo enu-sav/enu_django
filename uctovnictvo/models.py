@@ -63,7 +63,9 @@ class Mena(models.TextChoices):
     GBP = 'GBP'
 
 class SadzbaDPH(models.TextChoices):
+    P23 = "23", "23 %"
     P20 = "20", "20 %"
+    P19 = "19", "19 %"
     P10 = "10", "10 %"
     P5 = "5", "5 %"
     P0 = "0", "0 %"
