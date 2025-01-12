@@ -1128,32 +1128,7 @@ class PrijataFaktura(FakturaPravidelnaPlatba, GetAdminURL):
                 #"ekoklas": self.ekoklas
                 }
 
-            if self.prenosDP == AnoNie.ANO:
-                #'suma' v prípade prenosu DPH treba rozdeliť na časť bez DPH a DPH, lebo EnÚ odvádza DPH namiesto dodávateľa
-                #inak DPH neriešime, lebo EnÚ nie je platcom  DPH
-                dph = float(sadzbadph)/100
-                suma1 = suma_s_dph*(1-podiel2)/(1+dph)
-                suma2 = suma_s_dph*podiel2/(1+dph)
-                platba1["nazov"] = f"Faktúra {typ}"
-                platba1["suma"] =  round(Decimal(suma1),2)
-                platba1["ekoklas"] =  ekoklas
-                platby.append(platba1.copy())
-                #dph
-                platba1["nazov"] = f"DPH úhrada Prenos DP"
-                platba1["suma"] =  round(Decimal(dph*suma1),2)
-                platba1["ekoklas"] =  EkonomickaKlasifikacia.objects.get(kod="637044")
-                platby.append(platba1.copy())
-                if podiel2 > 0:
-                    platba2["nazov"] = f"Faktúra {typ}"
-                    platba2["suma"] =  round(Decimal(suma2),2)
-                    platba2["ekoklas"] =  ekoklas
-                    platby.append(platba2.copy())
-                    #dph
-                    platba2["nazov"] = f"DPH úhrada Prenos DP"
-                    platba2["suma"] =  round(Decimal(dph*suma2),2)
-                    platba2["ekoklas"] =  EkonomickaKlasifikacia.objects.get(kod="637044")
-                    platby.append(platba2.copy())
-            elif ekoklas.kod == '223001':
+            if ekoklas.kod == '223001':
                 #'suma' v prípade predaja el. energie rozdeliť na čast bez DPH a DPH
                 # od r. 2024 sa takéto faktúry uvádazajú vo VystavenaFaktura
                 dph = float(sadzbadph)/100
@@ -1186,7 +1161,7 @@ class PrijataFaktura(FakturaPravidelnaPlatba, GetAdminURL):
                         platba2["nazov"] = f"DPH úhrada Predaj el. energie"
                         platba2["suma"] =  -platba2["suma"]
                         platby.append(platba2.copy())
-            else:   #Ostatné, bežné prípady, dph sa neuvažuje
+            else:   #Ostatné, bežné prípady, dph sa neuvažuje, a to ani v prípade prenosu DPH
                 suma1 = suma_s_dph*(1-podiel2)
                 suma2 = suma_s_dph*podiel2
                 platba1["nazov"] = f"Faktúra {typ}"
