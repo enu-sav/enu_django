@@ -69,7 +69,7 @@ def VytvoritSuborObjednavky(objednavka, username):
                 else:
                     ws_obj[f'F{prvy_riadok+ObjednavkaPocetPoloziek}'].value = objednavka.predpokladana_cena
                 add_sum = False
-            elif len(prvky) == 5:
+            elif len(prvky) in (5, 6):  #počet 5 len do konca roka 2024
                 nr =  int(1+len(prvky[0])/35)
                 if nr > 1: ws_obj.row_dimensions[riadok].height = 15 * nr
                 ws_obj.cell(row=riadok, column=2+0).value = prvky[0]
@@ -79,15 +79,16 @@ def VytvoritSuborObjednavky(objednavka, username):
                 ws_obj.cell(row=riadok, column=2+2).number_format= "0.00"
                 val3 = float(prvky[3].strip().replace(",","."))
                 ws_obj.cell(row=riadok, column=2+3).value = val3
-                ws_obj.cell(row=riadok, column=2+4).number_format= "0.00"
-                ws_obj.cell(row=riadok, column=2+6).value = prvky[4]
+                ws_obj.cell(row=riadok, column=2+3).number_format= "0.00"
                 #
-                #trace()
-                if objednavka.dodavatel and objednavka.dodavatel.s_danou==AnoNie.ANO:
-                    #nefunguje, ktovie prečo
-                    #ws_obj[f'G{riadok}'] = f'=IF(ISBLANK(D{riadok});" ";D{riadok}*E{riadok})'
-                    ws_obj[f'G{riadok}'].value = val2*val3*dph
-                ws_obj[f'F{riadok}'].value = val2*val3
+                ws_obj.cell(row=riadok, column=2+4).value = val2*val3
+                if len(prvky) == 5: #Po starom, t.j. do 2024
+                    if objednavka.dodavatel and objednavka.dodavatel.s_danou==AnoNie.ANO:
+                        ws_obj.cell(row=riadok, column=2+5).value = val2*val3*dph
+                else:
+                    ws_obj.cell(row=riadok, column=2+5).value = val2*val3*(1+float(prvky[4].strip().replace(",","."))/100)
+                ws_obj.cell(row=riadok, column=2+5).number_format= "0.00"
+                ws_obj.cell(row=riadok, column=2+6).value = prvky[5]    #CPV
                 add_sum = True
 
             if add_sum: 
@@ -124,7 +125,7 @@ def VytvoritSuborObjednavky(objednavka, username):
         if pocet_poloziek > ObjednavkaPocetPoloziek:
             return f"{co}: Zadaných bolo {pocet_poloziek} položiek. Maximálny povolený počet je {ObjednavkaPocetPoloziek}. {sn}"
         pocet_poli = len(polozky[0].split(oddelovac))
-        if not pocet_poli in (2,5):
+        if not pocet_poli in (2,6):
             pole = "pole" if pocet_poli==1 else "polia" if pocet_poli < 5 else "polí"
             return f"{co}: Prvá položka má {pocet_poli} {pole}, povolený počet je 2 alebo 5 (skontrolujte oddeľovače). {sn}"
        
@@ -134,7 +135,7 @@ def VytvoritSuborObjednavky(objednavka, username):
             plen = len(polozka.split(oddelovac))
             if plen != pocet_poli:
                 return f"{co}: Položka na riadku {rr+1} má {pp} polí, počet polí na riadlu 1 je {pocet_poli} (skontrolujte oddeľovače). {sn}"
-        if pocet_poli == 5:
+        if pocet_poli in (5,6):
             celkova_suma = 0
             for rr, polozka in enumerate(polozky):
                 pp = polozka.split(oddelovac)
