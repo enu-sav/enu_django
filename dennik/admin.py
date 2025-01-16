@@ -15,7 +15,7 @@ from uctovnictvo.models import PlatovyVymer, PravidelnaPlatba, NajomneFaktura, I
 from uctovnictvo.models import RozpoctovaPolozka, PlatbaBezPrikazu, PrispevokNaRekreaciu, OdmenaOprava
 from uctovnictvo.models import TypDochodku, AnoNie, Zdroj, TypZakazky, EkonomickaKlasifikacia, Zamestnanec 
 from uctovnictvo.models import Nepritomnost, VystavenaFaktura, NakupSUhradou, vyplatny_termin
-from uctovnictvo.odvody import generovat_mzdove
+from .odvody import generovat_mzdove
 import re
 from import_export.admin import ImportExportModelAdmin
 from datetime import date
