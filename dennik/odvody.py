@@ -208,10 +208,10 @@ class Poistne():
         for item in tz_p: tz_p[item] = round(odmena*tz_p[item], 2)
         return ts_z, ts_p, tz_z, tz_p
     
-# Generovať sumáre mzdové položky
+# Generovať sumárne mzdové položky
 def generovat_mzdove(request, zden, rekapitulacia):
     #Po osobách (zamestnanci a dohodári) vytvoriť zoznam všetkých relevantných položiek
-    po_osobach = defaultdict(list)
+    po_zakazkach_osobach = {}
     for typ in [PrispevokNaRekreaciu, PrispevokNaStravne, PlatovyVymer, OdmenaOprava, DoPC, DoVP, DoBPS]:
         for polozka in typ.objects.filter():
             data = polozka.cerpanie_rozpoctu(zden)
@@ -222,7 +222,9 @@ def generovat_mzdove(request, zden, rekapitulacia):
                         item['suma'] += item['socfond'] # V mzdovej rekapitulácii sa uvádza súčet zamestnávateľ + socfond
                 if rekapitulacia and item['nazov'] == 'Stravné zrážky':
                     item['suma'] = -item['suma'] - item['socfond']  # V mzdovej rekapitulácii sa uvádza súčet zamestnávateľ + socfond
-                po_osobach[item['subjekt']].append(item)
+                if not item['zakazka'].kod in po_zakazkach_osobach:
+                    po_zakazkach_osobach[item['zakazka'].kod] = defaultdict(list)
+                po_zakazkach_osobach[item['zakazka'].kod][item['subjekt']].append(item)
                 if 'poznamka' in  item:
                     messages.warning(request, format_html(item['poznamka']))
 
@@ -243,82 +245,76 @@ def generovat_mzdove(request, zden, rekapitulacia):
         polozky_soczdrav_dovp = ["DoVP odmena", "DoVP odmena (int. prevod)"]
 
     cerpanie = []   #zoznam poloziek cerpania
-    for meno in po_osobach:
-        #celková odmena
-        osoba = po_osobach[meno][0]['osoba']
-        zaklad_dds = 0
-        zaklad_socfond = 0
-        zaklad_soczdrav_zam = 0
-        zaklad_soczdrav_dovp = 0
-        zaklad_soczdrav_dopc = 0
-        soc_poist_koef = 1  #Koeficient neodpracovaných dní pre výpočet max. vymeriavacieho základu
-        zam_zdroj = None
-        zam_zakazka = None
-        dopc_zdroj = None
-        dopc_zakazka = None
-        dovp_zdroj = None
-        dovp_zakazka = None
-        dohoda_vynimka = AnoNie.NIE
-        #Vytvoriť čiastočný zoznam položiek čerpania s položkami, ktoré sa prenášajú priamo, a vypočítať sumáre na výpočet ostatných
-        for item in po_osobach[meno]:
-            cerpanie.append(item)   #priamo prevziať mzdovú položku
-            #spočítať mzdové položky pre výpočet odvodov, SF a DDS
-            if item['nazov'] in polozky_dds:
-                zaklad_dds += item['suma']
-            if item['nazov'] in polozky_socfond:
-                zaklad_socfond += item['suma']
-            if item['nazov'] in polozky_soczdrav_zam:
-                zaklad_soczdrav_zam += item['suma']
-                zam_zdroj = item['zdroj']
-                zam_zakazka = item['zakazka']
-            if item['nazov'] in polozky_soczdrav_dovp:
-                zaklad_soczdrav_dovp += item['suma']
-                dovp_zdroj = item['zdroj']
-                dovp_zakazka = item['zakazka']
-                dohoda_vynimka = AnoNie.ANO if item['vynimka'] == AnoNie.ANO else dohoda_vynimka    #pre prípad, že má dohodár, ktorý si uplatňuje výnimku, viac dohôd
-            if item['nazov'] in polozky_soczdrav_dopc:
-                zaklad_soczdrav_dopc += item['suma']
-                dopc_zdroj = item['zdroj']
-                dopc_zakazka = item['zakazka']
-                dohoda_vynimka = AnoNie.ANO if item['vynimka'] == AnoNie.ANO else dohoda_vynimka    #pre prípad, že má dohodár, ktorý si uplatňuje výnimku, viac dohôd
-            if 'soc_poist_koef' in item:
-                soc_poist_koef = item["soc_poist_koef"]
+    #Iterovať po zákazkách a osobách, aby sa oddelili zákazky
+    for zakazka_nazov in po_zakazkach_osobach:
+        for meno in po_zakazkach_osobach[zakazka_nazov]:
+            #celková odmena
+            osoba = po_zakazkach_osobach[zakazka_nazov][meno][0]['osoba']
+            zaklad_dds = 0
+            zaklad_socfond = 0
+            zaklad_soczdrav_zam = 0
+            zaklad_soczdrav_dovp = 0
+            zaklad_soczdrav_dopc = 0
+            soc_poist_koef = 1  #Koeficient neodpracovaných dní pre výpočet max. vymeriavacieho základu
+            dohoda_vynimka = AnoNie.NIE
+            #Vytvoriť čiastočný zoznam položiek čerpania s položkami, ktoré sa prenášajú priamo, a vypočítať sumáre na výpočet ostatných
+            for item in po_zakazkach_osobach[zakazka_nazov][meno]:
+                cerpanie.append(item)   #priamo prevziať mzdovú položku
+                #spočítať mzdové položky pre výpočet odvodov, SF a DDS
+                if item['nazov'] in polozky_dds:
+                    zaklad_dds += item['suma']
+                if item['nazov'] in polozky_socfond:
+                    zaklad_socfond += item['suma']
+                if item['nazov'] in polozky_soczdrav_zam:
+                    zaklad_soczdrav_zam += item['suma']
+                if item['nazov'] in polozky_soczdrav_dovp:
+                    zaklad_soczdrav_dovp += item['suma']
+                    dohoda_vynimka = AnoNie.ANO if item['vynimka'] == AnoNie.ANO else dohoda_vynimka    #pre prípad, že má dohodár, ktorý si uplatňuje výnimku, viac dohôd
+                if item['nazov'] in polozky_soczdrav_dopc:
+                    zaklad_soczdrav_dopc += item['suma']
+                    dohoda_vynimka = AnoNie.ANO if item['vynimka'] == AnoNie.ANO else dohoda_vynimka    #pre prípad, že má dohodár, ktorý si uplatňuje výnimku, viac dohôd
+                if 'soc_poist_koef' in item:
+                    soc_poist_koef = item["soc_poist_koef"]
 
-        #Výpočet položiek (odvody, SF a DDS), ktoré sa rátajú zo sumárnych hodnôt
-        #Načítať súbor s údajmi o odvodoch
-        nazov_objektu = "Odvody zamestnancov a dohodárov"  #Presne takto musí byť objekt pomenovaný
-        objekt = dennik.models.SystemovySubor.objects.filter(subor_nazov = nazov_objektu)
-        if not objekt:
-            return f"V systéme nie je definovaný súbor '{nazov_objektu}'."
-        poistne = Poistne(objekt[0].subor.file.name)
-        if type(osoba) == Zamestnanec and osoba.dds == AnoNie.ANO:
-            if not osoba.dds_od:
-                messages.warning(request, f"Vypočítaná suma výšky príspevku do DDS je nesprávna. V údajoch zamestnanca '{osoba}' treba vyplniť pole 'DDS od'")
-            else: # Príspevok do DDS sa vypláca od 1. dňa mesiaca, keď bola uzatvorena dohoda
-                dds_od = date(osoba.dds_od.year, osoba.dds_od.month, 1)
-            if zden >= dds_od:
-                cerpanie = cerpanie + gen_dds(poistne, osoba, zaklad_dds, zden, PlatovyVymer.td_konv(osoba, zden))
-        if zaklad_socfond:
-            cerpanie = cerpanie + gen_socfond(osoba, zaklad_socfond, zden)
+            zakazka = item['zakazka']
+    
+            #Výpočet položiek (odvody, SF a DDS), ktoré sa rátajú zo sumárnych hodnôt
+            #Načítať súbor s údajmi o odvodoch
+            nazov_objektu = "Odvody zamestnancov a dohodárov"  #Presne takto musí byť objekt pomenovaný
+            objekt = dennik.models.SystemovySubor.objects.filter(subor_nazov = nazov_objektu)
+            if not objekt:
+                return f"V systéme nie je definovaný súbor '{nazov_objektu}'."
+            poistne = Poistne(objekt[0].subor.file.name)
+            if type(osoba) == Zamestnanec and osoba.dds == AnoNie.ANO:
+                if not osoba.dds_od:
+                    messages.warning(request, f"Vypočítaná suma výšky príspevku do DDS je nesprávna. V údajoch zamestnanca '{osoba}' treba vyplniť pole 'DDS od'")
+                else: # Príspevok do DDS sa vypláca od 1. dňa mesiaca, keď bola uzatvorena dohoda
+                    dds_od = date(osoba.dds_od.year, osoba.dds_od.month, 1)
+                if zden >= dds_od:
+                    cerpanie = cerpanie + gen_dds(poistne, osoba, zakazka, zaklad_dds, zden, PlatovyVymer.td_konv(osoba, zden))
 
-        if "Balo" in meno:
-            #trace()
-            #Odvody (okrem Úrazového poistenia) sú zhora obmedzené Maximálnym vymeriavacím základom zamestnávateľa.
-            #Výška sa preráta na počet kalendárnych dní mesiaca, keď zamestnanec nemal PN aj NV (brané kontinuálne)
-            #V prípade BB je to 1 deň z 31, teda vymeriavací základ je 1*8477/31 = 273,45 Eur
-            #Namiesto parametra vylucitelnost treba v gen_soczdrav použiť parameter vymeriavaci_zaklad podľa tohto
-            #Dokoncit po dokoncení automatického generovanie stravného
-            pass
-        if zam_zdroj:
-            cerpanie = cerpanie + gen_soczdrav(poistne, osoba, "Plat", zaklad_soczdrav_zam, zden, PlatovyVymer.td_konv(osoba, zden), zam_zdroj, zam_zakazka, soc_poist_koef=soc_poist_koef)
-        if dovp_zdroj:
-            cerpanie = cerpanie + gen_soczdrav(poistne, osoba, "DoVP", zaklad_soczdrav_dovp, zden, DoVP.td_konv(osoba, zden), dovp_zdroj, dovp_zakazka, vynimka=dohoda_vynimka)
-        if dopc_zdroj:
-            cerpanie = cerpanie + gen_soczdrav(poistne, osoba, "DoPC", zaklad_soczdrav_dopc, zden, DoPC.td_konv(osoba, zden), dopc_zdroj, dopc_zakazka, vynimka=dohoda_vynimka)
+            if zaklad_socfond:
+                cerpanie = cerpanie + gen_socfond(osoba, zakazka, zaklad_socfond, zden)
+    
+            if "Balo" in meno:
+                #trace()
+                #Odvody (okrem Úrazového poistenia) sú zhora obmedzené Maximálnym vymeriavacím základom zamestnávateľa.
+                #Výška sa preráta na počet kalendárnych dní mesiaca, keď zamestnanec nemal PN aj NV (brané kontinuálne)
+                #V prípade BB je to 1 deň z 31, teda vymeriavací základ je 1*8477/31 = 273,45 Eur
+                #Namiesto parametra vylucitelnost treba v gen_soczdrav použiť parameter vymeriavaci_zaklad podľa tohto
+                #Dokoncit po dokoncení automatického generovanie stravného
+                pass
+            if zaklad_soczdrav_zam:
+                cerpanie = cerpanie + gen_soczdrav(poistne, osoba, "Plat", zaklad_soczdrav_zam, zden, PlatovyVymer.td_konv(osoba, zden), zakazka, soc_poist_koef=soc_poist_koef)
+            if zaklad_soczdrav_dovp:
+                cerpanie = cerpanie + gen_soczdrav(poistne, osoba, "DoVP", zaklad_soczdrav_dovp, zden, DoVP.td_konv(osoba, zden), zakazka, vynimka=dohoda_vynimka)
+            if zaklad_soczdrav_dopc:
+                cerpanie = cerpanie + gen_soczdrav(poistne, osoba, "DoPC", zaklad_soczdrav_dopc, zden, DoPC.td_konv(osoba, zden), zakazka, vynimka=dohoda_vynimka)
+
     return cerpanie #generovat_mzdove
 
 #Generovať položky pre socialne a zdravotne poistenie
-def gen_soczdrav(poistne, osoba, typ, suma, zden, td_konv, zdroj, zakazka, vynimka=AnoNie.NIE, soc_poist_koef=1):
+def gen_soczdrav(poistne, osoba, typ, suma, zden, td_konv, zakazka, vynimka=AnoNie.NIE, soc_poist_koef=1):
     subjekt = f"{osoba.priezvisko}, {osoba.meno}"
     if typ == "Plat":
         socpoist, _, zdravpoist, _ = poistne.ZamestnanecOdvody(-float(suma), td_konv, zden, soc_poist_koef)
@@ -331,7 +327,7 @@ def gen_soczdrav(poistne, osoba, typ, suma, zden, td_konv, zdroj, zakazka, vynim
             "podnazov": f"{typ} poistenie sociálne",
             "nazov": f"Sociálne poistné {ek.kod}",
             "suma": -round(Decimal(socpoist[item]),2),
-            "zdroj": zdroj,
+            "zdroj": zakazka.zdroj,
             "zakazka": zakazka,
             "datum": vyplatny_termin(zden),
             "mesiac": zden,
@@ -346,7 +342,7 @@ def gen_soczdrav(poistne, osoba, typ, suma, zden, td_konv, zdroj, zakazka, vynim
         "podnazov": f"{typ} poistenie zdravotné",
         "nazov": f"Zdravotné poistné",
         "suma": -round(Decimal(zdravpoist['zdravotne']),2),
-        "zdroj": zdroj,
+        "zdroj": zakazka.zdroj,
         "zakazka": zakazka,
         "datum": vyplatny_termin(zden),
         "mesiac": zden,
@@ -358,7 +354,7 @@ def gen_soczdrav(poistne, osoba, typ, suma, zden, td_konv, zdroj, zakazka, vynim
     return poistne
 
 #Generovať položky pre DDS
-def gen_dds(poistne, zamestnanec, suma, zden, td_konv):
+def gen_dds(poistne, zamestnanec, zakazka, suma, zden, td_konv):
     subjekt = f"{zamestnanec.priezvisko}, {zamestnanec.meno}"
 
     #Vytvoriť položku pre DDS
@@ -370,8 +366,8 @@ def gen_dds(poistne, zamestnanec, suma, zden, td_konv):
         # Bola to zlá interpretácia, zrušené
         #"zdroj": Zdroj.objects.get(kod="111") if zden < date(2024,1,1) else Zdroj.objects.get(kod="46"),
         #"zakazka": TypZakazky.objects.get(kod="11010001 spol. zák.")  if zden < date(2024,1,1) else TypZakazky.objects.get(kod="46010001"),
-        "zdroj": Zdroj.objects.get(kod="111"),
-        "zakazka": TypZakazky.objects.get(kod="11010001 spol. zák."),
+        "zdroj": zakazka.zdroj,
+        "zakazka": zakazka,
         "datum": vyplatny_termin(zden),
         "mesiac": zden,
         "subjekt": subjekt,
@@ -385,8 +381,8 @@ def gen_dds(poistne, zamestnanec, suma, zden, td_konv):
         "podnazov": f"DDS poistenie zdravotné",
         "nazov": "Zdravotné poistné",   #zdravotné poistné nemá strop, takže môžeme riešiť takto
         "suma": round(Decimal(zdravpoist['zdravotne']),2),
-        "zdroj": Zdroj.objects.get(kod="111"),
-        "zakazka": TypZakazky.objects.get(kod="11010001 spol. zák."),
+        "zdroj": zakazka.zdroj,
+        "zakazka": zakazka,
         "datum": vyplatny_termin(zden),
         "mesiac": zden,
         "subjekt": subjekt,
@@ -397,14 +393,13 @@ def gen_dds(poistne, zamestnanec, suma, zden, td_konv):
 
 
 #Generovať položky pre socialny fond
-def gen_socfond(zamestnanec, suma, zden):
-    zdroj, zakazka = get_zdroj_zakazka(zden)
+def gen_socfond(zamestnanec, zakazka, suma, zden):
     subjekt = f"{zamestnanec.priezvisko}, {zamestnanec.meno}"
     suma = SOCFOND_PRISPEVOK*float(suma)/100
     socfond = {
         "nazov": "Sociálny fond",
         "suma": round(Decimal(suma),2),
-        "zdroj": zdroj,
+        "zdroj": zakazka.zdroj,
         "zakazka": zakazka,
         "datum": vyplatny_termin(zden),
         "mesiac": zden,
@@ -413,12 +408,3 @@ def gen_socfond(zamestnanec, suma, zden):
         "ekoklas": EkonomickaKlasifikacia.objects.get(kod="637016")
         }
     return [socfond]
- 
-def get_zdroj_zakazka(zden):
-    if zden in [date(2022,1,1), date(2022,2,1)]:   #Počas tychto 3 mesiacov bolo všetko inak :D
-        zdroj = Zdroj.objects.get(kod="131L") 
-        zakazka = TypZakazky.objects.get(kod="131L0001")
-    else:
-        zdroj = Zdroj.objects.get(kod="111") 
-        zakazka = TypZakazky.objects.get(kod="11010001 spol. zák.")
-    return zdroj, zakazka

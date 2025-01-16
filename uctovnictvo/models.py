@@ -323,6 +323,12 @@ class TypZakazky(models.Model):
     popis = models.CharField("Popis", 
             help_text = "Popíšte typ zákazky",
             max_length=100)
+    zdroj = models.ForeignKey(Zdroj,
+            help_text = "Zdroj, ku ktorému je zákazka priradená",
+            on_delete=models.PROTECT,
+            null = True,
+            related_name='%(class)s_zakazka'
+            )
     history = HistoricalRecords()
     def __str__(self):
         return f"{self.kod}"

@@ -124,7 +124,7 @@ class ProgramAdmin(ZobrazitZmeny, SimpleHistoryAdmin, ImportExportModelAdmin):
 
 @admin.register(TypZakazky)
 class TypZakazkyAdmin(ZobrazitZmeny, SimpleHistoryAdmin, ImportExportModelAdmin):
-    list_display = ("kod", "popis")
+    list_display = ("kod", "zdroj", "popis")
 
 @admin.register(EkonomickaKlasifikacia)
 class EkonomickaKlasifikaciaAdmin(ZobrazitZmeny, SimpleHistoryAdmin, ImportExportModelAdmin):
