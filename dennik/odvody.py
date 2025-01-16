@@ -206,10 +206,6 @@ class Poistne():
                 tz_p[item] = round(odmena*tz_p[item], 2)
         return ts_z, ts_p, tz_z, tz_p
     
-    def DohodarOdvodySpolu(self, odmena, typ, datum, vodmena):
-        socialne_zam, socialne_prac, zdravotne_zam, zdravotne_prac = self.DohodarOdvody(odmena, typ, datum, vodmena)
-        return sum(socialne_zam.values()), sum(socialne_prac.values()), sum(zdravotne_zam.values()), sum(zdravotne_prac.values())
-    
     def ZamestnanecOdvody(self, odmena, typ, datum, vylucitelnost=False):
         if vylucitelnost:
             #trace()
@@ -224,10 +220,6 @@ class Poistne():
         for item in tz_p: tz_p[item] = round(odmena*tz_p[item], 2)
         return ts_z, ts_p, tz_z, tz_p
     
-    def ZamestnanecOdvodySpolu(self, odmena, typ, datum, vylucitelnost):
-        socialne_zam, socialne_prac, zdravotne_zam, zdravotne_prac = self.ZamestnanecOdvody(odmena, typ, datum, vylucitelnost)
-        return sum(socialne_zam.values()), sum(socialne_prac.values()), sum(zdravotne_zam.values()), sum(zdravotne_prac.values())
-
 # Generovať sumáre mzdové položky
 def generovat_mzdove(request, zden, rekapitulacia):
     #Po osobách (zamestnanci a dohodári) vytvoriť zoznam všetkých relevantných položiek
