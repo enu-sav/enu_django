@@ -26,7 +26,7 @@ class Poistne():
     # vráti tabuľku odvodov pre zadanú kategóriu
     #https://www.podnikajte.sk/socialne-a-zdravotne-odvody/odvody-z-dohody-2021
     #do roku 2021 sa neplatilo garancne poistenie
-    def TabulkaOdvodov(self, zam_doh, typ, datum, vynimka=False, vylucitelnost=False):
+    def TabulkaOdvodov(self, zam_doh, typ, datum, vynimka=False):
         if zam_doh == "zamestnanec":
             if datum < date(2022,1,1):
                 ws = self.workbook["Zamestnanci"]
@@ -149,25 +149,17 @@ class Poistne():
         zdravotne_zam = {}
         zdravotne_prac = {}
     
-        #Ak je mesiac "vylúčiteľný", platí sa len 'urazové'
-        if  vylucitelnost:
-            pp = "urazove"
+        for pp in socialne:
+            # sčítať po položkách (kvôli 625005)
             if not self.socialne_klas[pp] in socialne_zam:
                 socialne_zam[self.socialne_klas[pp]] = ws.cell(row=socialne[pp], column=col0).value / 100 
             else:
                 socialne_zam[self.socialne_klas[pp]] += ws.cell(row=socialne[pp], column=col0).value / 100 
-        else:
-            for pp in socialne:
-                # sčítať po položkách (kvôli 625005)
-                if not self.socialne_klas[pp] in socialne_zam:
-                    socialne_zam[self.socialne_klas[pp]] = ws.cell(row=socialne[pp], column=col0).value / 100 
-                else:
-                    socialne_zam[self.socialne_klas[pp]] += ws.cell(row=socialne[pp], column=col0).value / 100 
     
-                if not self.socialne_klas[pp] in socialne_prac:
-                    socialne_prac[self.socialne_klas[pp]] = ws.cell(row=socialne[pp], column=col0+1).value / 100 
-                else:
-                    socialne_prac[self.socialne_klas[pp]] += ws.cell(row=socialne[pp], column=col0+1).value / 100 
+            if not self.socialne_klas[pp] in socialne_prac:
+                socialne_prac[self.socialne_klas[pp]] = ws.cell(row=socialne[pp], column=col0+1).value / 100 
+            else:
+                socialne_prac[self.socialne_klas[pp]] += ws.cell(row=socialne[pp], column=col0+1).value / 100 
         for pp in zdravotne:
             zdravotne_zam[pp] = ws.cell(row=zdravotne[pp], column=col0).value / 100 
             zdravotne_prac[pp] = ws.cell(row=zdravotne[pp], column=col0+1).value / 100
@@ -206,14 +198,10 @@ class Poistne():
                 tz_p[item] = round(odmena*tz_p[item], 2)
         return ts_z, ts_p, tz_z, tz_p
     
-    def ZamestnanecOdvody(self, odmena, typ, datum, vylucitelnost=False):
-        if vylucitelnost:
-            #trace()
-            pass
-        ts_z, ts_p, tz_z, tz_p = self.TabulkaOdvodov("zamestnanec", typ, datum, vylucitelnost=vylucitelnost)
-        #for item in ts_z: ts_z[item] = round(odmena*ts_z[item], 2)
+    def ZamestnanecOdvody(self, odmena, typ, datum, soc_poist_koef=1):
+        ts_z, ts_p, tz_z, tz_p = self.TabulkaOdvodov("zamestnanec", typ, datum)
         for item in ts_z: 
-            aodmena = odmena if item == self.socialne_klas['urazove'] else min(odmena, MAX_VZ[datum.year])
+            aodmena = odmena if item == self.socialne_klas['urazove'] else min(odmena, soc_poist_koef*MAX_VZ[datum.year])
             ts_z[item] = round(aodmena*ts_z[item], 2)
         for item in ts_p: ts_p[item] = round(odmena*ts_p[item], 2)
         for item in tz_z: tz_z[item] = round(odmena*tz_z[item], 2)
@@ -254,8 +242,6 @@ def generovat_mzdove(request, zden, rekapitulacia):
     else:
         polozky_soczdrav_dovp = ["DoVP odmena", "DoVP odmena (int. prevod)"]
 
-    polozka_vylucitelnost = ["Plat tarifný plat"]   #0 znamená, že zamestnane celý mesiac nepracoval, teda bol vylúčiteľný (bol na PN)
-
     cerpanie = []   #zoznam poloziek cerpania
     for meno in po_osobach:
         #celková odmena
@@ -265,7 +251,7 @@ def generovat_mzdove(request, zden, rekapitulacia):
         zaklad_soczdrav_zam = 0
         zaklad_soczdrav_dovp = 0
         zaklad_soczdrav_dopc = 0
-        zaklad_vylucitelnost = 0
+        soc_poist_koef = 1  #Koeficient neodpracovaných dní pre výpočet max. vymeriavacieho základu
         zam_zdroj = None
         zam_zakazka = None
         dopc_zdroj = None
@@ -277,8 +263,6 @@ def generovat_mzdove(request, zden, rekapitulacia):
         for item in po_osobach[meno]:
             cerpanie.append(item)   #priamo prevziať mzdovú položku
             #spočítať mzdové položky pre výpočet odvodov, SF a DDS
-            if item['nazov'] in polozka_vylucitelnost:
-                zaklad_vylucitelnost += item['suma']
             if item['nazov'] in polozky_dds:
                 zaklad_dds += item['suma']
             if item['nazov'] in polozky_socfond:
@@ -297,6 +281,8 @@ def generovat_mzdove(request, zden, rekapitulacia):
                 dopc_zdroj = item['zdroj']
                 dopc_zakazka = item['zakazka']
                 dohoda_vynimka = AnoNie.ANO if item['vynimka'] == AnoNie.ANO else dohoda_vynimka    #pre prípad, že má dohodár, ktorý si uplatňuje výnimku, viac dohôd
+            if 'soc_poist_koef' in item:
+                soc_poist_koef = item["soc_poist_koef"]
 
         #Výpočet položiek (odvody, SF a DDS), ktoré sa rátajú zo sumárnych hodnôt
         #Načítať súbor s údajmi o odvodoch
@@ -314,7 +300,6 @@ def generovat_mzdove(request, zden, rekapitulacia):
                 cerpanie = cerpanie + gen_dds(poistne, osoba, zaklad_dds, zden, PlatovyVymer.td_konv(osoba, zden))
         if zaklad_socfond:
             cerpanie = cerpanie + gen_socfond(osoba, zaklad_socfond, zden)
-        vylucitelnost = False if zaklad_vylucitelnost else True
 
         if "Balo" in meno:
             #trace()
@@ -325,7 +310,7 @@ def generovat_mzdove(request, zden, rekapitulacia):
             #Dokoncit po dokoncení automatického generovanie stravného
             pass
         if zam_zdroj:
-            cerpanie = cerpanie + gen_soczdrav(poistne, osoba, "Plat", zaklad_soczdrav_zam, zden, PlatovyVymer.td_konv(osoba, zden), zam_zdroj, zam_zakazka, vylucitelnost=vylucitelnost)
+            cerpanie = cerpanie + gen_soczdrav(poistne, osoba, "Plat", zaklad_soczdrav_zam, zden, PlatovyVymer.td_konv(osoba, zden), zam_zdroj, zam_zakazka, soc_poist_koef=soc_poist_koef)
         if dovp_zdroj:
             cerpanie = cerpanie + gen_soczdrav(poistne, osoba, "DoVP", zaklad_soczdrav_dovp, zden, DoVP.td_konv(osoba, zden), dovp_zdroj, dovp_zakazka, vynimka=dohoda_vynimka)
         if dopc_zdroj:
@@ -333,10 +318,10 @@ def generovat_mzdove(request, zden, rekapitulacia):
     return cerpanie #generovat_mzdove
 
 #Generovať položky pre socialne a zdravotne poistenie
-def gen_soczdrav(poistne, osoba, typ, suma, zden, td_konv, zdroj, zakazka, vynimka=AnoNie.NIE, vylucitelnost=False):
+def gen_soczdrav(poistne, osoba, typ, suma, zden, td_konv, zdroj, zakazka, vynimka=AnoNie.NIE, soc_poist_koef=1):
     subjekt = f"{osoba.priezvisko}, {osoba.meno}"
     if typ == "Plat":
-        socpoist, _, zdravpoist, _ = poistne.ZamestnanecOdvody(-float(suma), td_konv, zden, vylucitelnost)
+        socpoist, _, zdravpoist, _ = poistne.ZamestnanecOdvody(-float(suma), td_konv, zden, soc_poist_koef)
     else:
         socpoist, _, zdravpoist, _ = poistne.DohodarOdvody(-float(suma), td_konv, zden, ODVODY_VYNIMKA if vynimka == AnoNie.ANO else 0)
     poistne=[]

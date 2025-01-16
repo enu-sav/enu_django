@@ -25,6 +25,7 @@ from .utility import NacitatUdajeFakturyTelekom
 import os,re
 from datetime import timedelta, date, datetime
 from dateutil.relativedelta import relativedelta
+from calendar import monthrange
 import numpy as np
 from ipdb import set_trace as trace
 
@@ -2078,6 +2079,7 @@ class PlatovyVymer(Klasifikacia):
         return novy
 
     #vypočíta počet dní neprítomnosti vo viacerých kategóriách
+    #Ak PP nezačína 1. deň a nekončí posledný deň v mesiaci, v dochádzke treba na tieto dni zadať NV
     def nepritomnost_za_mesiac(self, zden, pre_stravne=False):
         if zden < self.datum_od: return []
         if self.datum_do and zden > self.datum_do: return []
@@ -2095,6 +2097,7 @@ class PlatovyVymer(Klasifikacia):
         dpn1 = 0         #počet dní práceneschopnosti v dňoch 1-3. Platí sa náhrada 55 %
         dpn2 = 0         #počet dní práceneschopnosti v dňoch 4-10. Platí sa náhrada 80 %
         docr = 0         #Počet dní OČR
+        dsoc = 0        #Počet dní bez soc. poistenia. Zarátava sa PN, OČR, MD, NV
 
         pdni = int(self.uvazok/self.uvazok_denne)    #počet pracovných dní v týždni, napr. 18.85/6.25=3
         typy_nepritomnosti = []
@@ -2130,13 +2133,17 @@ class PlatovyVymer(Klasifikacia):
                     dpn1 += prekryv_dni(zden, nn.nepritomnost_od, nn.nepritomnost_od+timedelta(days=2))
                     #Dni 4 až 10, 80%
                     dpn2 += prekryv_dni(zden, nn.nepritomnost_od+timedelta(days=3), min(nn.nepritomnost_od+timedelta(days=9), posledny))
+                    dsoc += (posledny - prvy).days + 1
+                
                 elif nn.nepritomnost_typ in [TypNepritomnosti.OCR]:
                     docr += prac_dni(prvy,posledny, pdni, zahrnut_sviatky=True)    #Sviatky sa zarátajú, nie sú platené
+                    dsoc += (posledny - prvy).days + 1
                 elif nn.nepritomnost_typ in [TypNepritomnosti.MATERSKA, TypNepritomnosti.NEPLATENE]:
                     if pre_stravne:
                         dnepl += prac_dni(prvy,posledny, pdni, zahrnut_sviatky=False)    #Sviatky sa zarátajú, nie sú platené
                     else:
                         dnepl += prac_dni(prvy,posledny, pdni, zahrnut_sviatky=True)    #Sviatky sa zarátajú, nie sú platené
+                    dsoc += (posledny - prvy).days + 1
                 elif nn.nepritomnost_typ in [TypNepritomnosti.LEKARDOPROVOD, TypNepritomnosti.LEKAR]:
                     dlzka_nepritomnosti = nn.dlzka_nepritomnosti if nn.dlzka_nepritomnosti else self.uvazok_denne
                     dosob_hod = float(dlzka_nepritomnosti*prac_dni(prvy,posledny, pdni, zahrnut_sviatky=True)/self.uvazok_denne)    #Osobné prekážky vo sviatok sa nemajú čo vyskytovať
@@ -2153,7 +2160,7 @@ class PlatovyVymer(Klasifikacia):
             except TypeError:
                 raise TypeError(f"Chyba pri spracovaní platového výmeru '{self}', neprítomnosť '{nn}'")
 
-        return [typy_nepritomnosti, pdni, ddov, ddov2, dosob, dnepl, dpn1, dpn2, docr]
+        return [typy_nepritomnosti, pdni, ddov, ddov2, dosob, dnepl, dpn1, dpn2, docr, dsoc]
 
     #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
     #Mzdy sa vyplácajú spätne, t.j. v máji sa vypláca mzda za apríl
@@ -2165,7 +2172,7 @@ class PlatovyVymer(Klasifikacia):
 
         nepritomnost = self.nepritomnost_za_mesiac(zden)
         if not nepritomnost: return []
-        typy, pdni, ddov, ddov2, dosob, dnepl, dpn1, dpn2, docr = nepritomnost
+        typy, pdni, ddov, ddov2, dosob, dnepl, dpn1, dpn2, docr, dsoc = nepritomnost
         #Pridať OČR k neplateným, tu sa rátajú spolu
         dnepl += docr
         #Pripočítať poldni dovolenky
@@ -2207,6 +2214,7 @@ class PlatovyVymer(Klasifikacia):
         vtermin = vyplatny_termin(zden)
 
         #Odpracované dni
+        mdays = monthrange(zden.year, zden.month)[1]    #dní v mesiaci
         tarifny = {
                 "nazov":f"Plat tarifný plat",
                 "osoba": self.zamestnanec,
@@ -2217,7 +2225,8 @@ class PlatovyVymer(Klasifikacia):
                 "mesiac": zden,
                 "subjekt": f"{self.zamestnanec.priezvisko}, {self.zamestnanec.meno}",
                 "cislo": self.cislo if self.cislo else "-",
-                "ekoklas": self.ekoklas
+                "ekoklas": self.ekoklas,
+                "soc_poist_koef": (mdays - dsoc) / mdays 
                 }
         osobny = {
                 "nazov": f"Plat osobný príplatok",
@@ -2300,6 +2309,8 @@ class PlatovyVymer(Klasifikacia):
         if nahrada_pn: retlist.append(nahrada_pn)
         return retlist
 
+    #denný vymeriavací základ na účely výpočtu náhrady za PN.
+    #Presná hodnota sa zadáva v poli zamestnanec.vymeriavaci_zaklad (zo Softipu), inak je približná a vypíše sa upozornenie
     def urcit_VZ(self, mesiac):
         tabulkovy_plat = float(self.tarifny_plat) + float(self.osobny_priplatok) + float(self.funkcny_priplatok)
         if self.zamestnanec.vymeriavaci_zaklad:
