@@ -340,12 +340,16 @@ class CerpanieRozpoctuAdmin(ModelAdminTotals):
                 #Dotácia nemá dátum
                 idatum = item['datum'] if 'datum' in item else None
                 ident = f"{item['nazov']} {item['zdroj']} {item['zakazka']} {item['ekoklas']} {idatum}"
+                print(item)
+                if not item['zdroj']:
+                    trace()
+                    pass
                 polozky_riadok.append([item['nazov'],
                                        item['suma'],
                                        item['subjekt'] if "subjekt" in item else "",
                                        item['datum'] if "datum" in item else "",
                                        item['cislo'], 
-                                       item['zdroj'].kod,
+                                       item['zakazka'].zdroj.kod, #kód pre zdroj
                                        item['zakazka'].kod,
                                        item['ekoklas'].kod,
                                        item['ekoklas'].nazov

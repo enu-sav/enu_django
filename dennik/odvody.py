@@ -291,7 +291,7 @@ def generovat_mzdove(request, zden, rekapitulacia):
                 else: # Príspevok do DDS sa vypláca od 1. dňa mesiaca, keď bola uzatvorena dohoda
                     dds_od = date(osoba.dds_od.year, osoba.dds_od.month, 1)
                 if zden >= dds_od:
-                    cerpanie = cerpanie + gen_dds(poistne, osoba, zakazka, zaklad_dds, zden, PlatovyVymer.td_konv(osoba, zden))
+                    cerpanie = cerpanie + gen_dds(poistne, osoba, zaklad_dds, zden, PlatovyVymer.td_konv(osoba, zden))
 
             if zaklad_socfond:
                 cerpanie = cerpanie + gen_socfond(osoba, zakazka, zaklad_socfond, zden)
@@ -354,18 +354,16 @@ def gen_soczdrav(poistne, osoba, typ, suma, zden, td_konv, zakazka, vynimka=AnoN
     return poistne
 
 #Generovať položky pre DDS
-def gen_dds(poistne, zamestnanec, zakazka, suma, zden, td_konv):
+def gen_dds(poistne, zamestnanec, suma, zden, td_konv):
     subjekt = f"{zamestnanec.priezvisko}, {zamestnanec.meno}"
 
     #Vytvoriť položku pre DDS
     suma = DDS_PRISPEVOK*float(suma)/100
+    # zdroj a zakazka: prostriedky na DDS nie sú pridelované zo 610 a 620, pochádzajý zo 630, teda štandardne z '11010001 spol. zák.'
+    zakazka = TypZakazky.objects.get(kod="11010001 spol. zák.")
     dds = {
         "nazov": "DDS príspevok",
         "suma": round(Decimal(suma),2),
-        # od 1.1.2024 účtujene 627 na 46
-        # Bola to zlá interpretácia, zrušené
-        #"zdroj": Zdroj.objects.get(kod="111") if zden < date(2024,1,1) else Zdroj.objects.get(kod="46"),
-        #"zakazka": TypZakazky.objects.get(kod="11010001 spol. zák.")  if zden < date(2024,1,1) else TypZakazky.objects.get(kod="46010001"),
         "zdroj": zakazka.zdroj,
         "zakazka": zakazka,
         "datum": vyplatny_termin(zden),
