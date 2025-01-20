@@ -1397,6 +1397,8 @@ class RozpoctovaPolozkaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistory
 
 @admin.register(RozpoctovaPolozkaDotacia)
 class RozpoctovaPolozkaDotaciaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
+    #Help text s postupom na opravu dotácie
+    change_list_template = 'admin/uctovnictvo/RozpoctovaPolozkaDotacia/change_list.html'
     form = RozpoctovaPolozkaDotaciaForm
     list_display = ["cislo", "suma", "za_rok",  "rozpoctovapolozka_link", "poznamka", "zdroj", "zakazka", "ekoklas"]
     search_fields = ["cislo", "za_rok", "^zdroj__kod", "rozpoctovapolozka__cislo", "^zakazka__kod", "^ekoklas__kod", "^cinnost__kod" ]
@@ -1405,7 +1407,7 @@ class RozpoctovaPolozkaDotaciaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, Simple
         ('suma', Sum),
     ]
     def get_readonly_fields(self, request, obj=None):
-        return [ "cislo", "za_rok", "suma", "ekoklas", "zakazka", "zdroj", "cinnost"] if obj else []
+        return [ "cislo"] if obj else []
 
     # Zoradiť položky v pulldown menu
     def formfield_for_foreignkey(self, db_field, request, **kwargs):

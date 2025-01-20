@@ -1728,7 +1728,10 @@ class RozpoctovaPolozkaDotacia(Klasifikacia):
                 cinnost=self.cinnost,
                 ekoklas=self.ekoklas
             )
-        self.rozpoctovapolozka = qs[0]
+        if not qs:
+            raise ValidationError({'suma': "Zrejme ste zdali zápornú sumu pre zatiaľ neexistujúcu rozpočtovú položku. Opravte ju."})
+        else:
+            self.rozpoctovapolozka = qs[0]
 
     class Meta:
         verbose_name = 'Dotácia'
