@@ -1,10 +1,6 @@
 {% extends "admin/change_list.html" %}
 {% load i18n %}
 
-{% block content %}
-    {{ block.super }}
-{% endblock %}
-
 {% block content_title %}
     <h1>{{ cl.opts.verbose_name_plural|capfirst }}</h1>
     <p class="help"><strong>Ak potrebujete opraviť údaje dotácie</strong>:
@@ -13,5 +9,9 @@
         <li>Znova otvorte dotáciu, zadajte novú sumu alebo len zmeňte znamienko sumy, opravte chybné položky a uložte. </li>
     </ol>
     </p>
+{% endblock %}
+
+{% block content %}
+    {{ block.super }}
 {% endblock %}
 
