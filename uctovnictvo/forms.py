@@ -409,7 +409,7 @@ class PravidelnaPlatbaForm(forms.ModelForm):
                 datumvytvorenia = date.today(),
                 typdokumentu = TypDokumentu.PPLATBA,
                 inout = InOut.ODOSLANY,
-                adresat = "THS",
+                adresat = settings.UCTAREN_NAME,
                 vec = f'<a href="{self.instance.platobny_prikaz.url}">{vec}</a>',
                 prijalodoslal=self.request.user.username, #zámena mien prijalodoslal - zaznamvytvoril
             )
@@ -963,7 +963,7 @@ class NajomneFakturaForm(forms.ModelForm):
                 datumvytvorenia = date.today(),
                 typdokumentu = TypDokumentu.NAJOMNE,
                 inout = InOut.ODOSLANY,
-                adresat = "THS",
+                adresat = settings.UCTAREN_NAME,
                 vec = f'<a href="{self.instance.platobny_prikaz.url}">{vec}</a>',
                 prijalodoslal=self.request.user.username, #zámena mien prijalodoslal - zaznamvytvoril
             )
