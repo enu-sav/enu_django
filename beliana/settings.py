@@ -301,5 +301,6 @@ HEAD_NAME=os.environ['HEAD_NAME']
 HEAD_ROLE=os.environ['HEAD_ROLE']
 #kontaktná osoba v učtárni
 UCTAREN_NAME=os.environ['UCTAREN_NAME']
+MZDOVAUCTAREN_NAME=os.environ['MZDOVAUCTAREN_NAME']
 
 mimetypes.add_type("application/vnd.oasis.opendocument.text", ".fodt", True)

@@ -447,7 +447,7 @@ class PrispevokNaStravneForm(DennikZaznam):
     def clean(self): 
         if self.instance.po_zamestnancoch: #Sumárna neprítomnosť
             if 'datum_odoslania' in self.changed_data:
-                self.dennik_zaznam(f"Stravné {self.instance.cislo}.", TypDokumentu.PSTRAVNE, InOut.ODOSLANY, "Mzdová učtáreň", self.instance.po_zamestnancoch.url)
+                self.dennik_zaznam(f"Stravné {self.instance.cislo}.", TypDokumentu.PSTRAVNE, InOut.ODOSLANY, settings.MZDOVAUCTAREN_NAME, self.instance.po_zamestnancoch.url)
 
 class AutorskeZmluvyForm(forms.ModelForm):
     #inicializácia polí
@@ -631,7 +631,7 @@ class OdmenaOpravaForm(DennikZaznam):
     # Skontrolovať platnost a keď je všetko OK, spraviť záznam do denníka
     def clean(self):
         if 'datum_kl' in self.changed_data:
-            self.dennik_zaznam(f"Odmena/oprava č. {self.instance.cislo}.", TypDokumentu.ODMENA_OPRAVA, InOut.ODOSLANY, "Mzdová učtáreň", self.instance.subor_kl.url)
+            self.dennik_zaznam(f"Odmena/oprava č. {self.instance.cislo}.", TypDokumentu.ODMENA_OPRAVA, InOut.ODOSLANY, settings.MZDOVAUCTAREN_NAME, self.instance.subor_kl.url)
         if 'cislo' in self.changed_data:
             if not self.cleaned_data['cislo'][:2] == OdmenaOprava.oznacenie:
                 raise ValidationError({"cislo": f"Nesprávne číslo. Zadajte číslo v tvare {OdmenaOprava.oznacenie}-RRRR-NNN"})
@@ -787,7 +787,7 @@ class NepritomnostForm(DennikZaznam):
             if 'datum_odoslania' in self.changed_data and not self.instance.subor_nepritomnost_exp:
                 raise ValidationError({"datum_odoslania": "Dátum odoslania možno vyplniť až po vygenerovaní súboru s neprítomnosťou akciou 'Exportovať neprítomnosť pre učtáreň'."})
             if 'datum_odoslania' in self.changed_data:
-                self.dennik_zaznam(f"Neprítomnosť č. {self.instance.cislo}.", TypDokumentu.NEPRITOMNOST, InOut.ODOSLANY, "Mzdová učtáreň", self.instance.subor_nepritomnost_exp.url)
+                self.dennik_zaznam(f"Neprítomnosť č. {self.instance.cislo}.", TypDokumentu.NEPRITOMNOST, InOut.ODOSLANY, settings.MZDOVAUCTAREN_NAME, self.instance.subor_nepritomnost_exp.url)
         else: #Individuálna neprítomnosť:
             if self.cleaned_data["nepritomnost_typ"] in [TypNepritomnosti.LEKAR, TypNepritomnosti.LEKARDOPROVOD] and not self.cleaned_data["dlzka_nepritomnosti"]:
                 zamestnanec = self.cleaned_data["zamestnanec"]
