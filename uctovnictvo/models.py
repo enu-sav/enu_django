@@ -1768,8 +1768,6 @@ class RozpoctovaPolozkaPresun(models.Model):
     def clean(self): 
         rok_zdroj = int(re.findall(r"-(....)-", self.presun_zdroj.cislo)[0])
         rok_ciel = int(re.findall(r"-(....)-", self.presun_ciel.cislo)[0])
-        if rok_zdroj != rok_ciel:
-            raise ValidationError("Prenos medzi rokmi nie je povolený")
         if self.suma < 0:
             raise ValidationError("Suma musí byť kladná")
         if self.presun_zdroj.suma - self.suma < 0:
