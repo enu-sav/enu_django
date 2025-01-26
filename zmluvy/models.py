@@ -44,13 +44,35 @@ class PersonCommon(models.Model):
     bankovy_kontakt = models.CharField("Bankový kontakt", 
             help_text = "Zadajte IBAN účtu autora (s medzerami po štvoriciach).",
             max_length=200, null=True, blank=True)
-    adresa_ulica = models.CharField("Adresa – ulica a číslo domu", max_length=200, null=True, blank=True)
-    adresa_mesto = models.CharField("Adresa – PSČ a mesto", max_length=200, null=True, blank=True)
+    adresa_ulica = models.CharField("Adresa – ulica a číslo domu", 
+                                    help_text = "Vyplňte, len ak obec <strong>má ulice</strong>, inak nechajte prázdne",
+                                    max_length=200, 
+                                    null=True, 
+                                    blank=True)
+    adresa_mesto = models.CharField("Adresa – PSČ a obec", 
+                                    help_text = "Ak obec <strong>nemá ulice</strong>, zadajte aj číslo domu, napr. <em>059 60 Tatranská Lomnica 135</em>",
+                                    max_length=200, 
+                                    null=True, 
+                                    blank=True)
     adresa_stat = models.CharField("Adresa – štát", max_length=100, null=True, blank=True)
-    koresp_adresa_institucia = models.CharField("Korešpondenčná adresa – institucia", max_length=200, null=True, blank=True)
-    koresp_adresa_ulica = models.CharField("Korešpondenčná adresa – ulica a číslo domu", max_length=200, null=True, blank=True)
-    koresp_adresa_mesto = models.CharField("Korešpondenčná adresa – PSČ a mesto", max_length=200, null=True, blank=True)
-    koresp_adresa_stat = models.CharField("Korešpondenčná adresa – štát", max_length=100, null=True, blank=True)
+    koresp_adresa_institucia = models.CharField("Korešpondenčná adresa – institucia", 
+                                    max_length=200, 
+                                    null=True, 
+                                    blank=True)
+    koresp_adresa_ulica = models.CharField("Korešpondenčná adresa – ulica a číslo domu", 
+                                    help_text = "Vyplňte, len ak obec <strong>má ulice</strong>, inak nechajte prázdne",
+                                    max_length=200, 
+                                    null=True, 
+                                    blank=True)
+    koresp_adresa_mesto = models.CharField("Korešpondenčná adresa – PSČ a obec", 
+                                    help_text = "Ak obec <strong>nemá ulice</strong>, zadajte aj číslo domu, napr. <em>059 60 Tatranská Lomnica 135</em>",
+                                    max_length=200, 
+                                    null=True, 
+                                    blank=True)
+    koresp_adresa_stat = models.CharField("Korešpondenčná adresa – štát", 
+                                    max_length=100, 
+                                    null=True, 
+                                    blank=True)
     datum_aktualizacie = models.DateField('Dátum aktualizácie', auto_now=True)
     class Meta:
         abstract = True
