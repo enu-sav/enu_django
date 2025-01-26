@@ -439,6 +439,8 @@ class PlatbaAutorskaOdmenaAdmin(PlatbaAdmin):
     podpis.admin_order_field = 'autor__datum_dohoda_podpis'
 
     def oznamenie(self, obj):
+        if obj.autor.rezident == AnoNie.NIE:
+            return "Nerezident"
         if obj.autor.datum_dohoda_podpis:
             if obj.autor.datum_dohoda_oznamenie:
                 return obj.autor.datum_dohoda_oznamenie.strftime('%Y-%m-%d')
