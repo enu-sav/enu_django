@@ -168,19 +168,19 @@ def VyplnitAVygenerovatAHZrazena(formular, sablona, iws, hdr):
             osoby[ident]["datum_dohoda_podpis"] = osoba.datum_dohoda_podpis
             osoby[ident]["datum_dohoda_oznamenie"] = osoba.datum_dohoda_oznamenie
             osoby[ident]["dohodasubor"] = osoba.dohodasubor
-            osoby[ident]["rezident"] = osoba.rezident           #Q
-            osoby[ident]["zdanit"] = osoba.zdanit               #R
+            osoby[ident]["rezident"] = osoba.rezident           #R
+            osoby[ident]["zdanit"] = osoba.zdanit               #S
             osoby[ident]["zhonor"] = 0
             osoby[ident]["zfond"] = 0
-            osoby[ident]["z_dane"] = 0                                 #T
-            osoby[ident]["dan"] = 0                                    #U
-            osoby[ident]["zvypl"] = 0                                  #V
+            osoby[ident]["z_dane"] = 0                                 #U
+            osoby[ident]["dan"] = 0                                    #V
+            osoby[ident]["zvypl"] = 0                                  #Z
             osoby[ident]["nhonor"] = 0
             osoby[ident]["nfond"] = 0
             osoby[ident]["nvypl"] = 0
-            osoby[ident]["T1"] = f'=OR(Q{nn}="nie";R{nn}="nie")'    #AA
-            osoby[ident]["T2"] = f'=U{nn}=0'                           #AB
-            osoby[ident]["Test"] = f'=AA{nn}=AB{nn}'                   #AC
+            osoby[ident]["T1"] = f'=OR(R{nn}="nie";S{nn}="nie")'       #AB
+            osoby[ident]["T2"] = f'=V{nn}=0'                           #AC
+            osoby[ident]["Test"] = f'=AB{nn}=AC{nn}'                   #AD
             nn += 1
         osoby[ident]["obdobie"] += f"{platba.cislo} "
         if platba.odvedena_dan:
@@ -365,7 +365,7 @@ def VytvoritPodaciHarok(data, typlistu, trieda, hmotnost):
         if not split:
             split = re.findall(r'([0-9]{4}) (.*)', pscmesto)
         if not split:
-            raise ValidationError(f"Autor {item[0]} nemá správne zadané PSČ a mesto (XXX XX mesto) alebe nie je zadaný štát. Dokumenty neboli vygenerované.")
+            raise ValidationError(f"Autor {item[0]} nemá správne zadané PSČ a mesto (XXX XX mesto) alebo nie je zadaný štát. Dokumenty neboli vygenerované.")
         psc, mesto = split[0]
         if len(item) == 3:  # 'meno priezvisko', '908 74 Malé Leváre 182', 'Slovenská republika'
             ulica = mesto
