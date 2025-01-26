@@ -5,7 +5,7 @@ from beliana import settings
 from django.utils import timezone
 from django.contrib import messages
 from ipdb import set_trace as trace
-from .models import SystemovySubor, OsobaAutor, AnoNie
+from .models import SystemovySubor, OsobaAutor, AnoNie, valid_rodne_cislo
  
 from openpyxl import load_workbook
 from openpyxl.styles import Font, Color, colors, Alignment, PatternFill , numbers
@@ -46,21 +46,6 @@ def transliterate(text):
     for i,c in enumerate(text.strip(" ")):
         t += oo[ii.find(c)]
     return t.replace("-","")
-
-# musí mať 9 alebo 10 znakov (bez lomky)
-# Ak má 10 znakov, musí byť deliteľné 11 bezo zvyšku
-def valid_rodne_cislo(rc):
-    if not rc: return False
-    #dátum narodenia (cudzinci) je OK
-    if "." in rc:
-        return True
-    rc = rc.replace("/","")
-    if len(rc) == 9:
-        return True
-    if len(rc) == 10:
-        return not int(rc)%11
-    else:
-        return False
 
 
 # konvertuje cislo v tvare XY0 do textoveho retazca

@@ -7,6 +7,7 @@ from zmluvy.storage import OverwriteStorage
 from django.utils.safestring import mark_safe
 from django.urls import reverse
 from django.db.models import Max
+from django.core.exceptions import ValidationError
 
 from beliana.settings import CONTRACTS_DIR_NAME, RLTS_DIR_NAME, TMPLTS_DIR_NAME, TAX_AGMT_DIR_NAME
 import os,re
@@ -77,6 +78,23 @@ class PersonCommon(models.Model):
     class Meta:
         abstract = True
 
+
+# Test rodného čísla
+# musí mať 9 alebo 10 znakov (bez lomky)
+# Ak má 10 znakov, musí byť deliteľné 11 bezo zvyšku
+def valid_rodne_cislo(rc):
+    if not rc: return False
+    #dátum narodenia (cudzinci) je OK
+    if "." in rc:
+        return True
+    rc = rc.replace("/","")
+    if len(rc) == 9:
+        return True
+    if len(rc) == 10:
+        return not int(rc)%11
+    else:
+        return False
+
 # spol. s r. o., alebo iné, majú 
 #class PartnerOrganizacia(PersonCommon)L
 
@@ -94,7 +112,7 @@ class FyzickaOsoba(PersonCommon):
     priezvisko = models.CharField("Priezvisko", max_length=200)
     titul_za_menom = models.CharField("Titul za menom", max_length=100, null=True, blank=True)     #optional
     rodne_cislo = models.CharField("Rodné číslo", 
-            help_text = "Občania SR: rodné číslo, inak dátum narodenia ",
+            help_text = "Rezidenti SR: rodné číslo, inak dátum narodenia ",
             max_length=20, 
             null=True, 
             blank=True) 
@@ -177,6 +195,9 @@ class OsobaAutor (OsobaAuGaKo):
         if not self.var_symbol:
             _id = self.id if self.id else OsobaAutor.objects.aggregate(Max('id'))['id__max']+1
             self.var_symbol = "%05d"%_id
+        if self.rezident == AnoNie.ANO:
+            if "." in self.rodne_cislo or not valid_rodne_cislo(self.rodne_cislo):
+                raise ValidationError({"rodne_cislo": f"Osoba je rezident SR, ale '{self.rodne_cislo}' nie je platné rodné číslo. Vložte platné rodné číslo."})
     class Meta:
         verbose_name = 'Autor'
         verbose_name_plural = 'Autori'
