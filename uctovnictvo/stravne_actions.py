@@ -112,7 +112,7 @@ def generovatStravne_do_03_2024(polozka):
             #dlhodobá neprítomnost
             #bez_stravneho_od brat do úvahy len vtedy, keď aktuálne známa neprítomnost je celý mesiac 
             nepritomnost = vymer.nepritomnost_za_mesiac(mesiac_prispevku, pre_stravne = True)
-            typy, pdni, ddov, ddov2, dosob, dnepl, dpn1, dpn2, docr = nepritomnost
+            typy, pdni, ddov, ddov2, dosob, dnepl, dpn1, dpn2, docr, dsoc = nepritomnost
             if dnepl == pocet_prac_dni: #podmienka nevyplácania
                 if vymer.zamestnanec.nevyplacat_stravne(mesiac_prispevku):
                     bez_prispevku.append(vymer.zamestnanec)
@@ -144,7 +144,7 @@ def generovatStravne_do_03_2024(polozka):
             # Počet pracovných dní v aktuálnom mesiaci
             pocet_prac_dni = prac_dni(od, do, ppd=0 if vymer.uvazok > 37 else 3)
             nepritomnost = vymer.nepritomnost_za_mesiac(mesiac_prispevku, pre_stravne = True)
-            typy, pdni, ddov, ddov2, dosob, dnepl, dpn1, dpn2, docr = nepritomnost
+            typy, pdni, ddov, ddov2, dosob, dnepl, dpn1, dpn2, docr, dsoc = nepritomnost
             if dnepl == pocet_prac_dni and vymer.zamestnanec.nevyplacat_stravne(mesiac_prispevku):
                 pocet_dni = 0
             else:
@@ -294,7 +294,7 @@ def generovatStravne_od_04_2024(polozka):
         #dlhodobá neprítomnost
         #bez_stravneho_od brať do úvahy len vtedy, keď aktuálne známa neprítomnost je celý mesiac 
         nepritomnost = vymer.nepritomnost_za_mesiac(mesiac_prispevku, pre_stravne = True)
-        typy, pdni, ddov, ddov2, dosob, dnepl, dpn1, dpn2, docr = nepritomnost
+        typy, pdni, ddov, ddov2, dosob, dnepl, dpn1, dpn2, docr, dsoc = nepritomnost
         if dnepl == pocet_prac_dni: #nutná podmienka nevyplácania
             if vymer.zamestnanec.nevyplacat_stravne(mesiac_prispevku):
                 bez_prispevku.append(vymer.zamestnanec)
@@ -326,7 +326,7 @@ def generovatStravne_od_04_2024(polozka):
         # Počet pracovných dní v aktuálnom mesiaci
         pocet_prac_dni = prac_dni(od, do, ppd=0 if vymer.uvazok > 37 else 3)
         nepritomnost = vymer.nepritomnost_za_mesiac(mesiac_zrazky, pre_stravne = True)
-        typy, pdni, ddov, ddov2, dosob, dnepl, dpn1, dpn2, docr = nepritomnost
+        typy, pdni, ddov, ddov2, dosob, dnepl, dpn1, dpn2, docr, dsoc = nepritomnost
         if dnepl == pocet_prac_dni and vymer.zamestnanec.nevyplacat_stravne(mesiac_zrazky):
             bez_zrazky.append(vymer.zamestnanec)
             pocet_dni = 0
