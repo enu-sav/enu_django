@@ -660,6 +660,12 @@ class Dodavatel(PersonCommon):
             help_text = "Uveďte 'Áno', ak dodávateľ fakturuje s DPH, inak uveďte 'Nie'",
             null = True,
             choices=AnoNie.choices)
+    sadzbadph = models.CharField("Sadzba DPH", 
+            max_length=10, 
+            help_text = "Uveďte sadzbu DPH, ktorú dodávateľ účtuje.",
+            null = True,
+            blank = True,
+            choices=SadzbaDPH.choices)
     history = HistoricalRecords()
     class Meta:
         verbose_name = 'Dodávateľ'

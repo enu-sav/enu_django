@@ -17,7 +17,7 @@ from .models import Dohoda, DoVP, DoPC, DoBPS, AnoNie, PlatovyVymer, Vybavovatel
 from .models import ZamestnanecDohodar, Zamestnanec, Dohodar, StavDohody, PravidelnaPlatba
 from .models import Najomnik, NajomnaZmluva, NajomneFaktura, TypPP, TypPN, Cinnost
 from .models import InternyPartner, InternyPrevod, Nepritomnost, RozpoctovaPolozka, RozpoctovaPolozkaDotacia
-from .models import RozpoctovaPolozkaPresun, PlatbaBezPrikazu, Pokladna, TypPokladna, SadzbaDPH
+from .models import RozpoctovaPolozkaPresun, PlatbaBezPrikazu, Pokladna, TypPokladna
 from .models import nasledujuce_cislo, nasledujuce_VPD, SocialnyFond, PrispevokNaRekreaciu, OdmenaOprava, OdmenaAleboOprava
 from .models import TypNepritomnosti, Stravne, VystavenaFaktura, NakupSUhradou, FormaUhrady, UcetUctovnejOsnovy
 
@@ -34,7 +34,7 @@ from .forms import DoPCForm, DoVPForm, DoBPSForm
 from .forms import InternyPrevodForm, NepritomnostForm, RozpoctovaPolozkaDotaciaForm, RozpoctovaPolozkaPresunForm, RozpoctovaPolozkaForm
 from .forms import PokladnaForm, SocialnyFondForm, PrispevokNaRekreaciuForm, OdmenaOpravaForm, VystavenaFakturaForm, NakupSUhradouForm 
 from .rokydni import datum_postupu, vypocet_prax, vypocet_zamestnanie, postup_roky, roky_postupu
-from beliana.settings import DPH, MEDIA_ROOT, MEDIA_URL, UVAZOK_TYZDENNE, DEPLOY_STATE, UCTAREN_NAME
+from beliana.settings import MEDIA_ROOT, MEDIA_URL, UVAZOK_TYZDENNE, DEPLOY_STATE, UCTAREN_NAME
 from dennik.models import Dokument, TypDokumentu, InOut
 
 #zobrazenie histórie
@@ -143,7 +143,7 @@ class CinnostAdmin(ZobrazitZmeny, SimpleHistoryAdmin, ImportExportModelAdmin):
 
 @admin.register(Dodavatel)
 class DodavatelAdmin(ZobrazitZmeny, SimpleHistoryAdmin, ImportExportModelAdmin):
-    list_display = ("nazov", "s_danou", "bankovy_kontakt", "adresa") 
+    list_display = ("nazov", "s_danou", "sadzbadph", "bankovy_kontakt", "adresa") 
     search_fields = ("nazov",)
     def adresa(self, obj):
         if obj.adresa_mesto:
