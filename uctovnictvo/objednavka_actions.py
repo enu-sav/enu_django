@@ -4,7 +4,7 @@ from ipdb import set_trace as trace
 
 from django.conf import settings
 from django.contrib import messages
-from .models import SystemovySubor, AnoNie, Objednavka
+from .models import SystemovySubor, AnoNie, Objednavka, SadzbaDPH
 from django.core.exceptions import ValidationError
 
 from openpyxl import load_workbook
@@ -33,12 +33,32 @@ def OtvoritSablonuObjednavky():
     workbook = load_workbook(filename=nazov_suboru)
     return workbook
 
+#Určiť sadzbu DPH pre objednávku
+def sadzba_dph(objednavka):
+    rok = int(objednavka.cislo.split("-")[1])
+    if objednavka.dodavatel:    #Ak je zadaný dodávateľ
+        if objednavka.dodavatel.s_danou == AnoNie.ANO:
+            if objednavka.dodavatel.sadzbadph:  #Ak má dodávateľ zadanú sadzbu
+                sadzba_dph_text = SadzbaDPH(objednavka.dodavatel.sadzbadph).label
+                dph = 1+float(objednavka.dodavatel.sadzbadph)/100
+            else:   #Ak nemá dodávateľ zadanú sadzbu
+                sadzba_dph_text = f"{settings.DPH(rok)} %"
+                dph = 1+settings.DPH(rok)/100
+        else:
+            sadzba_dph_text = AnoNie(objednavka.dodavatel.s_danou).label
+            dph = 1
+    else:   #Ak nie je zadaný dodávateľ
+        sadzba_dph_text = f"{settings.DPH(rok)} %"
+        dph = 1+settings.DPH(rok)/100
+    return sadzba_dph_text, dph
+
 def VytvoritSuborObjednavky(objednavka, username):
     sn = "<br /><strong>Súbor objednávky nebol vygenerovaný.</strong>"
     co = "Chyba v poli Objednané položky"
     def VyplnitHarok(ws_obj, objednavka, oddelovac):
         prvy_riadok = 15 #prvy riadok tabulky
-        dph = 1+settings.DPH/100
+
+        sadzba_dph_text, dph = sadzba_dph(objednavka)
 
         ws_obj["A3"].value = ws_obj["A3"].value.replace("[[cislo]]",objednavka.cislo[2:])
         ws_obj["B6"].value = objednavka.vybavuje2.osoba.menopriezvisko(True)
@@ -50,7 +70,7 @@ def VytvoritSuborObjednavky(objednavka, username):
         ws_obj["D7"].value = objednavka.dodavatel.adresa_ulica
         ws_obj["D8"].value = objednavka.dodavatel.adresa_mesto
         ws_obj["D9"].value = objednavka.dodavatel.adresa_stat
-        ws_obj["D10"].value = f"Účtované s DPH: {AnoNie(objednavka.dodavatel.s_danou).label}"
+        ws_obj["D10"].value = f"Účtované s DPH: {sadzba_dph_text}"
     
         #položky
         add_sum = True  # či s má do posledného riadka vložiť súčet
@@ -225,7 +245,7 @@ def VytvoritSuborZiadanky(objednavka, username):
     ws_zak = workbook["Žiadanka"]
     prvy_riadok = 13 #prvy riadok tabulky
 
-    dph = 1+settings.DPH/100
+    sadzba_dph_text, dph = sadzba_dph(objednavka)
 
     ws_zak["A3"].value = ws_zak["A3"].value.replace("[[cislo]]",objednavka.cislo[2:])
     if objednavka.ziadatel:
@@ -240,7 +260,7 @@ def VytvoritSuborZiadanky(objednavka, username):
         ws_zak["D7"].value = objednavka.dodavatel.adresa_ulica
         ws_zak["D8"].value = objednavka.dodavatel.adresa_mesto
         ws_zak["D9"].value = objednavka.dodavatel.adresa_stat
-        ws_zak["D10"].value = f"Účtované s DPH: {AnoNie(objednavka.dodavatel.s_danou).label}"
+        ws_zak["D10"].value = f"Účtované s DPH: {sadzba_dph_text}"
     
     #položky
     ws_zak[f"B{prvy_riadok}"].value = objednavka.objednane_polozky.replace("\r\n", ", ")
