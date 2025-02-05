@@ -592,7 +592,7 @@ class PlatovaRekapitulaciaAdmin(ModelAdminTotals):
             rok, mesiac = za_mesiac.identifikator.split("-")
             rok = int(rok)
             mesiac = int(mesiac)
-            stravne_od_2024_04 = (rok >= 2024 and mesiac >= 4)
+            stravne_od_2024_04 = (rok >= 2025 or rok >= 2024 and mesiac >= 4)
 
             ws = wb.create_sheet(title=za_mesiac.identifikator)
             zapisat_riadok(ws, fw, 1, ["Položka", "Zákazka", "Mzdová učtáreň", "Django", "Rozdiel C-D"], header=True) 
