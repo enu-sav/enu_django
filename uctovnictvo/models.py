@@ -2641,6 +2641,7 @@ class PrispevokNaRekreaciu(Klasifikacia):
     #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
     def cerpanie_rozpoctu(self, zden):
         zobdobie = "%02d/%d"%(zden.month,zden.year)
+        if not self.vyplatene_v_obdobi: return []
         if zobdobie != self.vyplatene_v_obdobi: return []
         platba = {
                 "nazov": "Príspevok na rekreáciu",
