@@ -2710,10 +2710,6 @@ class Dohoda(PolymorphicModel, Klasifikacia):
             help_text = "Dátum odoslania podkladov na vyplatenie, vypĺňa sa automaticky pri vyplnení položky 'PAM Vyplatenie dohody'",
             null = True, blank = True,
             max_length=200)
-    dalsie_podmienky = models.CharField("Ďalšie podmienky",
-            help_text = "Ďalšie dohodnuté podmienky (napr. náhrada cestovných výdavkov, výkaz prác a odpracovaných hodín, dohoda o hmotnej zodpovednosti a iné) podľa § 224 Zákonníka práce", 
-            null = True, blank = True,
-            max_length=200)
     subor_dohody = models.FileField("Vygenerovaná dohoda",
             help_text = "Súbor s textom dohody. Generuje sa akciou 'Vytvoriť subor dohody'",
             upload_to=dohoda_upload_location, 
