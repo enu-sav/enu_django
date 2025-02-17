@@ -1585,9 +1585,9 @@ class SystemovySuborAdmin(ZobrazitZmeny, admin.ModelAdmin):
 
 @admin.register(Dohodar)
 class DohodarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
-    list_display = ("priezvisko", "meno", "rod_priezvisko", "suborpriloha", "email", "rodne_cislo", "datum_nar", "miesto_nar", "adresa", "_dochodok", "_ztp","poistovna", "cop", "stav")
+    list_display = ("priezvisko", "meno", "rod_priezvisko", "suborpriloha", "email", "bankovy_kontakt", "rodne_cislo", "datum_nar", "miesto_nar", "adresa", "_dochodok", "_ztp","poistovna", "cop", "stav")
     # ^: v poli vyhľadávať len od začiatku
-    search_fields = ["priezvisko", "meno"]
+    search_fields = ["priezvisko", "meno", "bankovy_kontakt"]
     def adresa(self, obj):
         if obj.adresa_mesto:
             return f"{obj.adresa_ulica} {obj.adresa_mesto}, {obj.adresa_stat}".strip()
@@ -1787,6 +1787,7 @@ class DoPCAdmin(DohodaAdmin):
         list_display = ("cislo", "zmluvna_strana_link", "odmena_mesacne", "hod_mesacne", "datum_ukoncenia", "poznamka" )
         return list_display + super(DoPCAdmin, self).get_list_display(request)
     def get_readonly_fields(self, request, obj=None):
+        return []
         # polia rodičovskej triedy
         ro_parent = super(DoPCAdmin, self).get_readonly_fields(request, obj)
         if not obj:
