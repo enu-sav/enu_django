@@ -583,7 +583,7 @@ class PlatovaRekapitulaciaAdmin(ModelAdminTotals):
         ws_prehlad.column_dimensions["C"].width = 17
         ws_prehlad.column_dimensions["D"].width = 17
         ws_prehlad.column_dimensions["E"].width = 17
-        ws_prehlad.column_dimensions["E"].width = 17
+        ws_prehlad.column_dimensions["F"].width = 17
         harky={}
         fw ={}  #Šírka poľa
         zapisat_riadok(ws_prehlad, fw, 1, ["Mesiac", "Zákazka", "Mzdová učtáreň", "Django", "Rozdiel mínus", "Rozdiel plus"], header=True) 
@@ -595,7 +595,7 @@ class PlatovaRekapitulaciaAdmin(ModelAdminTotals):
             stravne_od_2024_04 = (rok >= 2025 or rok >= 2024 and mesiac >= 4)
 
             ws = wb.create_sheet(title=za_mesiac.identifikator)
-            zapisat_riadok(ws, fw, 1, ["Položka", "Zákazka", "Mzdová učtáreň", "Django", "Rozdiel C-D"], header=True) 
+            zapisat_riadok(ws, fw, 1, ["Položka", "Názov z pdf", "Zákazka", "Mzdová učtáreň", "Django", "Rozdiel D-E"], header=True) 
 
             pdftext = pdftext_vsetky[za_mesiac.identifikator]
 
@@ -631,10 +631,11 @@ class PlatovaRekapitulaciaAdmin(ModelAdminTotals):
                     if (not zakazka in pdftext) or (not stravne_od_2024_04 and polozka == "Stravné zamestnávateľ") or (stravne_od_2024_04 and polozka == "Stravné príspevok"):
                         zapisat = [
                             polozka + f" {polozky[polozka][2]}", 
+                            polozky[polozka][0],
                             zakazka,
                             0,
                             0,
-                            f"=C{nn_blok+nn}-D{nn_blok+nn}"
+                            f"=D{nn_blok+nn}-E{nn_blok+nn}"
                             ]
                         zapisat_riadok(ws, fw, nn_blok+nn, zapisat)
                         continue
@@ -645,10 +646,11 @@ class PlatovaRekapitulaciaAdmin(ModelAdminTotals):
                         z_databazy = -round(Decimal(sumarne[zakazka][polozka]),2) if polozka in sumarne[zakazka] else 0
                         zapisat = [
                             polozka + f" {polozky[polozka][2]}", 
+                            polozky[polozka][0],
                             zakazka,
                             zo_suboru,
                             z_databazy,
-                            f"=C{nn_blok+nn}-D{nn_blok+nn}"
+                            f"=d{nn_blok+nn}-E{nn_blok+nn}"
                             ]
                         zapisat_riadok(ws, fw, nn_blok+nn, zapisat)
                         if  zo_suboru-z_databazy < 0:
@@ -656,8 +658,13 @@ class PlatovaRekapitulaciaAdmin(ModelAdminTotals):
                         else: 
                             rozdiel_plus = max(rozdiel_plus, zo_suboru-z_databazy)
                     else:
-                        zapisat_riadok(ws, fw, nn_blok+nn, [polozka +  f" {polozky[polozka][2]}", zakazka])
-                zapisat_riadok(ws, fw, nn_blok+nn+1, ["Spolu", zakazka, f"=sum(C{nn_blok}:C{nn_blok+nn}",f"=sum(D{nn_blok}:D{nn_blok+nn}",f"=sum(E{nn_blok}:E{nn_blok+nn}"])
+                        zapisat = [
+                                polozka +  f" {polozky[polozka][2]}", 
+                                polozky[polozka][0],
+                                zakazka
+                                ]
+                        zapisat_riadok(ws, fw, nn_blok+nn, zapisat)
+                zapisat_riadok(ws, fw, nn_blok+nn+1, ["Spolu", "", zakazka, f"=sum(D{nn_blok}:D{nn_blok+nn}",f"=sum(E{nn_blok}:E{nn_blok+nn}",f"=sum(F{nn_blok}:F{nn_blok+nn}"])
                 for cc in fw:
                     ws.column_dimensions[get_column_letter(cc+1)].width = fw[cc]
                 zapisat_riadok(ws_prehlad, fw, qn*len(typ_zakazky)+2+zn, [za_mesiac.identifikator, zakazka, f"='{za_mesiac.identifikator}'!C{(1+zn)*(len(polozky)+2)}", f"='{za_mesiac.identifikator}'!D{(1+zn)*(len(polozky)+2)}", rozdiel_minus, rozdiel_plus])
@@ -674,26 +681,26 @@ class PlatovaRekapitulaciaAdmin(ModelAdminTotals):
         fs = wsheets[0]
         ls = wsheets[-1]
         ws = wb.create_sheet(title="Spolu")
-        zapisat_riadok(ws, fw, 1, ["Položka", "Zákazka", "Mzdová učtáreň", "Django", "Rozdiel C-D"], header=True) 
+        zapisat_riadok(ws, fw, 1, ["Položka", "Názov z pdf", "Zákazka", "Mzdová učtáreň", "Django", "Rozdiel E-D"], header=True) 
         #podľa prvého dátového hárka
         ws1 = wb[fs]
         row = 2
-        ws.column_dimensions["A"].width = 35
-        ws.column_dimensions["B"].width = 15
-        ws.column_dimensions["C"].width = 15
-        ws.column_dimensions["D"].width = 15
-        ws.column_dimensions["E"].width = 15
+        # preniesť rozmery z ws1
+        for col in "ABCDEF":
+            ws.column_dimensions[col].width = ws1.column_dimensions[col].width
         while ws1[f"A{row}"].value or ws1[f"A{row+1}"].value:
             #=$'2023-01'.A2
             if ws1[f"A{row}"].value:
                 ws[f"A{row}"].value = f"='{fs}'!A{row}"
                 ws[f"B{row}"].value = f"='{fs}'!B{row}"
+                ws[f"C{row}"].value = f"='{fs}'!C{row}"
                 #=SUM($'2023-01'.B2:$'2023-03'.B2)
-                ws[f"c{row}"].value = f"=SUM('{fs}'!C{row}:'{ls}'!C{row})"
-                ws[f"d{row}"].value = f"=SUM('{fs}'!D{row}:'{ls}'!D{row})"
-                ws[f"e{row}"].value = f"=c{row}-d{row}"
+                ws[f"D{row}"].value = f"=SUM('{fs}'!D{row}:'{ls}'!D{row})"
+                ws[f"E{row}"].value = f"=SUM('{fs}'!E{row}:'{ls}'!E{row})"
+                ws[f"F{row}"].value = f"=D{row}-E{row}"
                 ws.cell(row=row, column=4).number_format="0.00"
                 ws.cell(row=row, column=5).number_format="0.00"
+                ws.cell(row=row, column=6).number_format="0.00"
             row += 1
 
         #Uložiť a zobraziť 
