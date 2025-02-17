@@ -37,6 +37,8 @@ class OdmenaAleboOprava(models.TextChoices):
     OPRAVAOSOB = 'opravaosob', 'Oprava osobný pr.'
     OPRAVARIAD = 'opravariad', 'Oprava pr. za riadenie'
     OPRAVAZR = 'opravazr', 'Oprava zrážky - plat'
+    OPRAVAZRDOPC = 'opravaZrDoPC', 'Oprava zrážky - DoPC'
+    OPRAVAZRDOVP = 'opravaZrDoVP', 'Oprava zrážky - DoVP'
     OPRAVAZRCERP = 'opravazrcerp', 'Oprava zrážky - plat (len pre čerpanie rozpočtu)'
     ODSTUPNE = 'odstupne', 'Odstupné'
     ODCHODNE = 'odchodne', 'Odchodné'
@@ -2442,10 +2444,10 @@ class OdmenaOprava(Klasifikacia):
             help_text = "Uveďte, či ide o odmenu, súbor s odmenami alebo opravu vyplatenej mzdy",
             null = True,
             choices=OdmenaAleboOprava.choices)
-    zamestnanec = models.ForeignKey(Zamestnanec,
-            help_text = "Nevypĺňa sa, ak sa vkladá súbor so zoznamom odmien alebo ak zamestnanec nie je určený (napr. v prípade 'Oprava zrážky - plat (len pre čerpanie rozpočtu)'.",
+    zamestnanec = models.ForeignKey(ZamestnanecDohodar,
+            help_text = "Nevypĺňa sa, ak sa vkladá súbor so zoznamom odmien alebo ak zamestnanec/dohodár nie je určený (napr. v prípade 'Oprava zrážky - plat (len pre čerpanie rozpočtu)'.",
             on_delete=models.PROTECT, 
-            verbose_name = "Zamestnanec",
+            verbose_name = "Zamestnanec/Dohodár",
             related_name='%(class)s_zamestnanec',  #zabezpečí rozlíšenie modelov, keby dačo
             blank=True, 
             null=True
@@ -2533,6 +2535,14 @@ class OdmenaOprava(Klasifikacia):
             # Podľa admin.gen_soczdrav
             nazov = f"Sociálne poistné {self.ekoklas.kod}"
             podnazov = "Plat poistenie sociálne"
+        elif self.typ == OdmenaAleboOprava.OPRAVAZRDOPC:
+            # Podľa admin.gen_soczdrav
+            nazov = f"Sociálne poistné {self.ekoklas.kod}"
+            podnazov = "DoPC poistenie sociálne"
+        elif self.typ == OdmenaAleboOprava.OPRAVAZRDOVP:
+            # Podľa admin.gen_soczdrav
+            nazov = f"Sociálne poistné {self.ekoklas.kod}"
+            podnazov = "DoVP poistenie sociálne"
         elif self.typ == OdmenaAleboOprava.OPRAVAZRCERP:
             # Podľa admin.gen_soczdrav
             nazov = f"Sociálne poistné {self.ekoklas.kod}"
