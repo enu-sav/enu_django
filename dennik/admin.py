@@ -46,7 +46,7 @@ typ_dokumentu = {
     Objednavka.oznacenie: TypDokumentu.OBJEDNAVKA,
     PrijataFaktura.oznacenie: TypDokumentu.FAKTURA,
     VystavenaFaktura.oznacenie: TypDokumentu.VYSTAVENAFAKTURA,
-    PrispevokNaStravne.oznacenie: TypDokumentu.ZMLUVA,
+    PrispevokNaStravne.oznacenie: TypDokumentu.PSTRAVNE,
     DoPC.oznacenie: TypDokumentu.DoPC,
     DoVP.oznacenie: TypDokumentu.DoVP,
     DoBPS.oznacenie: TypDokumentu.DoBPS,
