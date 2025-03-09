@@ -2018,7 +2018,7 @@ class OdmenaOpravaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
 @admin.register(PrispevokNaRekreaciu)
 class PrispevokNaRekreaciuAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
     form = PrispevokNaRekreaciuForm
-    list_display = ["cislo", "zamestnanec_link", "datum", "_subor_ziadost", "datum_podpisu_ziadosti", "_subor_vyuctovanie", "_subor_kl", "datum_kl", "prispevok", "vyplatene_v_obdobi"]
+    list_display = ["cislo", "typ_prispevku", "zamestnanec_link", "datum", "_subor_ziadost", "datum_podpisu_ziadosti", "_subor_vyuctovanie", "_subor_kl", "datum_kl", "prispevok", "vyplatene_v_obdobi"]
     # ^: v poli vyhľadávať len od začiatku
     search_fields = ["cislo", "zamestnanec__meno", "zamestnanec__priezvisko"]
     list_totals = [
@@ -2060,7 +2060,7 @@ class PrispevokNaRekreaciuAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHist
     _subor_kl.short_description = "Súbor KL"
 
     # nezobrazovať polia id a program
-    def get_fields(self, request, obj=None):
+    def _get_fields(self, request, obj=None):
         fields = super().get_fields(request, obj)
         fields.remove('id')
         fields.remove('program')
@@ -2068,11 +2068,12 @@ class PrispevokNaRekreaciuAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHist
 
     #['id', 'zdroj', 'program', 'zakazka', 'ekoklas', 'cinnost', 'poznamka', 'cislo', 'datum', 'zamestnanec', 'subor_ziadost', 'subor_vyuctovanie', 'prispevok', 'vyplatene_v_obdobi', 'subor_kl', 'datum_kl']
     def get_readonly_fields(self, request, obj=None):
+        #return []
         fields = [f.name for f in PrispevokNaRekreaciu._meta.get_fields()]
         #fields.remove("id")
         editable = ["poznamka"]
         if not obj:
-            editable += ["cislo", "datum", "zamestnanec", "subor_ziadost", "ekoklas", "zdroj", "zakazka"]
+            editable += ["cislo", "datum", "zamestnanec", "subor_ziadost", "ekoklas", "zdroj", "zakazka", "typ_prispevku"]
         elif obj.subor_ziadost and not obj. datum_podpisu_ziadosti:
             editable += ["datum_podpisu_ziadosti"]
         elif obj.datum_podpisu_ziadosti and not (obj.subor_vyuctovanie and obj.prispevok and obj.vyplatene_v_obdobi):

@@ -545,7 +545,7 @@ class PlatovaRekapitulaciaAdmin(ModelAdminTotals):
             "Sociálne poistné 625006": ["Garančné poistné", 1, ""],
             "Sociálne poistné 625007": ["Rezervný fond solidarity", 1, ""],
             "Sociálne poistné 625005po": ["Poistné na financovanie podpory v čase skr. práce", 1, ""],
-            "Príspevok na rekreáciu": ["Iné nezdanené príjmy", 0, "637006"],
+            "Príspevok na rekreáciu a šport": ["Iné nezdanené príjmy", 0, "637006"],
             "Sociálny fond": ["Sociálny fond", 2, "637016"],
             "DoPC odmena": ["Dohody o pracovnej činnosti", 1, "637027"],
             "DoVP odmena": ["Dohody o vykonaní práce", 1, "637027"],

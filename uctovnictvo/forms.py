@@ -653,7 +653,7 @@ class PrispevokNaRekreaciuForm(forms.ModelForm):
         # Ak je pole readonly, tak sa nenachádza vo fields. Preto testujeme fields aj initial
         if polecislo in self.fields and not polecislo in self.initial:
             nasledujuce = nasledujuce_cislo(PrispevokNaRekreaciu)
-            self.fields[polecislo].help_text = f"Zadajte číslo žiadosti o príspevok na rekreáciu v tvare {PrispevokNaRekreaciu.oznacenie}-RRRR-NNN. Predvolené číslo '{nasledujuce}' bolo určené na základe čísel existujúcich záznamov ako nasledujúce v poradí."
+            self.fields[polecislo].help_text = f"Zadajte číslo žiadosti o príspevok na rekreáciu a šport v tvare {PrispevokNaRekreaciu.oznacenie}-RRRR-NNN. Predvolené číslo '{nasledujuce}' bolo určené na základe čísel existujúcich záznamov ako nasledujúce v poradí."
             self.initial[polecislo] = nasledujuce
     class Meta:
         model = PrispevokNaRekreaciu
@@ -662,13 +662,13 @@ class PrispevokNaRekreaciuForm(forms.ModelForm):
     # Skontrolovať platnost a keď je všetko OK, spraviť záznam do denníka
     def clean(self):
         if 'cislo' in self.changed_data:
-            if not self.cleaned_data['cislo'][:3] == PrispevokNaRekreaciu.oznacenie:
-                raise ValidationError({"cislo": "Nesprávne číslo. Zadajte číslo novej žiadosti v tvare {PrispevokNaRekreaciu.oznacenie}-RRRR-NNN"})
+            if not self.cleaned_data['cislo'][:3] == PrispevokNaRekreaciu.oznacenie[:3]:    #PnR, ignore S
+                raise ValidationError({"cislo": f"Nesprávne číslo. Zadajte číslo novej žiadosti v tvare {PrispevokNaRekreaciu.oznacenie}-RRRR-NNN"})
         try:
             #pole dane_na_uhradu možno vyplniť až po vygenerovani platobného príkazu akciou 
             #"Vytvoriť platobný príkaz a krycí list"
             if 'subor_ziadost' in self.changed_data and 'datum' in self.changed_data and 'zamestnanec' in self.changed_data:
-                vec = f"Príspevok na rekreáciu {self.cleaned_data['zamestnanec'].priezvisko} - žiadosť"
+                vec = f"Príspevok na rekreáciu a šport {self.cleaned_data['zamestnanec'].priezvisko} - žiadosť"
                 cislo = nasledujuce_cislo(Dokument)
                 dok = Dokument(
                     cislo = cislo,
@@ -692,7 +692,7 @@ class PrispevokNaRekreaciuForm(forms.ModelForm):
                 )
                 messages.warning(self.request, 'Žiadosť treba dať na podpis vedeniu. Po podpísaní vyplňte pole "Dátum podpisu žiadosti"')
             elif 'datum_podpisu_ziadosti' in self.changed_data:
-                vec = f"Príspevok na rekreáciu {self.instance.zamestnanec.priezvisko} - žiadosť"
+                vec = f"Príspevok na rekreáciu a šport {self.instance.zamestnanec.priezvisko} - žiadosť"
                 cislo = nasledujuce_cislo(Dokument)
                 dok = Dokument(
                     cislo = cislo,
@@ -717,7 +717,7 @@ class PrispevokNaRekreaciuForm(forms.ModelForm):
                 messages.warning(self.request, 'PaM vytvorí a odošle vyúčtovanie príspevku. Po jeho prijatí vyplňte polia "Vyúčtovanie príspevku", "Na vyplatenie" a "Vyplatené v".')
             elif 'subor_vyuctovanie' in self.changed_data and 'prispevok' in self.changed_data and 'vyplatene_v_obdobi' in self.changed_data:
                 if self.cleaned_data['prispevok'] < 0 and PrispevokNaRekreaciu.check_vyplatene_v(self.cleaned_data['vyplatene_v_obdobi']):
-                    vec = f"Príspevok na rekreáciu {self.instance.zamestnanec.priezvisko} - vyúčtovanie"
+                    vec = f"Príspevok na rekreáciu a šport {self.instance.zamestnanec.priezvisko} - vyúčtovanie"
                     cislo = nasledujuce_cislo(Dokument)
                     dok = Dokument(
                         cislo = cislo,
@@ -733,14 +733,14 @@ class PrispevokNaRekreaciuForm(forms.ModelForm):
                     dok.save()
                     messages.warning(self.request, 
                         format_html(
-                            'Do denníka prijatej a odoslanej pošty bol pridaný záznam č. {}: <em>{}</em>, treba v ňom doplniť údaje o prijatí vyúčtovania žiadosti o príspevok na rekreáciu.',
+                            'Do denníka prijatej a odoslanej pošty bol pridaný záznam č. {}: <em>{}</em>, treba v ňom doplniť údaje o prijatí vyúčtovania žiadosti o príspevok na rekreáciu a šport.',
                             mark_safe(f'<a href="/admin/dennik/dokument/{dok.id}/change/">{cislo}</a>'),
                             vec
                             )
                     )
                     messages.warning(self.request, f'Pomocou akcie "Vytvoriť krycí list" vytvorte krycí list a spolu s vyúčtovaním ho dajte na podpis. Po podpísaní ich dajte na sekretariát na odoslanie a vyplňte pole "Dátum odoslania KL".')
             elif 'datum_kl' in self.changed_data:
-                vec = f"Príspevok na rekreáciu {self.instance.zamestnanec.priezvisko} - vyúčtovanie"
+                vec = f"Príspevok na rekreáciu a šport {self.instance.zamestnanec.priezvisko} - vyúčtovanie"
                 cislo = nasledujuce_cislo(Dokument)
                 dok = Dokument(
                     cislo = cislo,

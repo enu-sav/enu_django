@@ -12,7 +12,7 @@ from django.utils.html import format_html
 from .models import SystemovySubor, PrijataFaktura, AnoNie, Objednavka, VystavenaFaktura, Rozhodnutie, Zmluva
 from .models import DoVP, DoPC, DoBPS, Poistovna, TypDochodku, Mena, PravidelnaPlatba, TypPP, TypPokladna, Pokladna
 from .models import NajomneFaktura, PrispevokNaRekreaciu, Zamestnanec, OdmenaOprava, OdmenaAleboOprava, TypNepritomnosti, Nepritomnost
-from .models import PlatovaStupnica, Stravne, mesiace_num, PlatovyVymer, Mesiace, rozdelit_polozky
+from .models import PlatovaStupnica, Stravne, mesiace_num, PlatovyVymer, Mesiace, rozdelit_polozky, RekreaciaSport
 from .rokydni import mesiace, prac_dni, pden, s2d, pracuje_v
 
 from openpyxl import load_workbook
@@ -125,13 +125,14 @@ def VytvoritKryciListRekreacia(platba, pouzivatel):
     nazov_suboru = sablona[0].subor.file.name 
     workbook = load_workbook(filename=nazov_suboru)
     ws = workbook.active
-    ws[f'C2'].value = platba.cislo
-    ws[f'F2'].value = meno_priezvisko(platba.zamestnanec)
-    ws[f'B3'].value = datetime.date.today().strftime('%d. %m. %Y')
-    ws[f'D21'].value = f"{platba.zdroj.kod} ({platba.zdroj.popis})"
-    ws[f'D22'].value = f"{platba.zakazka.kod} ({platba.zakazka.popis})"
-    ws[f'D23'].value = f"{platba.ekoklas.kod} ({platba.ekoklas.nazov})"
-    ws[f'D24'].value = f"{platba.cinnost.kod} ({platba.cinnost.nazov})"
+    ws[f'A2'].value = f"Vyúčtovanie príspevku na {'rekreáciu' if platba.typ_prispevku==RekreaciaSport.REKREACIA else 'športovú činnosť'}"
+    ws[f'C3'].value = platba.cislo
+    ws[f'F3'].value = meno_priezvisko(platba.zamestnanec)
+    ws[f'B4'].value = datetime.date.today().strftime('%d. %m. %Y')
+    ws[f'D22'].value = f"{platba.zdroj.kod} ({platba.zdroj.popis})"
+    ws[f'D23'].value = f"{platba.zakazka.kod} ({platba.zakazka.popis})"
+    ws[f'D24'].value = f"{platba.ekoklas.kod} ({platba.ekoklas.nazov})"
+    ws[f'D25'].value = f"{platba.cinnost.kod} ({platba.cinnost.nazov})"
 
     #ulozit
     nazov = platba.zamestnanec.priezvisko

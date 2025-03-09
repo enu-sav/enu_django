@@ -32,7 +32,7 @@ class TypDokumentu(models.TextChoices):
     PRAVIDELNAPLATBA = 'pravidelnaplatba', 'Pravidelná platba'
     INTERNYPREVOD = 'internyprevod', 'Interný prevod'
     POKLADNICNAKNIHA = 'pokladnicnakniha', 'Pokladničná kniha'
-    REKREACIA = 'rekreacia', 'Príspevok na rekreáciu'
+    REKREACIA = 'rekreacia', 'Príspevok na rekreáciu a šport'
     DOKUMENT = 'posta', 'Pošta'
     NEPRITOMNOST = 'nepritomnost', 'Neprítomnosť'
     ODMENA_OPRAVA = 'odmena_oprava', 'Odmena/Oprava'

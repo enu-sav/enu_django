@@ -54,6 +54,10 @@ class PlatovaStupnica(models.TextChoices):
     ZAKLADNA = 'zakladna', 'Základná'
     OSOBITNA = 'osobitna', 'Osobitná'
 
+class RekreaciaSport(models.TextChoices):
+    REKREACIA = 'rekreacia', 'Na rekreáciu'
+    SPORT = 'sport', 'Na šport'
+
 #access label: AnoNie('ano').label
 class AnoNie(models.TextChoices):
     ANO = 'ano', 'Áno'
@@ -2581,12 +2585,17 @@ class OdmenaOprava(Klasifikacia):
 
 def rekreacia_upload_location(instance, filename):
     return os.path.join(REKREACIA_DIR, filename)
-class PrispevokNaRekreaciu(Klasifikacia):
-    oznacenie = "PnR"
+class PrispevokNaRekreaciu(Klasifikacia):   #a športovú činnosť
+    oznacenie = "PnRS"  #PnRS od 2025
     cislo = models.CharField("Číslo", 
             #help_text: definovaný vo forms
             null = True,
             max_length=50)
+    typ_prispevku = models.CharField("Typ príspevku",
+            max_length=15,
+            choices=RekreaciaSport.choices,
+            null=True
+            )
     datum = models.DateField('Dátum prijatia žiadosti',
             help_text = "Dátum prijatia žiadosti",
             null=True
@@ -2610,7 +2619,7 @@ class PrispevokNaRekreaciu(Klasifikacia):
             null=True
             )
     prispevok = models.DecimalField("Na vyplatenie", 
-            help_text = "Výška príspevku na rekreáciu určená mzdovou učtárňou (záporné číslo).",
+            help_text = "Výška príspevku určená mzdovou učtárňou (záporné číslo).",
             max_digits=8, 
             decimal_places=2, 
             blank=True, 
@@ -2641,7 +2650,11 @@ class PrispevokNaRekreaciu(Klasifikacia):
 
     def clean(self): 
         if (self.prispevok or self.subor_vyuctovanie or self.vyplatene_v_obdobi) and  not (self.prispevok and self.subor_vyuctovanie and self.vyplatene_v_obdobi):
-            raise ValidationError("Vyplniť treba všetky tri polia 'Vyúčtovanie príspevku', 'Na vyplatenie' a 'Vyplatené v'")
+            raise ValidationError({
+                "subor_vyuctovanie": "Vyplniť treba všetky tri polia 'Vyúčtovanie príspevku', 'Na vyplatenie' a 'Vyplatené v'",
+                "prispevok": "Vyplniť treba všetky tri polia 'Vyúčtovanie príspevku', 'Na vyplatenie' a 'Vyplatené v'",
+                "vyplatene_v_obdobi":"Vyplniť treba všetky tri polia 'Vyúčtovanie príspevku', 'Na vyplatenie' a 'Vyplatené v'"
+                })
         if self.prispevok and self.prispevok > 0:
             raise ValidationError("Suma 'Na vyplatenie' musí byť záporná")
         if self.vyplatene_v_obdobi and not PrispevokNaRekreaciu.check_vyplatene_v(self.vyplatene_v_obdobi):
@@ -2654,7 +2667,7 @@ class PrispevokNaRekreaciu(Klasifikacia):
         if not self.vyplatene_v_obdobi: return []
         if zobdobie != self.vyplatene_v_obdobi: return []
         platba = {
-                "nazov": "Príspevok na rekreáciu",
+                "nazov": "Príspevok na rekreáciu a šport",
                 "suma": self.prispevok,
                 "osoba": self.zamestnanec,
                 "datum": vyplatny_termin(self.vyplatene_v_obdobi),
@@ -2668,8 +2681,8 @@ class PrispevokNaRekreaciu(Klasifikacia):
         return [platba]
 
     class Meta:
-        verbose_name = "Príspevok na rekreáciu"
-        verbose_name_plural = "PaM - Príspevky na rekreáciu"
+        verbose_name = "Príspevok na rekreáciu a šport"
+        verbose_name_plural = "PaM - Príspevky na rekreáciu a šport"
     def __str__(self):
         return f"{self.zamestnanec.priezvisko}, {self.zamestnanec.meno}"
 
