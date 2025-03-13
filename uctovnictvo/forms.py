@@ -28,7 +28,7 @@ class PopisZmeny(forms.ModelForm):
 
 #Umožní jednoducho definovať záznam v denníku
 class DennikZaznam(forms.ModelForm):
-    def dennik_zaznam(self, vec, typdokumentu, inout, adresat, url=None):
+    def dennik_zaznam(self, vec, typdokumentu, datum, inout, adresat, url=None):
         cislo = nasledujuce_cislo(Dokument)
         dok = Dokument(
             cislo = cislo,
@@ -37,6 +37,7 @@ class DennikZaznam(forms.ModelForm):
             datumvytvorenia = date.today(),
             typdokumentu = typdokumentu,
             inout = inout,
+            datum = datum,
             adresat = adresat,
             vec = vec if not url else f'<a href="{url}">{vec}</a>',
             prijalodoslal=self.request.user.username, #zámena mien prijalodoslal - zaznamvytvoril
@@ -115,7 +116,7 @@ class NakupSUhradouForm(DennikZaznam):
                 self.instance.pokladna_vpd = cislo
                 self.instance.save()
             else:
-                self.dennik_zaznam(f"Žiadosť č. {self.instance.cislo}.", TypDokumentu.DROBNY_NAKUP, InOut.ODOSLANY, settings.UCTAREN_NAME, self.instance.subor_preplatenie.url)
+                self.dennik_zaznam(f"Žiadosť č. {self.instance.cislo}.", TypDokumentu.DROBNY_NAKUP, self.cleaned_data['datum_vybavenia'], InOut.ODOSLANY, settings.UCTAREN_NAME, self.instance.subor_preplatenie.url)
             messages.warning(self.request, f"Po spracovaní v Softipe treba aktualizovať pole '{t_objednane_polozky}' a vyplniť pole '{t_datum_uhradenia}'")
 
 class ObjednavkaForm(DennikZaznam):
@@ -156,7 +157,7 @@ class ObjednavkaForm(DennikZaznam):
         if 'datum_odoslania' in self.changed_data and not self.instance.subor_objednavky:
             raise ValidationError({"datum_odoslania": "Dátum odoslania možno vyplniť až po vygenerovaní objednávky."})
         if 'datum_odoslania' in self.changed_data:
-            self.dennik_zaznam(f"Objednávka č. {self.instance.cislo}.", TypDokumentu.OBJEDNAVKA, InOut.ODOSLANY, self.instance.dodavatel, self.instance.subor_objednavky.url)
+            self.dennik_zaznam(f"Objednávka č. {self.instance.cislo}.", TypDokumentu.OBJEDNAVKA, self.cleaned_data['datum_odoslania'], InOut.ODOSLANY, self.instance.dodavatel, self.instance.subor_objednavky.url)
     class Meta:
         widgets = { 'predmet': forms.TextInput(attrs={'size': 100})}
 
@@ -237,7 +238,7 @@ class PrijataFakturaForm(DennikZaznam):
         #pole dane_na_uhradu možno vyplniť až po vygenerovani platobného príkazu akciou 
         #"Vytvoriť platobný príkaz a krycí list"
         if 'dane_na_uhradu' in self.changed_data:
-            self.dennik_zaznam(f"Platobný príkaz do učtárne {self.instance.cislo} na vyplatenie", TypDokumentu.FAKTURA, InOut.ODOSLANY, settings.UCTAREN_NAME, self.instance.platobny_prikaz.url)
+            self.dennik_zaznam(f"Platobný príkaz do učtárne {self.instance.cislo} na vyplatenie", TypDokumentu.FAKTURA, self.cleaned_data['dane_na_uhradu'],  InOut.ODOSLANY, settings.UCTAREN_NAME, self.instance.platobny_prikaz.url)
         return self.cleaned_data
 
 class VystavenaFakturaForm(DennikZaznam):
@@ -271,9 +272,9 @@ class VystavenaFakturaForm(DennikZaznam):
         #pole dane_na_uhradu možno vyplniť až po vygenerovani platobného príkazu akciou 
         #"Vytvoriť platobný príkaz a krycí list"
         if 'doslo_datum' in self.changed_data:
-            self.dennik_zaznam(f"Prijatá faktúra odberateľa SPP {self.instance.cislo}", TypDokumentu.VYSTAVENAFAKTURA, InOut.PRIJATY, "SPP")
+            self.dennik_zaznam(f"Prijatá faktúra odberateľa SPP {self.instance.cislo}", TypDokumentu.VYSTAVENAFAKTURA, self.cleaned_data['doslo_datum'], InOut.PRIJATY, "SPP")
         if 'dane_na_uhradu' in self.changed_data:
-            self.dennik_zaznam(f"Platobný príkaz do učtárne {self.instance.cislo} na vyplatenie", TypDokumentu.VYSTAVENAFAKTURA, InOut.ODOSLANY, "CSČ", self.instance.platobny_prikaz.url)
+            self.dennik_zaznam(f"Platobný príkaz do učtárne {self.instance.cislo} na vyplatenie", TypDokumentu.VYSTAVENAFAKTURA, self.cleaned_data['dane_na_uhradu'], InOut.ODOSLANY, "CSČ", self.instance.platobny_prikaz.url)
         return self.cleaned_data
 
     #Skryť položky vo formulári
@@ -341,7 +342,7 @@ class InternyPrevodForm(DennikZaznam):
         #pole dane_na_uhradu možno vyplniť až po vygenerovani platobného príkazu akciou 
         #"Vytvoriť platobný príkaz a krycí list"
         if 'dane_na_uhradu' in self.changed_data:
-            self.dennik_zaznam(f"Platobný príkaz do učtárne {self.instance.cislo} na vyplatenie", TypDokumentu.INTERNYPREVOD, InOut.ODOSLANY, settings.UCTAREN_NAME, self.instance.platobny_prikaz.url)
+            self.dennik_zaznam(f"Platobný príkaz do učtárne {self.instance.cislo} na vyplatenie", TypDokumentu.INTERNYPREVOD, self.cleaned_data['dane_na_uhradu'], InOut.ODOSLANY, settings.UCTAREN_NAME, self.instance.platobny_prikaz.url)
         return self.cleaned_data
 
 class PravidelnaPlatbaForm(forms.ModelForm):
@@ -449,7 +450,7 @@ class PrispevokNaStravneForm(DennikZaznam):
     def clean(self): 
         if self.instance.po_zamestnancoch: #Sumárna neprítomnosť
             if 'datum_odoslania' in self.changed_data:
-                self.dennik_zaznam(f"Stravné {self.instance.cislo}.", TypDokumentu.PSTRAVNE, InOut.ODOSLANY, settings.MZDOVAUCTAREN_NAME, self.instance.po_zamestnancoch.url)
+                self.dennik_zaznam(f"Stravné {self.instance.cislo}.", TypDokumentu.PSTRAVNE, self.cleaned_data['datum_odoslania'], InOut.ODOSLANY, settings.MZDOVAUCTAREN_NAME, self.instance.po_zamestnancoch.url)
 
 class AutorskeZmluvyForm(forms.ModelForm):
     #inicializácia polí
@@ -633,7 +634,7 @@ class OdmenaOpravaForm(DennikZaznam):
     # Skontrolovať platnost a keď je všetko OK, spraviť záznam do denníka
     def clean(self):
         if 'datum_kl' in self.changed_data:
-            self.dennik_zaznam(f"Odmena/oprava č. {self.instance.cislo}.", TypDokumentu.ODMENA_OPRAVA, InOut.ODOSLANY, settings.MZDOVAUCTAREN_NAME, self.instance.subor_kl.url)
+            self.dennik_zaznam(f"Odmena/oprava č. {self.instance.cislo}.", TypDokumentu.ODMENA_OPRAVA, self.cleaned_data['datum_kl'], InOut.ODOSLANY, settings.MZDOVAUCTAREN_NAME, self.instance.subor_kl.url)
         if 'cislo' in self.changed_data:
             if not self.cleaned_data['cislo'][:2] == OdmenaOprava.oznacenie:
                 raise ValidationError({"cislo": f"Nesprávne číslo. Zadajte číslo v tvare {OdmenaOprava.oznacenie}-RRRR-NNN"})
@@ -789,7 +790,7 @@ class NepritomnostForm(DennikZaznam):
             if 'datum_odoslania' in self.changed_data and not self.instance.subor_nepritomnost_exp:
                 raise ValidationError({"datum_odoslania": "Dátum odoslania možno vyplniť až po vygenerovaní súboru s neprítomnosťou akciou 'Exportovať neprítomnosť pre učtáreň'."})
             if 'datum_odoslania' in self.changed_data:
-                self.dennik_zaznam(f"Neprítomnosť č. {self.instance.cislo}.", TypDokumentu.NEPRITOMNOST, InOut.ODOSLANY, settings.MZDOVAUCTAREN_NAME, self.instance.subor_nepritomnost_exp.url)
+                self.dennik_zaznam(f"Neprítomnosť č. {self.instance.cislo}.", TypDokumentu.NEPRITOMNOST, self.cleaned_data["datum_odoslania"], InOut.ODOSLANY, settings.MZDOVAUCTAREN_NAME, self.instance.subor_nepritomnost_exp.url)
         else: #Individuálna neprítomnosť:
             if self.cleaned_data["nepritomnost_typ"] in [TypNepritomnosti.LEKAR, TypNepritomnosti.LEKARDOPROVOD] and not self.cleaned_data["dlzka_nepritomnosti"]:
                 zamestnanec = self.cleaned_data["zamestnanec"]
