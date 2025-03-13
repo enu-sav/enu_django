@@ -44,7 +44,7 @@ class DennikZaznam(forms.ModelForm):
         dok.save()
         messages.warning(self.request, 
             format_html(
-                'Do denníka prijatej a odoslanej pošty bol pridaný záznam č. {}: <em>{}</em>, treba v ňom doplniť údaje o odoslaní.',
+                'Do denníka prijatej a odoslanej pošty bol pridaný záznam č. {}: <em>{}</em>, treba v ňom doplniť údaje.',
                 mark_safe(f'<a href="/admin/dennik/dokument/{dok.id}/change/">{cislo}</a>'),
                 vec
                 )
@@ -270,6 +270,8 @@ class VystavenaFakturaForm(DennikZaznam):
                 raise ValidationError({"cislo": "Nesprávne číslo. Zadajte číslo novej faktúry v tvare {VystavenaFaktura.oznacenie}-RRRR-NNN"})
         #pole dane_na_uhradu možno vyplniť až po vygenerovani platobného príkazu akciou 
         #"Vytvoriť platobný príkaz a krycí list"
+        if 'doslo_datum' in self.changed_data:
+            self.dennik_zaznam(f"Prijatá faktúra odberateľa SPP {self.instance.cislo}", TypDokumentu.VYSTAVENAFAKTURA, InOut.PRIJATY, "SPP")
         if 'dane_na_uhradu' in self.changed_data:
             self.dennik_zaznam(f"Platobný príkaz do učtárne {self.instance.cislo} na vyplatenie", TypDokumentu.VYSTAVENAFAKTURA, InOut.ODOSLANY, "CSČ", self.instance.platobny_prikaz.url)
         return self.cleaned_data

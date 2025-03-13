@@ -972,13 +972,13 @@ class PrijataFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdm
                 return AdminForm(*args, **kwargs)
         return AdminFormMod
 
-@admin.register(VystavenaFaktura)
+@admin.register(VystavenaFaktura)   #len SPP
 #medzi  ModelAdminTotals a ImportExportModelAdmin je konflikt
 #zobrazia sa Import Export tlačidlá alebo súčty
 #class VystavenaFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
 class VystavenaFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
     form = VystavenaFakturaForm
-    list_display = ["cislo", "objednavka_zmluva_link", "url_faktury", "dcislo", "url_softip", "suma", "sadzbadph", "predmet", "platobny_prikaz", "dane_na_uhradu", "uhradene_dna", "zdroj", "zakazka", "ekoklas"]
+    list_display = ["cislo", "objednavka_zmluva_link", "scislo","url_faktury", "dcislo", "url_softip", "suma", "sadzbadph", "predmet", "platobny_prikaz", "dane_na_uhradu", "uhradene_dna", "zdroj", "zakazka", "ekoklas"]
     search_fields = ["^cislo","^dcislo", "objednavka_zmluva__dodavatel__nazov", "predmet", "^zdroj__kod", "^zakazka__kod", "^ekoklas__kod", "^ekoklas__nazov",  "^cinnost__kod", "cinnost__nazov" ]
 
     # zoraďovateľný odkaz na dodávateľa
@@ -1013,7 +1013,7 @@ class VystavenaFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryA
 
     # formátovať pole zo_softipu
     def url_softip(self, obj):
-        if obj.na_zaklade:
+        if obj.zo_softipu:
             suffix = obj.zo_softipu.name.split(".")[-1]        
             fname = obj.zo_softipu.name.split("/")[-1].split(".")[-2][:7]
             ddir = obj.zo_softipu.name.split("/")[0]        
@@ -1080,27 +1080,6 @@ class VystavenaFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryA
             )
         nova_faktura.save()
         self.message_user(request, f"Vytvorená bola nová faktúra dodávateľa '{nova_faktura.objednavka_zmluva.dodavatel.nazov}' číslo '{nc}', aktualizujte polia", messages.SUCCESS)
-        vec = f"Faktúra {nc}"
-        cislo_posta = nasledujuce_cislo(Dokument)
-        dok = Dokument(
-            cislo = cislo_posta,
-            cislopolozky = nc,
-            datumvytvorenia = date.today(),
-            typdokumentu = TypDokumentu.VYSTAVENAFAKTURA,
-            inout = InOut.PRIJATY,
-            adresat = stara.adresat_text(),
-            #vec = f'<a href="{self.instance.platobny_prikaz.url}">{vec}</a>',
-            vec = vec,
-            prijalodoslal=request.user.username, #zámena mien prijalodoslal - zaznamvytvoril
-        )
-        dok.save()
-        messages.warning(request, 
-            format_html(
-                'Do denníka prijatej a odoslanej pošty bol pridaný záznam č. {}: <em>{}</em>, treba v ňom doplniť údaje o prijatí.',
-                mark_safe(f'<a href="/admin/dennik/dokument/{dok.id}/change/">{cislo_posta}</a>'),
-                vec
-                )
-        )
 
     duplikovat_zaznam.short_description = "Duplikovať faktúru"
     #Oprávnenie na použitie akcie, viazané na 'change'

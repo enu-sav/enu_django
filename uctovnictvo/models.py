@@ -1304,12 +1304,17 @@ class PrijataFaktura(FakturaPravidelnaPlatba, GetAdminURL):
 
 def vystavena_faktura_upload_location(instance, filename):
     return os.path.join(VYSTAVENEFAKTURY_DIR, filename)
-class VystavenaFaktura(FakturaPravidelnaPlatba, GetAdminURL):
+class VystavenaFaktura(FakturaPravidelnaPlatba, GetAdminURL):    #len SPP
     oznacenie = "Vf"    #v čísle faktúry, Vf-2021-123
     # Polia
+    scislo = models.CharField("Číslo SPP", 
+            help_text = "Zadajte číslo faktúry z SPP",
+            null=True,
+            max_length=50)
     dcislo = models.CharField("Číslo Softip", 
             help_text = "Zadajte číslo faktúry zo Softipu",
             null=True,
+            blank=True,
             max_length=50)
     predmet = models.CharField("Predmet", 
             max_length=100)
@@ -1322,6 +1327,7 @@ class VystavenaFaktura(FakturaPravidelnaPlatba, GetAdminURL):
     zo_softipu = models.FileField("Faktúra zo Softipu",
             help_text = "Faktúra pre odberateľa, vytvorená v Softipe",
             upload_to=vystavena_faktura_upload_location, 
+            blank=True,
             null = True)
     history = HistoricalRecords()
 
@@ -1407,8 +1413,8 @@ class VystavenaFaktura(FakturaPravidelnaPlatba, GetAdminURL):
         return platby
 
     class Meta:
-        verbose_name = 'Vystavená faktúra'
-        verbose_name_plural = 'Faktúry - Vystavené faktúry'
+        verbose_name = 'Vystavená faktúra SPP' 
+        verbose_name_plural = 'Faktúry - Vystavené faktúry SPP'
     def __str__(self):
         return f'Vystavená faktúra k "{self.objednavka_zmluva}" : {self.suma} €'
 
@@ -1531,7 +1537,6 @@ class NajomneFaktura(Klasifikacia, GetAdminURL):
     cislo_softip = models.CharField("Číslo Softip",
             help_text = "Zadajte číslo faktúry zo Softipu",
             max_length=25,
-            blank = True,
             null=True)
     zo_softipu = models.FileField("Faktúra zo Softipu",
             help_text = "Faktúra pre nájomníka, vytvorená v Softipe",
