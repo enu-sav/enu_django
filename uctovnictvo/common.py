@@ -401,7 +401,7 @@ def VytvoritPlatobnyPrikaz(faktura, pouzivatel):
     #autor a dátum
     text=re.sub("<dc:creator>[^<]*</dc:creator>", f"<dc:creator>{pouzivatel.get_full_name()}</dc:creator>", text)
     text=re.sub("<dc:date>[^<]*</dc:date>", f"<dc:date>{timezone.now().strftime('%Y-%m-%dT%H:%M:%S.%f')}</dc:date>", text)
-    text = text.replace(f"{lt}nasa_faktura_cislo{gt}", faktura.cislo)
+    text = text.replace(f"{lt}nasa_faktura_cislo{gt}", f"{faktura.cislo}/{settings.ID_ZLOZKY}")
     locale.setlocale(locale.LC_ALL, 'sk_SK.UTF-8')
     #Test zrušený, lebo vyúčtovacia faktúra má hodnotu 0€ (platila sa predfaktúra)
     #if not faktura.suma and not faktura.sumacm:
@@ -513,7 +513,7 @@ def VytvoritPlatobnyPrikaz(faktura, pouzivatel):
 
     if type(faktura.objednavka_zmluva) == Objednavka:
         text = text.replace(f"{lt}obj_zmluva{gt}", "objednávka")
-        text = text.replace(f"{lt}oz_cislo{gt}", faktura.objednavka_zmluva.objednavka.cislo)
+        text = text.replace(f"{lt}oz_cislo{gt}", f"{faktura.objednavka_zmluva.objednavka.cislo}/{settings.ID_ZLOZKY}")
         if not faktura.objednavka_zmluva.objednavka.datum_vytvorenia:
             return messages.ERROR, "Vytváranie príkazu zlyhalo, lebo objednávka nemá zadaný dátum vytvorenia.", None
         text = text.replace(f"{lt}zo_dna{gt}", faktura.objednavka_zmluva.objednavka.datum_vytvorenia.strftime("%d. %m. %Y"))
