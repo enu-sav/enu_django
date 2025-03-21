@@ -220,6 +220,9 @@ SOCFOND_PRISPEVOK=1.5   #Sociálny fond, %
 
 UVAZOK_TYZDENNE=37.5
 
+#číslo organizácie v rámci CVČ
+ID_ZLOZKY=91
+
 #Maximum vymeriavacích základov pre sociálne poistenie zamestnancov
 #https://www.socpoist.sk/navigacia/768-tabulky-platenia-poistneho
 MAX_VZ ={
