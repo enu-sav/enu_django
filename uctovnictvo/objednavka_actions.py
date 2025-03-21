@@ -60,7 +60,7 @@ def VytvoritSuborObjednavky(objednavka, username):
 
         sadzba_dph_text, dph = sadzba_dph(objednavka)
 
-        ws_obj["A3"].value = ws_obj["A3"].value.replace("[[cislo]]",objednavka.cislo[2:])
+        ws_obj["A3"].value = ws_obj["A3"].value.replace("[[cislo]]",f"{objednavka.cislo}/{settings.ID_ZLOZKY}")
         ws_obj["B6"].value = objednavka.vybavuje2.osoba.menopriezvisko(True)
         if  objednavka.vybavuje2.telefon:
             ws_obj["B7"].value = objednavka.vybavuje2.telefon
@@ -210,7 +210,7 @@ def VytvoritSuborObjednavky(objednavka, username):
     ws_obj[f"A{prvy_riadok+ObjednavkaPocetPoloziek+6}"].value = ws_obj[f"A{prvy_riadok+ObjednavkaPocetPoloziek+6}"].value.replace("[[datum]]", datetime.now().strftime("%d. %m. %Y"))
   
     ws_kl = workbook["Finančná kontrola objednávka"]
-    ws_kl["A1"].value = ws_kl["A1"].value.replace("[[cislo]]", objednavka.cislo)
+    ws_kl["A1"].value = ws_kl["A1"].value.replace("[[cislo]]", f"{objednavka.cislo}/{settings.ID_ZLOZKY}")
     ws_kl["A1"].value = ws_kl["A1"].value.replace("[[datum]]", datetime.now().strftime("%d. %m. %Y"))
 
     #aktualizovať dátum vystavenia objednávky

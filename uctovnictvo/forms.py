@@ -242,6 +242,9 @@ class PrijataFakturaForm(DennikZaznam):
         return self.cleaned_data
 
 class VystavenaFakturaForm(DennikZaznam):
+    #class Meta:
+        #model = Profile
+        #fields = ['na_zaklade', ]
     #inicializácia polí
     def __init__(self, *args, **kwargs):
         # do Admin treba pridať metódu get_form
@@ -264,6 +267,7 @@ class VystavenaFakturaForm(DennikZaznam):
 
     # Skontrolovať platnost a keď je všetko OK, spraviť záznam do denníka
     def clean(self):
+        trace()
         if 'suma' in self.changed_data and self.cleaned_data['suma'] <= 0:
             raise ValidationError({"suma": "Suma vo vystavenej faktúre musí byť kladná (ide o príjem)."})
         if 'cislo' in self.changed_data:
