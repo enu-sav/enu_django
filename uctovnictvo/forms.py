@@ -267,7 +267,6 @@ class VystavenaFakturaForm(DennikZaznam):
 
     # Skontrolovať platnost a keď je všetko OK, spraviť záznam do denníka
     def clean(self):
-        trace()
         if 'suma' in self.changed_data and self.cleaned_data['suma'] <= 0:
             raise ValidationError({"suma": "Suma vo vystavenej faktúre musí byť kladná (ide o príjem)."})
         if 'cislo' in self.changed_data:
