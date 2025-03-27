@@ -883,10 +883,10 @@ class Klasifikacia2(Klasifikacia):
             blank = True,
             null = True
             )
-    podiel2 = models.DecimalField(max_digits=5, 
+    podiel2 = models.DecimalField(max_digits=6, 
             help_text = "Podiel druhého zdroja/zákazky v prípade delenia faktúry, inak 0 %",
             verbose_name = "Podiel 2",
-            decimal_places=2, 
+            decimal_places=4, 
             default=Decimal(0), 
             blank = True,
             null = True,
