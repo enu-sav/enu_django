@@ -799,8 +799,8 @@ class ZmluvaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, Impo
 @admin.register(PrijataFaktura)
 #medzi  ModelAdminTotals a ImportExportModelAdmin je konflikt
 #zobrazia sa Import Export tlačidlá alebo súčty
-class PrijataFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
-#class PrijataFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
+#class PrijataFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
+class PrijataFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
     form = PrijataFakturaForm
     list_display = ["cislo", "dcislo", "objednavka_zmluva_link", "url_faktury", "url_dodaci", "suma", "sadzbadph", "prenosDP", "zrusena", "podiel2", "predmet", "platobny_prikaz", "dane_na_uhradu", "uhradene_dna", "mena", "zdroj", "zakazka", "zdroj2", "zakazka2", "ucet", "ekoklas"]
     search_fields = ["^cislo", "^dcislo", "^objednavka_zmluva__dodavatel__nazov", "objednavka_zmluva__cislo", "predmet", "^zdroj__kod", "^zakazka__kod", "^ekoklas__kod", "^ekoklas__nazov", "ucet__kod","^cinnost__kod", "cinnost__nazov" ]
