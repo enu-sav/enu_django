@@ -252,7 +252,7 @@ def generovatStravne_od_04_2024(polozka):
     ws["I2"].value = mesiac_zrazky.year
     #ws["H3"].value = rok   #readonly
     ws["H8"].value = mesiac_prispevku_sk
-    ws["C44"].value = datetime.date.today().strftime('%d. %m. %Y')
+    ws["C42"].value = datetime.date.today().strftime('%d. %m. %Y')
 
     zrazka_enu, zrazka_sf = stravne(stravne_tab, mesiac_zrazky)
     ws["F7"].value = zrazka_enu
