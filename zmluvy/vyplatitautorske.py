@@ -120,6 +120,18 @@ class VyplatitAutorskeOdmeny(VyplatitOdmeny):
                     #údaje po heslách uložiť do self.data
                     #overiť, či autor má zadanú zmluvu, v prípade chyby vynechať
                     query_set = ZmluvaAutor.objects.filter(zmluvna_strana__rs_login=login, cislo=cislo_zmluvy)
+
+                    #Od 07/2024 je povinná objednávka hesiel
+                    datum_zazn_dlzky = re.findall("[0-9]{2}[.][0-9]{2}[.][0-9]{4}",row[hdr['Dátum záznamu dĺžky']])
+                    objednavka_povinna = False
+
+                    if datum_zazn_dlzky:
+                        den, mesiac, rok = datum_zazn_dlzky[0].split(".")
+                        if int(rok) == 2024 and int(mesiac) >= 7: 
+                            objednavka_povinna = True 
+                        if int(rok) > 2024:
+                            objednavka_povinna = True 
+
                     if query_set:
                         zmluva = query_set[0] 
                         if zmluva.stav_zmluvy != StavZmluvy.ZVEREJNENA_V_CRZ:
@@ -134,9 +146,9 @@ class VyplatitAutorskeOdmeny(VyplatitOdmeny):
                             msg = f"Zmluva {zmluva.cislo} autora {login} nemá uvedený dátum platnosti / zverejnenia v CRZ"
                             #self.log(messages.ERROR, msg)
                             self.error_list.append([login, "", msg])
-                        #elif not row[hdr["Objednávka"]]:
-                            #msg = f"Chyba v hesle, chýba objednávka: {login}, {row[hdr['nazov']]}, {nid}, súbor {fn})."
-                            #self.error_list.append([login,"",msg])
+                        elif not row[hdr["Objednávka"]] and objednavka_povinna:
+                            msg = f"Chyba v hesle, chýba objednávka: {login}, {row[hdr['nazov']]}, {nid}, súbor {fn})."
+                            self.error_list.append([login,"",msg])
                         else:   # vytvoriť záznam na vyplatenie
                             if not cislo_zmluvy in self.data[login][rs_webrs]: self.data[login][rs_webrs][cislo_zmluvy] = []
                             datum_zaznamu = re.sub(r"<[^>]*>","",row[hdr['Dátum záznamu dĺžky']])
@@ -563,6 +575,8 @@ class VyplatitAutorskeOdmeny(VyplatitOdmeny):
                 self.chyby.cell(row=2+nn, column=3).font = Font(name="Calibri", color="00AAAA")
             if "sa nevypláca" in err[2]:
                 self.chyby.cell(row=2+nn, column=3).font = Font(name="Calibri", color="0000CC")
+            if "chýba objednávka" in err[2]:
+                self.chyby.cell(row=2+nn, column=3).font = Font(name="Calibri", color="00CC00")
             self.chyby.row_dimensions[2+nn].height = 50
             nn += 1
         self.pocet_chyb = len(unique_err)
