@@ -295,7 +295,7 @@ class PlatbaAutorskaSumarForm(forms.ModelForm):
         vt_name = PlatbaAutorskaSumar._meta.get_field('vyplatit_ths').verbose_name
         v_name = PlatbaAutorskaSumar._meta.get_field('vyplatene').verbose_name
         zp_name = PlatbaAutorskaSumar.zrusit_platbu_name
-        vpt_name = PlatbaAutorskaSumar.vytvorit_podklady_pre_THS_name
+        vpt_name = PlatbaAutorskaSumar.vytvorit_podklady_pre_CSC_name
         zpd_name = PlatbaAutorskaSumar.zaznamenat_platby_do_db_name
         try:
             # ak je platba len vytvorená
