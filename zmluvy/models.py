@@ -468,7 +468,7 @@ class PlatbaAutorskaSumar(models.Model, GetAdminURL):
     oznacenie = "AH"
     # názvy akcií
     zrusit_platbu_name = "Zrušiť záznam o platbe v databáze"
-    vytvorit_podklady_pre_THS_name = "Vytvoriť podklady na vyplatenie autorských honorárov pre učtáreň"
+    vytvorit_podklady_pre_CSC_name = "Vytvoriť podklady na vyplatenie autorských honorárov pre učtáreň"
     zaznamenat_platby_do_db_name = "Vytvoriť finálny prehľad o vyplácaní a zaznamenať platby do databázy"
 
     #cislo: priečinok, z ktorého bola platba importovaná
@@ -493,7 +493,7 @@ class PlatbaAutorskaSumar(models.Model, GetAdminURL):
             null = True
             )
     vyplatit_ths = models.FileField("Autorské honoráre",
-            help_text = f"Súbor generovaný akciou '{vytvorit_podklady_pre_THS_name}'. <br />Súbor obsahuje údaje pre vyplácanie autorských honorárov (hárok <em>Na vyplatenie</em>) a zoznam chýb, ktoré boli pre generovaní zistené (hárok <em>Chyby</em>).<br /> <strong>Hárky <em>Na vyplatenie</em> a <em>Krycí list</em> s údajmi na vyplatenie autorských honorárov treba dať na sekretariát na odoslanie do učtárne</strong>. V prípade odoselania e-mailom treba odoslať PDF súbor. Následne <strong>vyplňte pole <em> Honoráre – pre učtáreň</em></strong>", 
+            help_text = f"Súbor generovaný akciou '{vytvorit_podklady_pre_CSC_name}'. <br />Súbor obsahuje údaje pre vyplácanie autorských honorárov (hárok <em>Na vyplatenie</em>) a zoznam chýb, ktoré boli pre generovaní zistené (hárok <em>Chyby</em>).<br /> <strong>Hárky <em>Na vyplatenie</em> a <em>Krycí list</em> s údajmi na vyplatenie autorských honorárov treba dať na sekretariát na odoslanie do učtárne</strong>. V prípade odoselania e-mailom treba odoslať PDF súbor. Následne <strong>vyplňte pole <em> Honoráre – pre učtáreň</em></strong>", 
             upload_to=platba_autorska_sumar_upload_location, 
             null = True, 
             blank = True)
@@ -505,7 +505,7 @@ class PlatbaAutorskaSumar(models.Model, GetAdminURL):
             null=True, 
             blank=True)
     autori_na_vyplatenie = models.TextField("Vyplácaní autori", 
-            help_text = f"Zoznam vyplácaných autorov. Vypĺňa sa automaticky akciou '{vytvorit_podklady_pre_THS_name}'. <br /><strong>Pokiaľ platba autora neprešla, pred vytvorením finálneho prehľadu platieb ho zo zoznamu odstráňte</strong>.", 
+            help_text = f"Zoznam vyplácaných autorov. Vypĺňa sa automaticky akciou '{vytvorit_podklady_pre_CSC_name}'. <br /><strong>Pokiaľ platba autora neprešla, pred vytvorením finálneho prehľadu platieb ho zo zoznamu odstráňte</strong>.", 
             null = True,
             blank = True,
             max_length=2500)

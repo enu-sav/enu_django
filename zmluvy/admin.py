@@ -581,7 +581,7 @@ class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
     # určiť poradie polí v editovacom formulári
     fields = ['cislo', 'vyplatit_ths', 'podklady_odoslane', 'autori_na_vyplatenie', 'datum_uhradenia', 'vyplatene', 'kryci_list_odoslany', 'dan_zaplatena', 'datum_oznamenia', 'import_rs', 'import_webrs', 'datum_importovania']
     list_display = ['cislo', 'podklady_odoslane', 'datum_uhradenia', 'kryci_list_odoslany', 'dan_zaplatena', 'datum_oznamenia', 'datum_importovania', 'honorar_rs', 'honorar_webrs', 'honorar_spolu', 'vyplatene_spolu', 'odvod_LF', 'odvedena_dan']
-    actions = ['vytvorit_podklady_pre_THS', 'zaznamenat_platby_do_db', 'zrusit_platbu']
+    actions = ['vytvorit_podklady_pre_CSC', 'zaznamenat_platby_do_db', 'zrusit_platbu']
     # pripajanie suborov k objektu: krok 3, inline do XxxAdmin 
     inlines = [PlatbaAutorskaSumarSuborAdmin]
 
@@ -682,7 +682,7 @@ class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
     #Oprávnenie na použitie akcie, viazané na 'change'
     zaznamenat_platby_do_db.allowed_permissions = ('change',)
 
-    def vytvorit_podklady_pre_THS(self, request, queryset):
+    def vytvorit_podklady_pre_CSC(self, request, queryset):
         if len(queryset) != 1:
             self.message_user(request, f"Vybrať možno len jednu platbu", messages.ERROR)
             return
@@ -697,9 +697,9 @@ class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
         platba.datum_aktualizacie = timezone.now(),
         platba.save()
         pass
-    vytvorit_podklady_pre_THS.short_description = PlatbaAutorskaSumar.vytvorit_podklady_pre_THS_name
+    vytvorit_podklady_pre_CSC.short_description = PlatbaAutorskaSumar.vytvorit_podklady_pre_CSC_name
     #Oprávnenie na použitie akcie, viazané na 'change'
-    vytvorit_podklady_pre_THS.allowed_permissions = ('change',)
+    vytvorit_podklady_pre_CSC.allowed_permissions = ('change',)
 
     def vyplatit_autorske_odmeny(self, request, platba):
         self.db_logger = logging.getLogger('db')
@@ -722,7 +722,7 @@ class PlatbaAutorskaSumarAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin):
                 fname = re.findall(r"uložené do súboru ({}[^ ]*)".format(settings.MEDIA_ROOT),log[1]) 
                 if fname:
                     fname = fname[0].strip(".").replace(settings.MEDIA_ROOT,"")
-                    if "THS" in fname:
+                    if "CSC" in fname:  #Zmenit, ak sa zmení CSC vo vyplatitautorske.py
                         platba.vyplatit_ths = fname
                     elif "Vyplatene" in fname:
                         platba.vyplatene = fname

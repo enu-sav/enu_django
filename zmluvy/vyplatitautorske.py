@@ -503,7 +503,7 @@ class VyplatitAutorskeOdmeny(VyplatitOdmeny):
             msg = f"Údaje na importovanie do WEBRS boli uložené do súboru {fpath}"
             self.log(messages.SUCCESS, msg)
         else:
-            fpath = os.path.join(csv_path,f"Vyplatit-{self.cislo}-CSC.xlsx")
+            fpath = os.path.join(csv_path,f"Vyplatit-{self.cislo}-CSC.xlsx")    #Ak sa zmení CSC, musí sa zmeniť aj v admin.py
             #if not self.negenerovat_subory:
                 #workbook.save(fpath)
                 #msg = f"Údaje o vyplácaní na odoslanie CSC boli uložené do súboru {fpath}"
