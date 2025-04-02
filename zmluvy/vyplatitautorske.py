@@ -39,7 +39,7 @@ class VyplatitAutorskeOdmeny(VyplatitOdmeny):
         if cislo:
             self.cislo = cislo
         self.datum_vyplatenia = datum_vyplatenia # Ak None, nevygenerujú sa hárky ImportRS/WEBRS
-        self.zoznam_autorov = zoznam_autorov    #prázdne pri akcii 'Vytvoriť podklady na vyplatenie autorských odmien pre THS'
+        self.zoznam_autorov = zoznam_autorov    #prázdne pri akcii 'Vytvoriť podklady na vyplatenie autorských odmien pre CSC'
         self.kmax = 23 #max počet riadkov s údajmi o autoroch v krycom liste 1
         self.kstart = 5 #prvý riadok záznamu o autoroch v hárku 'Krycí list', strana 1
         self.klstart = 34 #prvý riadok krycieho listu
@@ -98,12 +98,6 @@ class VyplatitAutorskeOdmeny(VyplatitOdmeny):
                     duplitest.add(nid)
 
                     login = row[hdr["Prihlásiť sa"]]
-                    '''
-                    if not row[hdr["Objednávka"]]:
-                        msg = f"Chyba v hesle, chýba objednávka: {login}, {row[hdr['nazov']]}, {nid}, súbor {fn})."
-                        self.error_list.append([login,"",msg])
-                        continue
-                    '''
                     cislo_zmluvy = row[hdr['Zmluva na vyplatenie']].replace(" ","")   # odstranit medzery
                     if not cislo_zmluvy:
                         msg = f"Chyba v hesle, chýba číslo zmluvy: {login}, {row[hdr['nazov']]}, {nid}, súbor {fn})."
@@ -140,6 +134,9 @@ class VyplatitAutorskeOdmeny(VyplatitOdmeny):
                             msg = f"Zmluva {zmluva.cislo} autora {login} nemá uvedený dátum platnosti / zverejnenia v CRZ"
                             #self.log(messages.ERROR, msg)
                             self.error_list.append([login, "", msg])
+                        #elif not row[hdr["Objednávka"]]:
+                            #msg = f"Chyba v hesle, chýba objednávka: {login}, {row[hdr['nazov']]}, {nid}, súbor {fn})."
+                            #self.error_list.append([login,"",msg])
                         else:   # vytvoriť záznam na vyplatenie
                             if not cislo_zmluvy in self.data[login][rs_webrs]: self.data[login][rs_webrs][cislo_zmluvy] = []
                             datum_zaznamu = re.sub(r"<[^>]*>","",row[hdr['Dátum záznamu dĺžky']])
@@ -322,7 +319,7 @@ class VyplatitAutorskeOdmeny(VyplatitOdmeny):
                 self.error_list.append([vyradit[1],"",msg])
                 del self.suma_vyplatit[vyradit[1]]
 
-        #Ak generujeme podklady na vyplatenie pre THS, treba vyplnit self.zoznam_autorov
+        #Ak generujeme podklady na vyplatenie pre CSC, treba vyplnit self.zoznam_autorov
         if not self.zoznam_autorov:
             self.zoznam_autorov = [autor for autor in self.suma_vyplatit]
 
@@ -433,7 +430,7 @@ class VyplatitAutorskeOdmeny(VyplatitOdmeny):
                     self.po_autoroch(autor)
             vyplatit[f"A{pos}"].value = f"Dátum vyplatenia honorárov: {self.datum_vyplatenia.strftime('%-d.%-m.%Y')}"
             pos +=1
-        else:   #podklady pre THS, uvedú sa autori s IBAN
+        else:   #podklady pre CSC, uvedú sa autori s IBAN
             pos = pos0 
             #nevyplácaní autori
             for i, autor in enumerate(self.suma_preplatok):
@@ -506,19 +503,19 @@ class VyplatitAutorskeOdmeny(VyplatitOdmeny):
             msg = f"Údaje na importovanie do WEBRS boli uložené do súboru {fpath}"
             self.log(messages.SUCCESS, msg)
         else:
-            fpath = os.path.join(csv_path,f"Vyplatit-{self.cislo}-THS.xlsx")
+            fpath = os.path.join(csv_path,f"Vyplatit-{self.cislo}-CSC.xlsx")
             #if not self.negenerovat_subory:
                 #workbook.save(fpath)
-                #msg = f"Údaje o vyplácaní na odoslanie THS boli uložené do súboru {fpath}"
+                #msg = f"Údaje o vyplácaní na odoslanie CSC boli uložené do súboru {fpath}"
                 #self.log(messages.WARNING, msg)
                 #self.db_logger.warning(msg)
             workbook.remove_sheet(workbook["Po autoroch"])
             workbook.save(fpath)
             if self.pocet_chyb:
-                msg = f"Údaje o vyplácaní na odoslanie THS boli uložené do súboru {fpath}. V hárku Chyby sa nachádza {self.pocet_chyb} záznamov"
+                msg = f"Údaje o vyplácaní na odoslanie CSC boli uložené do súboru {fpath}. V hárku Chyby sa nachádza {self.pocet_chyb} záznamov"
                 self.log(messages.ERROR, msg)
             else:
-                msg = f"Údaje o vyplácaní na odoslanie THS boli uložené do súboru {fpath}"
+                msg = f"Údaje o vyplácaní na odoslanie CSC boli uložené do súboru {fpath}"
                 self.log(messages.SUCCESS, msg)
             #self.db_logger.warning(msg)
         return self.zoznam_autorov
