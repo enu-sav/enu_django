@@ -301,6 +301,7 @@ SITE_URL = "http://samba.enu.sav.sk:8000/"
 SITE_HOST = "samba"
 
 #Vedenie 
+STATUTAR=os.environ['STATUTAR']
 HEAD_NAME=os.environ['HEAD_NAME']
 HEAD_ROLE=os.environ['HEAD_ROLE']
 HEAD_MAIL=os.environ['HEAD_MAIL']
