@@ -303,6 +303,7 @@ SITE_HOST = "samba"
 #Vedenie 
 HEAD_NAME=os.environ['HEAD_NAME']
 HEAD_ROLE=os.environ['HEAD_ROLE']
+HEAD_MAIL=os.environ['HEAD_MAIL']
 #kontaktná osoba v učtárni
 UCTAREN_NAME=os.environ['UCTAREN_NAME']
 MZDOVAUCTAREN_NAME=os.environ['MZDOVAUCTAREN_NAME']

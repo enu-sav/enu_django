@@ -142,6 +142,9 @@ def VytvoritAutorskuZmluvu(zmluva, nazov_sablony):
     sablona = sablona.replace(f"{lt}dnesnydatum{gt}", timezone.now().strftime("%d. %m. %Y").replace(' 0',' '))
     sablona_crz = sablona # zmluva pre CRZ
 
+    sablona = sablona.replace(f"{lt}head_name{gt}", settings.HEAD_NAME)
+    sablona = sablona.replace(f"{lt}head_role{gt}", settings.HEAD_ROLE)
+    sablona = sablona.replace(f"{lt}head_mail{gt}", settings.HEAD_MAIL)
     sablona = sablona.replace(f"{lt}adresa{gt}", addr)
     sablona = sablona.replace(f"{lt}kadresa{gt}", kaddr)
     sablona_crz = sablona_crz.replace(f"{lt}adresa{gt}", "–")
