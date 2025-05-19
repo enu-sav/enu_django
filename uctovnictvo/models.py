@@ -2709,6 +2709,7 @@ class Dohoda(PolymorphicModel, Klasifikacia):
             choices=StavDohody.choices, default=StavDohody.NOVA)
     dohoda_odoslana= models.DateField('Dohodárovi na podpis ',
             help_text = 'Dátum odovzdania dohody na sekretariát na odoslanie na podpis (poštou). Vytvorí sa záznam v <a href="/admin/dennik/dokument/">denníku prijatej a odoslanej pošty</a>.',
+            blank=True,
             null=True)
     vynimka = models.CharField("Uplatnená výnimka", 
             max_length=3, 
