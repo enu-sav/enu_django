@@ -270,7 +270,7 @@ class TypDochodku(models.TextChoices):
     INVALIDNY70 = 'invalidny70', "invalidný 70 % (len zamestnanci)"
     INVAL_VYSL = 'invalidny_vysl', "invalidný výsluhový"
     VYSLUHOVY = "vysluhovy",  "výsluhový po dovŕšení dôchodkového veku"
-    PREDCASNY = "predcasny", "predčasný (poberateľovi zanikne nárok na výplatu predčasného dôchodku)"
+    PREDCASNY = "predcasny", "predčasný"
 
 #typ pravidelnej platby
 class TypPP(models.TextChoices):

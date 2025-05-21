@@ -1768,7 +1768,6 @@ class DoPCAdmin(DohodaAdmin):
         list_display = ("cislo", "zmluvna_strana_link", "odmena_mesacne", "hod_mesacne", "datum_ukoncenia", "poznamka" )
         return list_display + super(DoPCAdmin, self).get_list_display(request)
     def get_readonly_fields(self, request, obj=None):
-        return []
         # polia rodičovskej triedy
         ro_parent = super(DoPCAdmin, self).get_readonly_fields(request, obj)
         if not obj:
