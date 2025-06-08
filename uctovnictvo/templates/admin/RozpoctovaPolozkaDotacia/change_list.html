@@ -3,12 +3,15 @@
 
 {% block content_title %}
     <h1>{{ cl.opts.verbose_name_plural|capfirst }}</h1>
-    <p class="help"><strong>Ak potrebujete opraviť údaje dotácie</strong>:
-    <ol class="help">
+    <div class="help">
+        <p><strong>Pri ukladaní dotácie sa jej suma automaticky pripočíta/odpočíta</strong> k/od príslušnej rozpočtovej položky.</p>
+    <p><strong>Ak potrebujete opraviť údaje dotácie</strong>:
+    <ol>
         <li>Otvorte dotáciu, zmeňte znamienko sumy na záporné a uložte. Tým sa dotácia odpočíta od príslušnej rozpočtovej položky. </li>
-        <li>Znova otvorte dotáciu, zadajte novú sumu alebo len zmeňte znamienko sumy, opravte chybné položky a uložte. </li>
+        <li>Znova otvorte dotáciu, zadajte novú sumu alebo opäť zmeňte znamienko sumy a opravte chybné údaje a uložte. </li>
     </ol>
     </p>
+    </div>
 {% endblock %}
 
 {% block content %}
