@@ -292,7 +292,6 @@ def VytvoritKryciList(polozka, pouzivatel):
     #text = text.replace(f"{lt}akt_datum{gt}", timezone.now().strftime("%d. %m. %Y"))
     text = text.replace(f"{lt}akt_datum{gt}", vytvorene.strftime("%d. %m. %Y"))
     #ulozit
-    trace()
     if not os.path.isdir(os.path.join(settings.MEDIA_ROOT,kl_dir)): os.makedirs(settings.MEDIA_ROOT,kl_dir)
     opath = os.path.join(kl_dir,nazov_suboru)
     with open(os.path.join(settings.MEDIA_ROOT,opath), "w") as f:
