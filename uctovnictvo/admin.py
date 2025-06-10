@@ -772,7 +772,7 @@ class PokladnaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, Mo
 @admin.register(Zmluva)
 class ZmluvaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
     form = ZmluvaForm
-    list_display = ["cislo", "nase_cislo", "dodavatel_link", "predmet", "subor_kl", "datum_odoslania", "datum_zverejnenia_CRZ", "trvala_zmluva", "platna_do", "url_zmluvy_html"]
+    list_display = ["cislo", "nase_cislo", "dodavatel_link", "predmet", "subor_kl", "datum_odoslania", "vytvorene", "datum_zverejnenia_CRZ", "trvala_zmluva", "platna_do", "url_zmluvy_html"]
     search_fields = ["dodavatel__nazov", "cislo", "nase_cislo","predmet"]
     actions = [export_selected_objects, "vytvorit_kryci_list"]
 
@@ -787,6 +787,11 @@ class ZmluvaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, Impo
     # Zoradiť položky v pulldown menu
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         return formfield_for_foreignkey(self, db_field, request, **kwargs)
+
+    # formátovať pole url_zmluvy
+    def vytvorene(self, obj):
+        return obj.history.last().history_date.strftime('%d.%m.%Y')
+    vytvorene.short_description = "Zázn. vytvorený"
 
     # formátovať pole url_zmluvy
     def url_zmluvy_html(self, obj):
