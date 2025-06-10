@@ -19,7 +19,7 @@ from beliana.settings import TMPLTS_DIR_NAME, PLATOVE_VYMERY_DIR, DOHODY_DIR, PR
 from beliana.settings import PLATOBNE_PRIKAZY_DIR, STRAVNE_HOD, PRILOHA_DIR
 from beliana.settings import ODVODY_VYNIMKA, DAN_Z_PRIJMU, OBJEDNAVKY_DIR, STRAVNE_DIR, REKREACIA_DIR
 from beliana.settings import PN1, PN2, BEZ_PRIKAZU_DIR, DDS_PRISPEVOK, ODMENY_DIR, NEPRITOMNOST_DIR, SOCFOND_PRISPEVOK
-from beliana.settings import VYSTAVENEFAKTURY_DIR, NAJOMNEFAKTURY_DIR, POKLADNA_DIR
+from beliana.settings import VYSTAVENEFAKTURY_DIR, NAJOMNEFAKTURY_DIR, POKLADNA_DIR, ZMLUVY_DIR
 from .utility import NacitatUdajeFakturyTelekom
 
 import os,re
