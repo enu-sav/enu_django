@@ -772,7 +772,7 @@ class PokladnaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, Mo
 @admin.register(Zmluva)
 class ZmluvaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
     form = ZmluvaForm
-    list_display = ["cislo", "nase_cislo", "dodavatel_link", "predmet", "subor_kl", "datum_zverejnenia_CRZ", "trvala_zmluva", "platna_do", "url_zmluvy_html"]
+    list_display = ["cislo", "nase_cislo", "dodavatel_link", "predmet", "subor_kl", "datum_odoslania", "datum_zverejnenia_CRZ", "trvala_zmluva", "platna_do", "url_zmluvy_html"]
     search_fields = ["dodavatel__nazov", "cislo", "nase_cislo","predmet"]
     actions = [export_selected_objects, "vytvorit_kryci_list"]
 
@@ -801,11 +801,23 @@ class ZmluvaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, Impo
             #self.message_user(request, f"Vybrať možno len jednu položku", messages.ERROR)
             #return
         for polozka in queryset:
+            if polozka.datum_odoslania:
+                self.message_user(request, f"Zmluva už bola odoslaná zmluvnej strane, vytváranie krycieho listu nie je možné", messages.ERROR)
+                continue
             status, msg, vytvoreny_subor = VytvoritKryciList(polozka, request.user)
             if status != messages.ERROR:
                 polozka.subor_kl = vytvoreny_subor
                 polozka.save()
             self.message_user(request, msg, status)
+
+    # do AdminForm pridať request, aby v jej __init__ bolo request dostupné
+    def get_form(self, request, obj=None, **kwargs):
+        AdminForm = super(ZmluvaAdmin, self).get_form(request, obj, **kwargs)
+        class AdminFormMod(AdminForm):
+            def __new__(cls, *args, **kwargs):
+                kwargs['request'] = request
+                return AdminForm(*args, **kwargs)
+        return AdminFormMod
     vytvorit_kryci_list.short_description = "Vytvoriť krycí list"
     #Oprávnenie na použitie akcie, viazané na 'change'
     vytvorit_kryci_list.allowed_permissions = ('change',)

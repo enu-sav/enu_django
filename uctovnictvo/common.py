@@ -208,7 +208,7 @@ def VytvoritKryciListOdmena(platba, pouzivatel):
 # type(polozka): VystavenaFaktura, NajomneFaktura, Zmluva,
 def VytvoritKryciList(polozka, pouzivatel):
     def vyplnit_klasifikaciu(text):
-        if type(polozka) == Zmluva:
+        if type(polozka) in (Zmluva,):
             text = text.replace(f"{lt}zdroj{gt}", "")
             text = text.replace(f"{lt}zakazka{gt}", "")
             text = text.replace(f"{lt}ekoklas{gt}", "")
@@ -280,6 +280,7 @@ def VytvoritKryciList(polozka, pouzivatel):
         text = text.replace(f"{lt}zmluva{gt}", "so zmluvou")
         coho = "zmluvy"
         co_podpisat = "a faktúru"
+        meno_pola = "Dátum odoslania"
         text = vyplnit_klasifikaciu(text)
 
     locale.setlocale(locale.LC_ALL, 'sk_SK.UTF-8')

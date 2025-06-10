@@ -814,6 +814,9 @@ class Zmluva(ObjednavkaZmluva):
             help_text = "Zadajte URL pdf súboru zmluvy zo stránky CRZ.",
             null=True,
             blank = True)
+    datum_odoslania = models.DateField('Dátum odoslania',
+            help_text = "Zadajte dátum odoslania zmluvy zmluvnej strane. Po zadaní dátumu sa vytvorí záznam v Denníku prijatej a odoslanej pošty",
+            blank=True, null=True)
     datum_zverejnenia_CRZ = models.DateField('Platná od', 
             help_text = "Zadajte dátum účinnosti zmluvy (dátum zverejnenia v CRZ + 1 deň).",
             blank=True, null=True)
