@@ -205,7 +205,7 @@ def VytvoritKryciListOdmena(platba, pouzivatel):
     return messages.SUCCESS, mark_safe(f"Súbor priznania odmeny/odchodného/odstupného a krycieho listu {platba.cislo} bol úspešne vytvorený ({opath}). <br />Krycí list a priznanie dajte na podpis. Po odoslaní krycieho listu a priznania vyplňte pole 'Dátum odoslania KL'."), opath
 
 # pouzivatel: aktualny pouzivatel
-# type(polozka): VystavenaFaktura, NajomneFaktura, Zmluva,
+# type(polozka): VystavenaFaktura, NajomneFaktura, Zmluva, NajomnaZmluva
 def VytvoritKryciList(polozka, pouzivatel):
     def vyplnit_klasifikaciu(text):
         if type(polozka) in (Zmluva, NajomnaZmluva):

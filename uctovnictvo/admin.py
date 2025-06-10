@@ -1004,7 +1004,7 @@ class PrijataFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdm
 #class VystavenaFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
 class VystavenaFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
     form = VystavenaFakturaForm
-    list_display = ["cislo", "objednavka_zmluva_link", "scislo","url_faktury", "dcislo", "url_softip", "suma", "sadzbadph", "predmet", "platobny_prikaz", "dane_na_uhradu", "uhradene_dna", "zdroj", "zakazka", "ekoklas"]
+    list_display = ["cislo", "objednavka_zmluva_link", "scislo","url_faktury", "dcislo", "url_softip", "suma", "sadzbadph", "predmet", "kryci_list", "dane_na_uhradu", "uhradene_dna", "zdroj", "zakazka", "ekoklas"]
     search_fields = ["^cislo","^dcislo", "objednavka_zmluva__dodavatel__nazov", "predmet", "^zdroj__kod", "^zakazka__kod", "^ekoklas__kod", "^ekoklas__nazov",  "^cinnost__kod", "cinnost__nazov" ]
 
     # zoraďovateľný odkaz na dodávateľa
@@ -1024,6 +1024,15 @@ class VystavenaFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryA
     # Zoradiť položky v pulldown menu
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         return formfield_for_foreignkey(self, db_field, request, **kwargs)
+
+    #Premenovať stĺpec
+    def kryci_list(self, obj):
+        if obj.platobny_prikaz:
+            fname = obj.platobny_prikaz.name.split("/")[-1]
+            return format_html(f'<a href="{obj.platobny_prikaz.url}" target="_blank">{fname}</a>')
+        #return obj.platobny_prikaz
+    kryci_list.short_description = "Krycí list" # Your desired title
+    kryci_list.admin_order_field = 'platobny_prikaz' # Important for sorting!
 
     # formátovať pole url_zmluvy
     def url_faktury(self, obj):
