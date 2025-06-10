@@ -12,7 +12,7 @@ from django.utils.html import format_html
 from .models import SystemovySubor, PrijataFaktura, AnoNie, Objednavka, VystavenaFaktura, Rozhodnutie, Zmluva
 from .models import DoVP, DoPC, DoBPS, Poistovna, TypDochodku, Mena, PravidelnaPlatba, TypPP, TypPokladna, Pokladna
 from .models import NajomneFaktura, PrispevokNaRekreaciu, Zamestnanec, OdmenaOprava, OdmenaAleboOprava, TypNepritomnosti, Nepritomnost
-from .models import PlatovaStupnica, Stravne, mesiace_num, PlatovyVymer, Mesiace, rozdelit_polozky, RekreaciaSport
+from .models import PlatovaStupnica, Stravne, mesiace_num, PlatovyVymer, Mesiace, rozdelit_polozky, RekreaciaSport, NajomnaZmluva
 from .rokydni import mesiace, prac_dni, pden, s2d, pracuje_v
 
 from openpyxl import load_workbook
@@ -208,7 +208,7 @@ def VytvoritKryciListOdmena(platba, pouzivatel):
 # type(polozka): VystavenaFaktura, NajomneFaktura, Zmluva,
 def VytvoritKryciList(polozka, pouzivatel):
     def vyplnit_klasifikaciu(text):
-        if type(polozka) in (Zmluva,):
+        if type(polozka) in (Zmluva, NajomnaZmluva):
             text = text.replace(f"{lt}zdroj{gt}", "")
             text = text.replace(f"{lt}zakazka{gt}", "")
             text = text.replace(f"{lt}ekoklas{gt}", "")
@@ -221,12 +221,8 @@ def VytvoritKryciList(polozka, pouzivatel):
         return text
 
     #úvodné testy
-    if not type(polozka) in (VystavenaFaktura, NajomneFaktura, Zmluva):
+    if not type(polozka) in (VystavenaFaktura, NajomneFaktura, Zmluva, NajomnaZmluva):
         return messages.ERROR, f"Vytváranie krycieho listu pre typ '{type(polozka)}' nie je implementované.", None
-    kl_dir = settings.ZMLUVY_DIR if type(polozka) == Zmluva else settings.PLATOBNE_PRIKAZY_DIR
-    #kl_dir = os.path.join(settings.MEDIA_ROOT,kl_dir)
-    if not os.path.isdir(kl_dir):
-        os.makedirs(kl_dir)
     
     lt="[["
     gt="]]"
@@ -257,18 +253,18 @@ def VytvoritKryciList(polozka, pouzivatel):
         nazov_suboru = nazov.replace(",", "").replace(" ","-").replace("/","-").replace("&", "&amp;")
         nazov_suboru = f"{nazov_suboru}-{polozka.cislo}.fodt"
         text = text.replace(f"{lt}popis{gt}", f"Platba č. {polozka.cislo_softip}, {nazov}")
-        text = text.replace(f"{lt}zmluva{gt}", "s nájomnou zmluvou")
         coho = "platby"
         co_podpisat = "a faktúru"
+        kl_dir = settings.PLATOBNE_PRIKAZY_DIR
         text = vyplnit_klasifikaciu(text)
     elif type(polozka) == VystavenaFaktura:
         nazov = polozka.objednavka_zmluva.dodavatel.nazov
         nazov_suboru = nazov.replace(",", "").replace(" ","-").replace("/","-").replace("&", "&amp;")
         nazov_suboru = f"{nazov_suboru}-{polozka.cislo}.fodt"
         text = text.replace(f"{lt}popis{gt}", f"Platba č. {polozka.dcislo}, {nazov}")
-        text = text.replace(f"{lt}zmluva{gt}", "so zmluvou")
         coho = "platby"
         co_podpisat = "a faktúru"
+        kl_dir = settings.PLATOBNE_PRIKAZY_DIR
         text = vyplnit_klasifikaciu(text)
     elif type(polozka) == Zmluva:
         if polozka.cislo == polozka.nase_cislo:
@@ -277,9 +273,18 @@ def VytvoritKryciList(polozka, pouzivatel):
             zcislo = f"{polozka.nase_cislo} ({polozka.cislo})"
         nazov_suboru = f"KL-{polozka.nase_cislo}.fodt"
         text = text.replace(f"{lt}popis{gt}", f"Zmluva č. {zcislo}; {polozka.dodavatel.nazov}")
-        text = text.replace(f"{lt}zmluva{gt}", "so zmluvou")
         coho = "zmluvy"
-        co_podpisat = "a faktúru"
+        co_podpisat = "a zmluvu"
+        kl_dir = settings.ZMLUVY_DIR
+        meno_pola = "Dátum odoslania"
+        text = vyplnit_klasifikaciu(text)
+    elif type(polozka) == NajomnaZmluva:
+        zcislo = f"{polozka.cislo}"
+        nazov_suboru = f"KL-{zcislo}.fodt"
+        text = text.replace(f"{lt}popis{gt}", f"Nájomná zmluva č. {zcislo}; {polozka.najomnik.nazov}")
+        coho = "zmluvy"
+        co_podpisat = "a zmluvu"
+        kl_dir = settings.ZMLUVY_DIR
         meno_pola = "Dátum odoslania"
         text = vyplnit_klasifikaciu(text)
 
@@ -287,6 +292,7 @@ def VytvoritKryciList(polozka, pouzivatel):
     #text = text.replace(f"{lt}akt_datum{gt}", timezone.now().strftime("%d. %m. %Y"))
     text = text.replace(f"{lt}akt_datum{gt}", vytvorene.strftime("%d. %m. %Y"))
     #ulozit
+    if not os.path.isdir(kl_dir): os.makedirs(kl_dir)
     opath = os.path.join(kl_dir,nazov_suboru)
     with open(os.path.join(settings.MEDIA_ROOT,opath), "w") as f:
         f.write(text)

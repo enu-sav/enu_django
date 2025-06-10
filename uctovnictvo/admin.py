@@ -802,7 +802,7 @@ class ZmluvaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, Impo
             #return
         for polozka in queryset:
             if polozka.datum_odoslania:
-                self.message_user(request, f"Zmluva už bola odoslaná zmluvnej strane, vytváranie krycieho listu nie je možné", messages.ERROR)
+                self.message_user(request, f"Zmluva {polozka.nase_cislo} už bola odoslaná zmluvnej strane, vytváranie krycieho listu nie je možné", messages.ERROR)
                 continue
             status, msg, vytvoreny_subor = VytvoritKryciList(polozka, request.user)
             if status != messages.ERROR:
@@ -1282,8 +1282,9 @@ class NajomnikAdmin(ZobrazitZmeny, SimpleHistoryAdmin, ImportExportModelAdmin):
 @admin.register(NajomnaZmluva)
 class NajomnaZmluvaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
     form = NajomnaZmluvaForm
-    list_display = ("cislo", "orig_cislo", "najomnik_link", "datum_zverejnenia_CRZ", "datum_do", "url_zmluvy_html", "miestnosti", "vymery", "poznamka")
+    list_display = ("cislo", "orig_cislo", "najomnik_link", "subor_kl", "datum_odoslania", "datum_zverejnenia_CRZ", "datum_do", "url_zmluvy_html", "miestnosti", "vymery", "poznamka")
     search_fields = ("najomnik__nazov", "najomnik__zastupeny")
+    actions = ["vytvorit_kryci_list"]
 
     # Zoradiť položky v pulldown menu
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
@@ -1296,6 +1297,20 @@ class NajomnaZmluvaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmi
         else:
             return None
     url_zmluvy_html.short_description = "Zmluva v CRZ"
+
+    def vytvorit_kryci_list(self, request, queryset):
+        #if len(queryset) != 1:
+            #self.message_user(request, f"Vybrať možno len jednu položku", messages.ERROR)
+            #return
+        for polozka in queryset:
+            if polozka.datum_odoslania:
+                self.message_user(request, f"Zmluva {polozka.cislo} už bola odoslaná zmluvnej strane, vytváranie krycieho listu nie je možné", messages.ERROR)
+                continue
+            status, msg, vytvoreny_subor = VytvoritKryciList(polozka, request.user)
+            if status != messages.ERROR:
+                polozka.subor_kl = vytvoreny_subor
+                polozka.save()
+            self.message_user(request, msg, status)
 
     change_links = [
         ('najomnik', {
@@ -1316,6 +1331,15 @@ class NajomnaZmluvaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmi
         else:
             return "-"
     orig_cislo.short_description = "Pôv. číslo"
+
+    # do AdminForm pridať request, aby v jej __init__ bolo request dostupné
+    def get_form(self, request, obj=None, **kwargs):
+        AdminForm = super(NajomnaZmluvaAdmin, self).get_form(request, obj, **kwargs)
+        class AdminFormMod(AdminForm):
+            def __new__(cls, *args, **kwargs):
+                kwargs['request'] = request
+                return AdminForm(*args, **kwargs)
+        return AdminFormMod
 
 @admin.register(NajomneFaktura)
 class NajomneFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
