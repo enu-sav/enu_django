@@ -172,9 +172,11 @@ class PlatbaBezPrikazuForm(forms.ModelForm):
             self.fields[polecislo].help_text = f"Zadajte číslo novej objednávky v tvare {PlatbaBezPrikazu.oznacenie}-RRRR-NNN. Predvolené číslo '{nasledujuce}' bolo určené na základe čísel existujúcich objednávok ako nasledujúce v poradí."
             self.initial[polecislo] = nasledujuce
 
-class ZmluvaForm(forms.ModelForm):
+class ZmluvaForm(DennikZaznam):
     #inicializácia polí
     def __init__(self, *args, **kwargs):
+        # do Admin treba pridať metódu get_form
+        self.request = kwargs.pop('request', None)
         super().__init__(*args, **kwargs)
         self.fields['dodavatel'].required = True    # v super je nepovinné
         polecislo = "nase_cislo"
@@ -188,6 +190,12 @@ class ZmluvaForm(forms.ModelForm):
             nasledujuce = nasledujuce_Zmluva()
             self.fields[polecislo].help_text = f"Zadajte naše číslo novej zmluvy v tvare {Zmluva.oznacenie}-RRRR-NNN. Predvolené číslo '{nasledujuce}' bolo určené na základe čísel existujúcich zmlúv ako nasledujúce v poradí."
             self.initial[polecislo] = nasledujuce
+
+    def clean(self):
+        if 'datum_odoslania' in self.changed_data and not self.instance.subor_kl:
+            raise ValidationError({"datum_odoslania": "Dátum odoslania možno vyplniť až po vygenerovaní krycieho listu."})
+        if 'datum_odoslania' in self.changed_data:
+            self.dennik_zaznam(f"Zmluva č. {self.instance.cislo}", TypDokumentu.ZMLUVA, self.cleaned_data['datum_odoslania'], InOut.ODOSLANY, self.instance.dodavatel)
 
 class PrijataFakturaForm(DennikZaznam):
     #inicializácia polí
@@ -808,9 +816,11 @@ class NepritomnostForm(DennikZaznam):
                 messages.warning(self.request, "Dĺžka neprítomnosti sa pre daný typ neprítomnosti neuvádza. Zadaná hodnota bola odstránená.")
         return self.cleaned_data
 
-class NajomnaZmluvaForm(forms.ModelForm):
+class NajomnaZmluvaForm(DennikZaznam):
     #inicializácia polí
     def __init__(self, *args, **kwargs):
+        # do Admin treba pridať metódu get_form
+        self.request = kwargs.pop('request', None)
         super().__init__(*args, **kwargs)
         polecislo = "cislo"
         # Ak je pole readonly, tak sa nenachádza vo fields. Preto testujeme fields aj initial
@@ -818,6 +828,12 @@ class NajomnaZmluvaForm(forms.ModelForm):
             nasledujuce = nasledujuce_cislo(NajomnaZmluva)
             self.fields[polecislo].help_text = f"Zadajte číslo nájomnej zmluvy v tvare {NajomnaZmluva.oznacenie}-RRRR-NNN. Predvolené číslo '{nasledujuce}' bolo určené na základe čísel existujúcich zmlúv ako nasledujúce v poradí.<br />Ak ide o zmluvu podpísanú v minulosti, použite správny rok a poradové číslo."
             self.initial[polecislo] = nasledujuce
+
+    def clean(self):
+        if 'datum_odoslania' in self.changed_data and not self.instance.subor_kl:
+            raise ValidationError({"datum_odoslania": "Dátum odoslania možno vyplniť až po vygenerovaní krycieho listu."})
+        if 'datum_odoslania' in self.changed_data:
+            self.dennik_zaznam(f"Nájomná zmluva č. {self.instance.cislo}", TypDokumentu.NAJOMNAZMLUVA, self.cleaned_data['datum_odoslania'], InOut.ODOSLANY, self.instance.najomnik)
 
 
 class RozpoctovaPolozkaPresunForm(forms.ModelForm):

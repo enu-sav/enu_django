@@ -278,6 +278,7 @@ STRAVNE_DIR="Stravne"
 POKLADNA_DIR="Pokladna"
 REKREACIA_DIR="PrispevokNaRekreaciu"
 NEPRITOMNOST_DIR="Nepritomnost"
+ZMLUVY_DIR="Zmluvy"
 
 #App denniky
 FORM_DIR_NAME="HromadneDokumenty"

@@ -802,6 +802,8 @@ class Rozhodnutie(ObjednavkaZmluva):
     def __str__(self):
         return f"{self.dodavatel} - Ro/Po - {self.cislo}"
 
+def zmluvy_upload_location(instance, filename):
+    return os.path.join(ZMLUVY_DIR, filename)
 class Zmluva(ObjednavkaZmluva):
     oznacenie = "ZE"    #v čísle faktúry, ZE-2021-123
     nase_cislo = models.CharField("Naše číslo", 
@@ -812,6 +814,9 @@ class Zmluva(ObjednavkaZmluva):
             help_text = "Zadajte URL pdf súboru zmluvy zo stránky CRZ.",
             null=True,
             blank = True)
+    datum_odoslania = models.DateField('Dátum odoslania',
+            help_text = "Zadajte dátum odoslania zmluvy zmluvnej strane. Po zadaní dátumu sa vytvorí záznam v Denníku prijatej a odoslanej pošty",
+            blank=True, null=True)
     datum_zverejnenia_CRZ = models.DateField('Platná od', 
             help_text = "Zadajte dátum účinnosti zmluvy (dátum zverejnenia v CRZ + 1 deň).",
             blank=True, null=True)
@@ -823,6 +828,10 @@ class Zmluva(ObjednavkaZmluva):
     platna_do = models.DateField('Platná do', 
             help_text = "Zadajte dátum ukončenia platnosti trvalej zmluvy. Platnosť trvalej zmluvy sa testuje pri vytváraní faktúry.",
             blank=True, null=True)
+    subor_kl = models.FileField("Krycí list",
+            help_text = "Súbor s krycím listom. Generuje sa akciou 'Vytvoriť krycí list'.",
+            upload_to=zmluvy_upload_location,
+            null = True, blank = True)
     history = HistoricalRecords()
     class Meta:
         verbose_name = 'Zmluva'
@@ -1488,6 +1497,13 @@ class NajomnaZmluva(models.Model):
             on_delete=models.PROTECT,
             verbose_name = "Nájomník"
             )
+    subor_kl = models.FileField("Krycí list",
+            help_text = "Súbor s krycím listom. Generuje sa akciou 'Vytvoriť krycí list'.",
+            upload_to=zmluvy_upload_location,
+            null = True, blank = True)
+    datum_odoslania = models.DateField('Dátum odoslania',
+            help_text = "Zadajte dátum odoslania zmluvy nájomníkovi. Po zadaní dátumu sa vytvorí záznam v Denníku prijatej a odoslanej pošty",
+            blank=True, null=True)
     url_zmluvy = models.URLField('URL zmluvy',
             help_text = "Zadajte URL pdf súboru zmluvy zo stránky CRZ.",
             null=True,
@@ -1520,11 +1536,11 @@ class NajomnaZmluva(models.Model):
             )
     history = HistoricalRecords()
     class Meta:
-        verbose_name = 'Nájomná zmluva',
+        verbose_name = 'Nájomná zmluva'
         verbose_name_plural = 'Prenájom - Zmluvy'
         #abstract = True
     def __str__(self):
-        return f"{self.najomnik} - {self.cislo}"
+        return f"{self.najomnik.nazov}, {self.cislo}"
 
 def najomne_faktura_upload_location(instance, filename):
     return os.path.join(NAJOMNEFAKTURY_DIR, filename)
