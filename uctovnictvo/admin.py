@@ -772,9 +772,9 @@ class PokladnaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, Mo
 @admin.register(Zmluva)
 class ZmluvaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, ImportExportModelAdmin):
     form = ZmluvaForm
-    list_display = ["cislo", "nase_cislo", "dodavatel_link", "predmet", "datum_zverejnenia_CRZ", "trvala_zmluva", "platna_do", "url_zmluvy_html"]
-    search_fields = ["dodavatel__nazov", "cislo", "predmet"]
-    actions = [export_selected_objects]
+    list_display = ["cislo", "nase_cislo", "dodavatel_link", "predmet", "subor_kl", "datum_zverejnenia_CRZ", "trvala_zmluva", "platna_do", "url_zmluvy_html"]
+    search_fields = ["dodavatel__nazov", "cislo", "nase_cislo","predmet"]
+    actions = [export_selected_objects, "vytvorit_kryci_list"]
 
     # zoraďovateľný odkaz na dodávateľa
     # umožnené prostredníctvom AdminChangeLinksMixin
@@ -795,6 +795,20 @@ class ZmluvaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin, Impo
         else:
             return None
     url_zmluvy_html.short_description = "Zmluva v CRZ"
+
+    def vytvorit_kryci_list(self, request, queryset):
+        #if len(queryset) != 1:
+            #self.message_user(request, f"Vybrať možno len jednu položku", messages.ERROR)
+            #return
+        for polozka in queryset:
+            status, msg, vytvoreny_subor = VytvoritKryciList(polozka, request.user)
+            if status != messages.ERROR:
+                polozka.subor_kl = vytvoreny_subor
+                polozka.save()
+            self.message_user(request, msg, status)
+    vytvorit_kryci_list.short_description = "Vytvoriť krycí list"
+    #Oprávnenie na použitie akcie, viazané na 'change'
+    vytvorit_kryci_list.allowed_permissions = ('change',)
 
 @admin.register(PrijataFaktura)
 #medzi  ModelAdminTotals a ImportExportModelAdmin je konflikt
@@ -1954,7 +1968,7 @@ class OdmenaOpravaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdmin
         polozka = queryset[0]
         if polozka.subor_kl:
             self.message_user(request, f"Krycí list už bol vytvorený, opakovanie nie je možné", messages.ERROR)
-            #return
+            return
         if polozka.typ in [OdmenaAleboOprava.OPRAVATARIF, OdmenaAleboOprava.OPRAVARIAD, OdmenaAleboOprava.OPRAVAOSOB, OdmenaAleboOprava.OPRAVAZR]:
             self.message_user(request, f"Krycí list sa pre opravy nevytvára.", messages.ERROR)
             return

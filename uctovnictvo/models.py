@@ -802,6 +802,8 @@ class Rozhodnutie(ObjednavkaZmluva):
     def __str__(self):
         return f"{self.dodavatel} - Ro/Po - {self.cislo}"
 
+def zmluvy_upload_location(instance, filename):
+    return os.path.join(ZMLUVY_DIR, filename)
 class Zmluva(ObjednavkaZmluva):
     oznacenie = "ZE"    #v čísle faktúry, ZE-2021-123
     nase_cislo = models.CharField("Naše číslo", 
@@ -823,6 +825,10 @@ class Zmluva(ObjednavkaZmluva):
     platna_do = models.DateField('Platná do', 
             help_text = "Zadajte dátum ukončenia platnosti trvalej zmluvy. Platnosť trvalej zmluvy sa testuje pri vytváraní faktúry.",
             blank=True, null=True)
+    subor_kl = models.FileField("Krycí list",
+            help_text = "Súbor s krycím listom. Generuje sa akciou 'Vytvoriť krycí list'.",
+            upload_to=zmluvy_upload_location,
+            null = True, blank = True)
     history = HistoricalRecords()
     class Meta:
         verbose_name = 'Zmluva'

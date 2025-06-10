@@ -205,10 +205,28 @@ def VytvoritKryciListOdmena(platba, pouzivatel):
     return messages.SUCCESS, mark_safe(f"Súbor priznania odmeny/odchodného/odstupného a krycieho listu {platba.cislo} bol úspešne vytvorený ({opath}). <br />Krycí list a priznanie dajte na podpis. Po odoslaní krycieho listu a priznania vyplňte pole 'Dátum odoslania KL'."), opath
 
 # pouzivatel: aktualny pouzivatel
-def VytvoritKryciList(platba, pouzivatel):
+# type(polozka): VystavenaFaktura, NajomneFaktura, Zmluva,
+def VytvoritKryciList(polozka, pouzivatel):
+    def vyplnit_klasifikaciu(text):
+        if type(polozka) == Zmluva:
+            text = text.replace(f"{lt}zdroj{gt}", "")
+            text = text.replace(f"{lt}zakazka{gt}", "")
+            text = text.replace(f"{lt}ekoklas{gt}", "")
+            text = text.replace(f"{lt}cinnost{gt}", "")
+        else:
+            text = text.replace(f"{lt}zdroj{gt}", f"{polozka.zdroj.kod} ({polozka.zdroj.popis})")
+            text = text.replace(f"{lt}zakazka{gt}", f"{polozka.zakazka.kod} ({polozka.zakazka.popis})")
+            text = text.replace(f"{lt}ekoklas{gt}", f"{polozka.ekoklas.kod} ({polozka.ekoklas.nazov})")
+            text = text.replace(f"{lt}cinnost{gt}", f"{polozka.cinnost.kod} ({polozka.cinnost.nazov})")
+        return text
+
     #úvodné testy
-    if not os.path.isdir(settings.PLATOBNE_PRIKAZY_DIR):
-        os.makedirs(settings.PLATOBNE_PRIKAZY_DIR)
+    if not type(polozka) in (VystavenaFaktura, NajomneFaktura, Zmluva):
+        return messages.ERROR, f"Vytváranie krycieho listu pre typ '{type(polozka)}' nie je implementované.", None
+    kl_dir = settings.ZMLUVY_DIR if type(polozka) == Zmluva else settings.PLATOBNE_PRIKAZY_DIR
+    #kl_dir = os.path.join(settings.MEDIA_ROOT,kl_dir)
+    if not os.path.isdir(kl_dir):
+        os.makedirs(kl_dir)
     
     lt="[["
     gt="]]"
@@ -230,32 +248,49 @@ def VytvoritKryciList(platba, pouzivatel):
     #
     #autor a dátum
     text=re.sub("<dc:creator>[^<]*</dc:creator>", f"<dc:creator>{pouzivatel.get_full_name()}</dc:creator>", text)
-    text=re.sub("<dc:date>[^<]*</dc:date>", f"<dc:date>{timezone.now().strftime('%Y-%m-%dT%H:%M:%S.%f')}</dc:date>", text)
-    if type(platba) == NajomneFaktura:
-        nazov = platba.zmluva.najomnik.nazov
-        text = text.replace(f"{lt}popis{gt}", f"Platba č. {platba.cislo_softip}, {nazov}")
+    vytvorene = polozka.history.last().history_date #dátum vytvorenia položky
+    text=re.sub("<dc:date>[^<]*</dc:date>", f"<dc:date>{vytvorene.strftime('%Y-%m-%dT%H:%M:%S.%f')}</dc:date>", text)
+
+    meno_pola = "Dané na vybavenie dňa"
+    if type(polozka) == NajomneFaktura:
+        nazov = polozka.zmluva.najomnik.nazov
+        nazov_suboru = nazov.replace(",", "").replace(" ","-").replace("/","-").replace("&", "&amp;")
+        nazov_suboru = f"{nazov_suboru}-{polozka.cislo}.fodt"
+        text = text.replace(f"{lt}popis{gt}", f"Platba č. {polozka.cislo_softip}, {nazov}")
         text = text.replace(f"{lt}zmluva{gt}", "s nájomnou zmluvou")
-        meno_pola = "Dané na vybavenie dňa"
-    elif type(platba) == VystavenaFaktura:
-        nazov = platba.objednavka_zmluva.dodavatel.nazov
-        text = text.replace(f"{lt}popis{gt}", f"Platba č. {platba.dcislo}, {nazov}")
+        coho = "platby"
+        co_podpisat = "a faktúru"
+        text = vyplnit_klasifikaciu(text)
+    elif type(polozka) == VystavenaFaktura:
+        nazov = polozka.objednavka_zmluva.dodavatel.nazov
+        nazov_suboru = nazov.replace(",", "").replace(" ","-").replace("/","-").replace("&", "&amp;")
+        nazov_suboru = f"{nazov_suboru}-{polozka.cislo}.fodt"
+        text = text.replace(f"{lt}popis{gt}", f"Platba č. {polozka.dcislo}, {nazov}")
         text = text.replace(f"{lt}zmluva{gt}", "so zmluvou")
-        meno_pola = "Dané na vybavenie dňa"
-    else:
-        text = text.replace(f"{lt}popis{gt}", "")
-    text = text.replace(f"{lt}zdroj{gt}", f"{platba.zdroj.kod} ({platba.zdroj.popis})")
-    text = text.replace(f"{lt}zakazka{gt}", f"{platba.zakazka.kod} ({platba.zakazka.popis})")
-    text = text.replace(f"{lt}ekoklas{gt}", f"{platba.ekoklas.kod} ({platba.ekoklas.nazov})")
-    text = text.replace(f"{lt}cinnost{gt}", f"{platba.cinnost.kod} ({platba.cinnost.nazov})")
+        coho = "platby"
+        co_podpisat = "a faktúru"
+        text = vyplnit_klasifikaciu(text)
+    elif type(polozka) == Zmluva:
+        if polozka.cislo == polozka.nase_cislo:
+            zcislo = f"{polozka.nase_cislo}"
+        else:
+            zcislo = f"{polozka.nase_cislo} ({polozka.cislo})"
+        nazov_suboru = f"KL-{polozka.nase_cislo}.fodt"
+        text = text.replace(f"{lt}popis{gt}", f"Zmluva č. {zcislo}; {polozka.dodavatel.nazov}")
+        text = text.replace(f"{lt}zmluva{gt}", "so zmluvou")
+        coho = "zmluvy"
+        co_podpisat = "a faktúru"
+        text = vyplnit_klasifikaciu(text)
+
     locale.setlocale(locale.LC_ALL, 'sk_SK.UTF-8')
-    text = text.replace(f"{lt}akt_datum{gt}", timezone.now().strftime("%d. %m. %Y"))
+    #text = text.replace(f"{lt}akt_datum{gt}", timezone.now().strftime("%d. %m. %Y"))
+    text = text.replace(f"{lt}akt_datum{gt}", vytvorene.strftime("%d. %m. %Y"))
     #ulozit
-    nazov = nazov.replace(",", "").replace(" ","-").replace("/","-").replace("&", "&amp;")
-    nazov = f"{nazov}-{platba.cislo}.fodt"
-    opath = os.path.join(settings.PLATOBNE_PRIKAZY_DIR,nazov)
+    opath = os.path.join(kl_dir,nazov_suboru)
     with open(os.path.join(settings.MEDIA_ROOT,opath), "w") as f:
         f.write(text)
-    return messages.SUCCESS, mark_safe(f"Súbor krycieho listu platby {platba.cislo} bol úspešne vytvorený ({opath}). <br />Krycí list a faktúru dajte na podpis. <br />Po podpísaní krycí list a faktúru dajte na sekretariát na odoslanie a vyplňte pole '{meno_pola}'."), opath
+    na_podpis = f" <br />Krycí list {co_podpisat} dajte na podpis. <br />Po podpísaní krycí list {co_podpisat} dajte na sekretariát na odoslanie a vyplňte pole '{meno_pola}'."
+    return messages.SUCCESS, mark_safe(f"Súbor krycieho listu {coho} {polozka.cislo} bol úspešne vytvorený ({nazov_suboru}). {na_podpis}."), opath
  
 # pouzivatel: aktualny pouzivatel
 def VytvoritPlatobnyPrikazIP(faktura, pouzivatel):
