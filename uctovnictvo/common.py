@@ -449,6 +449,9 @@ def VytvoritPlatobnyPrikaz(faktura, pouzivatel):
     #Test zrušený, lebo vyúčtovacia faktúra má hodnotu 0€ (platila sa predfaktúra)
     #if not faktura.suma and not faktura.sumacm:
         #return messages.ERROR, "Vytváranie príkazu zlyhalo, lebo nebola zadaná suma v Eur a ani suma v cudzej mene.", None
+
+    #predvolená hodnota pre placeholder akt_datum v šablóne
+    akt_datum = timezone.now()
     if jePF:    #prijatá faktúra môže byť aj v cudzej mene
             
         sadzbadph = Decimal(faktura.sadzbadph)
@@ -508,7 +511,7 @@ def VytvoritPlatobnyPrikaz(faktura, pouzivatel):
         text = text.replace( 'text:name="OblastRozpisanePolozky"', 'text:name="OblastRozpisanePolozky" text:display="none"')
         suma = -faktura.suma
         mena = "€"
-        text = text.replace(f"{lt}DM{gt}", f"{locale_format(suma)} €")     # suma je záporná, o formulári chceme kladné
+        text = text.replace(f"{lt}DM{gt}", f"{locale_format(suma)} €")     # suma je záporná, vo formulári chceme kladné
         text = text.replace(f"{lt}CM{gt}", "")
         text = text.replace(f"{lt}suma1{gt}", f"{locale_format(round(Decimal((1-podiel2/100)*float(suma)),2))} {mena}")
         if podiel2 > 0:
@@ -519,6 +522,8 @@ def VytvoritPlatobnyPrikaz(faktura, pouzivatel):
         text = text.replace(f"{lt}dodavatel_faktura{gt}", "")
         text = text.replace(f"{lt}doslo_dna{gt}", "" )
         text = text.replace(f"{lt}predmet_faktury{gt}", TypPP(faktura.typ).label)
+        #Vyplniť 1. deň mesiaca splatnosti
+        akt_datum = datetime.date(faktura.splatnost_datum.year, faktura.splatnost_datum.month, 1) 
 
     text = text.replace(f"{lt}ekoklas{gt}", faktura.ekoklas.kod)
     text = text.replace(f"{lt}zdroj1{gt}", faktura.zdroj.kod)
@@ -534,7 +539,7 @@ def VytvoritPlatobnyPrikaz(faktura, pouzivatel):
         text = text.replace(f"{lt}podiel2{gt}", "0")
     text = text.replace(f"{lt}program{gt}", faktura.program.kod)
     text = text.replace(f"{lt}cinnost{gt}", faktura.cinnost.kod)
-    text = text.replace(f"{lt}akt_datum{gt}", timezone.now().strftime("%d. %m. %Y"))
+    text = text.replace(f"{lt}akt_datum{gt}", akt_datum.strftime("%d. %m. %Y"))
     text = text.replace(f"{lt}dodavatel{gt}", faktura.objednavka_zmluva.dodavatel.nazov.replace("&","&amp;"))
 
     # ulica ne nepovinná (malá obec)
