@@ -727,7 +727,8 @@ class Objednavka(ObjednavkaZmluva):
                 <ol>\
                 <li>možnosť: so 6 poľami oddelenými bodkočiarkou alebo lomkou / v poradí: <b>názov položky</b> / <b>merná jednotka</b> - ks, kg, l, m, m2, m3 / <b>množstvo</b> / <b>cena za jednotku bez DPH / DPH / CPV kód</b>, napr. <strong>Euroobal A4 / bal / 10 / 7,50 / 23 / 30193300-1</strong> <br />Cena za jednotlivé položky a celková suma sa dopočíta.</li>\
                 <li>možnosť: ako jednoduchý text s jednou bodkočiarkou alebo lomkou, za ktorou nasleduje CPV kód, napr. <strong>Objednávame tovar podľa  priloženého zoznamu; 45321000-3</strong>.<br />Súbor takejto ponuky alebo zoznamu vložte do poľa <em>Súbor prílohy</em> a <strong>predpokladanú cenu bez DPH</strong> vložte do poľa <em>Predpokladaná cena</em>.</li>\
-                </ol>"),
+                </ol>\
+            <p>Ak CPV kód nie je relevantný, zadajte pomlčku -</p>"),
 
             max_length=5000, 
             blank = True,

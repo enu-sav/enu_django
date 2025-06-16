@@ -139,7 +139,7 @@ class ObjednavkaForm(DennikZaznam):
         if "termin_dodania" in self.extra_context['required_fields']:
             self.fields["objednane_polozky"].label = "Text žiadanky"
         else:
-            self.fields["predpokladana_cena"].help_text = "Zadajte cenu bez DPH.<br />Ak je v poli 'Objednané položky' uvedená cena (možnosť 1. s 5 poľami), aktualizuje sa automaticky"
+            self.fields["predpokladana_cena"].help_text = "Zadajte cenu bez DPH.<br />Ak je v poli 'Objednané položky' uvedená cena (možnosť 1. so 6 poľami), aktualizuje sa automaticky"
             self.fields["predpokladana_cena"].label = "Cena"
             self.fields["objednane_polozky"].label = "Objednané položky"
 
