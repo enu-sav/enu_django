@@ -352,7 +352,7 @@ def VytvoritPlatobnyPrikaz(faktura, pouzivatel):
         locale.setlocale(locale.LC_ALL, 'sk_SK.UTF-8')
         polozky = [f"{lt}popis%d{gt}", f"{lt}cbdph%d{gt}", f"{lt}d%d{gt}", f"{lt}zd%d{gt}", f"{lt}zak%d{gt}", f"{lt}ek%d{gt}"]
         riadky = rozpis_poloziek.split("\n")
-        suma_spolu = Decimal(0)
+        suma_spolu = 0
         for nn, riadok in enumerate(riadky):
             polia = rozdelit_polozky(riadok)
             text = text.replace(polozky[0]%(nn+1), polia[0])
@@ -361,10 +361,10 @@ def VytvoritPlatobnyPrikaz(faktura, pouzivatel):
             text = text.replace(polozky[4]%(nn+1), polia[4])
             text = text.replace(polozky[5]%(nn+1), polia[5])
             suma = suma_riadok(polia[1])*(1+suma_riadok(polia[2])/100)
-            suma = round(Decimal(suma), 2)
-            text = text.replace(polozky[1]%(nn+1), f"{locale_format(suma)}")
             suma_spolu += suma
-        text = text.replace("[[spolu]]", f"{locale_format(suma_spolu)}")
+            suma = round(Decimal(suma), 4)
+            text = text.replace(polozky[1]%(nn+1), f"{locale_format(suma)}")
+        text = text.replace("[[spolu]]", f"{locale_format(round(Decimal(suma_spolu), 2))}")
         #Zmazať ostatné
         for nn in range(len(riadky)+1, 7):  #Máme 6 riadkov v šablóne
             for polozka in polozky:
