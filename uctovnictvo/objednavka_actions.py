@@ -149,8 +149,8 @@ def VytvoritSuborObjednavky(objednavka, username):
             pole = "pole" if pocet_poli==1 else "polia" if pocet_poli < 5 else "polí"
             return f"{co}: Prvá položka má {pocet_poli} {pole}, povolený počet je 2 alebo 5 (skontrolujte oddeľovače). {sn}"
        
-        if pocet_poli == 2 and pocet_poloziek > 1:
-            return f"{co}: Ak má prvý riadok len dve polia, tak v Objednané položky môže byť len jeden riadok. {sn}"
+        #if pocet_poli == 2 and pocet_poloziek > 1:
+            #return f"{co}: Ak má prvý riadok len dve polia, tak v Objednané položky môže byť len jeden riadok. {sn}"
         for rr, polozka in enumerate(polozky):
             plen = len(polozka.split(oddelovac))
             if plen != pocet_poli:
@@ -166,9 +166,10 @@ def VytvoritSuborObjednavky(objednavka, username):
                 if re.sub(r"[0-9-]", "", pp[-1].strip()):
                     return f"{co}: Posledná položka na riadku {rr+1} musí byť CPV kód alebo pomlčka. {sn}"
         else:   #2 polia
-            pp =  polozky[0].strip().split(oddelovac)
-            if re.sub(r"[0-9-]", "", pp[1].strip()):
-                return f"{co}: Posledná položka na riadku 1 musí byť CPV kód alebo pomlčka. {sn}"
+            for rr, polozka in enumerate(polozky):
+                pp =  polozka.strip().split(oddelovac)
+                if re.sub(r"[0-9-]", "", pp[1].strip()):
+                    return f"{co}: Posledná položka na riadku {rr} musí byť CPV kód alebo pomlčka. {sn}"
     #end def KontrolaZadania
 
     if not objednavka.dodavatel:

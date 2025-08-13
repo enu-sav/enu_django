@@ -22,6 +22,7 @@ class TypDokumentu(models.TextChoices):
     PPLATBA = 'pplatba', 'Pravidelná platba'
     PSTRAVNE = 'pstravne', 'Príspevok na stravné'
     ZMLUVA = 'zmluva', 'Zmluva'
+    NAJOMNAZMLUVA = 'najomnazmluva', 'Nájomná zmluva'
     DoVP = 'dovp', 'DoVP'
     DoPC = 'dopc', 'DoPC'
     DoBPS = 'dobps', 'DoBPS'

@@ -5,6 +5,8 @@ from collections import defaultdict
 from beliana.settings import MAX_VZ
 from uctovnictvo.models import *
 import dennik.models
+from django.contrib import messages #import messages
+from django.utils.html import format_html
 #from models import TypDochodku
 
 class Poistne():

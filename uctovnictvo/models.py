@@ -19,7 +19,7 @@ from beliana.settings import TMPLTS_DIR_NAME, PLATOVE_VYMERY_DIR, DOHODY_DIR, PR
 from beliana.settings import PLATOBNE_PRIKAZY_DIR, STRAVNE_HOD, PRILOHA_DIR
 from beliana.settings import ODVODY_VYNIMKA, DAN_Z_PRIJMU, OBJEDNAVKY_DIR, STRAVNE_DIR, REKREACIA_DIR
 from beliana.settings import PN1, PN2, BEZ_PRIKAZU_DIR, DDS_PRISPEVOK, ODMENY_DIR, NEPRITOMNOST_DIR, SOCFOND_PRISPEVOK
-from beliana.settings import VYSTAVENEFAKTURY_DIR, NAJOMNEFAKTURY_DIR, POKLADNA_DIR
+from beliana.settings import VYSTAVENEFAKTURY_DIR, NAJOMNEFAKTURY_DIR, POKLADNA_DIR, ZMLUVY_DIR
 from .utility import NacitatUdajeFakturyTelekom
 
 import os,re
@@ -270,7 +270,7 @@ class TypDochodku(models.TextChoices):
     INVALIDNY70 = 'invalidny70', "invalidný 70 % (len zamestnanci)"
     INVAL_VYSL = 'invalidny_vysl', "invalidný výsluhový"
     VYSLUHOVY = "vysluhovy",  "výsluhový po dovŕšení dôchodkového veku"
-    PREDCASNY = "predcasny", "predčasný (poberateľovi zanikne nárok na výplatu predčasného dôchodku)"
+    PREDCASNY = "predcasny", "predčasný"
 
 #typ pravidelnej platby
 class TypPP(models.TextChoices):
@@ -727,7 +727,8 @@ class Objednavka(ObjednavkaZmluva):
                 <ol>\
                 <li>možnosť: so 6 poľami oddelenými bodkočiarkou alebo lomkou / v poradí: <b>názov položky</b> / <b>merná jednotka</b> - ks, kg, l, m, m2, m3 / <b>množstvo</b> / <b>cena za jednotku bez DPH / DPH / CPV kód</b>, napr. <strong>Euroobal A4 / bal / 10 / 7,50 / 23 / 30193300-1</strong> <br />Cena za jednotlivé položky a celková suma sa dopočíta.</li>\
                 <li>možnosť: ako jednoduchý text s jednou bodkočiarkou alebo lomkou, za ktorou nasleduje CPV kód, napr. <strong>Objednávame tovar podľa  priloženého zoznamu; 45321000-3</strong>.<br />Súbor takejto ponuky alebo zoznamu vložte do poľa <em>Súbor prílohy</em> a <strong>predpokladanú cenu bez DPH</strong> vložte do poľa <em>Predpokladaná cena</em>.</li>\
-                </ol>"),
+                </ol>\
+            <p>Ak CPV kód nie je relevantný, zadajte pomlčku -</p>"),
 
             max_length=5000, 
             blank = True,
@@ -802,6 +803,8 @@ class Rozhodnutie(ObjednavkaZmluva):
     def __str__(self):
         return f"{self.dodavatel} - Ro/Po - {self.cislo}"
 
+def zmluvy_upload_location(instance, filename):
+    return os.path.join(ZMLUVY_DIR, filename)
 class Zmluva(ObjednavkaZmluva):
     oznacenie = "ZE"    #v čísle faktúry, ZE-2021-123
     nase_cislo = models.CharField("Naše číslo", 
@@ -812,6 +815,9 @@ class Zmluva(ObjednavkaZmluva):
             help_text = "Zadajte URL pdf súboru zmluvy zo stránky CRZ.",
             null=True,
             blank = True)
+    datum_odoslania = models.DateField('Dátum odoslania',
+            help_text = "Zadajte dátum odoslania zmluvy zmluvnej strane. Po zadaní dátumu sa vytvorí záznam v Denníku prijatej a odoslanej pošty",
+            blank=True, null=True)
     datum_zverejnenia_CRZ = models.DateField('Platná od', 
             help_text = "Zadajte dátum účinnosti zmluvy (dátum zverejnenia v CRZ + 1 deň).",
             blank=True, null=True)
@@ -823,6 +829,10 @@ class Zmluva(ObjednavkaZmluva):
     platna_do = models.DateField('Platná do', 
             help_text = "Zadajte dátum ukončenia platnosti trvalej zmluvy. Platnosť trvalej zmluvy sa testuje pri vytváraní faktúry.",
             blank=True, null=True)
+    subor_kl = models.FileField("Krycí list",
+            help_text = "Súbor s krycím listom. Generuje sa akciou 'Vytvoriť krycí list'.",
+            upload_to=zmluvy_upload_location,
+            null = True, blank = True)
     history = HistoricalRecords()
     class Meta:
         verbose_name = 'Zmluva'
@@ -1488,6 +1498,13 @@ class NajomnaZmluva(models.Model):
             on_delete=models.PROTECT,
             verbose_name = "Nájomník"
             )
+    subor_kl = models.FileField("Krycí list",
+            help_text = "Súbor s krycím listom. Generuje sa akciou 'Vytvoriť krycí list'.",
+            upload_to=zmluvy_upload_location,
+            null = True, blank = True)
+    datum_odoslania = models.DateField('Dátum odoslania',
+            help_text = "Zadajte dátum odoslania zmluvy nájomníkovi. Po zadaní dátumu sa vytvorí záznam v Denníku prijatej a odoslanej pošty",
+            blank=True, null=True)
     url_zmluvy = models.URLField('URL zmluvy',
             help_text = "Zadajte URL pdf súboru zmluvy zo stránky CRZ.",
             null=True,
@@ -1520,11 +1537,11 @@ class NajomnaZmluva(models.Model):
             )
     history = HistoricalRecords()
     class Meta:
-        verbose_name = 'Nájomná zmluva',
+        verbose_name = 'Nájomná zmluva'
         verbose_name_plural = 'Prenájom - Zmluvy'
         #abstract = True
     def __str__(self):
-        return f"{self.najomnik} - {self.cislo}"
+        return f"{self.najomnik.nazov}, {self.cislo}"
 
 def najomne_faktura_upload_location(instance, filename):
     return os.path.join(NAJOMNEFAKTURY_DIR, filename)

@@ -521,7 +521,7 @@ class VyplatitAutorskeOdmeny(VyplatitOdmeny):
                 #msg = f"Údaje o vyplácaní na odoslanie CSC boli uložené do súboru {fpath}"
                 #self.log(messages.WARNING, msg)
                 #self.db_logger.warning(msg)
-            workbook.remove_sheet(workbook["Po autoroch"])
+            #workbook.remove_sheet(workbook["Po autoroch"])
             workbook.save(fpath)
             if self.pocet_chyb:
                 msg = f"Údaje o vyplácaní na odoslanie CSC boli uložené do súboru {fpath}. V hárku Chyby sa nachádza {self.pocet_chyb} záznamov"

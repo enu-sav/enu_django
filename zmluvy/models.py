@@ -534,6 +534,22 @@ class PlatbaAutorskaSumar(models.Model, GetAdminURL):
             blank = True)
     history = HistoricalRecords()
 
+    def clean(self):
+        qself=PlatbaAutorskaSumar.objects.filter(cislo=self.cislo)
+        if not qself:   #len keď položku vytvárame
+            qset=set()
+            qs=PlatbaAutorskaSumar.objects.filter(cislo__contains="AH", datum_importovania__isnull=True )
+            for qq in qs: qset.add(qq.cislo)
+            qs=PlatbaAutorskaSumar.objects.filter(cislo__contains="AH", datum_uhradenia__isnull=True )
+            for qq in qs: qset.add(qq.cislo)
+            qs=PlatbaAutorskaSumar.objects.filter(cislo__contains="AH", datum_oznamenia__isnull=True )
+            for qq in qs: qset.add(qq.cislo)
+            qlist = [qq for qq in qset]
+            if len(qlist) == 1:
+                raise ValidationError(f"Vyplácanie {self.cislo} nemôže byť vytvorené, lebo vyplácanie {qlist[0]} nemá vyplnené požadované polia")
+            if len(qlist) > 1:
+                raise ValidationError(f"Vyplácanie {self.cislo} nemôže byť vytvorené, lebo vyplácania {', '.join(qlist)} nemajú vyplnené požadované polia")
+
     #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
     def cerpanie_rozpoctu(self, zden):
         if not self.datum_uhradenia:
