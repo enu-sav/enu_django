@@ -58,6 +58,7 @@ typ_dokumentu = {
     Dokument.oznacenie: TypDokumentu.DOKUMENT ,
     Nepritomnost.oznacenie: TypDokumentu.NEPRITOMNOST,
     NakupSUhradou.oznacenie: TypDokumentu.DROBNY_NAKUP,
+    OdmenaOprava.oznacenie: TypDokumentu.ODMENA_OPRAVA,
     Formular.oznacenie: TypDokumentu.HROMADNY  #Formular je pomenovany ako Hromadný dokument
 }
 
