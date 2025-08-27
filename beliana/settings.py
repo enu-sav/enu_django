@@ -220,7 +220,7 @@ SOCFOND_PRISPEVOK=1.5   #Sociálny fond, %
 
 UVAZOK_TYZDENNE=37.5
 
-#číslo organizácie v rámci CVČ
+#číslo organizácie v rámci CSČ
 ID_ZLOZKY=91
 
 #Maximum vymeriavacích základov pre sociálne poistenie zamestnancov
