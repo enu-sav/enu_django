@@ -231,6 +231,7 @@ MAX_VZ ={
         2023:8477,
         2024:9128,
         2025:15730  #https://www.peniaze.sk/reformy-vlady-sr/12468-maximalny-vymeriavaci-zaklad-2025-odvody-sa-vyrazne-zvysia
+        2026: 16764 #https://www.podnikajte.sk/socialne-a-zdravotne-odvody/odvody-szco-zivnostnikov-od-1-1-2026
         }
 #Ak má zamestnanec vyplatený príjem počas vylúčiteľnej doby (PN je vylučiteľná doba), ktorá trvá celý mesiac, zamestnávateľ odvedie iba úrazové a zdravotné poistenie z celého dosiahnutého zdaniteľného príjmu. Pozri https://www.kros.sk/forum/odmena-pocas-cerpania-pn/
 
