@@ -105,6 +105,8 @@ class Poistne():
                 col0 = 6    #F
             elif typ == "StarDoch":
                 col0 = 8    #H
+            elif typ == "PredcasDoch":
+                col0 = 8    #H
             elif typ == "VyslDoch":
                 col0 = 10   #J
             else:
@@ -141,6 +143,8 @@ class Poistne():
                 col0 = 6 if vynimka else 8  #F, H
             elif typ == "StarDoch":
                 col0 = 10 if vynimka else 12    #J, L
+            elif typ == "PredcasDoch":
+                col0 = 10 if vynimka else 12    #J, L
             elif typ == "InvDoch":
                 col0 = 14 if vynimka else 16    #N, O
             else:
@@ -169,7 +173,7 @@ class Poistne():
     
     # vodmena: vyňatá odmena na základe odvodovej výnimky
     def DohodarOdvody(self, odmena, typ, datum, vodmena):
-        if typ in ["DoBPS", "StarDoch", "InvDoch"] and vodmena > 0:
+        if typ in ["DoBPS", "StarDoch", "PredcasDoch", "InvDoch"] and vodmena > 0:
             if odmena > vodmena:    #veľké odvody, nad sumou vodmena
                 ts_z1, ts_p1, tz_z1, tz_p1 = self.TabulkaOdvodov("dohodar", typ, datum)
                 ts_z, ts_p, tz_z, tz_p = self.TabulkaOdvodov("dohodar", typ, datum, vynimka=True)
@@ -318,9 +322,6 @@ def generovat_mzdove(request, zden, rekapitulacia):
 #Generovať položky pre socialne a zdravotne poistenie
 def gen_soczdrav(poistne, osoba, typ, suma, zden, td_konv, zakazka, vynimka=AnoNie.NIE, soc_poist_koef=1):
     subjekt = f"{osoba.priezvisko}, {osoba.meno}"
-    #if osoba.priezvisko == "Toma":
-        #trace()
-        #pass
     if typ == "Plat":
         socpoist, _, zdravpoist, _ = poistne.ZamestnanecOdvody(-float(suma), td_konv, zden, soc_poist_koef)
     else:
