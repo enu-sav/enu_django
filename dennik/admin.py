@@ -33,7 +33,7 @@ from django.http import HttpResponse
 from decimal import Decimal
 from django.core.exceptions import ValidationError
 
-from PyPDF2 import PdfFileReader
+from PyPDF2 import PdfReader
 
 #https://pypi.org/project/django-admin-rangefilter/
 from rangefilter.filters import DateRangeFilter
@@ -510,11 +510,11 @@ class PlatovaRekapitulaciaAdmin(ModelAdminTotals):
         #Ak načítame súbor bez zákazok, Použije sa názov Celkom 
         def nacitat_pdf_text(path):
             fd=open(path, "rb")
-            pdf = PdfFileReader(fd)
+            pdf = PdfReader(fd)
             pdftext = {}
-            for nn in range(pdf.getNumPages()):
-                page = pdf.getPage(nn)
-                txt = page.extractText()
+            for nn in range(len(pdf.pages)):
+                page = pdf.pages[nn]
+                txt = page.extract_text()
                 zakazka = re.findall("Zákazka: _*(.*)", txt)
                 zakazka = zakazka[0] if zakazka else "Celkom"
                 #Fix problem with data from MÚ"
