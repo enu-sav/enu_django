@@ -318,6 +318,9 @@ def generovat_mzdove(request, zden, rekapitulacia):
 #Generovať položky pre socialne a zdravotne poistenie
 def gen_soczdrav(poistne, osoba, typ, suma, zden, td_konv, zakazka, vynimka=AnoNie.NIE, soc_poist_koef=1):
     subjekt = f"{osoba.priezvisko}, {osoba.meno}"
+    #if osoba.priezvisko == "Toma":
+        #trace()
+        #pass
     if typ == "Plat":
         socpoist, _, zdravpoist, _ = poistne.ZamestnanecOdvody(-float(suma), td_konv, zden, soc_poist_koef)
     else:

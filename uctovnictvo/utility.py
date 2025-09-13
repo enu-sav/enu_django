@@ -1,6 +1,6 @@
 # Rôzne utilitky nezávislé na modeloch
 from ipdb import set_trace as trace
-from PyPDF2 import PdfFileReader
+from PyPDF2 import PdfReader
 import re
 
 from django.core.files.uploadedfile import InMemoryUploadedFile
@@ -13,11 +13,11 @@ def NacitatUdajeFakturyTelekom(fdata):
     else:
         fd=open(fdata.file.name, "rb")
     #fd=open(path, "rb")
-    pdf = PdfFileReader(fd)
+    pdf = PdfReader(fd)
     pdftext = ""
-    for nn in range(pdf.getNumPages()):
-        page = pdf.getPage(nn)
-        txt = page.extractText()
+    for nn in range(len(pdf.pages)):
+        page = pdf.pages[nn]
+        txt = page.extract_text()
         pdftext += txt
     #Od 04/2024 faktúry nerozlišujú súčty podľa Hlas a Internet
     #do 03/2024
