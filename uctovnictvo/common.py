@@ -13,7 +13,7 @@ from .models import SystemovySubor, PrijataFaktura, AnoNie, Objednavka, Vystaven
 from .models import DoVP, DoPC, DoBPS, Poistovna, TypDochodku, Mena, PravidelnaPlatba, TypPP, TypPokladna, Pokladna
 from .models import NajomneFaktura, PrispevokNaRekreaciu, Zamestnanec, OdmenaOprava, OdmenaAleboOprava, TypNepritomnosti, Nepritomnost
 from .models import PlatovaStupnica, Stravne, mesiace_num, PlatovyVymer, Mesiace, rozdelit_polozky, RekreaciaSport, NajomnaZmluva
-from .rokydni import mesiace, prac_dni, pden, s2d, pracuje_v
+from .rokydni import mesiace, prac_dni, pden, s2d, pracuje_v, sviatky_v_roku
 
 from openpyxl import load_workbook
 from openpyxl.styles import Font, Color, colors, Alignment, PatternFill , numbers
@@ -1125,18 +1125,13 @@ def exportovatNepritomnostUct(polozka):
             row += 1
         return wb, formaty
     def ozdobit_harok(mesiac, pzam):
-        from beliana.settings import zrusene_sviatky
         align = Alignment(horizontal="center", vertical="center")
         gray1 = PatternFill("solid", fgColor="aaaaaa")
         gray2 = PatternFill("solid", fgColor="dddddd")
         nonlocal ws
         posl_den = pden(mesiac)
 
-        #Aktualizovať zoznam sviatkov
-        sviatky_sk = holidays.country_holidays('SK', years=mesiac.year)
-        for zruseny in zrusene_sviatky[mesiac.year]:
-            if zruseny in sviatky_sk:
-                del sviatky_sk[zruseny]
+        sviatky_sk = sviatky_v_roku(mesiac.year)
 
         for dd in range (1, posl_den.day+1):
             den = datetime.date(mesiac.year, mesiac.month, dd)

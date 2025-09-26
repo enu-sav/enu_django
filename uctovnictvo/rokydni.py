@@ -10,6 +10,16 @@ mesiace = ["január", "február", "marec", "apríl", "máj", "jún", "júl", "au
 roky_postupu = [0, 2, 4, 6, 9, 12, 15, 18, 21, 24, 28, 32, 36, 40]
 plat_stupen =  [1, 2, 3, 4, 5,  6,  7,  8,  9, 10, 11, 12, 13, 14]
 
+#aktuálny zoznam sviatkov
+def sviatky_v_roku(rok):
+    from beliana.settings import zrusene_sviatky
+    #Aktualizovať zoznam sviatkov
+    sviatky = holidays.country_holidays('SK', years=rok)
+    for zruseny in zrusene_sviatky[rok]:
+        if zruseny in sviatky:
+            del sviatky[zruseny]
+    return sviatky
+
 # konvertuje datum v tvare dd.mm.yyyy na date. Namiesto "." môže byť hocijaký znak
 def s2d(sdate):
     if not sdate: return sdate
@@ -141,7 +151,7 @@ class DvaDatumy():
 #do: aj nie je zadané, rátame za celý mesiac
 def prac_dni(od, do = None):
     #Vygenerovať sviatky za aktuálny rok
-    _sviatky = holidays.SK()
+    _sviatky = sviatky_v_roku(od.year)
     _ = od in _sviatky #vlastné generovanie za aktuálny rok
     sviatky = [sv.isoformat() for sv in _sviatky.keys()]
     #print(sviatky)
@@ -184,7 +194,7 @@ def prac_dni(od, do = None, ppd=None, zahrnut_sviatky=False):
     if do:
         #print(od,do)
         #Vygenerovať sviatky za aktuálny rok
-        _sviatky = holidays.SK()
+        _sviatky = sviatky_v_roku(od.year)
         _ = od in _sviatky #vlastné generovanie za aktuálny rok
         sviatky = [sv.isoformat() for sv in _sviatky.keys()]
         return np.busday_count(od, do + timedelta(days=1), weekmask=wm, holidays=[] if zahrnut_sviatky else sviatky)
