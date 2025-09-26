@@ -1125,12 +1125,19 @@ def exportovatNepritomnostUct(polozka):
             row += 1
         return wb, formaty
     def ozdobit_harok(mesiac, pzam):
+        from beliana.settings import zrusene_sviatky
         align = Alignment(horizontal="center", vertical="center")
         gray1 = PatternFill("solid", fgColor="aaaaaa")
         gray2 = PatternFill("solid", fgColor="dddddd")
         nonlocal ws
         posl_den = pden(mesiac)
-        sviatky_sk = holidays.SK()
+
+        #Aktualizovať zoznam sviatkov
+        sviatky_sk = holidays.country_holidays('SK', years=mesiac.year)
+        for zruseny in zrusene_sviatky[mesiac.year]:
+            if zruseny in sviatky_sk:
+                del sviatky_sk[zruseny]
+
         for dd in range (1, posl_den.day+1):
             den = datetime.date(mesiac.year, mesiac.month, dd)
             #Sviatky

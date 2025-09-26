@@ -11,7 +11,7 @@ https://docs.djangoproject.com/en/3.1/ref/settings/
 """
 
 import os, dotenv
-from datetime import date
+import datetime
 from pathlib import Path
 import mimetypes
 
@@ -209,7 +209,7 @@ VS_FVU = "922 859"
 
 UCET_FIN_URAD = "SK61 8180 5002 6780 2710 3305"
 def PN1(month):         #náhrada mzdy za prvé 3 dni PN-ky
-    if month < date(2023,1,1):
+    if month < datetime.date(2023,1,1):
         return 55
     else: 
         return 80
@@ -239,6 +239,10 @@ MAX_VZ ={
 from django.conf.locale.sk import formats as sk_formats
 sk_formats.DATE_FORMAT = "d.m.Y"
 
+#Oprava sviatkov vzhľadom k modulu holidays
+zrusene_sviatky = {
+    2025: [datetime.date(2025, 9, 1)]
+}
 
 # Právo na použitie modulu import_export
 # Importovanie je možné pre OsobaAutor
