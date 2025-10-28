@@ -952,6 +952,7 @@ def generovatNepritomnostBiometric(cislo, start_from,ws):
             "PN": TypNepritomnosti.PN,
             "OČR": TypNepritomnosti.OCR,
             "SD": TypNepritomnosti.PZV,
+            "PV": TypNepritomnosti.PKZ,    #PV v Biometricu
             "SLC": TypNepritomnosti.SLUZOBNA,
             "§": TypNepritomnosti.PV,
             "Nep. V": TypNepritomnosti.NEPLATENE,
@@ -1203,6 +1204,7 @@ def exportovatNepritomnostUct(polozka):
         "lekar": "L",
         "lekardoprovod": "L/D",
         "pzv": "PzV",
+        "pkz": "PKZ",
         "pv": "PV",
         "neplatene": "NV",
         "sluzobna": "SC",
