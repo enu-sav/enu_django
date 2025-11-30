@@ -421,7 +421,7 @@ class PravidelnaPlatbaForm(forms.ModelForm):
                 cislopolozky = self.instance.cislo,
                 #datumvytvorenia = self.cleaned_data['dane_na_uhradu'],
                 datumvytvorenia = date.today(),
-                typdokumentu = TypDokumentu.PPLATBA,
+                typdokumentu = TypDokumentu.PRAVIDELNAPLATBA,
                 inout = InOut.ODOSLANY,
                 adresat = settings.UCTAREN_NAME,
                 vec = f'<a href="{self.instance.platobny_prikaz.url}">{vec}</a>',
