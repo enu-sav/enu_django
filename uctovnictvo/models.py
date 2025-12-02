@@ -1098,6 +1098,10 @@ class PrijataFaktura(FakturaPravidelnaPlatba, GetAdminURL):
             
         if self.rozpis_poloziek:
             riadky = self.rozpis_poloziek.split("\n")
+            if self.prenosDP == AnoNie.ANO and len(riadky) != 2:
+                raise ValidationError({
+                    "rozpis_poloziek":f"Ak je fakúra v režime Prenosu DP, tak v toto pole musí byť buď prázne, alebo musí obsahovať dva riadky (prenos, dph)." 
+                })
             suma_spolu = 0
             for nn, riadok in enumerate(riadky):
                 polia = rozdelit_polozky(riadok) 
@@ -1122,16 +1126,28 @@ class PrijataFaktura(FakturaPravidelnaPlatba, GetAdminURL):
                     raise ValidationError({
                         "rozpis_poloziek":f"Kód zdroja '{polia[3]}' na riadku {nn+1} nie je platný (alebo nie je zaradený v 'Klasifikácia - Zdroje')"
                     })
-                try:
-                    if polia[1][0] == "x":
-                        val = polia[1].replace("x","")
-                        suma_spolu += suma_riadok(val)
-                    else:
-                        suma_spolu += suma_riadok(polia[1])*(1+suma_riadok(polia[2])/100)
-                except ValueError as ex:
-                    raise ValidationError({
-                        "rozpis_poloziek":f"Na riadku {nn+1} je zadané nesprávne číslo: {ex.args[0]}"
-                    })
+                if self.prenosDP == AnoNie.ANO:
+                    if not polia[2].lower() in ("dph", "prenos"):
+                        raise ValidationError({
+                            "rozpis_poloziek":f"Ak je faktúra v režime Prenosu DP, tak v 3. poli môže byť uvedené len 'dph' alebo 'prenos'." 
+                        })
+                    try:
+                        suma_spolu += suma_riadok(polia[1])
+                    except ValueError as ex:
+                        raise ValidationError({
+                            "rozpis_poloziek":f"Na riadku {nn+1} je zadané nesprávne číslo: {ex.args[0]}"
+                        })
+                else:
+                    try:
+                        if polia[1][0] == "x":
+                            val = polia[1].replace("x","")
+                            suma_spolu += suma_riadok(val)
+                        else:
+                            suma_spolu += suma_riadok(polia[1])*(1+suma_riadok(polia[2])/100)
+                    except ValueError as ex:
+                        raise ValidationError({
+                            "rozpis_poloziek":f"Na riadku {nn+1} je zadané nesprávne číslo: {ex.args[0]}"
+                        })
             if np.abs(suma_spolu +float(self.suma)) >= 0.00999: #znamienka sú opačné
                 f1 = self._meta.get_field('suma').verbose_name
                 raise ValidationError({
@@ -1219,6 +1235,43 @@ class PrijataFaktura(FakturaPravidelnaPlatba, GetAdminURL):
                 platba["poznamka"] = f"Čerpanie rozpočtu: uhradená suma v EUR faktúry {self.cislo} v cudzej mene je približná. Správnu sumu v EUR vložte do poľa 'Suma' na základe údajov o platbe zo Softipu."
         #koniec cerpanie()
 
+        # rozdelí platbu na prenos a DPH
+        def cerpanie_prenos(datum_platby, suma_s_dph, sadzbadph, ekoklas):
+            typ = "zmluva" if type(self.objednavka_zmluva) == Zmluva else "objednávka" if type(self.objednavka_zmluva) == Objednavka else "rozhodnutie" 
+            podiel2 = float(self.podiel2)/100. if self.podiel2 else 0
+
+            #Šablóny pre čerpanie
+            platba1 = {
+                "nazov":f"Faktúra {typ} prenos",
+                #"suma": round(Decimal(suma*(1-podiel2)),2),
+                "datum": datum_platby,
+                "mesiac": zden,
+                "cislo": self.cislo,
+                "subjekt": self.adresat_text(),
+                "zdroj": self.zdroj,
+                "zakazka": self.zakazka,
+                "ekoklas": self.ekoklas
+                }
+            platba2 = {
+                "nazov":f"Faktúra {typ} prenos DPH",
+                #"suma": round(Decimal(suma*(1-podiel2)),2),
+                "datum": datum_platby,
+                "mesiac": zden,
+                "cislo": self.cislo,
+                "subjekt": self.adresat_text(),
+                "zdroj": self.zdroj,
+                "zakazka": self.zakazka,
+                "ekoklas": self.ekoklas
+                }
+
+            suma1 = suma_s_dph/(1+sadzbadph)
+            suma2 = suma1 * sadzbadph
+            platba1["suma"] =  round(Decimal(suma1),2)
+            platby.append(platba1.copy())
+            platba2["suma"] =  round(Decimal(suma2),2)
+            platby.append(platba2.copy())
+        #koniec cerpanie_prenos()
+
         # suma podľa rozpisu položiek
         def suma_rozpis():
             def suma_riadok(pole):
@@ -1257,10 +1310,39 @@ class PrijataFaktura(FakturaPravidelnaPlatba, GetAdminURL):
             return suma_spolu
         #koniec suma_rozpis
 
+        # suma podľa rozpisu položiek
+        def suma_rozpis_prenos():
+            def suma_riadok(pole):
+                pole = pole.replace(",",".")
+                sumy = pole.split("+")
+                celkove=0
+                for suma in sumy:
+                    celkove += float(suma)
+                return celkove
+            #koniec suma_riadok
+
+            riadky = self.rozpis_poloziek.split("\n")
+            suma_spolu = {}
+            for nn, riadok in enumerate(riadky):
+                polia = rozdelit_polozky(riadok) 
+                typ = polia[2].lower()  #prenos alebo dph
+                typ = typ if typ == "prenos" else "prenos DPH"
+                zdroj = Zdroj.objects.get(kod=polia[3])
+                zakazka = TypZakazky.objects.get(kod__startswith=polia[4])
+                ekoklas = EkonomickaKlasifikacia.objects.get(kod=polia[5])
+                suma = suma_riadok(polia[1])
+                #zaznamenať s prípadným sčítaním rovnakých
+                suma_spolu[typ] = {
+                            "suma": suma,
+                            "sadzbadph": 0,
+                            "zdroj": zdroj,
+                            "zakazka": zakazka,
+                            "ekoklas": ekoklas
+                            }
+            return suma_spolu
+        #koniec suma_rozpis_prenos
+
         # body
-        if self.cislo == "Fa-2024-131":
-            #trace()
-            pass
         if self.zrusena and self.zrusena == AnoNie.ANO: return []
         if not self.dane_na_uhradu and not self.uhradene_dna: 
             f1 = self._meta.get_field('dane_na_uhradu').verbose_name
@@ -1285,7 +1367,7 @@ class PrijataFaktura(FakturaPravidelnaPlatba, GetAdminURL):
             #"ekoklas": self.ekoklas
             }
         platby = [] #zaplnené v fo funkcii 'cerpanie'
-        if self.rozpis_poloziek:
+        if self.rozpis_poloziek and self.prenosDP == AnoNie.NIE:
             suma_spolu = suma_rozpis()
             for key in suma_spolu:
                 platba = platba_sablona.copy()
@@ -1295,16 +1377,28 @@ class PrijataFaktura(FakturaPravidelnaPlatba, GetAdminURL):
                 platba["ekoklas"] = suma_spolu[key]["ekoklas"]
                 platby.append(platba)
             pass
-        else:
+        elif self.rozpis_poloziek and self.prenosDP == AnoNie.ANO:
+            suma_spolu = suma_rozpis_prenos()
+            for key in suma_spolu:
+                platba = platba_sablona.copy()
+                platba["nazov"] = f"Faktúra {typ} {key}"
+                platba["suma"] = -Decimal(suma_spolu[key]["suma"])
+                platba["zdroj"] = suma_spolu[key]["zdroj"]
+                platba["zakazka"] = suma_spolu[key]["zakazka"]
+                platba["ekoklas"] = suma_spolu[key]["ekoklas"]
+                platby.append(platba)
+            pass
+        elif self.prenosDP == AnoNie.NIE:   #bežná položka
             if self.mena != Mena.EUR and not self.suma: 
                 sumadph = float(self.sumacm) / priblizny_kurz[self.mena]
             else:
                 sumadph = float(self.suma)
             #def cerpanie(datum_platby, suma, ekoklas):
             cerpanie(datum_uhradenia, sumadph, self.sadzbadph, self.ekoklas)
-        if self.cislo == "Fa-2024-075":
-            #trace()
-            pass
+        else: # nerozpísaná položka s prenosom
+            sumadph = float(self.suma)
+            sadzbadph = float(self.sadzbadph)/100
+            cerpanie_prenos(datum_uhradenia, sumadph, sadzbadph, self.ekoklas)
         return platby
         
     class Meta:

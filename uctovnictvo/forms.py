@@ -234,7 +234,11 @@ class PrijataFakturaForm(DennikZaznam):
             <b>Mobilný internet / 24,9917+14,9917 / 20 / 111 / 11010001 / 632004</b><br />
             Nepovinné pole 'Číslo faktúry v Softipe' sa zadáva kvôli softvérovému porovnaniu Djanga so Softipom (ak sa líši od poľa 'Číslo faktúry dodávateľa') <br />
             <b>Trik 1:</b> Pri vkladaní faktúr Slovak Telekom: Najskôr faktúru vytvoriť, vyplniť (so súborom faktúry ale bez rozpisu položiek čísla faktúru) a uložiť. Potom otvoriť ešte raz a bez zmien uložiť. Rozpis položiek a číslo faktúry sa načítajú z faktúry.
-            <b>Trik 2:</b> Do druhého poľa možno zadať aj <strong>sumu s DPH</strong>, a to tak, že na začiatku pred prvé číslo sa napíše písmeno <strong>x</strong>, napr. <strong>x120</strong> alebo <strong>x120+200</strong>.
+            <b>Trik 2:</b> Do druhého poľa možno zadať aj <strong>sumu s DPH</strong>, a to tak, že na začiatku pred prvé číslo sa napíše písmeno <strong>x</strong>, napr. <strong>x120</strong> alebo <strong>x120+200</strong>.<br /><br />
+            Ak ide o <strong>prenos daňovej povinnosti</strong>, a zdroje alebo klasifikácia sú odlišné, uveďte údaje takto:<br>
+            Bauchom / 1555,32 / <strong>prenos</strong> / 131O / 131O_453 / 635006<br />
+Bauchom DPH / 357,72 / <strong>dph</strong> / 111 / 11010001 / 635006<br />
+            Polia <strong>Suma</strong> a <strong>Sadzba DPH</strong> vyplňte ako obvykle.
             """
             )
 
