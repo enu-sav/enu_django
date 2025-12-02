@@ -262,7 +262,8 @@ def generovat_mzdove(request, zden, rekapitulacia):
             zaklad_soczdrav_dovp = 0
             zaklad_soczdrav_dopc = 0
             soc_poist_koef = 1  #Koeficient neodpracovaných dní pre výpočet max. vymeriavacieho základu
-            dohoda_vynimka = AnoNie.NIE
+            dohoda_vynimka_dovp = AnoNie.NIE
+            dohoda_vynimka_dopc = AnoNie.NIE
             #Vytvoriť čiastočný zoznam položiek čerpania s položkami, ktoré sa prenášajú priamo, a vypočítať sumáre na výpočet ostatných
             for item in po_zakazkach_osobach[zakazka_nazov][meno]:
                 cerpanie.append(item)   #priamo prevziať mzdovú položku
@@ -275,10 +276,10 @@ def generovat_mzdove(request, zden, rekapitulacia):
                     zaklad_soczdrav_zam += item['suma']
                 if item['nazov'] in polozky_soczdrav_dovp:
                     zaklad_soczdrav_dovp += item['suma']
-                    dohoda_vynimka = AnoNie.ANO if item['vynimka'] == AnoNie.ANO else dohoda_vynimka    #pre prípad, že má dohodár, ktorý si uplatňuje výnimku, viac dohôd
+                    dohoda_vynimka_dovp = AnoNie.ANO if item['vynimka'] == AnoNie.ANO else dohoda_vynimka_dovp    #pre prípad, že má dohodár, ktorý si uplatňuje výnimku, viac dohôd
                 if item['nazov'] in polozky_soczdrav_dopc:
                     zaklad_soczdrav_dopc += item['suma']
-                    dohoda_vynimka = AnoNie.ANO if item['vynimka'] == AnoNie.ANO else dohoda_vynimka    #pre prípad, že má dohodár, ktorý si uplatňuje výnimku, viac dohôd
+                    dohoda_vynimka_dopc = AnoNie.ANO if item['vynimka'] == AnoNie.ANO else dohoda_vynimka_dopc    #pre prípad, že má dohodár, ktorý si uplatňuje výnimku, viac dohôd
                 if 'soc_poist_koef' in item:
                     soc_poist_koef = item["soc_poist_koef"]
 
@@ -313,9 +314,9 @@ def generovat_mzdove(request, zden, rekapitulacia):
             if zaklad_soczdrav_zam:
                 cerpanie = cerpanie + gen_soczdrav(poistne, osoba, "Plat", zaklad_soczdrav_zam, zden, PlatovyVymer.td_konv(osoba, zden), zakazka, soc_poist_koef=soc_poist_koef)
             if zaklad_soczdrav_dovp:
-                cerpanie = cerpanie + gen_soczdrav(poistne, osoba, "DoVP", zaklad_soczdrav_dovp, zden, DoVP.td_konv(osoba, zden), zakazka, vynimka=dohoda_vynimka)
+                cerpanie = cerpanie + gen_soczdrav(poistne, osoba, "DoVP", zaklad_soczdrav_dovp, zden, DoVP.td_konv(osoba, zden), zakazka, vynimka=dohoda_vynimka_dovp)
             if zaklad_soczdrav_dopc:
-                cerpanie = cerpanie + gen_soczdrav(poistne, osoba, "DoPC", zaklad_soczdrav_dopc, zden, DoPC.td_konv(osoba, zden), zakazka, vynimka=dohoda_vynimka)
+                cerpanie = cerpanie + gen_soczdrav(poistne, osoba, "DoPC", zaklad_soczdrav_dopc, zden, DoPC.td_konv(osoba, zden), zakazka, vynimka=dohoda_vynimka_dopc)
 
     return cerpanie #generovat_mzdove
 
