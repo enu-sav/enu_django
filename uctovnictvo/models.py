@@ -2905,7 +2905,7 @@ class DoVP(Dohoda):
     @staticmethod
     def td_konv(osoba, zden):
         td = osoba.typ_doch
-        return "StarDoch" if td==TypDochodku.STAROBNY else "InvDoch" if td== TypDochodku.INVALIDNY else "PredcasDoch" if td==TypDochodku.PREDCASNY else "DoPC"
+        return "StarDoch" if td==TypDochodku.STAROBNY else "InvDoch" if td== TypDochodku.INVALIDNY else "PredcasDoch" if td==TypDochodku.PREDCASNY else "DoVP"
 
     #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
     def cerpanie_rozpoctu(self, zden):
