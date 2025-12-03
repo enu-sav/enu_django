@@ -989,7 +989,7 @@ class InternyPrevod(Platba, Klasifikacia, GetAdminURL):
         if not self.doslo_datum and not self.uhradene_dna: 
             f1 = self._meta.get_field('doslo_datum').verbose_name
             f2 = self._meta.get_field('uhradene_dna').verbose_name
-            return f"Prijatá faktúra {self.get_admin_url()} ({self.partner.nazov}) s dátumom {datum_uhradenia} musí mať vyplnené aspoň jedno z polí <em>{f1}</em> alebo <em>{f2}</em>." 
+            return f"Prijatá faktúra {self.get_admin_url()} ({self.partner.nazov}) s dátumom {datum_uhradenia} musí mať vyplnené aspoň jedno z polí <em>{f1}</em> alebo <em>{f2}</em> ({self.suma} Eur)." 
         datum_uhradenia = self.uhradene_dna if self.uhradene_dna else self.doslo_datum
         if datum_uhradenia <zden: return []
         kdatum =  date(zden.year, zden.month+1, zden.day) if zden.month+1 <= 12 else  date(zden.year+1, 1, 1)
@@ -1347,7 +1347,7 @@ class PrijataFaktura(FakturaPravidelnaPlatba, GetAdminURL):
         if not self.dane_na_uhradu and not self.uhradene_dna: 
             f1 = self._meta.get_field('dane_na_uhradu').verbose_name
             f2 = self._meta.get_field('uhradene_dna').verbose_name
-            return f"{self._meta.verbose_name} {self.get_admin_url()} musí mať vyplnené aspoň jedno z polí <em>{f1}</em> alebo <em>{f2}</em>." 
+            return f"{self._meta.verbose_name} {self.get_admin_url()} musí mať vyplnené aspoň jedno z polí <em>{f1}</em> alebo <em>{f2}</em>. ({self.suma} Eur)" 
         datum_uhradenia = self.uhradene_dna if self.uhradene_dna else self.dane_na_uhradu
         if datum_uhradenia <zden: return []
         kdatum =  date(zden.year, zden.month+1, zden.day) if zden.month+1 <= 12 else  date(zden.year+1, 1, 1)
@@ -1446,7 +1446,7 @@ class VystavenaFaktura(FakturaPravidelnaPlatba, GetAdminURL):    #len SPP
         if not self.dane_na_uhradu and not self.uhradene_dna: 
             f1 = self._meta.get_field('dane_na_uhradu').verbose_name
             f2 = self._meta.get_field('uhradene_dna').verbose_name
-            return f"{self._meta.verbose_name} {self.get_admin_url()} musí mať vyplnené aspoň jedno z polí <em>{f1}</em> alebo <em>{f2}</em>." 
+            return f"{self._meta.verbose_name} {self.get_admin_url()} musí mať vyplnené aspoň jedno z polí <em>{f1}</em> alebo <em>{f2}</em> ({self.suma} Eur)." 
         datum_uhradenia = self.uhradene_dna if self.uhradene_dna else self.dane_na_uhradu
         if datum_uhradenia <zden: return []
         kdatum =  date(zden.year, zden.month+1, zden.day) if zden.month+1 <= 12 else  date(zden.year+1, 1, 1)
@@ -1540,7 +1540,7 @@ class PravidelnaPlatba(FakturaPravidelnaPlatba, GetAdminURL):
             f1 = self._meta.get_field('dane_na_uhradu').verbose_name
             f2 = self._meta.get_field('uhradene_dna').verbose_name
             f3 = self._meta.get_field('splatnost_datum').splatnost_datum
-            return f"{self._meta.verbose_name} {self.get_admin_url()} musí mať vyplnené aspoň jedno z polí <em>{f1}</em>, <em>{f2}</em> alebo <em>{f3}</em>." 
+            return f"{self._meta.verbose_name} {self.get_admin_url()} musí mať vyplnené aspoň jedno z polí <em>{f1}</em>, <em>{f2}</em> alebo <em>{f3}</em> ({self.suma} Eur)." 
         if self.uhradene_dna:
             datum_uhradenia = self.uhradene_dna
         elif self.dane_na_uhradu:
@@ -1707,7 +1707,7 @@ class NajomneFaktura(Klasifikacia, GetAdminURL):
         if not datum:
             f1 = self._meta.get_field('uhradene_dna').verbose_name
             f2 = self._meta.get_field('dane_na_uhradu').verbose_name
-            return f"{self._meta.verbose_name} {self.get_admin_url()} musí mať vyplnené pole <em>{f1}</em> alebo aspoň <em>{f2}</em>." 
+            return f"{self._meta.verbose_name} {self.get_admin_url()} musí mať vyplnené pole <em>{f1}</em> alebo aspoň <em>{f2}</em> ({self.suma} Eur)." 
         if datum <zden: return []
         #if self.splatnost_datum >= date(zden.year, zden.month+1, zden.day): return []
         kdatum =  date(zden.year, zden.month+1, zden.day) if zden.month+1 <= 12 else  date(zden.year+1, 1, 1)
@@ -3251,7 +3251,7 @@ class NakupSUhradou(models.Model, GetAdminURL):
         if not datum: 
             f1 = self._meta.get_field('datum_uhradenia').verbose_name
             f2 = self._meta.get_field('datum_vybavenia').verbose_name
-            return f"Drobný nákup {self.get_admin_url()} musí mať vyplnené aspoň jedno z polí <em>{f1}</em> alebo <em>{f2}</em>." 
+            return f"Drobný nákup {self.get_admin_url()} musí mať vyplnené aspoň jedno z polí <em>{f1}</em> alebo <em>{f2}</em> ({self.cena} Eur)." 
         if datum < zden: return []
         kdatum =  date(zden.year, zden.month+1, zden.day) if zden.month+1 <= 12 else  date(zden.year+1, 1, 1)
         if datum >= kdatum: return []
