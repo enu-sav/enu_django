@@ -228,6 +228,9 @@ def generovat_mzdove(request, zden, rekapitulacia):
                         item['suma'] += item['socfond'] # V mzdovej rekapitulácii sa uvádza súčet zamestnávateľ + socfond
                 if rekapitulacia and item['nazov'] == 'Stravné zrážky':
                     item['suma'] = -item['suma'] - item['socfond']  # V mzdovej rekapitulácii sa uvádza súčet zamestnávateľ + socfond
+                if rekapitulacia and item['nazov'] == 'Príspevok na rekreáciu a šport': #v mzdovej rekapitulacii ignorujeme prenosy v 131....
+                    item['zdroj'] = Zdroj.objects.get(kod="111")
+                    item['zakazka'] = TypZakazky.objects.get(kod="11010001 spol. zák.")
                 if not item['zakazka'].kod in po_zakazkach_osobach:
                     po_zakazkach_osobach[item['zakazka'].kod] = defaultdict(list)
                 po_zakazkach_osobach[item['zakazka'].kod][item['subjekt']].append(item)
