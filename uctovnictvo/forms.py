@@ -305,6 +305,7 @@ class InternyPrevodForm(DennikZaznam):
         #trieda InternyPrevod dedí od triedy Platba, tak tu nastavíme help text
         self.fields['zdroj'].help_text = f"Primárny zdroj platby a súvisiacej DPH"
         self.fields['zakazka'].help_text = f"Primárna zákazka platby a súvisiacej DPH"
+        self.fields['suma'].help_text = "Vložte sumu (zápornú, ak ide o platbu, kladnú, ak ide o príjem.)"
         # Ak je pole readonly, tak sa nenachádza vo fields. Preto testujeme fields aj initial
         polecislo = "cislo"
         if polecislo in self.fields:
