@@ -241,7 +241,9 @@ sk_formats.DATE_FORMAT = "d.m.Y"
 
 #Oprava sviatkov vzhľadom k modulu holidays
 zrusene_sviatky = {
-    2025: [datetime.date(2025, 9, 1), datetime.date(2025,11,17)]
+    2025: [datetime.date(2025, 9, 1), datetime.date(2025,11,17)],
+    2026: [],
+    2027: []
 }
 
 # Právo na použitie modulu import_export
