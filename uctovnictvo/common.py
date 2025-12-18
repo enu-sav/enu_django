@@ -403,7 +403,11 @@ def VytvoritPlatobnyPrikaz(faktura, pouzivatel):
             text = text.replace(polozky[3]%(nn+1), polia[3])
             text = text.replace(polozky[4]%(nn+1), polia[4])
             text = text.replace(polozky[5]%(nn+1), polia[5])
-            suma = suma_riadok(polia[1])*(1+suma_riadok(polia[2])/100)
+            try: #v prípade prenosDP je pola[2] text, nie DPH
+                rowdph = suma_riadok(polia[2])/100
+            except:
+                rowdph = 0
+            suma = suma_riadok(polia[1])*(1+rowdph)
             suma_spolu += suma
             suma = round(Decimal(suma), 4)
             text = text.replace(polozky[1]%(nn+1), f"{locale_format(suma)}")
