@@ -342,7 +342,7 @@ class PlatbaAutorskaSumarForm(forms.ModelForm):
                     dok = Dokument(
                         cislo = cislo,
                         cislopolozky = self.instance.cislo,
-                        adresat = "Finanačná správa",
+                        adresat = "Finančná správa",
                         inout = InOut.ODOSLANY,
                         typdokumentu = TypDokumentu.VYPLACANIE_AH,
                         datumvytvorenia = date.today(), 
