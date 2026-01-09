@@ -7,6 +7,7 @@ from uctovnictvo.models import *
 import dennik.models
 from django.contrib import messages #import messages
 from django.utils.html import format_html
+import numpy as np
 #from models import TypDochodku
 
 class Poistne():
@@ -172,48 +173,54 @@ class Poistne():
         return socialne_zam, socialne_prac, zdravotne_zam, zdravotne_prac
     
     # vodmena: vyňatá odmena na základe odvodovej výnimky
+    # tu zaokrúhľujeme na 4 miesta, konečné zaokrúhlenie sa robí inde
     def DohodarOdvody(self, odmena, typ, datum, vodmena):
         if typ in ["DoBPS", "StarDoch", "PredcasDoch", "InvDoch"] and vodmena > 0:
             if odmena > vodmena:    #veľké odvody, nad sumou vodmena
                 ts_z1, ts_p1, tz_z1, tz_p1 = self.TabulkaOdvodov("dohodar", typ, datum)
                 ts_z, ts_p, tz_z, tz_p = self.TabulkaOdvodov("dohodar", typ, datum, vynimka=True)
                 for item1, item in zip(ts_z1, ts_z): 
-                    ts_z[item] = round((odmena-vodmena)*ts_z1[item]+vodmena*ts_z[item], 2)
+                    ts_z[item] = round((odmena-vodmena)*ts_z1[item]+vodmena*ts_z[item], 4)
                 for item1, item in zip(ts_p1, ts_p): 
-                    ts_p[item] = round((odmena-vodmena)*ts_p1[item]+vodmena*ts_p[item], 2)
+                    ts_p[item] = round((odmena-vodmena)*ts_p1[item]+vodmena*ts_p[item], 4)
                 for item1, item in zip(tz_z1, tz_z): 
-                    tz_z[item] = round((odmena-vodmena)*tz_z1[item]+vodmena*tz_z[item], 2)
+                    tz_z[item] = round((odmena-vodmena)*tz_z1[item]+vodmena*tz_z[item], 4)
                 for item1, item in zip(tz_p1, tz_p): 
-                    tz_p[item] = round((odmena-vodmena)*tz_p1[item]+vodmena*tz_p[item], 2)
+                    tz_p[item] = round((odmena-vodmena)*tz_p1[item]+vodmena*tz_p[item], 4)
             # malé odvody
             else:
                 ts_z, ts_p, tz_z, tz_p = self.TabulkaOdvodov("dohodar", typ, datum, vynimka=True)
-                for item in ts_z: ts_z[item] = round(odmena*ts_z[item], 2)
-                for item in ts_p: ts_p[item] = round(odmena*ts_p[item], 2)
-                for item in tz_z: tz_z[item] = round(odmena*tz_z[item], 2)
-                for item in tz_p: tz_p[item] = round(odmena*tz_p[item], 2)
+                for item in ts_z: ts_z[item] = round(odmena*ts_z[item], 4)
+                for item in ts_p: ts_p[item] = round(odmena*ts_p[item], 4)
+                for item in tz_z: tz_z[item] = round(odmena*tz_z[item], 4)
+                for item in tz_p: tz_p[item] = round(odmena*tz_p[item], 4)
         else:
             ts_z, ts_p, tz_z, tz_p = self.TabulkaOdvodov("dohodar", typ, datum)
             for item in ts_z: 
-                ts_z[item] = round(odmena*ts_z[item], 2)
+                ts_z[item] = round(odmena*ts_z[item], 4)
             for item in ts_p: 
-                ts_p[item] = round(odmena*ts_p[item], 2)
+                ts_p[item] = round(odmena*ts_p[item], 4)
             for item in tz_z: 
-                tz_z[item] = round(odmena*tz_z[item], 2)
+                tz_z[item] = round(odmena*tz_z[item], 4)
             for item in tz_p: 
-                tz_p[item] = round(odmena*tz_p[item], 2)
+                tz_p[item] = round(odmena*tz_p[item], 4)
         return ts_z, ts_p, tz_z, tz_p
     
+    # tu zaokrúhľujeme na 4 miesta, konečné zaokrúhlenie sa robí inde
     def ZamestnanecOdvody(self, odmena, typ, datum, soc_poist_koef=1):
         ts_z, ts_p, tz_z, tz_p = self.TabulkaOdvodov("zamestnanec", typ, datum)
         for item in ts_z: 
             aodmena = odmena if item == self.socialne_klas['urazove'] else min(odmena, soc_poist_koef*MAX_VZ[datum.year])
-            ts_z[item] = round(aodmena*ts_z[item], 2)
-        for item in ts_p: ts_p[item] = round(odmena*ts_p[item], 2)
-        for item in tz_z: tz_z[item] = round(odmena*tz_z[item], 2)
-        for item in tz_p: tz_p[item] = round(odmena*tz_p[item], 2)
+            ts_z[item] = round(aodmena*ts_z[item], 4)
+        for item in ts_p: ts_p[item] = round(odmena*ts_p[item], 4)
+        for item in tz_z: tz_z[item] = round(odmena*tz_z[item], 4)
+        for item in tz_p: tz_p[item] = round(odmena*tz_p[item], 4)
         return ts_z, ts_p, tz_z, tz_p
     
+#odvody sa zaokrúhľujú nadol
+def zaokr_nadol(suma):
+    return np.floor(100*suma)/100
+
 # Generovať sumárne mzdové položky
 def generovat_mzdove(request, zden, rekapitulacia):
     #Po osobách (zamestnanci a dohodári) vytvoriť zoznam všetkých relevantných položiek
@@ -315,6 +322,7 @@ def generovat_mzdove(request, zden, rekapitulacia):
                 #Dokoncit po dokoncení automatického generovanie stravného
                 pass
             if zaklad_soczdrav_zam:
+                print(zaklad_soczdrav_zam)
                 cerpanie = cerpanie + gen_soczdrav(poistne, osoba, "Plat", zaklad_soczdrav_zam, zden, PlatovyVymer.td_konv(osoba, zden), zakazka, soc_poist_koef=soc_poist_koef)
             if zaklad_soczdrav_dovp:
                 cerpanie = cerpanie + gen_soczdrav(poistne, osoba, "DoVP", zaklad_soczdrav_dovp, zden, DoVP.td_konv(osoba, zden), zakazka, vynimka=dohoda_vynimka_dovp)
@@ -336,7 +344,8 @@ def gen_soczdrav(poistne, osoba, typ, suma, zden, td_konv, zakazka, vynimka=AnoN
         soc = {
             "podnazov": f"{typ} poistenie sociálne",
             "nazov": f"Sociálne poistné {ek.kod}",
-            "suma": -round(Decimal(socpoist[item]),2),
+            #"suma": -round(Decimal(socpoist[item]),2),
+            "suma": -Decimal(zaokr_nadol(socpoist[item])),
             "zdroj": zakazka.zdroj,
             "zakazka": zakazka,
             "datum": vyplatny_termin(zden),
@@ -351,7 +360,8 @@ def gen_soczdrav(poistne, osoba, typ, suma, zden, td_konv, zakazka, vynimka=AnoN
     zdrav = {
         "podnazov": f"{typ} poistenie zdravotné",
         "nazov": f"Zdravotné poistné",
-        "suma": -round(Decimal(zdravpoist['zdravotne']),2),
+        #"suma": -round(Decimal(zdravpoist['zdravotne']),2),
+        "suma": -Decimal(zaokr_nadol(zdravpoist['zdravotne'])),
         "zdroj": zakazka.zdroj,
         "zakazka": zakazka,
         "datum": vyplatny_termin(zden),
@@ -368,12 +378,12 @@ def gen_dds(poistne, zamestnanec, suma, zden, td_konv):
     subjekt = f"{zamestnanec.priezvisko}, {zamestnanec.meno}"
 
     #Vytvoriť položku pre DDS
-    suma = DDS_PRISPEVOK*float(suma)/100
+    suma = -DDS_PRISPEVOK*float(suma)/100
     # zdroj a zakazka: prostriedky na DDS nie sú pridelované zo 610 a 620, pochádzajý zo 630, teda štandardne z '11010001 spol. zák.'
     zakazka = TypZakazky.objects.get(kod="11010001 spol. zák.")
     dds = {
         "nazov": "DDS príspevok",
-        "suma": round(Decimal(suma),2),
+        "suma": -round(Decimal(suma),2),
         "zdroj": zakazka.zdroj,
         "zakazka": zakazka,
         "datum": vyplatny_termin(zden),
@@ -388,7 +398,7 @@ def gen_dds(poistne, zamestnanec, suma, zden, td_konv):
     dds_zdrav = {
         "podnazov": f"DDS poistenie zdravotné",
         "nazov": "Zdravotné poistné",   #zdravotné poistné nemá strop, takže môžeme riešiť takto
-        "suma": round(Decimal(zdravpoist['zdravotne']),2),
+        "suma": -Decimal(zaokr_nadol(zdravpoist['zdravotne'])),
         "zdroj": zakazka.zdroj,
         "zakazka": zakazka,
         "datum": vyplatny_termin(zden),
