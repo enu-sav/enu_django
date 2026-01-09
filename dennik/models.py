@@ -49,7 +49,7 @@ class TypFormulara(models.TextChoices):
     VSEOBECNY = 'vseobecny', 'Všeobecný dokument'    #Ľubovoľné tokeny, bez väzby na databázu
     #AUTOR = 'autor', 'Formulár k autorským zmluvám'    #Ľubovoľné tokeny plus vybrané tokeny autorských zmlúv
     #DOHZAM = 'dohzam', 'Formulár pre dohodárov a zamestnancov'    #Ľubovoľné tokeny plus vybrané tokeny pre dohodárov a zamestnancov
-    AH_ZRAZENA = 'ah_zrazena', 'Potvrdenie o zrazení dane z autorských honorárov'    # bez dátového súboru
+    AH_ZRAZENA = 'ah_zrazena', 'Potvrdenie o príjme z autorských honorárov'    # bez dátového súboru
 
 class SposobDorucenia(models.TextChoices):
     POSTA = 'posta', 'Pošta'
