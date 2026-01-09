@@ -682,7 +682,7 @@ class PlatovaRekapitulaciaAdmin(ModelAdminTotals):
         fs = wsheets[0]
         ls = wsheets[-1]
         ws = wb.create_sheet(title="Spolu")
-        zapisat_riadok(ws, fw, 1, ["Položka", "Názov z pdf", "Zákazka", "Mzdová učtáreň", "Django", "Rozdiel E-D"], header=True) 
+        zapisat_riadok(ws, fw, 1, ["Položka", "Názov z pdf", "Zákazka", "Mzdová učtáreň", "Django", "Rozdiel D-E"], header=True) 
         #podľa prvého dátového hárka
         ws1 = wb[fs]
         row = 2
