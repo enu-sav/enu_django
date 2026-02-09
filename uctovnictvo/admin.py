@@ -2110,7 +2110,7 @@ class PrispevokNaRekreaciuAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHist
 
     #['id', 'zdroj', 'program', 'zakazka', 'ekoklas', 'cinnost', 'poznamka', 'cislo', 'datum', 'zamestnanec', 'subor_ziadost', 'subor_vyuctovanie', 'prispevok', 'vyplatene_v_obdobi', 'subor_kl', 'datum_kl']
     def get_readonly_fields(self, request, obj=None):
-        #return []
+        if DEPLOY_STATE == "production" and request.user.is_superuser: return []
         fields = [f.name for f in PrispevokNaRekreaciu._meta.get_fields()]
         #fields.remove("id")
         editable = ["poznamka"]
