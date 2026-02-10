@@ -1696,8 +1696,8 @@ class NajomneFaktura(Klasifikacia, GetAdminURL):
 
     def clean(self): 
         errors={}
-        if self.suma <= 0:
-            errors["suma"] = "Suma faktúry musí byť kladná"
+        #if self.suma <= 0:
+            #errors["suma"] = "Suma faktúry musí byť kladná"
         if errors:
             raise ValidationError(errors)
 

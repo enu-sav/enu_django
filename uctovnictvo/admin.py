@@ -1395,7 +1395,7 @@ class NajomneFakturaAdmin(ZobrazitZmeny, AdminChangeLinksMixin, SimpleHistoryAdm
         if not platba.cislo_softip:
             self.message_user(request, f"Faktúra nemá zadané číslo zo Softipu,  vytváranie platobného príkazu nie je možné", messages.ERROR)
             return
-        if platba.suma < 0: #ak platíme (len vyúčtovanie)
+        if platba.suma < 0 and type(platba) != NajomneFaktura: #ak platíme (len vyúčtovanie)
             status, msg, vytvoreny_subor = VytvoritPlatobnyPrikaz(platba, request.user)
         else:
             status, msg, vytvoreny_subor = VytvoritKryciList(platba, request.user)
