@@ -9,7 +9,7 @@ from django.urls import reverse
 from django.db.models import Max
 from django.core.exceptions import ValidationError
 
-from beliana.settings import CONTRACTS_DIR_NAME, RLTS_DIR_NAME, TMPLTS_DIR_NAME, TAX_AGMT_DIR_NAME
+from beliana.settings import PRAVA_ILUSTRACIE_DIR_NAME, CONTRACTS_DIR_NAME, RLTS_DIR_NAME, TMPLTS_DIR_NAME, TAX_AGMT_DIR_NAME
 import os,re
 
 from uctovnictvo.models import EkonomickaKlasifikacia, Zdroj, TypZakazky
@@ -313,6 +313,42 @@ class ZmluvaGrafik(Zmluva):
         verbose_name_plural = 'Výtvarné zmluvy'
     def __str__(self):
         return f"{self.zmluvna_strana}-{self.cislo}"
+
+
+# cesta k súborom autorských a výtvarných zmlúv
+def prava_ilustracie_path(instance, filename):
+    return os.path.join(PRAVA_ILUSTRACIE_DIR_NAME, filename)
+
+class PravoNaPouzitie(models.Model):
+    oznacenie = "PP"
+    cislo = models.CharField("Číslo záznamu", max_length=50, null=True)
+    ilustracia_nazov =  models.CharField("Názov ilustrácie", max_length=100)
+    ilustracia_autor =  models.CharField("Autor ilustrácie", max_length=100)
+    zobrazit_v_knihe = models.CharField("Zobraziť v knihe", 
+            help_text = mark_safe("Autor súhlasil s použitím v knihe"),
+            max_length=3, 
+            null=True,
+            choices=AnoNie.choices)
+    zobrazit_na_webe = models.CharField("Zobraziť na_webe", 
+            help_text = mark_safe("Autor súhlasil s použitím na webe"),
+            null=True,
+            max_length=3, 
+            choices=AnoNie.choices)
+    ilustrácie_text  =  models.TextField("Doplňujúci text",
+            help_text = mark_safe("Uveďte údaje súvisiace so získaním práv k ilustrácii, detaily licenčných podmienok ap."),
+            null=True,
+            max_length=3000)
+    subor_prava = models.FileField("Súbor s údajmi", 
+            help_text = "Súbor faktúry, dohody, mailovej komunikácie ...",
+            storage=OverwriteStorage(), upload_to=prava_ilustracie_path, null = True, blank = True)
+    history = HistoricalRecords()
+
+    class Meta:
+        verbose_name = 'Právo na použitie'
+        verbose_name_plural = 'Právo na použitie'
+    def __str__(self):
+        return f"{self.cislo}-{self.ilustracia_nazov}"
+
 
 #Abstraktná trieda pre platby za autorské a výtvarné zmluvy
 class Platba(models.Model):

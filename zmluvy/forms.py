@@ -4,6 +4,7 @@ from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 from ipdb import set_trace as trace
 from .models import OsobaAutor, ZmluvaAutor, PlatbaAutorskaSumar, OsobaGrafik, ZmluvaGrafik, VytvarnaObjednavkaPlatba, StavZmluvy
+from .models import PravoNaPouzitie
 from dennik.models import Dokument, SposobDorucenia, TypDokumentu, InOut
 from dennik.forms import nasledujuce_cislo
 from beliana import settings
@@ -171,6 +172,24 @@ class ZmluvaAutorForm(ZmluvaForm):
         fields = "__all__"
         fields = ['cislo', 'stav_zmluvy', 'zmluva_odoslana', 'zmluva_vratena', 'zmluvna_strana',
             'honorar_ah', 'url_zmluvy', 'datum_zverejnenia_CRZ', 'poznamka']
+
+class PravoNaPouzitieForm(ZmluvaForm):
+    #inicializácia polí
+    def __init__(self, *args, **kwargs):
+        # do Admin treba pridať metódu get_form
+        self.request = kwargs.pop('request', None)
+        super().__init__(*args, **kwargs)
+        polecislo = "cislo"
+        # Ak je pole readonly, tak sa nenachádza vo fields. Preto testujeme fields aj initial
+        if polecislo in self.fields and not polecislo in self.initial:
+            nasledujuce = nasledujuce_cislo(PravoNaPouzitie)
+            self.fields[polecislo].help_text = f"Zadajte číslo novej autorskej zmluvy v tvare {PravoNaPouzitie.oznacenie}-RRRR-NNN. Predvolené číslo '{nasledujuce} bolo určené na základe čísel existujúcich zmlúv ako nasledujúce v poradí."
+            self.initial[polecislo] = nasledujuce
+
+    class Meta:
+        model = PravoNaPouzitie
+        fields = "__all__"
+        #fields = [ "cislo", "ilustracia_nazov", "ilustracia_autor", "zobrazit_v_knihe", "zobrazit_na_webe", "ilustrácie_text", "subor_prava"]
 
 class ZmluvaGrafikForm(ZmluvaForm):
     #inicializácia polí

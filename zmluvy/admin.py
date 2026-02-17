@@ -24,11 +24,13 @@ from django.db.models import Sum
 # pripajanie suborov k objektu: krok 1, importovať XxxSubor
 from .models import OsobaAutor, ZmluvaAutor, PlatbaAutorskaOdmena, PlatbaAutorskaSumar, StavZmluvy, PlatbaAutorskaSumarSubor
 from .models import AnoNie, SystemovySubor, PersonCommon, OsobaGrafik, ZmluvaGrafik, Zmluva, VytvarnaObjednavkaPlatba
+from .models import PravoNaPouzitie
 from .common import VytvoritAutorskuZmluvu, VytvoritVytvarnuObjednavku
 from .vyplatitautorske import VyplatitAutorskeOdmeny, VyplatitOdmenyGrafik
 from dennik.forms import nasledujuce_cislo
 
-from .forms import OsobaAutorForm, ZmluvaAutorForm, PlatbaAutorskaSumarForm, OsobaGrafikForm, ZmluvaGrafikForm, VytvarnaObjednavkaPlatbaForm
+from .forms import OsobaAutorForm, ZmluvaAutorForm, PlatbaAutorskaSumarForm, OsobaGrafikForm, ZmluvaGrafikForm
+from .forms import VytvarnaObjednavkaPlatbaForm, PravoNaPouzitieForm
 
 #https://pypi.org/project/django-admin-export-action/
 from admin_export_action.admin import export_selected_objects
@@ -403,6 +405,24 @@ class ZmluvaGrafikAdmin(ZmluvaAdmin, AdminChangeLinksMixin, SimpleHistoryAdmin, 
 
     def VytvoritZmluvu(self, zmluva):
         return VytvoritAutorskuZmluvu(zmluva, "Šablóna výtvarnej zmluvy")  #Presne takto musí byť šablóna označená
+
+@admin.register(PravoNaPouzitie)
+class PravoNaPouzitieAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
+    form = PravoNaPouzitieForm
+    def get_list_display(self, request):
+        return ( "cislo", "ilustracia_nazov", "ilustracia_autor", "zobrazit_v_knihe", "zobrazit_na_webe", "ilustrácie_text", "subor_prava")
+    def get_search_fields(self, request):
+        return ("cislo", "ilustracia_nazov", "ilustracia_autor")
+
+    # do AdminForm pridať request, aby v jej __init__ bolo request dostupné
+    def get_form(self, request, obj=None, **kwargs):
+        AdminForm = super(PravoNaPouzitieAdmin, self).get_form(request, obj, **kwargs)
+        class AdminFormMod(AdminForm):
+            def __new__(cls, *args, **kwargs):
+                kwargs['request'] = request
+                return AdminForm(*args, **kwargs)
+        return AdminFormMod
+
 
 class PlatbaAdmin(AdminChangeLinksMixin, SimpleHistoryAdmin, ModelAdminTotals):
     # autor_link: pridá autora zmluvy do zoznamu, vďaka AdminChangeLinksMixin
