@@ -149,8 +149,8 @@ def VytvoritSuborObjednavky(objednavka, username):
             pole = "pole" if pocet_poli==1 else "polia" if pocet_poli < 5 else "polí"
             return f"{co}: Prvá položka má {pocet_poli} {pole}, povolený počet je 2 alebo 5 (skontrolujte oddeľovače). {sn}"
        
-        #if pocet_poli == 2 and pocet_poloziek > 1:
-            #return f"{co}: Ak má prvý riadok len dve polia, tak v Objednané položky môže byť len jeden riadok. {sn}"
+        if pocet_poli == 2 and pocet_poloziek > 1:
+            return f"{co}: Ak má prvý riadok len dve polia, tak v Objednané položky môže byť len jeden riadok. {sn}"
         for rr, polozka in enumerate(polozky):
             plen = len(polozka.split(oddelovac))
             if plen != pocet_poli:
