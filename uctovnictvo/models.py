@@ -1026,7 +1026,7 @@ class PrijataFaktura(FakturaPravidelnaPlatba, GetAdminURL):
     doslo_datum = models.DateField('Došlo dňa',
             null=True)
     sumacm = models.DecimalField("Suma v cudzej mene (s DPH)", 
-            help_text = "V prípade uvedenia sumy v cudzej mene vložte do poľa 'Suma' nulu. Pole 'Suma vypňte až bude známa skutočne uhradená suma v EUR",
+            help_text = "V prípade uvedenia sumy v cudzej mene vložte do poľa 'Suma' nulu. Pole 'Suma vypňte až bude známa skutočne uhradená suma v EUR<br />Vložte sumu s DPH (zápornú, ak ide o platbu).",
             max_digits=8, 
             decimal_places=2, 
             blank = True,
@@ -1148,11 +1148,18 @@ class PrijataFaktura(FakturaPravidelnaPlatba, GetAdminURL):
                         raise ValidationError({
                             "rozpis_poloziek":f"Na riadku {nn+1} je zadané nesprávne číslo: {ex.args[0]}"
                         })
-            if np.abs(suma_spolu +float(self.suma)) >= 0.00999: #znamienka sú opačné
-                f1 = self._meta.get_field('suma').verbose_name
-                raise ValidationError({
-                    "rozpis_poloziek":f"Súčet čiastkových súm {suma_spolu} nie je zhodný s celkovou sumou {-self.suma} v poli '{f1}'" 
-                })
+            if self.mena == "EUR": 
+                if np.abs(suma_spolu +float(self.suma)) >= 0.00999: #znamienka sú opačné
+                    f1 = self._meta.get_field('suma').verbose_name
+                    raise ValidationError({
+                        "rozpis_poloziek":f"Súčet čiastkových súm {suma_spolu} nie je zhodný s celkovou sumou {-self.suma} v poli '{f1}'" 
+                    })
+            else:
+                if np.abs(suma_spolu +float(self.sumacm)) >= 0.00999: #znamienka sú opačné
+                    f1 = self._meta.get_field('sumacm').verbose_name
+                    raise ValidationError({
+                        "rozpis_poloziek":f"Súčet čiastkových súm {suma_spolu} nie je zhodný s celkovou sumou {-self.sumacm} v poli '{f1}'" 
+                    })
         super(PrijataFaktura, self).clean()
 
     #čerpanie rozpočtu v mesiaci, ktorý začína na 'zden'
