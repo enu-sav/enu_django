@@ -475,8 +475,14 @@ def VytvoritPlatobnyPrikaz(faktura, pouzivatel):
             mena = faktura.mena
             suma = -faktura.sumacm
             #zaklad_dane = 100 *  suma / (100+sadzbadph)
+            if faktura.prenosDP == AnoNie.ANO:
+                zaklad = 100*suma/(100+sadzbadph)
+                text = text.replace(f"{lt}CM{gt}", f"{locale_format(round(zaklad, 2))} {mena}")
+                text = text.replace(f"{lt}PDP{gt}", f"{locale_format(round(zaklad*sadzbadph/100,2))} {mena}")
+            else:
+                text = text.replace(f"{lt}CM{gt}", f"{locale_format(suma)} {mena}")
+                text = text.replace(f"{lt}PDP{gt}", "Nie")
             text = text.replace(f"{lt}DM{gt}", "")
-            text = text.replace(f"{lt}CM{gt}", f"{locale_format(suma)} {mena}")     # suma je záporná, vo formulári chceme kladné
 
         text = text.replace(f"{lt}dodavatel_faktura{gt}", faktura.dcislo if faktura.dcislo else "")
         text = text.replace(f"{lt}doslo_dna{gt}", faktura.doslo_datum.strftime("%d. %m. %Y") if faktura.doslo_datum else "" )
