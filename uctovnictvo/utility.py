@@ -1,6 +1,6 @@
 # Rôzne utilitky nezávislé na modeloch
 from ipdb import set_trace as trace
-from pypdf import PdfReader
+from PyPDF2 import PdfReader
 import re
 
 from django.core.files.uploadedfile import InMemoryUploadedFile

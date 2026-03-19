@@ -33,7 +33,7 @@ from django.http import HttpResponse
 from decimal import Decimal
 from django.core.exceptions import ValidationError
 
-from pypdf import PdfReader
+from PyPDF2 import PdfReader
 
 #https://pypi.org/project/django-admin-rangefilter/
 from rangefilter.filters import DateRangeFilter
